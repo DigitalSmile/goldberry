@@ -7,9 +7,9 @@ import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
 import java.util.Objects;
 
-import dev.goldberry.media.platform.vulkan.ffm.Structs;
-import dev.goldberry.media.platform.vulkan.ffm.VkConstants;
-import dev.goldberry.media.platform.vulkan.ffm.VkStructs;
+import dev.goldberry.natives.vulkan.Structs;
+import dev.goldberry.natives.vulkan.VkConstants;
+import dev.goldberry.natives.vulkan.VkStructs;
 
 /// A video profile Vulkan is asked about and decodes with: the codec, its
 /// profile, 4:2:0, and the bit depth of luma and chroma alike.

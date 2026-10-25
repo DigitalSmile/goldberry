@@ -155,6 +155,16 @@ module dev.goldberry.natives {
     exports dev.goldberry.natives.sdl.gpu.enums to
             dev.goldberry.core,
             dev.goldberry.gpu;
+    // The system's Vulkan, bound from its headers: to :media, which decodes
+    // video on a device of its own, and to :gpu, which traces rays on one.
+    // Both packages carry raw addresses, which is why neither reaches an
+    // application: the two modules wrap them, as :core wraps SDL.
+    exports dev.goldberry.natives.vulkan to
+            dev.goldberry.media,
+            dev.goldberry.gpu;
+    exports dev.goldberry.natives.vulkan.calls to
+            dev.goldberry.media,
+            dev.goldberry.gpu;
     /// libwebp's decoder, exported to `:core` alone.
     ///
     /// Blend2D's and Yoga's seal exactly, and for their reason: what an

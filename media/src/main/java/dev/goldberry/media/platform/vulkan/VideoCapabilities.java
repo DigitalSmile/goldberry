@@ -9,10 +9,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
-import dev.goldberry.media.platform.vulkan.ffm.Structs;
-import dev.goldberry.media.platform.vulkan.ffm.VkConstants;
-import dev.goldberry.media.platform.vulkan.ffm.VkStructs;
-import dev.goldberry.media.platform.vulkan.ffm.VulkanException;
+import dev.goldberry.natives.vulkan.Structs;
+import dev.goldberry.natives.vulkan.VkConstants;
+import dev.goldberry.natives.vulkan.VkStructs;
+import dev.goldberry.natives.vulkan.VulkanException;
 
 /// What the device decodes of one [VideoProfile]: the sizes, the decoded
 /// picture buffer, the bitstream buffer's alignments, the highest level, and

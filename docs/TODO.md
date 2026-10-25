@@ -235,6 +235,22 @@ Nothing open since 2026-10-18. The two AVX-512 entries are answered by a golden
 suite that names its instruction set (ADR-0649). The units between the text
 libraries are checked from the bytecode, and the four documented costs are
 closed as decisions under [Answered](#answered).
+- **Ray tracing and a game's settings are planned, not built.** SDL_GPU has no
+  ray tracing and hands out no native handles, so `:gpu` can trace rays only
+  in compute shaders over a BVH of its own until something reaches the
+  device. `docs/gpu-gaming-plan.md` (2026-10-25) is the plan: software ray
+  queries everywhere, hardware ray queries on Vulkan by an SDL patch or a
+  second device (D3, open for a decision), the unbound SDL_GPU calls
+  (indirect draws among them), present mode and frame cap at run time, render
+  scale with FSR 1, and HDR output. Found on the way: this machine's GTX 1660 Ti
+  has no `VK_KHR_ray_query`; lavapipe has it.
+
+  **D3 was decided on 2026-10-25: a Vulkan device of the toolkit's own**
+  (ADR-0666, parked), with ray-tracing pipelines rather than ray queries, and
+  that hardware tier is built: `dev.goldberry.gpu.raytrace`, on `:natives`'
+  Vulkan bindings, which moved there from `:media`. Green on the 1660 Ti and on
+  lavapipe. What is left of it — packed output, TLAS updates, compaction, the
+  CI lane, the measurements — and every other phase is in the plan's tables.
 ## Platform, compositor and CI
 - **The 60 fps claim is measured on one machine, and closing M1 is a CI job.**
   §16's M1 asks for a styled wrapped paragraph *resized* at 60 fps on Linux,

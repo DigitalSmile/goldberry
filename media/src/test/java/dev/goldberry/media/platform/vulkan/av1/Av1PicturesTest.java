@@ -28,11 +28,11 @@ import dev.goldberry.media.bitstream.av1.TileGroup;
 import dev.goldberry.media.codec.MediaType;
 import dev.goldberry.media.container.ClipFixtures;
 import dev.goldberry.media.container.Containers;
-import dev.goldberry.media.platform.vulkan.ffm.VkStructs;
-import dev.goldberry.media.platform.vulkan.ffm.VkStructs.StdVideoAV1Quantization;
-import dev.goldberry.media.platform.vulkan.ffm.VkStructs.StdVideoAV1SequenceHeader;
-import dev.goldberry.media.platform.vulkan.ffm.VkStructs.StdVideoAV1TileInfo;
-import dev.goldberry.media.platform.vulkan.ffm.VkStructs.StdVideoDecodeAV1PictureInfo;
+import dev.goldberry.natives.vulkan.VkStructs;
+import dev.goldberry.natives.vulkan.VkStructs.StdVideoAV1Quantization;
+import dev.goldberry.natives.vulkan.VkStructs.StdVideoAV1SequenceHeader;
+import dev.goldberry.natives.vulkan.VkStructs.StdVideoAV1TileInfo;
+import dev.goldberry.natives.vulkan.VkStructs.StdVideoDecodeAV1PictureInfo;
 
 /// AV1's headers as Vulkan's structs, held to the parser's fixtures: what the
 /// decoder would hand the device for every frame of a stream, with no device.

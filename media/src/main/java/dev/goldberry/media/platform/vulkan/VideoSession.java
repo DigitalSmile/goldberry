@@ -12,10 +12,10 @@ import java.util.Objects;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Function;
 
-import dev.goldberry.media.platform.vulkan.ffm.Structs;
-import dev.goldberry.media.platform.vulkan.ffm.VkConstants;
-import dev.goldberry.media.platform.vulkan.ffm.VkStructs;
-import dev.goldberry.media.platform.vulkan.ffm.VulkanException;
+import dev.goldberry.natives.vulkan.Structs;
+import dev.goldberry.natives.vulkan.VkConstants;
+import dev.goldberry.natives.vulkan.VkStructs;
+import dev.goldberry.natives.vulkan.VulkanException;
 
 /// One decoder's Vulkan video session: the session and its memory, the decoded
 /// picture buffer, a bitstream buffer and a read-back buffer, both mapped, and
@@ -156,7 +156,8 @@ public final class VideoSession implements AutoCloseable {
             info.set(ADDRESS, VkStructs.VkVideoSessionCreateInfoKHR.pStdHeaderVersion, version);
             var out = call.allocate(JAVA_LONG);
             VulkanException.check(
-                    f.createVideoSessionKHR().call(handle, info, MemorySegment.NULL, out), "vkCreateVideoSessionKHR");
+                    device.video().createVideoSessionKHR().call(handle, info, MemorySegment.NULL, out),
+                    "vkCreateVideoSessionKHR");
             this.session = out.get(JAVA_LONG, 0);
             bindSessionMemory(call);
 
@@ -269,7 +270,7 @@ public final class VideoSession implements AutoCloseable {
             info.set(JAVA_LONG, VkStructs.VkVideoSessionParametersCreateInfoKHR.videoSession, session);
             var out = call.allocate(JAVA_LONG);
             VulkanException.check(
-                    device.functions()
+                    device.video()
                             .createVideoSessionParametersKHR()
                             .call(device.handle(), info, MemorySegment.NULL, out),
                     "vkCreateVideoSessionParametersKHR");
@@ -280,7 +281,7 @@ public final class VideoSession implements AutoCloseable {
     /// Destroys session parameters this session made.
     public void destroyParameters(long parameters) {
         if (parameters != 0) {
-            device.functions().destroyVideoSessionParametersKHR().call(device.handle(), parameters, MemorySegment.NULL);
+            device.video().destroyVideoSessionParametersKHR().call(device.handle(), parameters, MemorySegment.NULL);
         }
     }
 
@@ -361,7 +362,7 @@ public final class VideoSession implements AutoCloseable {
             beginInfo.set(JAVA_LONG, VkStructs.VkVideoBeginCodingInfoKHR.videoSessionParameters, picture.parameters());
             beginInfo.set(JAVA_INT, VkStructs.VkVideoBeginCodingInfoKHR.referenceSlotCount, references.size() + 1);
             beginInfo.set(ADDRESS, VkStructs.VkVideoBeginCodingInfoKHR.pReferenceSlots, bound);
-            f.cmdBeginVideoCodingKHR().call(decodeCommands, beginInfo);
+            device.video().cmdBeginVideoCodingKHR().call(decodeCommands, beginInfo);
             if (!started) {
                 var control = Structs.allocate(
                         call,
@@ -371,7 +372,7 @@ public final class VideoSession implements AutoCloseable {
                         JAVA_INT,
                         VkStructs.VkVideoCodingControlInfoKHR.flags,
                         VkConstants.VK_VIDEO_CODING_CONTROL_RESET_BIT_KHR);
-                f.cmdControlVideoCodingKHR().call(decodeCommands, control);
+                device.video().cmdControlVideoCodingKHR().call(decodeCommands, control);
                 started = true;
             }
             var referenceSlots = Structs.array(
@@ -412,12 +413,12 @@ public final class VideoSession implements AutoCloseable {
                     ADDRESS,
                     VkStructs.VkVideoDecodeInfoKHR.pReferenceSlots,
                     references.isEmpty() ? MemorySegment.NULL : referenceSlots);
-            f.cmdDecodeVideoKHR().call(decodeCommands, decode);
+            device.video().cmdDecodeVideoKHR().call(decodeCommands, decode);
             var end = Structs.allocate(
                     call,
                     VkStructs.VkVideoEndCodingInfoKHR.LAYOUT,
                     VkConstants.VK_STRUCTURE_TYPE_VIDEO_END_CODING_INFO_KHR);
-            f.cmdEndVideoCodingKHR().call(decodeCommands, end);
+            device.video().cmdEndVideoCodingKHR().call(decodeCommands, end);
             VulkanException.check(f.endCommandBuffer().call(decodeCommands), "vkEndCommandBuffer");
 
             submit(call, device.decodeQueue(), decodeCommands, false, true, 0, device.decodeLock());
@@ -632,17 +633,17 @@ public final class VideoSession implements AutoCloseable {
     }
 
     private void bindSessionMemory(Arena call) {
-        var f = device.functions();
+        var video = device.video();
         var count = call.allocate(JAVA_INT);
         VulkanException.check(
-                f.getVideoSessionMemoryRequirementsKHR().call(device.handle(), session, count, MemorySegment.NULL),
+                video.getVideoSessionMemoryRequirementsKHR().call(device.handle(), session, count, MemorySegment.NULL),
                 "vkGetVideoSessionMemoryRequirementsKHR");
         var n = count.get(JAVA_INT, 0);
         var layout = VkStructs.VkVideoSessionMemoryRequirementsKHR.LAYOUT;
         var requirements =
                 Structs.array(call, layout, n, VkConstants.VK_STRUCTURE_TYPE_VIDEO_SESSION_MEMORY_REQUIREMENTS_KHR);
         VulkanException.check(
-                f.getVideoSessionMemoryRequirementsKHR().call(device.handle(), session, count, requirements),
+                video.getVideoSessionMemoryRequirementsKHR().call(device.handle(), session, count, requirements),
                 "vkGetVideoSessionMemoryRequirementsKHR");
         var bindLayout = VkStructs.VkBindVideoSessionMemoryInfoKHR.LAYOUT;
         var binds =
@@ -666,7 +667,8 @@ public final class VideoSession implements AutoCloseable {
                     memoryRequirements.get(JAVA_LONG, VkStructs.VkMemoryRequirements.size));
         }
         VulkanException.check(
-                f.bindVideoSessionMemoryKHR().call(device.handle(), session, n, binds), "vkBindVideoSessionMemoryKHR");
+                video.bindVideoSessionMemoryKHR().call(device.handle(), session, n, binds),
+                "vkBindVideoSessionMemoryKHR");
     }
 
     /// Memory for `requirements`, of a type with every flag of `properties`
@@ -819,7 +821,7 @@ public final class VideoSession implements AutoCloseable {
             f.freeMemory().call(handle, imageMemory, none);
         }
         if (session != 0) {
-            f.destroyVideoSessionKHR().call(handle, session, none);
+            device.video().destroyVideoSessionKHR().call(handle, session, none);
         }
         for (var memory : sessionMemory) {
             f.freeMemory().call(handle, memory, none);

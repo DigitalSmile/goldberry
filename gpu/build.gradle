@@ -156,6 +156,60 @@ tasks.register('compileShaders') {
     }
 }
 
+// The ray tracer's shader libraries, which run on its own Vulkan device and
+// never on SDL's: SPIR-V alone, from `<name>.lib.hlsl` (shader model 6.3, every
+// entry point of the library in one module). A task of its own, so a change to
+// them does not recompile, and rewrite, the shipped DXIL of the sets above.
+// RayShaderManifestTest holds the bytecode to its source, as ShaderManifestTest
+// does for the rest.
+def rayShaders = [
+        sources: layout.projectDirectory.dir('src/main/raytrace'),
+        output : layout.projectDirectory.dir('src/main/resources/dev/goldberry/gpu/raytrace/shaders'),
+]
+
+tasks.register('compileRayShaders') {
+    group = 'build'
+    description = 'Compiles src/main/raytrace (ray-tracing shader libraries) to SPIR-V, and records their sources\' hashes.'
+    inputs.dir(rayShaders.sources)
+    outputs.dir(rayShaders.output)
+
+    doLast {
+        def dxc = tools.fileOrNull('dxc')
+        if (dxc == null) {
+            throw new GradleException("""\
+                compileRayShaders needs DXC, which the Vulkan SDK installs (https://vulkan.lunarg.com).
+                It can be named directly, e.g. -Pgoldberry.dxc=/path/to/dxc.""".stripIndent())
+        }
+        def run = { List<String> command ->
+            def result = providers.exec {
+                commandLine command
+                ignoreExitValue = true
+            }
+            if (result.result.get().exitValue != 0) {
+                throw new GradleException("${command.join(' ')} failed:\n${result.standardError.asText.get()}")
+            }
+            return result.standardOutput.asText.get() + result.standardError.asText.get()
+        }
+        def dxcVersion = run([dxc.absolutePath, '--version']).readLines().first().trim()
+        def out = rayShaders.output.asFile
+        out.mkdirs()
+        out.listFiles().each { it.delete() }
+        def manifest = new TreeMap<String, String>()
+        def sources = rayShaders.sources.asFile.listFiles().findAll { it.name.endsWith('.lib.hlsl') }.sort { it.name }
+        sources.each { source ->
+            def name = source.name - '.lib.hlsl'
+            run([dxc.absolutePath, '-T', 'lib_6_3', '-spirv', '-fspv-target-env=vulkan1.2',
+                 '-Fo', new File(out, "${name}.spv").absolutePath, source.absolutePath])
+            manifest["${name}.sha256"] = MessageDigest.getInstance('SHA-256').digest(source.bytes).encodeHex().toString()
+        }
+        new File(out, 'shaders.properties').text = (
+                ["# Written by :gpu:compileRayShaders. Each source's SHA-256, checked by RayShaderManifestTest.",
+                 "tools=${dxcVersion}"] +
+                        manifest.collect { key, value -> "${key}=${value}" }).join('\n') + '\n'
+        logger.lifecycle("Compiled ${sources.size()} ray-tracing shader libraries with ${dxcVersion}")
+    }
+}
+
 // ============================================================================
 // Tests
 //
@@ -178,3 +232,9 @@ nativeTests.probe('gpuVideoProbe', 'dev.goldberry.gpu.render.GpuVideoProbe',
 // picture every frame.
 nativeTests.probe('videoLayerProbe', 'dev.goldberry.gpu.video.VideoLayerProbe',
         'Measures the video layer\'s upload of a 4K picture each frame.')
+
+// The ray tracer's measurement: a 130,000-triangle scene built, and traced
+// with shadows at 1080p and 4K with the records copied out. Takes
+// -Pgoldberry.raytracing.device=llvmpipe for lavapipe.
+nativeTests.probe('rayTraceProbe', 'dev.goldberry.gpu.raytrace.RayTraceProbe',
+        'Measures building a ray-tracing scene and tracing it with shadows at 1080p and 4K.')

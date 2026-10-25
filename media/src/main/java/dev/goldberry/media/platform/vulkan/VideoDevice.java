@@ -10,17 +10,19 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.Function;
 
 import org.slf4j.Logger;
 
 import dev.goldberry.log.Logs;
-import dev.goldberry.media.platform.vulkan.ffm.Structs;
-import dev.goldberry.media.platform.vulkan.ffm.VkConstants;
-import dev.goldberry.media.platform.vulkan.ffm.VkDeviceFunctions;
-import dev.goldberry.media.platform.vulkan.ffm.VkStructs;
-import dev.goldberry.media.platform.vulkan.ffm.VulkanException;
-import dev.goldberry.media.platform.vulkan.ffm.VulkanInstance;
-import dev.goldberry.media.platform.vulkan.ffm.VulkanLoader;
+import dev.goldberry.natives.vulkan.Structs;
+import dev.goldberry.natives.vulkan.VkConstants;
+import dev.goldberry.natives.vulkan.VkDeviceFunctions;
+import dev.goldberry.natives.vulkan.VkStructs;
+import dev.goldberry.natives.vulkan.VkVideoFunctions;
+import dev.goldberry.natives.vulkan.VulkanException;
+import dev.goldberry.natives.vulkan.VulkanInstance;
+import dev.goldberry.natives.vulkan.VulkanLoader;
 
 /// The one Vulkan device a process decodes video with: a physical device with
 /// a queue family that decodes and one that copies, made the first time a
@@ -50,6 +52,7 @@ public final class VideoDevice {
     private final MemorySegment physicalDevice;
     private final MemorySegment handle;
     private final VkDeviceFunctions functions;
+    private final VkVideoFunctions video;
     private final String name;
     private final int decodeFamily;
     private final int transferFamily;
@@ -75,11 +78,13 @@ public final class VideoDevice {
         this.decodeFamily = decodeFamily;
         this.transferFamily = transferFamily;
         this.operations = operations;
-        this.functions = VkDeviceFunctions.resolve(proc -> {
+        Function<String, MemorySegment> procAddr = proc -> {
             try (var arena = Arena.ofConfined()) {
                 return instance.deviceProc(handle, arena.allocateFrom(proc));
             }
-        });
+        };
+        this.functions = VkDeviceFunctions.resolve(procAddr);
+        this.video = VkVideoFunctions.resolve(procAddr);
         try (var arena = Arena.ofConfined()) {
             var queue = arena.allocate(ADDRESS);
             functions.getDeviceQueue().call(handle, decodeFamily, 0, queue);
@@ -101,7 +106,7 @@ public final class VideoDevice {
             return Optional.empty();
         }
         try {
-            var instance = VulkanInstance.create(loader.get());
+            var instance = VulkanInstance.create(loader.get(), "goldberry-media");
             for (var physical : instance.physicalDevices()) {
                 var extensions = instance.deviceExtensions(physical);
                 if (!extensions.contains(VkConstants.VK_KHR_VIDEO_QUEUE_EXTENSION_NAME)
@@ -206,6 +211,11 @@ public final class VideoDevice {
 
     VkDeviceFunctions functions() {
         return functions;
+    }
+
+    /// The video functions, which this device enabled.
+    VkVideoFunctions video() {
+        return video;
     }
 
     /// The device's name, for messages.

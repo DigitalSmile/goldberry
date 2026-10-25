@@ -14,15 +14,15 @@ import dev.goldberry.media.bitstream.h264.PictureParameterSet;
 import dev.goldberry.media.bitstream.h264.ScalingLists;
 import dev.goldberry.media.bitstream.h264.SequenceParameterSet;
 import dev.goldberry.media.bitstream.h264.Vui;
-import dev.goldberry.media.platform.vulkan.ffm.Structs;
-import dev.goldberry.media.platform.vulkan.ffm.VkConstants;
-import dev.goldberry.media.platform.vulkan.ffm.VkStructs;
-import dev.goldberry.media.platform.vulkan.ffm.VkStructs.StdVideoH264PictureParameterSet;
-import dev.goldberry.media.platform.vulkan.ffm.VkStructs.StdVideoH264PpsFlags;
-import dev.goldberry.media.platform.vulkan.ffm.VkStructs.StdVideoH264SequenceParameterSet;
-import dev.goldberry.media.platform.vulkan.ffm.VkStructs.StdVideoH264SequenceParameterSetVui;
-import dev.goldberry.media.platform.vulkan.ffm.VkStructs.StdVideoH264SpsFlags;
-import dev.goldberry.media.platform.vulkan.ffm.VkStructs.StdVideoH264SpsVuiFlags;
+import dev.goldberry.natives.vulkan.Structs;
+import dev.goldberry.natives.vulkan.VkConstants;
+import dev.goldberry.natives.vulkan.VkStructs;
+import dev.goldberry.natives.vulkan.VkStructs.StdVideoH264PictureParameterSet;
+import dev.goldberry.natives.vulkan.VkStructs.StdVideoH264PpsFlags;
+import dev.goldberry.natives.vulkan.VkStructs.StdVideoH264SequenceParameterSet;
+import dev.goldberry.natives.vulkan.VkStructs.StdVideoH264SequenceParameterSetVui;
+import dev.goldberry.natives.vulkan.VkStructs.StdVideoH264SpsFlags;
+import dev.goldberry.natives.vulkan.VkStructs.StdVideoH264SpsVuiFlags;
 
 /// H.264's parameter sets as Vulkan Video's `StdVideoH264*` structs, and the
 /// session parameters create info that carries them.

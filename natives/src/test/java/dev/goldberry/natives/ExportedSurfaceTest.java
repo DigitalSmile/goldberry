@@ -211,6 +211,10 @@ class ExportedSurfaceTest {
         // windows and presents, `:gpu` is the public API. An application reaches
         // it only through `:gpu`.
         sealedTo.put("dev.goldberry.natives.sdl.gpu", Set.of("dev.goldberry.core", "dev.goldberry.gpu"));
+        // The system's Vulkan, to the two modules that make a device with it:
+        // `:media` decodes video on one, `:gpu` traces rays on one.
+        sealedTo.put("dev.goldberry.natives.vulkan", Set.of("dev.goldberry.media", "dev.goldberry.gpu"));
+        sealedTo.put("dev.goldberry.natives.vulkan.calls", Set.of("dev.goldberry.media", "dev.goldberry.gpu"));
 
         var descriptor = descriptor(classesRoot());
         var open = exportedPackages();

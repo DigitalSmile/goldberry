@@ -7440,6 +7440,16 @@ a painted frame reaches the screen, and what else can be on it.
   server's framebuffer, so a window given back from the GPU keeps its id. On macOS
   and Windows a page still moves its window to the CPU, until someone measures
   them.
+- **Rays are traced on a Vulkan device of the toolkit's own** (ADR-0666, parked,
+  2026-10-25; `docs/gpu-gaming-plan.md` is the plan). SDL_GPU has no ray tracing
+  and hands out no device, so `dev.goldberry.gpu.raytrace`'s `RayTracer` makes
+  one with `:natives`' Vulkan bindings — moved there from `:media`, which decodes
+  video through them as before — builds a scene's acceleration structures,
+  traces a primary and a shadow ray a pixel through a ray-tracing pipeline, and
+  hands back a hit record a pixel for `CopyPass.upload`. It matches a
+  double-precision reference on the GTX 1660 Ti and on lavapipe. Linux and
+  Windows only; macOS has none. Nothing in the showcase uses it yet, and the CI
+  lane does not run it.
 
 **What is not proven.** Everything above was built and measured on Metal. On
 Linux the composited path has run on this project's machine, under X11 on

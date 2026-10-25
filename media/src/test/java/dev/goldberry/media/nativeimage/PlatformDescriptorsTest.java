@@ -13,8 +13,6 @@ import org.junit.jupiter.api.Test;
 
 import dev.goldberry.media.platform.linux.LinuxBindings;
 import dev.goldberry.media.platform.macos.MacBindings;
-import dev.goldberry.media.platform.vulkan.ffm.VkCalls;
-import dev.goldberry.media.platform.vulkan.ffm.VulkanLoader;
 import dev.goldberry.media.platform.windows.WindowsBindings;
 
 /// The system decoders' half of the metadata, for all three systems. None of it
@@ -31,8 +29,6 @@ class PlatformDescriptorsTest {
             assertFalse(system.isEmpty());
             assertTrue(downcalls.containsAll(system));
         }
-        assertTrue(downcalls.containsAll(VkCalls.DESCRIPTORS), "Vulkan Video's");
-        assertTrue(downcalls.contains(VulkanLoader.procAddrDescriptor()));
     }
 
     @Test

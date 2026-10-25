@@ -6,9 +6,13 @@
     "The toolkit's shaders, compiled by :gpu:compileShaders into SPIR-V, DXIL and",
     "MSL, and the manifest of their sources' hashes. ShaderLibrary reads them",
     "with getResourceAsStream in whichever format the device takes, so an image",
-    "needs all three families: the machine it runs on decides which is read."
+    "needs all three families: the machine it runs on decides which is read.",
+    "",
+    "The ray tracer's shader library, compiled by :gpu:compileRayShaders into",
+    "SPIR-V alone, which its own Vulkan device reads."
   ],
   "resources": [
-    { "module": "dev.goldberry.gpu", "glob": "dev/goldberry/gpu/shaders/*" }
+    { "module": "dev.goldberry.gpu", "glob": "dev/goldberry/gpu/shaders/*" },
+    { "module": "dev.goldberry.gpu", "glob": "dev/goldberry/gpu/raytrace/shaders/*" }
   ]
 }

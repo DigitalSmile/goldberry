@@ -33,17 +33,17 @@ import dev.goldberry.media.platform.vulkan.VideoDevice;
 import dev.goldberry.media.platform.vulkan.VideoProfile;
 import dev.goldberry.media.platform.vulkan.VideoSession;
 import dev.goldberry.media.platform.vulkan.VulkanCodec;
-import dev.goldberry.media.platform.vulkan.ffm.Structs;
-import dev.goldberry.media.platform.vulkan.ffm.VkConstants;
-import dev.goldberry.media.platform.vulkan.ffm.VkStructs;
-import dev.goldberry.media.platform.vulkan.ffm.VkStructs.StdVideoDecodeVP9PictureInfo;
-import dev.goldberry.media.platform.vulkan.ffm.VkStructs.StdVideoDecodeVP9PictureInfoFlags;
-import dev.goldberry.media.platform.vulkan.ffm.VkStructs.StdVideoVP9ColorConfig;
-import dev.goldberry.media.platform.vulkan.ffm.VkStructs.StdVideoVP9ColorConfigFlags;
-import dev.goldberry.media.platform.vulkan.ffm.VkStructs.StdVideoVP9LoopFilter;
-import dev.goldberry.media.platform.vulkan.ffm.VkStructs.StdVideoVP9LoopFilterFlags;
-import dev.goldberry.media.platform.vulkan.ffm.VkStructs.StdVideoVP9Segmentation;
-import dev.goldberry.media.platform.vulkan.ffm.VkStructs.StdVideoVP9SegmentationFlags;
+import dev.goldberry.natives.vulkan.Structs;
+import dev.goldberry.natives.vulkan.VkConstants;
+import dev.goldberry.natives.vulkan.VkStructs;
+import dev.goldberry.natives.vulkan.VkStructs.StdVideoDecodeVP9PictureInfo;
+import dev.goldberry.natives.vulkan.VkStructs.StdVideoDecodeVP9PictureInfoFlags;
+import dev.goldberry.natives.vulkan.VkStructs.StdVideoVP9ColorConfig;
+import dev.goldberry.natives.vulkan.VkStructs.StdVideoVP9ColorConfigFlags;
+import dev.goldberry.natives.vulkan.VkStructs.StdVideoVP9LoopFilter;
+import dev.goldberry.natives.vulkan.VkStructs.StdVideoVP9LoopFilterFlags;
+import dev.goldberry.natives.vulkan.VkStructs.StdVideoVP9Segmentation;
+import dev.goldberry.natives.vulkan.VkStructs.StdVideoVP9SegmentationFlags;
 
 /// VP9 on Vulkan Video: each frame of a packet, superframes split, told to
 /// the decode with its uncompressed header and copied back when it is shown,

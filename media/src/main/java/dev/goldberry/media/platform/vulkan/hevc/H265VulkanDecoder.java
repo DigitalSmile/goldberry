@@ -36,13 +36,13 @@ import dev.goldberry.media.platform.vulkan.VideoDevice;
 import dev.goldberry.media.platform.vulkan.VideoProfile;
 import dev.goldberry.media.platform.vulkan.VideoSession;
 import dev.goldberry.media.platform.vulkan.VulkanCodec;
-import dev.goldberry.media.platform.vulkan.ffm.Structs;
-import dev.goldberry.media.platform.vulkan.ffm.VkConstants;
-import dev.goldberry.media.platform.vulkan.ffm.VkStructs;
-import dev.goldberry.media.platform.vulkan.ffm.VkStructs.StdVideoDecodeH265PictureInfo;
-import dev.goldberry.media.platform.vulkan.ffm.VkStructs.StdVideoDecodeH265PictureInfoFlags;
-import dev.goldberry.media.platform.vulkan.ffm.VkStructs.StdVideoDecodeH265ReferenceInfo;
-import dev.goldberry.media.platform.vulkan.ffm.VkStructs.StdVideoDecodeH265ReferenceInfoFlags;
+import dev.goldberry.natives.vulkan.Structs;
+import dev.goldberry.natives.vulkan.VkConstants;
+import dev.goldberry.natives.vulkan.VkStructs;
+import dev.goldberry.natives.vulkan.VkStructs.StdVideoDecodeH265PictureInfo;
+import dev.goldberry.natives.vulkan.VkStructs.StdVideoDecodeH265PictureInfoFlags;
+import dev.goldberry.natives.vulkan.VkStructs.StdVideoDecodeH265ReferenceInfo;
+import dev.goldberry.natives.vulkan.VkStructs.StdVideoDecodeH265ReferenceInfoFlags;
 
 /// HEVC on Vulkan Video: an `hvcC` stream's access units, one picture a
 /// packet, each told to the decode with its order count and reference picture

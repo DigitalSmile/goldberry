@@ -185,3 +185,66 @@ back where the window is composited, and the window surface's pixels where it
 presents on the CPU. The launcher writes it for a run that paints a set number
 of frames: `--frames=N --capture=PATH` writes the last frame as a PNG. The
 flags are listed under [Measuring](../performance/measuring.md#the-flags).
+
+## Ray tracing
+
+`dev.goldberry.gpu.raytrace` traces rays through a scene of triangle meshes
+in hardware, and hands back what each pixel's ray hit and whether the light
+reaches it. The windowing layer's GPU has no ray tracing, so the tracer runs
+on a Vulkan device of its own beside it, and its answers come back through
+memory for a renderer to upload into a texture or a buffer of the canvas's
+device.
+
+**Asking first.** `RayTracer.availability()` is `RayTracing.Hardware`, naming
+the device, or `RayTracing.Unavailable` with a sentence that says why — no
+Vulkan, or each device and what it lacks. A settings screen shows that
+sentence beside its switch. `RayTracer.open(RayTracingMode.AUTO)` is empty
+where there is no ray tracing; `HARDWARE` throws with the same sentence; `OFF`
+opens nothing. The system property `goldberry.raytracing=off` turns it off for
+the process, and `goldberry.raytracing.device=<part of a name>` picks a device
+where there are several.
+
+**The scene.** A `TriangleMesh` is positions and indices. An `Instance` places
+a mesh with a `Transform` and gives it an id, which is what a hit reports, and
+a mask. `SceneGeometry.of(instances…)` is the scene, and `tracer.build(scene)`
+builds it into a `RayScene`: one acceleration structure for each distinct
+mesh, shared by every instance of it, and one over the instances. A scene is
+built again when an instance moves.
+
+```java
+try (var tracer = RayTracer.open(RayTracingMode.AUTO).orElseThrow()) {
+    var cube = TriangleMesh.of(positions, indices);
+    var ground = Instance.of(plane, Transform.IDENTITY, 1);
+    var box = Instance.of(cube, Transform.translation(new Vector3(0, 0.5f, 0)), 2);
+    try (var scene = tracer.build(SceneGeometry.of(ground, box))) {
+        var camera = Camera.lookingAt(new Vector3(0, 6, 8), Vector3.ZERO, 50);
+        var request = TraceRequest.of(camera, 640, 360).withShadowsToward(sun);
+        var hits = tracer.trace(scene, request);
+        frame.copyPass(pass -> pass.upload(shadowMask, hits.shadowMask()));
+    }
+}
+```
+
+**The rays.** A `TraceRequest` sends one ray through the centre of each pixel
+of a `Camera`'s picture, rows from the top, and, with `withShadowsToward`, a
+second ray from each hit toward a directional light. A camera a renderer
+rasterizes with gives rays through the same pixel centres, so the traced
+picture lines up with the drawn one.
+
+**The hits.** `Hits` holds a 24-byte record a pixel: the instance's id (or
+`Hits.MISS`), the triangle's index in its mesh, the distance along the ray,
+the barycentrics of the triangle's second and third vertex, and whether the
+light reaches the point. `hits.hit(x, y)` reads one as a `Hit`.
+`hits.shadowMask()` is an `R8_UNORM` picture, 255 in the light and 0 in
+shadow; `hits.distances(miss)` is an `R32_FLOAT` picture; `hits.records()` is
+the records themselves, for a storage buffer a shader reads.
+
+**What it costs.** A trace returns when the GPU is done, with its records
+copied back: the rays, then the copy. The shadow mask is a byte a pixel; the
+records are 24. Tracing a smaller picture than the canvas and sampling it
+scaled is the usual way to keep that within a frame.
+
+**Where it runs.** Linux and Windows, on a GPU whose Vulkan driver has the
+ray-tracing pipeline extensions — NVIDIA from the GTX 16 series, AMD from
+RDNA 2, Intel Arc — and on the CPU through Mesa's software Vulkan. macOS has
+none.

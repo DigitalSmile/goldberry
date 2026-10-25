@@ -42,10 +42,13 @@ public final class ForwardedProperties {
             "goldberry.media.required",
             "goldberry.platform.required",
             "goldberry.gpu.required",
+            "goldberry.raytracing.required",
             // Media Foundation's decoders on Windows, which `false` turns off.
             "goldberry.media.mediaFoundation",
             // The GPU lane's video driver, `offscreen` for lavapipe.
             "goldberry.gpu.videoDriver",
+            // Which Vulkan device the ray tracer takes, by part of its name.
+            "goldberry.raytracing.device",
             // Read into a static final when the renderer initialises.
             "goldberry.trace.frames",
             // How much room a test's clock bounds get on a loaded machine.

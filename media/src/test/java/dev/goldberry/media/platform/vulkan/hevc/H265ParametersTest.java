@@ -13,9 +13,9 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
 import dev.goldberry.media.bitstream.hevc.ShortTermRefPicSet;
-import dev.goldberry.media.platform.vulkan.ffm.Structs;
-import dev.goldberry.media.platform.vulkan.ffm.VkConstants;
-import dev.goldberry.media.platform.vulkan.ffm.VkStructs.StdVideoH265ShortTermRefPicSet;
+import dev.goldberry.natives.vulkan.Structs;
+import dev.goldberry.natives.vulkan.VkConstants;
+import dev.goldberry.natives.vulkan.VkStructs.StdVideoH265ShortTermRefPicSet;
 
 /// HEVC's parameter sets as Vulkan's structs: the arithmetic the mapping does.
 @DisplayName("HEVC's parameter sets for Vulkan")

@@ -46,6 +46,11 @@ module dev.goldberry.gpu {
     /// application's test hands to `Offscreen.gpu`.
     exports dev.goldberry.gpu.offscreen;
 
+    /// Ray tracing: a scene built on a Vulkan device of the module's own, rays
+    /// traced through it, and what they hit, for a renderer to upload into
+    /// SDL's textures. SDL's GPU has none of it.
+    exports dev.goldberry.gpu.raytrace;
+
     /// Video on the GPU: the layer `:media`'s `video-view` shows its pictures
     /// through when this module is present. To `:media`
     /// alone, which `requires static` this module: it is the one caller, and an
@@ -67,8 +72,9 @@ module dev.goldberry.gpu {
             dev.goldberry.gpu.composite.SdlCompositor;
 
     /// SDL_GPU's wrappers, which `:natives` exports to this module and to
-    /// `:core` alone. Not `transitive`: no type of `:natives` is in
-    /// this module's public surface.
+    /// `:core` alone, and the system's Vulkan, which it exports to this module
+    /// and `:media`, for the ray tracer's own device. Not `transitive`: no type
+    /// of `:natives` is in this module's public surface.
     requires dev.goldberry.natives;
 
     /// JSpecify's nullness annotations, for the packages under NullAway.

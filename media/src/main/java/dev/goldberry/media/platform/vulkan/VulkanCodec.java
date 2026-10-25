@@ -3,7 +3,7 @@ package dev.goldberry.media.platform.vulkan;
 import java.util.Optional;
 
 import dev.goldberry.media.codec.CodecId;
-import dev.goldberry.media.platform.vulkan.ffm.VkConstants;
+import dev.goldberry.natives.vulkan.VkConstants;
 
 /// The codecs Vulkan Video decodes, each with its codec operation and the
 /// version of its `StdVideo` headers the bindings were written against.
