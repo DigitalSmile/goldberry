@@ -361,16 +361,14 @@ closed as decisions under [Answered](#answered).
   here and has been through CI since: the Snapshots after it and the `v2026.2`
   release ran on it (checked 2026-10-18).
 - **Media on Windows decodes on the CPU in every run anybody has made.** All four
-  targets build and pass `:media:check` in `media.yml` (2026-10-12), so the
-  entry's old title is out of date: `linux-aarch64` passed on its first run, and
-  `windows-x64` after four fixes. What is left is a hardware path no runner has.
-  D3D11VA is on by default on Windows, and the Windows runner has no GPU, so
-  it has only ever fallen back. VAAPI is off by default on Linux, on purpose,
-  because it makes `libavutil` link `libva`. The Media Foundation decoders, on
-  by default since 2026-10-25 (ADR-0664, parked), are the synchronous software
-  transforms, with no Direct3D device handed to them. —
-  [ADR-0486](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0486-ffmpeg-and-dav1d-are-built-at-o2-to-fit-the-size-gate.md),
-  `docs/media-plan.md`
+  targets build `libgoldberry-media` and pass `:media:check` in `media.yml`
+  (Snapshot #74, 2026-10-25). What is left is a hardware path no runner has.
+  FFmpeg's D3D11VA and VAAPI went with FFmpeg (ADR-0651, parked). Windows's own
+  decoders, Media Foundation, on by default since 2026-10-25 (ADR-0664,
+  parked), are the synchronous software transforms, with no Direct3D device
+  handed to them. Vulkan Video (ADR-0663, parked) decodes on a GPU, which no
+  runner has; on Linux, GStreamer reaches VA-API and NVDEC through its own
+  plugins, which no runner has either. — `docs/ffmpeg-out.md`
 ## The native build and its bindings
 - **The layout registry's constant half is where the value is.** When this was
   written it was seven struct layouts and 61 constant rows, 48 of them Yoga
@@ -432,7 +430,8 @@ closed as decisions under [Answered](#answered).
   cannot put one. So a Gradle plugin is the whole of the answer, which is what
   JavaFX, LWJGL and sqlite-jdbc each ship. It is not built: it is a new
   published artifact with its own release surface. **`:media` has the same problem since ADR-0495**: an application
-  picks `goldberry-media`'s `ffmpeg-<target>` classifier by hand too. What did change is the documented snippet — **all four
+  picks `goldberry-media`'s `natives-<target>` classifier by hand too (named
+  `ffmpeg-<target>` until FFmpeg left, ADR-0651, parked). What did change is the documented snippet — **all four
   classifiers**, because `NativeLibrary` picks at run time and the
   one-platform form is the one that fails quietly for somebody building on
   macOS for Linux.
