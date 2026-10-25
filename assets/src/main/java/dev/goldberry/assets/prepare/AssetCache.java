@@ -3,6 +3,7 @@ package dev.goldberry.assets.prepare;
 import java.io.IOException;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.FileSystemException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
@@ -27,8 +28,16 @@ import dev.goldberry.assets.download.Downloader;
 /// Closing the cache closes its [Downloader].
 public final class AssetCache implements AutoCloseable {
 
+    /// Moves a checked download into place: [Files#move] replacing what is
+    /// there, or a test's.
+    @FunctionalInterface
+    interface Mover {
+        void move(Path partial, Path target) throws IOException;
+    }
+
     private final Path directory;
     private final Downloader downloader;
+    private final Mover mover;
 
     public AssetCache(Path directory) {
         this(directory, Downloader.standard());
@@ -36,8 +45,14 @@ public final class AssetCache implements AutoCloseable {
 
     /// A cache that downloads through `downloader` — a test's, or the build's.
     public AssetCache(Path directory, Downloader downloader) {
+        this(directory, downloader,
+                (partial, target) -> Files.move(partial, target, StandardCopyOption.REPLACE_EXISTING));
+    }
+
+    AssetCache(Path directory, Downloader downloader, Mover mover) {
         this.directory = directory;
         this.downloader = downloader;
+        this.mover = mover;
     }
 
     /// Returns the archive's path, downloading it only if what is on disk is not
@@ -68,7 +83,17 @@ public final class AssetCache implements AutoCloseable {
                                 + ".\nThe upstream release changed, or the download was corrupted."
                                 + " Do not update the checksum without establishing which.");
             }
-            Files.move(partial, target, StandardCopyOption.REPLACE_EXISTING);
+            try {
+                mover.move(partial, target);
+            } catch (FileSystemException e) {
+                // Two builds fetching one archive at once, as two modules'
+                // tasks do on a cold cache: Windows refuses to replace a file
+                // the other has open to hash it. What it has open is the same
+                // archive, checked, so it is the cache hit this one was after.
+                if (!(Files.isRegularFile(target) && sha256(target).equals(asset.sha256()))) {
+                    throw e;
+                }
+            }
             return target;
         } finally {
             Files.deleteIfExists(partial);

@@ -47,7 +47,11 @@ class RayTracerTest {
         for (var resource : closing.reversed()) {
             resource.close();
         }
-        tracer.close();
+        // Null where there is no device: the open skipped the test, and JUnit
+        // still runs this.
+        if (tracer != null) {
+            tracer.close();
+        }
     }
 
     private RayScene build(SceneGeometry geometry) {

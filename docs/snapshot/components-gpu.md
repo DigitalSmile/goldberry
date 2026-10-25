@@ -259,5 +259,7 @@ way to keep that within a frame.
 
 **Where it runs.** Linux and Windows, on a GPU whose Vulkan driver has the
 ray-tracing pipeline extensions — NVIDIA from the GTX 16 series, AMD from
-RDNA 2, Intel Arc — and on the CPU through Mesa's software Vulkan. macOS has
-none.
+RDNA 2, Intel Arc — and on the CPU through Mesa's software Vulkan where it
+runs at 256-bit vectors, as x86 machines do. An arm64 machine's software
+Vulkan runs at 128 bits, crashes building a scene there, and is refused, so
+`availability()` says so. macOS has none.

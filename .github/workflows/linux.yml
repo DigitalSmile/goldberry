@@ -422,6 +422,12 @@ jobs:
       # prints what this runner's lavapipe has and requires the tests where it
       # has both. Where it lacks one, the tests skip with a notice that says
       # which, rather than failing over the runner's Mesa.
+      #
+      # The arm64 leg's lavapipe runs at 128-bit vectors, as every arm64
+      # machine does, and there it crashes the process building an
+      # acceleration structure (Snapshot 76; x86 does the same under
+      # LP_NATIVE_VECTOR_WIDTH=128). The ray tracer refuses that device, so
+      # the tests skip there too, with a notice, and run on the x64 leg.
       # https://goldberry.dev/docs/contributing/testing.html#the-gpu-tests
       - name: Ray tracing on lavapipe
         run: |
@@ -439,6 +445,12 @@ jobs:
               required=false
             fi
           done
+          device=$(vulkaninfo 2>/dev/null | grep -m1 -oE 'llvmpipe \([^)]*\)' || true)
+          echo "device: ${device:-unknown}"
+          if grep -q '128 bits' <<<"$device"; then
+            echo "::notice::$device on ${{ matrix.target }} crashes building acceleration structures, and the ray tracer refuses it; the ray-tracing tests skip"
+            required=false
+          fi
           ./gradlew :gpu:test --tests 'dev.goldberry.gpu.raytrace.*' --no-daemon \
             -Dgoldberry.native.library="$PWD/native-lib/libgoldberry.so" \
             -Dgoldberry.raytracing.device=llvmpipe \
@@ -448,9 +460,12 @@ jobs:
         if: always()
         with:
           name: gpu-test-summary-${{ matrix.target }}
+          # A JVM that dies in a driver leaves its stack in hs_err_pid*.log.
           path: |
             natives/build/gpu-test/summary.txt
             gpu/build/gpu-test/summary.txt
+            natives/hs_err_pid*.log
+            gpu/hs_err_pid*.log
           if-no-files-found: ignore
 
       # The example's own tests -- its goldens, its gallery order, its screen

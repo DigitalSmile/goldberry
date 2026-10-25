@@ -250,10 +250,11 @@ closed as decisions under [Answered](#answered).
   that hardware tier is built: `dev.goldberry.gpu.raytrace`, on `:natives`'
   Vulkan bindings, which moved there from `:media`. Green on the 1660 Ti and on
   lavapipe. Packed shadow masks, scene updates and compaction followed the same
-  day (ADR-0667, parked), and `linux.yml`'s verify job has a step that runs
-  the ray tracer on lavapipe, required where the runner's Mesa has the
-  extensions; it has not run yet. What is left of it — that first run,
-  refitting a deforming mesh — and every other phase is in the plan's tables.
+  day (ADR-0667, parked), and `linux.yml`'s verify job runs the ray tracer on
+  lavapipe, required on the x64 leg. On arm64 lavapipe runs at 128-bit vectors
+  and crashes building a scene, so it is refused there (ADR-0668, parked). What
+  is left of it — refitting a deforming mesh, lifting that refusal once Mesa
+  fixes the build — and every other phase is in the plan's tables.
 ## Platform, compositor and CI
 - **The 60 fps claim is measured on one machine, and closing M1 is a CI job.**
   §16's M1 asks for a styled wrapped paragraph *resized* at 60 fps on Linux,

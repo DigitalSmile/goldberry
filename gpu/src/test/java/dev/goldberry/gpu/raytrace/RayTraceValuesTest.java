@@ -52,6 +52,14 @@ class RayTraceValuesTest {
             assertThrows(IllegalArgumentException.class, () -> new Vector3(0, Float.POSITIVE_INFINITY, 0));
             assertThrows(IllegalArgumentException.class, Vector3.ZERO::normalized);
         }
+
+        @Test
+        @DisplayName("reach a point a distance along a ray, in the scene's units")
+        void alongARay() {
+            var ray = new Ray(new Vector3(1, 2, 3), new Vector3(0, 0, -1));
+            assertEquals(new Vector3(1, 2, 3), ray.at(0));
+            assertEquals(new Vector3(1, 2, -1.5f), ray.at(4.5f));
+        }
     }
 
     @Nested
@@ -317,6 +325,8 @@ class RayTraceValuesTest {
         @DisplayName("read each pixel's record in the documented layout")
         void layout() {
             var hits = Hits.of(2, 1, twoPixels());
+            assertEquals(2, hits.width());
+            assertEquals(1, hits.height());
             var hit = hits.hit(0, 0).orElseThrow();
             assertEquals(new Hit(7, 3, 2.5f, 0.25f, 0.5f, true), hit);
             assertEquals(0.25f, hit.w());

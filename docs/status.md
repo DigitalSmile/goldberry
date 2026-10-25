@@ -7452,8 +7452,10 @@ a painted frame reaches the screen, and what else can be on it.
   structure over them, about a millisecond for 201 instances on the 1660 Ti;
   the meshes' structures are compacted; and `traceShadows` packs the shadow
   mask on the GPU, a byte a pixel instead of a 24-byte record. Linux and
-  Windows only; macOS has none. Nothing in the showcase uses it yet, and the CI
-  lane does not run it.
+  Windows only; macOS has none, and lavapipe at 128-bit vectors (every arm64
+  machine's) is refused, because its scene build crashes the process
+  (ADR-0668, parked). The CI verify job runs it on lavapipe on the x64 leg,
+  required. Nothing in the showcase uses it yet.
 
 **What is not proven.** Everything above was built and measured on Metal. On
 Linux the composited path has run on this project's machine, under X11 on

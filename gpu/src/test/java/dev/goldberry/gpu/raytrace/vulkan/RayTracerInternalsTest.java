@@ -260,6 +260,20 @@ class RayTracerInternalsTest {
         }
 
         @Test
+        @DisplayName("refuses lavapipe at 128-bit vectors, whose builds crash, and takes it at 256")
+        void lavapipeAt128Bits() {
+            var arm = "llvmpipe (LLVM 20.1.2, 128 bits)";
+            assertTrue(RayDevice.buildsCrash(arm));
+            assertFalse(RayDevice.buildsCrash("llvmpipe (LLVM 21.1.8, 256 bits)"));
+            assertFalse(RayDevice.buildsCrash("NVIDIA GeForce GTX 1660 Ti"));
+            var lavapipe = candidate(0, arm, VkConstants.VK_PHYSICAL_DEVICE_TYPE_CPU);
+            assertFalse(lavapipe.usable());
+            assertTrue(lavapipe.refusal().contains("128-bit"), lavapipe.refusal());
+            assertEquals(Optional.empty(), RayDevice.choose(List.of(lavapipe), "llvmpipe"), "named, and refused");
+            assertTrue(RayDevice.refusal(List.of(lavapipe), null).startsWith(arm + " crashes the process"));
+        }
+
+        @Test
         @DisplayName(
                 "takes the first memory type with every flag, or any it may live in when that is only a preference")
         void memoryTypes() {

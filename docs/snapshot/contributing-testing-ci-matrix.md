@@ -52,4 +52,5 @@ makes a skip a failure.
 
    And in the `linux.yml` row's last cell, after "then the GPU tests on
    lavapipe", add: ", the ray tracer's tests on lavapipe, required where its
-   lavapipe has the ray-tracing extensions".
+   lavapipe has the ray-tracing extensions and runs at 256-bit vectors (the
+   x64 leg; the arm64 leg's runs at 128 and is refused)".

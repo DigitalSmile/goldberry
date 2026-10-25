@@ -11,8 +11,10 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Function;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import org.jspecify.annotations.Nullable;
@@ -51,6 +53,9 @@ public final class RayDevice {
             VkConstants.VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME,
             VkConstants.VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME,
             VkConstants.VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME);
+
+    /// Lavapipe's name at 128-bit vectors: see [#buildsCrash].
+    private static final Pattern LAVAPIPE_128 = Pattern.compile("llvmpipe \\(.*\\b128 bits\\)");
 
     private static final Logger LOG = Logs.of(RayDevice.class);
 
@@ -199,13 +204,17 @@ public final class RayDevice {
 
         /// Whether rays can be traced on it.
         boolean usable() {
-            return extensions && features && computeFamily >= 0;
+            return extensions && features && computeFamily >= 0 && !buildsCrash(name);
         }
 
         /// Why it cannot trace rays; empty when it can.
         String refusal() {
             if (!extensions) {
                 return name + " has no " + String.join(" / ", EXTENSIONS);
+            }
+            if (buildsCrash(name)) {
+                return name + " crashes the process building an acceleration structure: lavapipe does at 128-bit"
+                        + " vectors, which every arm64 machine runs";
             }
             if (!features) {
                 return name + " has the extensions but not their features";
@@ -227,6 +236,15 @@ public final class RayDevice {
                 default -> 3;
             };
         }
+    }
+
+    /// Lavapipe at 128-bit vectors, as its name says (`llvmpipe (LLVM 20.1.2,
+    /// 128 bits)`): its acceleration-structure build writes far outside its
+    /// buffers and takes the process down, which no flag or scratch size
+    /// avoids. Every arm64 machine runs it so, and an x86 one under
+    /// `LP_NATIVE_VECTOR_WIDTH=128`; at 256 bits it builds correctly.
+    static boolean buildsCrash(String deviceName) {
+        return LAVAPIPE_128.matcher(deviceName).matches();
     }
 
     /// The device to trace on: the usable one whose name has `wanted` in it
@@ -292,7 +310,7 @@ public final class RayDevice {
             var chosen = choose(candidates, wanted);
             if (chosen.isEmpty()) {
                 var reason = refusal(candidates, wanted);
-                LOG.debug("no ray tracing: {}", reason);
+                LOG.debug("no device traces rays: {}", reason);
                 return new Probe.Refused(reason);
             }
             var physical = physicals.get(chosen.get().index());
@@ -301,7 +319,7 @@ public final class RayDevice {
             LOG.debug("rays are traced on {} ({})", chosen.get().name(), limits);
             return new Probe.Ready(new RayDevice(instance, physical, handle, chosen.get(), limits));
         } catch (VulkanException e) {
-            LOG.debug("no ray tracing: {}", e.getMessage());
+            LOG.debug("Vulkan refused the ray-tracing device: {}", e.getMessage());
             return new Probe.Refused(e.getMessage() == null ? e.toString() : e.getMessage());
         }
     }
@@ -319,7 +337,7 @@ public final class RayDevice {
             type = properties.get(JAVA_INT, at + VkStructs.VkPhysicalDeviceProperties.deviceType);
             name = properties.getString(at + VkStructs.VkPhysicalDeviceProperties.deviceName);
         }
-        var extensions = instance.deviceExtensions(physical).containsAll(EXTENSIONS);
+        var extensions = Set.copyOf(instance.deviceExtensions(physical)).containsAll(EXTENSIONS);
         var features = extensions && features(instance, physical);
         var compute = instance.queueFamilies(physical, false).stream()
                 .filter(VulkanInstance.QueueFamily::computes)
