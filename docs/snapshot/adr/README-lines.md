@@ -111,3 +111,6 @@ Appended to the index when the records move in, in this order.
 - [ADR-0668 Lavapipe at 128-bit vectors is refused for ray tracing](0668-lavapipe-at-128-bit-vectors-is-refused-for-ray-tracing.md)
 - [ADR-0669 Indirect draws, the stencil test and GPU copies join the GPU API](0669-indirect-draws-the-stencil-test-and-gpu-copies-join-the-gpu-api.md)
 - [ADR-0670 A window presents in the mode asked for, and a frame cap is its own](0670-a-window-presents-in-the-mode-asked-for-and-a-frame-cap-is-its-own.md)
+- [ADR-0671 A 3D view is drawn at a scale of its box, and upscaled with FSR 1](0671-a-3d-view-is-drawn-at-a-scale-of-its-box-and-upscaled-with-fsr-1.md)
+- [ADR-0672 The ray tracer traces a pixel's lighting, occlusion and reflection included](0672-the-ray-tracer-traces-a-pixels-lighting-occlusion-and-reflection-included.md)
+- [ADR-0673 The showcase has a ray-traced room, and a game's graphics settings](0673-the-showcase-has-a-ray-traced-room-and-a-games-graphics-settings.md)

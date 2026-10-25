@@ -45,6 +45,10 @@ module dev.goldberry.gpu {
     /// `canvas3d` and the renderer an application draws it with.
     exports dev.goldberry.gpu.view;
 
+    /// A 3D view drawn at a scale of its box and upscaled to it: bilinear, or
+    /// FSR 1.
+    exports dev.goldberry.gpu.upscale;
+
     /// A GPU for a picture with no window under it: the surface an
     /// application's test hands to `Offscreen.gpu`.
     exports dev.goldberry.gpu.offscreen;

@@ -1191,6 +1191,23 @@ specimen-emoji.size-64 { font-size: 64px; line-height: 74px; }
   height: 240px;
 }
 
+/* The ray-traced room: a wide card, the canvas tall enough to see the
+   shadows and reflections, and the settings in two columns under it. */
+#gpu-room {
+  width: 100%;
+  height: 460px;
+}
+
+.gpu-room-panel {
+  gap: 24px;
+}
+
+.gpu-room-settings {
+  flex-grow: 1;
+  flex-basis: 0;
+  gap: 6px;
+}
+
 /* The chip over the spinning cube: painted after the canvas, so over it. */
 .gpu-over {
   position: absolute;

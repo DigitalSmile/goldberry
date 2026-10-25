@@ -25,6 +25,8 @@ import dev.goldberry.golden.GoldenImage;
 import dev.goldberry.gpu.GpuDevice;
 import dev.goldberry.gpu.GpuFrame;
 import dev.goldberry.gpu.TextureFormat;
+import dev.goldberry.gpu.upscale.RenderScale;
+import dev.goldberry.gpu.upscale.UpscaleFilter;
 import dev.goldberry.kdl.KdlParser;
 import dev.goldberry.natives.NativeLibraryRequirement;
 import dev.goldberry.offscreen.Offscreen;
@@ -86,10 +88,35 @@ class Canvas3dTest {
                     Canvas3d.inflate(
                             KdlParser.parse("canvas3d renderer=\"cube\"").getFirst(), List.of(), wiring));
             assertEquals(new Canvas3d(renderer), plain, "on demand, no depth, revision 0");
+            assertEquals(RenderScale.NATIVE, plain.renderScale(), "drawn at the size of its box");
         }
 
         @Test
-        @DisplayName("refuses children and a depth it does not know")
+        @DisplayName("takes render-scale=, upscale= and sharpness=")
+        void renderScale() {
+            var wiring = Wiring.none().with(Named.strict().bind("cube", new Idle()));
+            var canvas = assertInstanceOf(
+                    Canvas3d.class,
+                    Canvas3d.inflate(
+                            KdlParser.parse(
+                                            "canvas3d renderer=\"cube\" render-scale=0.67 upscale=\"fsr1\" sharpness=0.5")
+                                    .getFirst(),
+                            List.of(),
+                            wiring));
+            assertEquals(new RenderScale(0.67, UpscaleFilter.FSR1, 0.5), canvas.renderScale());
+
+            var linear = assertInstanceOf(
+                    Canvas3d.class,
+                    Canvas3d.inflate(
+                            KdlParser.parse("canvas3d renderer=\"cube\" render-scale=0.5")
+                                    .getFirst(),
+                            List.of(),
+                            wiring));
+            assertEquals(RenderScale.of(0.5), linear.renderScale(), "linear, at the default sharpness");
+        }
+
+        @Test
+        @DisplayName("refuses children, a depth or filter it does not know, and a scale or sharpness out of range")
         void refuses() {
             var wiring = Wiring.none().with(Named.strict().bind("cube", new Idle()));
             var node =
@@ -99,6 +126,10 @@ class Canvas3dTest {
             assertThrows(
                     IllegalArgumentException.class,
                     () -> Canvas3d.inflate(withChild, List.of(new Column(List.of(), Attributes.NONE)), wiring));
+            for (var wrong : List.of("render-scale=0.25", "render-scale=3", "upscale=\"fsr2\"", "sharpness=1.5")) {
+                var bad = KdlParser.parse("canvas3d renderer=\"cube\" " + wrong).getFirst();
+                assertThrows(IllegalArgumentException.class, () -> Canvas3d.inflate(bad, List.of(), wiring), wrong);
+            }
         }
     }
 
@@ -129,6 +160,18 @@ class Canvas3dTest {
         }
 
         @Test
+        @DisplayName("an on-demand canvas's painter differs at a new render scale, so its box is damaged")
+        void newScale() {
+            try (var layer = new Canvas3dLayer(new Idle(), null)) {
+                var half = RenderScale.of(0.5);
+                assertNotEquals(painter(layer, false, 0, 1000), painter(layer, false, 0, 1000, half));
+                assertEquals(RenderScale.NATIVE, layer.scale(), "until a paint says otherwise");
+                layer.scale(half);
+                assertEquals(half, layer.scale());
+            }
+        }
+
+        @Test
         @DisplayName("a continuous canvas's painter differs every frame, with the frame's time since its first")
         void continuous() {
             try (var layer = new Canvas3dLayer(new Idle(), null)) {
@@ -142,9 +185,14 @@ class Canvas3dTest {
 
         private Canvas3dSurface.Canvas3dPainter painter(
                 Canvas3dLayer layer, boolean continuous, long revision, double now) {
+            return painter(layer, continuous, revision, now, RenderScale.NATIVE);
+        }
+
+        private Canvas3dSurface.Canvas3dPainter painter(
+                Canvas3dLayer layer, boolean continuous, long revision, double now, RenderScale scale) {
             var nanos = state.nanos(now, continuous, revision);
             var stamp = continuous ? Double.doubleToLongBits(now) : revision;
-            return new Canvas3dSurface.Canvas3dPainter(layer, stamp, nanos, continuous, revision, 0, state);
+            return new Canvas3dSurface.Canvas3dPainter(layer, stamp, nanos, continuous, revision, scale, 0, state);
         }
     }
 

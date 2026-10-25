@@ -24,6 +24,8 @@ import dev.goldberry.gpu.Load;
 import dev.goldberry.gpu.TextureFormat;
 import dev.goldberry.gpu.TextureSpec;
 import dev.goldberry.gpu.composite.CompositeHarness;
+import dev.goldberry.gpu.upscale.RenderScale;
+import dev.goldberry.gpu.upscale.UpscaleFilter;
 import dev.goldberry.natives.sdl.gpu.GpuTestLauncher;
 import dev.goldberry.render.model.PhysicalSize;
 
@@ -70,7 +72,7 @@ class Canvas3dLayerTest {
         public void render(GpuFrame frame, Canvas3dTarget target) {
             calls.add("render");
             last = target;
-            frame.renderPass(target.colour(), Load.clear(0, 0, 0, 1), pass -> {});
+            frame.renderPass(target.colour(), Load.clear(0.2f, 0.4f, 0.6f, 1), pass -> {});
         }
 
         @Override
@@ -124,6 +126,61 @@ class Canvas3dLayerTest {
             assertTrue(first.isClosed(), "the old one released");
         }
         assertThrows(IllegalArgumentException.class, () -> new Canvas3dLayer(new Recording(), TextureFormat.R8_UNORM));
+    }
+
+    @Test
+    @DisplayName(
+            "at a render scale, has the renderer draw at the scaled size and upscales what it drew into the target")
+    void renderScale() {
+        var renderer = new Recording();
+        try (var layer = new Canvas3dLayer(renderer, TextureFormat.D16_UNORM)) {
+            layer.scale(RenderScale.of(0.5).withFilter(UpscaleFilter.FSR1));
+            var pixels = renderAndRead(device, layer, 64, 32);
+            var target = renderer.last;
+            assertNotNull(target);
+            assertEquals(new PhysicalSize(32, 16), target.size(), "half each way");
+            var depth = target.depth();
+            assertNotNull(depth);
+            assertEquals(32, depth.width(), "the depth target at the size drawn at");
+            assertEquals(2.0, target.aspect(), 1e-9, "the box's aspect");
+            for (var i = 0; i < pixels.length; i += 4) {
+                // The clear colour, upscaled into every pixel: BGRA 0.6, 0.4,
+                // 0.2. RCAS's approximated reciprocal may take a level off.
+                assertEquals(153, pixels[i] & 0xFF, 1, "blue at " + i / 4);
+                assertEquals(102, pixels[i + 1] & 0xFF, 1, "green at " + i / 4);
+                assertEquals(51, pixels[i + 2] & 0xFF, 1, "red at " + i / 4);
+                assertEquals(255, pixels[i + 3] & 0xFF, "opaque at " + i / 4);
+            }
+            assertFalse(layer.needsRender(), "drawn");
+
+            layer.scale(RenderScale.of(0.5).withFilter(UpscaleFilter.FSR1));
+            assertFalse(layer.needsRender(), "the same scale again asks for nothing");
+            layer.scale(RenderScale.NATIVE);
+            assertTrue(layer.needsRender(), "a new scale is drawn again");
+            render(device, layer, 64, 32);
+            var native_ = renderer.last;
+            assertNotNull(native_);
+            assertEquals(new PhysicalSize(64, 32), native_.size(), "into the target itself");
+            assertEquals(
+                    List.of("init", "resize 32x16", "render", "resize 64x32", "render"),
+                    renderer.calls,
+                    "resized, not initialised again");
+        }
+        assertEquals("dispose", renderer.calls.getLast());
+    }
+
+    private static byte[] renderAndRead(GpuDevice on, Canvas3dLayer layer, int width, int height) {
+        try (var target = on.createTexture(TextureSpec.renderTarget(TextureFormat.B8G8R8A8_UNORM, width, height));
+                var frame = on.beginFrame()) {
+            layer.render(frame, target);
+            try (var readback = frame.readback(target)) {
+                frame.submit();
+                var pixels = readback.await();
+                var bytes = new byte[pixels.remaining()];
+                pixels.get(bytes);
+                return bytes;
+            }
+        }
     }
 
     @Test

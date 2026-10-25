@@ -360,9 +360,30 @@ padding. `mask.pixels()` uploads into an `R8_UNORM` texture, which a shader
 samples as 1 and 0; `mask.isLit(x, y)` reads one pixel. A request without a
 light is refused.
 
+**The lighting.** `tracer.traceLighting(scene, LightingRequest.of(request))`
+traces, from each primary hit, the shadow ray, rays around the hit for ambient
+occlusion and a ray off it for its reflection, and answers with a `Lighting`
+of two planes laid out for two textures. `lighting.shading()` is
+`R8G8B8A8_UNORM`: red 255 in the light and 0 in shadow, green how open the
+hit is (the share of its occlusion rays that escaped), blue how lit the
+surface its reflection sees is, alpha 255 where the primary ray hit anything.
+`lighting.reflectedIds()` is `R32_FLOAT`: the id of the instance the
+reflection saw, or -1, from which a shader looks up what that surface looks
+like. `withOcclusion(rays, radius)` sets how many occlusion rays a hit takes,
+up to 64, and how far they look; 0 turns occlusion off. `withReflections(false)`
+leaves reflections out. The occlusion rays follow a fixed sequence for each
+pixel, so a still scene lights the same on every trace.
+
+```java
+var lighting = tracer.traceLighting(scene, LightingRequest.of(request).withOcclusion(12, 1.4f));
+frame.copyPass(pass -> pass.upload(shadingTexture, lighting.shading()));
+```
+
 **What it costs.** A trace returns when the GPU is done, with its output
 copied back: the rays, then the copy. `traceShadows` copies a byte a pixel,
-`trace` copies 24, so a renderer that wants the light alone asks for the mask.
+`traceLighting` eight and `trace` 24, so a renderer that wants the light alone
+asks for the mask. The lighting traces up to four rays a pixel and its
+occlusion rays besides.
 Tracing a smaller picture than the canvas and sampling it scaled is the usual
 way to keep that within a frame.
 
@@ -372,3 +393,51 @@ RDNA 2, Intel Arc — and on the CPU through Mesa's software Vulkan where it
 runs at 256-bit vectors, as x86 machines do. An arm64 machine's software
 Vulkan runs at 128 bits, crashes building a scene there, and is refused, so
 `availability()` says so. macOS has none.
+
+## Render scale and upscaling
+
+A `canvas3d` can be drawn at a scale of its box and brought up to it: the
+setting a game's options screen calls render scale. Fewer pixels drawn is
+frame rate bought for sharpness.
+
+```kdl
+canvas3d renderer="cube" continuous=#true depth="d16" render-scale=0.67 upscale="fsr1"
+```
+
+```java
+var canvas = new Canvas3d(cube).continuous(true).renderScale(RenderScale.of(0.67).withFilter(UpscaleFilter.FSR1));
+```
+
+The renderer draws into a colour texture at the scaled size, and is told that
+size by `resize`. `target.size()` and `target.aspect()` are the scaled
+texture's, which keeps the box's aspect. The canvas then brings the picture up
+to the box with one of two filters:
+
+- **`linear`**, the default: each pixel interpolated from the four nearest. One
+  pass, soft edges.
+- **`fsr1`**: AMD FidelityFX Super Resolution 1. EASU upscales along the edges
+  it finds and keeps them sharp, then RCAS sharpens by `sharpness=`, from 0
+  (not at all) to 1 (the most). The default, 0.87, is what AMD recommends. Its
+  quality modes are render scales: ultra quality 0.77, quality 0.67, balanced
+  0.59, performance 0.5.
+
+A scale above 1 draws more pixels than the box has and brings them down
+linearly, whichever filter is named. At exactly 1 the renderer draws straight
+into the box and nothing else runs. A new scale draws an on-demand canvas
+again; the renderer keeps what it made and is resized.
+
+A renderer that draws into textures of its own can upscale one the same way,
+with an `Upscaler` made on its device in `init`:
+
+```java
+upscaler.upscale(frame, small, target, UpscaleFilter.FSR1, RenderScale.DEFAULT_SHARPNESS);
+```
+
+FSR 1 expects a picture whose values are what the display shows, as a
+`B8G8R8A8_UNORM` target holds them, and it leaves alpha opaque.
+
+| Attribute | Type | Default | What it does |
+|---|---|---|---|
+| `render-scale` | number, 0.5 to 2 | `1` | The size drawn at over the box's size, per axis. Anything outside is refused |
+| `upscale` | `linear`, `fsr1` | `linear` | How the picture is brought to the box. Anything else is refused |
+| `sharpness` | number, 0 to 1 | `0.87` | How much `fsr1` sharpens; `linear` ignores it |

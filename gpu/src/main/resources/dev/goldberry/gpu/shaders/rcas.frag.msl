@@ -1,0 +1,35 @@
+#include <metal_stdlib>
+#include <simd/simd.h>
+
+using namespace metal;
+
+struct type_Rcas
+{
+    float4 con;
+};
+
+struct main0_out
+{
+    float4 out_var_SV_Target0 [[color(0)]];
+};
+
+fragment main0_out main0(constant type_Rcas& Rcas [[buffer(0)]], texture2d<float> picture [[texture(0)]], sampler pictureSmplr [[sampler(0)]], float4 gl_FragCoord [[position]])
+{
+    main0_out out = {};
+    int2 _51 = int2(floor(gl_FragCoord.xy));
+    int2 _56 = int2(Rcas.con.yz);
+    float3 _65 = picture.read(uint2(int3(clamp(_51 + int2(0, -1), int2(0), _56), 0).xy), 0).xyz;
+    float3 _75 = picture.read(uint2(int3(clamp(_51 + int2(-1, 0), int2(0), _56), 0).xy), 0).xyz;
+    float3 _84 = picture.read(uint2(int3(clamp(_51, int2(0), _56), 0).xy), 0).xyz;
+    float3 _94 = picture.read(uint2(int3(clamp(_51 + int2(1, 0), int2(0), _56), 0).xy), 0).xyz;
+    float3 _104 = picture.read(uint2(int3(clamp(_51 + int2(0, 1), int2(0), _56), 0).xy), 0).xyz;
+    float3 _107 = precise::min(precise::min(_65, precise::min(_75, _94)), _104);
+    float3 _110 = precise::max(precise::max(_65, precise::max(_75, _94)), _104);
+    float3 _122 = precise::max(-(precise::min(_107, _84) / precise::max(_110 * 4.0, float3(0.0009765625))), (float3(1.0) - precise::max(_110, _84)) / precise::min((_107 * 4.0) + float3(-4.0), float3(-0.0009765625)));
+    float _132 = precise::max(-0.1875, precise::min(precise::max(_122.x, precise::max(_122.y, _122.z)), 0.0)) * Rcas.con.x;
+    float _134 = (4.0 * _132) + 1.0;
+    float _137 = as_type<float>(2129764351u - as_type<uint>(_134));
+    out.out_var_SV_Target0 = float4((((((_65 * _132) + (_75 * _132)) + (_104 * _132)) + (_94 * _132)) + _84) * (_137 * (((-_137) * _134) + 2.0)), 1.0);
+    return out;
+}
+

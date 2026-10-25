@@ -197,6 +197,71 @@ class RayTracerTest {
     }
 
     @Test
+    @DisplayName("lights what the reference lights: shadows, occlusion rays from its own sequence, and reflections")
+    void lighting() {
+        var geometry = TestScenes.cubesOnGround();
+        var scene = build(geometry);
+        var request = LightingRequest.of(
+                        TraceRequest.of(TestScenes.camera(), WIDTH, HEIGHT).withShadowsToward(TestScenes.sun()))
+                .withOcclusion(8, 1.5f);
+        var lighting = tracer.traceLighting(scene, request);
+        var reference = new LightingReference(geometry, request);
+
+        var compared = 0;
+        var occluded = 0;
+        var reflecting = 0;
+        for (var y = 0; y < HEIGHT; y++) {
+            for (var x = 0; x < WIDTH; x++) {
+                var expected = reference.at(x, y);
+                if (expected == null) {
+                    continue;
+                }
+                compared++;
+                var at = "pixel " + x + "," + y;
+                assertEquals(expected.hit(), lighting.isHit(x, y), at + ": hit");
+                assertEquals(expected.lit(), lighting.isLit(x, y), at + ": lit");
+                assertEquals(expected.open(), Math.round(lighting.openness(x, y) * 255), at + ": open");
+                assertEquals(expected.reflectedId(), lighting.reflectedId(x, y), at + ": what its reflection sees");
+                assertEquals(expected.reflectedLight(), lighting.reflectedLight(x, y), 1.5 / 255, at + ": its light");
+                if (expected.open() < 255) {
+                    occluded++;
+                }
+                if (expected.reflectedId().isPresent()) {
+                    reflecting++;
+                }
+            }
+        }
+        assertTrue(compared > WIDTH * HEIGHT / 2, "compared only " + compared + " pixels");
+        assertTrue(occluded > 50, "the ground is darkened around the cubes: " + occluded);
+        assertTrue(reflecting > 50, "the cubes and the ground see each other: " + reflecting);
+    }
+
+    @Test
+    @DisplayName("shadows the lighting exactly as the shadow mask, and leaves out what is not asked for")
+    void lightingAsAsked() {
+        var scene = build(TestScenes.cubesOnGround());
+        var rays = TraceRequest.of(TestScenes.camera(), 97, 63).withShadowsToward(TestScenes.sun());
+        var mask = tracer.traceShadows(scene, rays);
+        var plain = tracer.traceLighting(
+                scene, LightingRequest.of(rays).withOcclusion(0, 1).withReflections(false));
+        assertEquals(97, plain.width());
+        assertEquals(63, plain.height());
+        for (var y = 0; y < 63; y++) {
+            for (var x = 0; x < 97; x++) {
+                assertEquals(mask.isLit(x, y), plain.isLit(x, y), "pixel " + x + "," + y);
+                assertEquals(1, plain.openness(x, y), "no occlusion rays: open");
+                assertTrue(plain.reflectedId(x, y).isEmpty(), "no reflections");
+                assertEquals(0, plain.reflectedLight(x, y));
+            }
+        }
+        assertEquals(mask.shadowedCount(), plain.shadowedCount());
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> LightingRequest.of(TraceRequest.of(TestScenes.camera(), 4, 4)),
+                "lighting needs a light");
+    }
+
+    @Test
     @DisplayName("refuses a shadow mask without a light")
     void shadowsNeedALight() {
         var scene = build(TestScenes.cubesOnGround());

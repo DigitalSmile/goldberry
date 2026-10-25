@@ -31,6 +31,10 @@ import dev.goldberry.natives.vulkan.VulkanException;
 /// first built are freed when that is done; what stays is the compacted
 /// structures, and what the top level is rebuilt from: its instance records,
 /// its scratch and its storage, each grown when an [#update] needs more.
+///
+/// Beside them are what the closest-hit shader reads a hit's normal from:
+/// every mesh's [FaceNormals], uploaded once, and for each instance where its
+/// mesh's start, written with the instance records.
 public final class AccelerationScene implements AutoCloseable {
 
     private static final int INPUT_USAGE =
@@ -40,6 +44,7 @@ public final class AccelerationScene implements AutoCloseable {
             | VkConstants.VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
     private static final int SCRATCH_USAGE =
             VkConstants.VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VkConstants.VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
+    private static final int NORMALS_USAGE = VkConstants.VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
 
     /// How a mesh's structure is built: for tracing speed, and to be compacted.
     static final int BOTTOM_FLAGS = VkConstants.VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_TRACE_BIT_KHR
@@ -53,9 +58,12 @@ public final class AccelerationScene implements AutoCloseable {
     private final List<TriangleMesh> meshes;
     private final List<Structure> bottom;
     private final long bottomBuiltBytes;
+    private final DeviceBuffer normals;
+    private final int[] firstTriangles;
     private SceneGeometry geometry;
     private @Nullable Structure top;
     private @Nullable DeviceBuffer instances;
+    private @Nullable DeviceBuffer instanceNormals;
     private @Nullable DeviceBuffer topScratch;
     private boolean closed;
 
@@ -64,12 +72,16 @@ public final class AccelerationScene implements AutoCloseable {
             SceneGeometry geometry,
             List<TriangleMesh> meshes,
             List<Structure> bottom,
-            long bottomBuiltBytes) {
+            long bottomBuiltBytes,
+            DeviceBuffer normals,
+            int[] firstTriangles) {
         this.device = device;
         this.geometry = geometry;
         this.meshes = meshes;
         this.bottom = bottom;
         this.bottomBuiltBytes = bottomBuiltBytes;
+        this.normals = normals;
+        this.firstTriangles = firstTriangles;
     }
 
     /// One acceleration structure, the buffer it lives in, and its size.
@@ -87,6 +99,7 @@ public final class AccelerationScene implements AutoCloseable {
         var inputs = new ArrayList<DeviceBuffer>();
         var built = new ArrayList<Structure>();
         var compacted = new ArrayList<Structure>();
+        DeviceBuffer normals = null;
         AccelerationScene scene = null;
         try (var arena = Arena.ofConfined()) {
             var builds = new ArrayList<Build>();
@@ -115,7 +128,16 @@ public final class AccelerationScene implements AutoCloseable {
                 compacted.add(structure(device, size, VkConstants.VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_KHR));
             }
             var builtBytes = built.stream().mapToLong(Structure::size).sum();
-            scene = new AccelerationScene(device, geometry, meshes, List.copyOf(compacted), builtBytes);
+            var faces = FaceNormals.of(meshes);
+            normals = DeviceBuffer.create(
+                    device,
+                    (long) faces.triangles() * FaceNormals.BYTES,
+                    NORMALS_USAGE,
+                    DeviceBuffer.Memory.HOST_VISIBLE);
+            var floats = faces.normals();
+            MemorySegment.copy(floats, 0, normals.mapped(), JAVA_FLOAT, 0, floats.length);
+            scene = new AccelerationScene(
+                    device, geometry, meshes, List.copyOf(compacted), builtBytes, normals, faces.firstTriangles());
             var topBuild = scene.placeInstances(arena, geometry);
             commands.run(buffer -> {
                 for (var i = 0; i < built.size(); i++) {
@@ -131,6 +153,9 @@ public final class AccelerationScene implements AutoCloseable {
                 scene.close();
             } else {
                 compacted.forEach(structure -> destroy(device, structure));
+                if (normals != null) {
+                    normals.close();
+                }
             }
             throw e;
         } finally {
@@ -207,6 +232,20 @@ public final class AccelerationScene implements AutoCloseable {
                     geometry.instances().get(i),
                     bottom.get(indices[i]).address());
         }
+        var offsets = (long) count * Integer.BYTES;
+        var starts = instanceNormals;
+        if (starts == null || starts.size() < offsets) {
+            var grown = Math.max(offsets, starts == null ? 0 : starts.size() * 2);
+            if (starts != null) {
+                starts.close();
+                instanceNormals = null;
+            }
+            starts = DeviceBuffer.create(device, grown, NORMALS_USAGE, DeviceBuffer.Memory.HOST_VISIBLE);
+            instanceNormals = starts;
+        }
+        for (var i = 0; i < count; i++) {
+            starts.mapped().setAtIndex(JAVA_INT, i, firstTriangles[indices[i]]);
+        }
         var build = topLevel(device, arena, placed, count);
         if (top == null || top.size() < build.size()) {
             if (top != null) {
@@ -235,6 +274,22 @@ public final class AccelerationScene implements AutoCloseable {
             throw new IllegalStateException("this scene has no top level");
         }
         return top.handle();
+    }
+
+    /// Every mesh's triangles' normals, for the descriptor that binds them.
+    DeviceBuffer normals() {
+        requireOpen();
+        return normals;
+    }
+
+    /// Where each instance's mesh's normals start, in the top level's order,
+    /// for the descriptor that binds them.
+    DeviceBuffer instanceNormals() {
+        requireOpen();
+        if (instanceNormals == null) {
+            throw new IllegalStateException("this scene has no instances placed");
+        }
+        return instanceNormals;
     }
 
     /// What it was built from, or last updated to.
@@ -285,7 +340,7 @@ public final class AccelerationScene implements AutoCloseable {
         if (top != null) {
             destroy(device, top);
         }
-        for (var buffer : new @Nullable DeviceBuffer[] {instances, topScratch}) {
+        for (var buffer : new @Nullable DeviceBuffer[] {instances, topScratch, instanceNormals, normals}) {
             if (buffer != null) {
                 buffer.close();
             }

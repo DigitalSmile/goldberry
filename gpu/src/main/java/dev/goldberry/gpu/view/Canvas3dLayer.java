@@ -12,10 +12,16 @@ import dev.goldberry.gpu.GpuTexture;
 import dev.goldberry.gpu.TextureFormat;
 import dev.goldberry.gpu.TextureSpec;
 import dev.goldberry.gpu.TextureUsage;
+import dev.goldberry.gpu.upscale.RenderScale;
+import dev.goldberry.gpu.upscale.Upscaler;
 import dev.goldberry.render.model.PhysicalSize;
 
 /// A `canvas3d`'s GPU layer: its [Canvas3dRenderer], driven through the
 /// renderer's lifecycle, and the depth texture it draws with.
+///
+/// At a [RenderScale] other than native the renderer draws into a colour
+/// texture of the layer's own at the scaled size, which an [Upscaler] then
+/// brings to the target's.
 ///
 /// One per mounted canvas and renderer, kept between frames, so the compositor
 /// keeps its texture: a canvas that is not redrawn is shown from it
@@ -29,6 +35,7 @@ final class Canvas3dLayer implements GpuLayer, AutoCloseable {
 
     private boolean continuous;
     private long nanos;
+    private RenderScale scale = RenderScale.NATIVE;
 
     /// Bumped by [#redraw]; the picture is current when [#drawn] has caught up.
     private long wanted = 1;
@@ -36,8 +43,15 @@ final class Canvas3dLayer implements GpuLayer, AutoCloseable {
 
     /// The device the renderer was initialised on, or null before that.
     private @Nullable GpuDevice device;
+    /// The size the renderer was last told it draws at.
     private @Nullable PhysicalSize size;
+
     private @Nullable GpuTexture depth;
+
+    /// What the renderer draws into when it is not drawn at the target's size.
+    private @Nullable GpuTexture scaled;
+
+    private @Nullable Upscaler upscaler;
     private boolean closed;
 
     /// @param depthFormat a depth format for the renderer's depth target, or
@@ -55,6 +69,21 @@ final class Canvas3dLayer implements GpuLayer, AutoCloseable {
     void frame(long nanos, boolean continuous) {
         this.nanos = Math.max(0, nanos);
         this.continuous = continuous;
+    }
+
+    /// The scale the frame being painted draws at: a new one has the picture
+    /// drawn again.
+    void scale(RenderScale value) {
+        Objects.requireNonNull(value, "value");
+        if (!value.equals(scale)) {
+            scale = value;
+            wanted++;
+        }
+    }
+
+    /// The scale it draws at.
+    RenderScale scale() {
+        return scale;
     }
 
     /// Asks for the picture to be drawn again on the next frame it is shown on.
@@ -80,7 +109,8 @@ final class Canvas3dLayer implements GpuLayer, AutoCloseable {
             renderer.init(current);
             device = current;
         }
-        var now = new PhysicalSize(target.width(), target.height());
+        var shown = new PhysicalSize(target.width(), target.height());
+        var now = scale.drawSize(shown);
         if (!now.equals(size)) {
             if (depth != null) {
                 depth.close();
@@ -94,7 +124,43 @@ final class Canvas3dLayer implements GpuLayer, AutoCloseable {
             size = now;
         }
         drawn = wanted;
-        renderer.render(frame, new Canvas3dTarget(target, depth, nanos));
+        if (now.equals(shown)) {
+            closeScaled();
+            renderer.render(frame, new Canvas3dTarget(target, depth, nanos));
+            return;
+        }
+        var colour = scaled(current, target.format(), now);
+        renderer.render(frame, new Canvas3dTarget(colour, depth, nanos));
+        upscaler(current).upscale(frame, colour, target, scale.filter(), scale.sharpness());
+    }
+
+    /// The colour texture drawn into at `drawn`, kept while the size stays.
+    private GpuTexture scaled(GpuDevice on, TextureFormat format, PhysicalSize drawn) {
+        var current = scaled;
+        if (current != null && current.width() == drawn.width() && current.height() == drawn.height()) {
+            return current;
+        }
+        closeScaled();
+        current = on.createTexture(TextureSpec.renderTarget(format, drawn.width(), drawn.height()));
+        scaled = current;
+        return current;
+    }
+
+    private Upscaler upscaler(GpuDevice on) {
+        var current = upscaler;
+        if (current == null) {
+            current = new Upscaler(on);
+            upscaler = current;
+        }
+        return current;
+    }
+
+    private void closeScaled() {
+        var texture = scaled;
+        scaled = null;
+        if (texture != null && !texture.device().isClosed()) {
+            texture.close();
+        }
     }
 
     /// Disposes the renderer, if it was initialised, and releases the depth
@@ -108,8 +174,9 @@ final class Canvas3dLayer implements GpuLayer, AutoCloseable {
         release();
     }
 
-    /// Back to before the first frame: the renderer disposed and the depth
-    /// texture released, on a device that is still open.
+    /// Back to before the first frame: the renderer disposed, and the depth
+    /// texture, the scaled one and the upscaler released, on a device that is
+    /// still open.
     private void release() {
         var made = device;
         device = null;
@@ -121,6 +188,12 @@ final class Canvas3dLayer implements GpuLayer, AutoCloseable {
         }
         if (texture != null && !made.isClosed()) {
             texture.close();
+        }
+        closeScaled();
+        var passes = upscaler;
+        upscaler = null;
+        if (passes != null) {
+            passes.close();
         }
         renderer.dispose();
     }

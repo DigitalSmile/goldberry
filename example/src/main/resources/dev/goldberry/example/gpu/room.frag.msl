@@ -1,0 +1,125 @@
+#include <metal_stdlib>
+#include <simd/simd.h>
+
+using namespace metal;
+
+struct type_Scene
+{
+    float4 light;
+    float4 effects;
+    float4 traced;
+    float4 sky;
+    float4 materials[6];
+};
+
+struct type_Solid
+{
+    float4 solid;
+};
+
+struct main0_out
+{
+    float4 out_var_SV_Target0 [[color(0)]];
+};
+
+struct main0_in
+{
+    float3 in_var_TEXCOORD0 [[user(locn0)]];
+    float3 in_var_TEXCOORD1 [[user(locn1)]];
+};
+
+fragment main0_out main0(main0_in in [[stage_in]], constant type_Scene& Scene [[buffer(0)]], constant type_Solid& Solid [[buffer(1)]], texture2d<float> shading [[texture(0)]], texture2d<float> reflected [[texture(1)]], texture2d<float> checks [[texture(2)]], sampler shadingSmplr [[sampler(0)]], sampler reflectedSmplr [[sampler(1)]], sampler checksSmplr [[sampler(2)]], float4 gl_FragCoord [[position]])
+{
+    main0_out out = {};
+    uint _56 = min(uint(Solid.solid.x), 5u);
+    float3 _71;
+    if (Solid.solid.y > 0.5)
+    {
+        _71 = Scene.materials[_56].xyz * checks.sample(checksSmplr, (in.in_var_TEXCOORD1.xz * 0.5)).xyz;
+    }
+    else
+    {
+        _71 = Scene.materials[_56].xyz;
+    }
+    bool _80 = Scene.light.w > 0.5;
+    int2 _91 = int3(min(int2(gl_FragCoord.xy), int2(Scene.traced.xy)), 0).xy;
+    float4 _94 = shading.read(uint2(_91), 0);
+    bool _100;
+    if (_80)
+    {
+        _100 = Scene.effects.x > 0.5;
+    }
+    else
+    {
+        _100 = false;
+    }
+    float _104;
+    if (_100)
+    {
+        _104 = _94.x;
+    }
+    else
+    {
+        _104 = 1.0;
+    }
+    bool _110;
+    if (_80)
+    {
+        _110 = Scene.effects.y > 0.5;
+    }
+    else
+    {
+        _110 = false;
+    }
+    float _114;
+    if (_110)
+    {
+        _114 = _94.y;
+    }
+    else
+    {
+        _114 = 1.0;
+    }
+    float3 _119 = _71 * ((0.2199999988079071044921875 * _114) + ((0.7799999713897705078125 * fast::clamp(dot(fast::normalize(in.in_var_TEXCOORD0), Scene.light.xyz), 0.0, 1.0)) * _104));
+    bool _127;
+    if (_80)
+    {
+        _127 = Scene.effects.z > 0.5;
+    }
+    else
+    {
+        _127 = false;
+    }
+    bool _131;
+    if (_127)
+    {
+        _131 = Scene.materials[_56].w > 0.0;
+    }
+    else
+    {
+        _131 = false;
+    }
+    float3 _156;
+    if (_131)
+    {
+        float4 _136 = reflected.read(uint2(_91), 0);
+        float _137 = _136.x;
+        float3 _153;
+        if (_137 >= 0.0)
+        {
+            _153 = Scene.materials[min(uint(_137), 5u)].xyz * (0.2199999988079071044921875 + (0.7799999713897705078125 * _94.z));
+        }
+        else
+        {
+            _153 = Scene.sky.xyz;
+        }
+        _156 = mix(_119, _153, float3(Scene.materials[_56].w));
+    }
+    else
+    {
+        _156 = _119;
+    }
+    out.out_var_SV_Target0 = float4(_156, 1.0);
+    return out;
+}
+

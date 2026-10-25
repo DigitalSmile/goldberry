@@ -9,6 +9,8 @@ import org.jspecify.annotations.Nullable;
 
 import dev.goldberry.Host;
 import dev.goldberry.gpu.TextureFormat;
+import dev.goldberry.gpu.upscale.RenderScale;
+import dev.goldberry.gpu.upscale.UpscaleFilter;
 import dev.goldberry.kdl.KdlNode;
 import dev.goldberry.widget.BuildContext;
 import dev.goldberry.widget.State;
@@ -44,6 +46,12 @@ import dev.goldberry.widgets.overlay.message.Message;
 /// changes rebuilds the widget with the next revision. Between those the last
 /// picture is shown again, and nothing is rendered.
 ///
+/// **The size it is drawn at.** A [RenderScale] below 1 has the renderer draw
+/// fewer pixels than the box has, and brings them up to it, bilinearly or with
+/// FSR 1: `render-scale=0.67 upscale="fsr1"`. Above 1 it draws more and brings
+/// them down. The renderer is told the size it draws at, by
+/// [Canvas3dRenderer#resize], and a new scale has the picture drawn again.
+///
 /// **Where there is no GPU** -- `goldberry.gpu=off`, a device that cannot be
 /// made, a canvas inside an `opacity` group -- the box is filled with
 /// `--gb-canvas3d-unavailable` and, in a running window, a notice says why,
@@ -58,10 +66,18 @@ import dev.goldberry.widgets.overlay.message.Message;
 /// @param renderer   what draws the picture
 /// @param continuous whether it is drawn on every frame
 /// @param depth      the depth target the renderer draws with, if any
-/// @param revision   what, changed, has an on-demand canvas drawn again
-/// @param attributes id, classes and key
+/// @param revision    what, changed, has an on-demand canvas drawn again
+/// @param renderScale the size it is drawn at against its box, and how it is
+///                    brought to the box
+/// @param attributes  id, classes and key
 @Markup("canvas3d")
-public record Canvas3d(Canvas3dRenderer renderer, boolean continuous, Depth depth, long revision, Attributes attributes)
+public record Canvas3d(
+        Canvas3dRenderer renderer,
+        boolean continuous,
+        Depth depth,
+        long revision,
+        RenderScale renderScale,
+        Attributes attributes)
         implements Widget.Stateful, Attributed<Canvas3d> {
 
     /// The depth target a canvas gives its renderer.
@@ -106,33 +122,45 @@ public record Canvas3d(Canvas3dRenderer renderer, boolean continuous, Depth dept
     public Canvas3d {
         Objects.requireNonNull(renderer, "renderer");
         Objects.requireNonNull(depth, "depth");
+        Objects.requireNonNull(renderScale, "renderScale");
         Objects.requireNonNull(attributes, "attributes");
     }
 
-    /// A canvas drawn on demand, with no depth target.
+    /// A canvas drawn at the size of its box.
+    public Canvas3d(Canvas3dRenderer renderer, boolean continuous, Depth depth, long revision, Attributes attributes) {
+        this(renderer, continuous, depth, revision, RenderScale.NATIVE, attributes);
+    }
+
+    /// A canvas drawn on demand, with no depth target, at the size of its box.
     public Canvas3d(Canvas3dRenderer renderer) {
         this(renderer, false, Depth.NONE, 0, Attributes.NONE);
     }
 
     /// The same canvas, drawn on every frame or on demand.
     public Canvas3d continuous(boolean value) {
-        return new Canvas3d(renderer, value, depth, revision, attributes);
+        return new Canvas3d(renderer, value, depth, revision, renderScale, attributes);
     }
 
     /// The same canvas, with `value` as its depth target.
     public Canvas3d depth(Depth value) {
-        return new Canvas3d(renderer, continuous, value, revision, attributes);
+        return new Canvas3d(renderer, continuous, value, revision, renderScale, attributes);
     }
 
     /// The same canvas at `value`: a revision other than the last one drawn
     /// has it drawn again.
     public Canvas3d revision(long value) {
-        return new Canvas3d(renderer, continuous, depth, value, attributes);
+        return new Canvas3d(renderer, continuous, depth, value, renderScale, attributes);
+    }
+
+    /// The same canvas, drawn at `value`: the renderer keeps its resources and
+    /// is resized, and the picture is drawn again.
+    public Canvas3d renderScale(RenderScale value) {
+        return new Canvas3d(renderer, continuous, depth, revision, value, attributes);
     }
 
     @Override
     public Canvas3d withAttributes(Attributes value) {
-        return new Canvas3d(renderer, continuous, depth, revision, value);
+        return new Canvas3d(renderer, continuous, depth, revision, renderScale, value);
     }
 
     @Override
@@ -145,12 +173,16 @@ public record Canvas3d(Canvas3dRenderer renderer, boolean continuous, Depth dept
         return new Canvas3dState();
     }
 
-    /// `canvas3d renderer="name" continuous=#true depth="d16" revision=3`:
-    /// `renderer=` names a [Canvas3dRenderer] the application bound, and the
-    /// rest are optional.
+    /// `canvas3d renderer="name" continuous=#true depth="d16" revision=3
+    /// render-scale=0.67 upscale="fsr1" sharpness=0.8`: `renderer=` names a
+    /// [Canvas3dRenderer] the application bound, and the rest are optional.
+    /// `render-scale=` is 1 when absent, `upscale=` `linear`, and `sharpness=`
+    /// [RenderScale#DEFAULT_SHARPNESS].
     ///
-    /// @throws IllegalArgumentException when it has children, or `depth=` is
-    ///                                  not a depth
+    /// @throws IllegalArgumentException when it has children, `depth=` is not a
+    ///                                  depth, `upscale=` not a filter, or
+    ///                                  `render-scale=` or `sharpness=` out of
+    ///                                  range
     @SuppressWarnings("unused")
     public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
         if (!children.isEmpty()) {
@@ -162,6 +194,10 @@ public record Canvas3d(Canvas3dRenderer renderer, boolean continuous, Depth dept
                 node.booleanProperty("continuous"),
                 Depth.named(node.stringProperty("depth")),
                 (long) node.numberProperty("revision", 0),
+                new RenderScale(
+                        node.numberProperty("render-scale", 1),
+                        UpscaleFilter.named(node.stringProperty("upscale")),
+                        node.numberProperty("sharpness", RenderScale.DEFAULT_SHARPNESS)),
                 Attributes.of(node));
     }
 
@@ -189,8 +225,8 @@ public record Canvas3d(Canvas3dRenderer renderer, boolean continuous, Depth dept
         public Widget build(BuildContext context) {
             host = context.host().orElse(null);
             var canvas = widget();
-            var surface =
-                    new Canvas3dSurface(layer(), canvas.continuous(), canvas.revision(), this, canvas.attributes());
+            var surface = new Canvas3dSurface(
+                    layer(), canvas.continuous(), canvas.revision(), canvas.renderScale(), this, canvas.attributes());
             var why = reason;
             if (why == null) {
                 return surface;

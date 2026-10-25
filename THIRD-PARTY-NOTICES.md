@@ -113,6 +113,7 @@ vendor's or the distribution's.
 | [JetBrains Mono](licenses/jetbrains-mono.txt) | OFL 1.1 | <https://www.jetbrains.com/lp/mono/> | Default monospace font |
 | [Lucide](licenses/lucide.txt) | ISC, with MIT for the icons derived from Feather | <https://lucide.dev> | Icon set, compiled to a binary path table. The licence file lists the Feather-derived icons by name |
 | [Noto Color Emoji](licenses/noto-emoji.txt) | OFL 1.1 | <https://github.com/googlefonts/noto-emoji> | Emoji font — in **`goldberry-emoji`** and not in core, see below |
+| [FidelityFX Super Resolution 1](licenses/fidelityfx-fsr.txt) | MIT | <https://github.com/GPUOpen-Effects/FidelityFX-FSR> | EASU and RCAS, ported to HLSL and compiled into **`goldberry-gpu`**'s shaders: the `canvas3d` upscaler |
 
 ### The emoji face is opt-in, and asks for nothing on screen
 

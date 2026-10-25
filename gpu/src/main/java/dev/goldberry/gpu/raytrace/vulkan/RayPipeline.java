@@ -14,8 +14,9 @@ import dev.goldberry.natives.vulkan.VkStructs;
 import dev.goldberry.natives.vulkan.VulkanException;
 
 /// The ray-tracing pipeline of `trace.lib.hlsl`, with what binds it: its
-/// descriptor set (the scene at binding 0, the hits at binding 1), its push
-/// constants, and its shader binding table.
+/// descriptor set (the scene at binding 0, the hits at binding 1, the meshes'
+/// normals at 2 and where each instance's start at 3), its push constants,
+/// and its shader binding table.
 ///
 /// Four groups: ray generation; the primary and the shadow miss; one
 /// triangle hit group with a closest-hit shader. No ray is traced from a hit
@@ -152,12 +153,13 @@ final class RayPipeline implements AutoCloseable {
         }
     }
 
-    /// Binds `scene`'s top level and `hits` to the descriptor set. No trace may
-    /// be running: every trace is waited for.
-    void bind(long topLevel, DeviceBuffer hits) {
+    /// Binds `scene`'s top level and normals, and `hits`, to the descriptor
+    /// set. No trace may be running: every trace is waited for.
+    void bind(AccelerationScene scene, DeviceBuffer hits) {
+        var topLevel = scene.topLevel();
         try (var arena = Arena.ofConfined()) {
             var writeLayout = VkStructs.VkWriteDescriptorSet.LAYOUT;
-            var writes = Structs.array(arena, writeLayout, 2, VkConstants.VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET);
+            var writes = Structs.array(arena, writeLayout, 4, VkConstants.VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET);
 
             var structures = Structs.allocate(
                     arena,
@@ -169,31 +171,35 @@ final class RayPipeline implements AutoCloseable {
                     ADDRESS,
                     VkStructs.VkWriteDescriptorSetAccelerationStructureKHR.pAccelerationStructures,
                     arena.allocateFrom(JAVA_LONG, topLevel));
-            var scene = Structs.at(writes, writeLayout, 0);
-            Structs.chain(scene, structures);
-            scene.set(JAVA_LONG, VkStructs.VkWriteDescriptorSet.dstSet, descriptorSet);
-            scene.set(JAVA_INT, VkStructs.VkWriteDescriptorSet.dstBinding, 0);
-            scene.set(JAVA_INT, VkStructs.VkWriteDescriptorSet.descriptorCount, 1);
-            scene.set(
+            var structure = Structs.at(writes, writeLayout, 0);
+            Structs.chain(structure, structures);
+            structure.set(JAVA_LONG, VkStructs.VkWriteDescriptorSet.dstSet, descriptorSet);
+            structure.set(JAVA_INT, VkStructs.VkWriteDescriptorSet.dstBinding, 0);
+            structure.set(JAVA_INT, VkStructs.VkWriteDescriptorSet.descriptorCount, 1);
+            structure.set(
                     JAVA_INT,
                     VkStructs.VkWriteDescriptorSet.descriptorType,
                     VkConstants.VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR);
 
-            var bufferInfo = Structs.allocate(arena, VkStructs.VkDescriptorBufferInfo.LAYOUT);
-            bufferInfo.set(JAVA_LONG, VkStructs.VkDescriptorBufferInfo.buffer, hits.handle());
-            bufferInfo.set(JAVA_LONG, VkStructs.VkDescriptorBufferInfo.range, hits.size());
-            var output = Structs.at(writes, writeLayout, 1);
-            output.set(JAVA_LONG, VkStructs.VkWriteDescriptorSet.dstSet, descriptorSet);
-            output.set(JAVA_INT, VkStructs.VkWriteDescriptorSet.dstBinding, 1);
-            output.set(JAVA_INT, VkStructs.VkWriteDescriptorSet.descriptorCount, 1);
-            output.set(
-                    JAVA_INT,
-                    VkStructs.VkWriteDescriptorSet.descriptorType,
-                    VkConstants.VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
-            output.set(ADDRESS, VkStructs.VkWriteDescriptorSet.pBufferInfo, bufferInfo);
+            storage(arena, Structs.at(writes, writeLayout, 1), 1, hits);
+            storage(arena, Structs.at(writes, writeLayout, 2), 2, scene.normals());
+            storage(arena, Structs.at(writes, writeLayout, 3), 3, scene.instanceNormals());
 
-            device.functions().updateDescriptorSets().call(device.handle(), 2, writes, 0, MemorySegment.NULL);
+            device.functions().updateDescriptorSets().call(device.handle(), 4, writes, 0, MemorySegment.NULL);
         }
+    }
+
+    /// Fills `write` with the whole of `buffer` at `binding`, a storage buffer.
+    private void storage(Arena arena, MemorySegment write, int binding, DeviceBuffer buffer) {
+        var bufferInfo = Structs.allocate(arena, VkStructs.VkDescriptorBufferInfo.LAYOUT);
+        bufferInfo.set(JAVA_LONG, VkStructs.VkDescriptorBufferInfo.buffer, buffer.handle());
+        bufferInfo.set(JAVA_LONG, VkStructs.VkDescriptorBufferInfo.range, buffer.size());
+        write.set(JAVA_LONG, VkStructs.VkWriteDescriptorSet.dstSet, descriptorSet);
+        write.set(JAVA_INT, VkStructs.VkWriteDescriptorSet.dstBinding, binding);
+        write.set(JAVA_INT, VkStructs.VkWriteDescriptorSet.descriptorCount, 1);
+        write.set(
+                JAVA_INT, VkStructs.VkWriteDescriptorSet.descriptorType, VkConstants.VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+        write.set(ADDRESS, VkStructs.VkWriteDescriptorSet.pBufferInfo, bufferInfo);
     }
 
     /// Records the dispatch of one ray a pixel of `width` by `height`, with
@@ -283,7 +289,7 @@ final class RayPipeline implements AutoCloseable {
 
     private static long setLayout(RayDevice device, Arena arena, MemorySegment out) {
         var bindingLayout = VkStructs.VkDescriptorSetLayoutBinding.LAYOUT;
-        var bindings = arena.allocate(bindingLayout, 2);
+        var bindings = arena.allocate(bindingLayout, 4);
         var scene = Structs.at(bindings, bindingLayout, 0);
         scene.set(JAVA_INT, VkStructs.VkDescriptorSetLayoutBinding.binding, 0);
         scene.set(
@@ -306,11 +312,25 @@ final class RayPipeline implements AutoCloseable {
                 JAVA_INT,
                 VkStructs.VkDescriptorSetLayoutBinding.stageFlags,
                 VkConstants.VK_SHADER_STAGE_RAYGEN_BIT_KHR);
+        // The normals, which the closest-hit shader reads.
+        for (var binding = 2; binding <= 3; binding++) {
+            var normals = Structs.at(bindings, bindingLayout, binding);
+            normals.set(JAVA_INT, VkStructs.VkDescriptorSetLayoutBinding.binding, binding);
+            normals.set(
+                    JAVA_INT,
+                    VkStructs.VkDescriptorSetLayoutBinding.descriptorType,
+                    VkConstants.VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+            normals.set(JAVA_INT, VkStructs.VkDescriptorSetLayoutBinding.descriptorCount, 1);
+            normals.set(
+                    JAVA_INT,
+                    VkStructs.VkDescriptorSetLayoutBinding.stageFlags,
+                    VkConstants.VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR);
+        }
         var info = Structs.allocate(
                 arena,
                 VkStructs.VkDescriptorSetLayoutCreateInfo.LAYOUT,
                 VkConstants.VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO);
-        info.set(JAVA_INT, VkStructs.VkDescriptorSetLayoutCreateInfo.bindingCount, 2);
+        info.set(JAVA_INT, VkStructs.VkDescriptorSetLayoutCreateInfo.bindingCount, 4);
         info.set(ADDRESS, VkStructs.VkDescriptorSetLayoutCreateInfo.pBindings, bindings);
         VulkanException.check(
                 device.functions().createDescriptorSetLayout().call(device.handle(), info, MemorySegment.NULL, out),
@@ -387,7 +407,7 @@ final class RayPipeline implements AutoCloseable {
         Structs.at(sizes, sizeLayout, 0).set(JAVA_INT, VkStructs.VkDescriptorPoolSize.descriptorCount, 1);
         Structs.at(sizes, sizeLayout, 1)
                 .set(JAVA_INT, VkStructs.VkDescriptorPoolSize.type, VkConstants.VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
-        Structs.at(sizes, sizeLayout, 1).set(JAVA_INT, VkStructs.VkDescriptorPoolSize.descriptorCount, 1);
+        Structs.at(sizes, sizeLayout, 1).set(JAVA_INT, VkStructs.VkDescriptorPoolSize.descriptorCount, 3);
         var info = Structs.allocate(
                 arena,
                 VkStructs.VkDescriptorPoolCreateInfo.LAYOUT,

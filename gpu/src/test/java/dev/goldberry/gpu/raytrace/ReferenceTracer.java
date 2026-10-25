@@ -19,7 +19,15 @@ final class ReferenceTracer {
     private final List<Triangle> triangles = new ArrayList<>();
 
     /// One triangle of the scene, in world space.
-    private record Triangle(int instanceId, int primitiveId, double[] a, double[] b, double[] c) {}
+    private record Triangle(int instanceId, int primitiveId, double[] a, double[] b, double[] c) {
+
+        /// Its unit normal, out of its counter-clockwise face.
+        double[] normal() {
+            var n = cross(minus(b, a), minus(c, a));
+            var length = Math.sqrt(dot(n, n));
+            return new double[] {n[0] / length, n[1] / length, n[2] / length};
+        }
+    }
 
     ReferenceTracer(SceneGeometry geometry) {
         for (var instance : geometry.instances()) {
@@ -45,6 +53,19 @@ final class ReferenceTracer {
             m.m10() * x + m.m11() * y + m.m12() * z + m.m13(),
             m.m20() * x + m.m21() * y + m.m22() * z + m.m23()
         };
+    }
+
+    /// The unit normal of `primitiveId` of instance `instanceId`, in world
+    /// space, which way the shader's points not being the reference's
+    /// business: a hit's normal is turned to face its ray.
+    ///
+    /// @throws IllegalArgumentException when there is no such triangle
+    double[] normal(int instanceId, int primitiveId) {
+        return triangles.stream()
+                .filter(t -> t.instanceId() == instanceId && t.primitiveId() == primitiveId)
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("no triangle " + primitiveId + " of " + instanceId))
+                .normal();
     }
 
     /// What the closest hit was, if any, and how far from changing it.

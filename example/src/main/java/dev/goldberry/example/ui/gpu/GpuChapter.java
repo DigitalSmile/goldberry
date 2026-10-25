@@ -12,8 +12,8 @@ import dev.goldberry.widget.attr.Attributes;
 import dev.goldberry.widgets.overlay.hud.Hud;
 
 /// The **GPU** screen: `canvas3d`, drawn by the showcase's own renderer and
-/// shaders, every frame and on demand, and the readings of what the window's
-/// composite costs.
+/// shaders, every frame and on demand; a ray-traced room with a game's
+/// graphics settings; and the readings of what the window's composite costs.
 ///
 /// How the window shows the canvases is its launch's choice:
 /// `-Pgoldberry.gpu.composite=never` reads them back, and `-Pgoldberry.gpu=off`
@@ -36,7 +36,7 @@ public record GpuChapter(GalleryContext context) implements Widget.Stateless {
                         + " box an application's own renderer draws into. Where there is no GPU, the window"
                         + " presents on the CPU as before.",
                 CHAPTER,
-                List.of(new SpinningCube(), new TurnedCube(), frames(), measured()));
+                List.of(new SpinningCube(), new TurnedCube(), new RayTracedRoom(), frames(), measured()));
     }
 
     /// The window's present readings, which say whether it went through the GPU.

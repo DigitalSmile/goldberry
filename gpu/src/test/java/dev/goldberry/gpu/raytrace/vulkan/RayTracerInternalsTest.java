@@ -27,6 +27,7 @@ import org.junit.jupiter.api.Test;
 
 import dev.goldberry.gpu.raytrace.Camera;
 import dev.goldberry.gpu.raytrace.Instance;
+import dev.goldberry.gpu.raytrace.LightingRequest;
 import dev.goldberry.gpu.raytrace.SceneGeometry;
 import dev.goldberry.gpu.raytrace.TraceRequest;
 import dev.goldberry.gpu.raytrace.Transform;
@@ -119,7 +120,46 @@ class RayTracerInternalsTest {
                 assertThrows(
                         IllegalArgumentException.class,
                         () -> RayConstants.write(arena.allocate(16), request, TraceOutput.RECORDS));
+                assertEquals(0, constants.get(JAVA_INT, RayConstants.OCCLUSION_RAYS), "none but for the lighting");
+                assertEquals(0, constants.get(JAVA_INT, RayConstants.REFLECTIONS));
             }
+        }
+
+        @Test
+        @DisplayName("carry the lighting's occlusion rays, their radius and its reflections after the output")
+        void lighting() {
+            var camera = Camera.lookingAt(new Vector3(0, 0, 5), Vector3.ZERO, 90);
+            var rays = TraceRequest.of(camera, 8, 4).withShadowsToward(new Vector3(0, 1, 0));
+            try (var arena = Arena.ofConfined()) {
+                var constants = arena.allocate(RayConstants.SIZE);
+                RayConstants.write(constants, LightingRequest.of(rays).withOcclusion(16, 0.75f));
+                assertEquals(2, constants.get(JAVA_INT, RayConstants.OUTPUT), "the lighting");
+                assertEquals(16, constants.get(JAVA_INT, RayConstants.OCCLUSION_RAYS));
+                assertEquals(0.75f, constants.get(JAVA_FLOAT, RayConstants.OCCLUSION_RADIUS));
+                assertEquals(1, constants.get(JAVA_INT, RayConstants.REFLECTIONS));
+                assertEquals(1, constants.get(JAVA_FLOAT, RayConstants.TOWARD_LIGHT + 12), "shadows");
+                RayConstants.write(constants, LightingRequest.of(rays).withReflections(false));
+                assertEquals(0, constants.get(JAVA_INT, RayConstants.REFLECTIONS));
+            }
+        }
+    }
+
+    @Nested
+    @DisplayName("the face normals")
+    class Normals {
+
+        @Test
+        @DisplayName("are each triangle's unit normal out of its counter-clockwise face, the meshes one after another")
+        void normals() {
+            var ground = TriangleMesh.of(new float[] {0, 0, 0, 1, 0, 0, 0, 0, 1}, new int[] {0, 2, 1});
+            var wall = TriangleMesh.of(new float[] {0, 0, 0, 2, 0, 0, 0, 2, 0, 5, 5, 5}, new int[] {0, 1, 2, 3, 3, 3});
+            var faces = FaceNormals.of(List.of(ground, wall));
+            assertEquals(3, faces.triangles());
+            assertArrayEquals(new int[] {0, 1}, faces.firstTriangles());
+            assertArrayEquals(
+                    new float[] {0, 1, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0},
+                    faces.normals(),
+                    "up for the ground, +z for the wall, and y for a triangle of no area");
         }
     }
 
@@ -133,6 +173,15 @@ class RayTracerInternalsTest {
             assertEquals(5 * 24, TraceOutput.RECORDS.bytes(5, 1));
             assertEquals(1920L * 1080 * 24, TraceOutput.RECORDS.bytes(1920, 1080));
             assertFalse(TraceOutput.RECORDS.zeroed());
+        }
+
+        @Test
+        @DisplayName("are eight bytes a pixel of lighting, in two planes each written whole")
+        void lighting() {
+            assertEquals(5 * 8, TraceOutput.LIGHTING.bytes(5, 1));
+            assertEquals(1920L * 1080 * 8, TraceOutput.LIGHTING.bytes(1920, 1080));
+            assertFalse(TraceOutput.LIGHTING.zeroed());
+            assertEquals(2, TraceOutput.LIGHTING.code());
         }
 
         @Test

@@ -6,10 +6,13 @@ import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.util.function.Consumer;
 
 import org.jspecify.annotations.Nullable;
 
 import dev.goldberry.gpu.raytrace.Hits;
+import dev.goldberry.gpu.raytrace.Lighting;
+import dev.goldberry.gpu.raytrace.LightingRequest;
 import dev.goldberry.gpu.raytrace.SceneGeometry;
 import dev.goldberry.gpu.raytrace.TraceRequest;
 import dev.goldberry.natives.vulkan.Structs;
@@ -116,10 +119,35 @@ public final class VulkanRayTracer implements AutoCloseable {
         return mask;
     }
 
+    /// Traces `request` through `scene` for its lighting: a new little-endian
+    /// buffer of [Lighting#BYTES_PER_PIXEL] a pixel, the shading plane then
+    /// the reflected ids.
+    ///
+    /// @throws IllegalArgumentException                     as [#trace] does
+    /// @throws dev.goldberry.natives.vulkan.VulkanException when the driver
+    ///                                                      refuses
+    public ByteBuffer traceLighting(AccelerationScene scene, LightingRequest request) {
+        var bytes = dispatch(
+                scene, request.rays(), TraceOutput.LIGHTING, constants -> RayConstants.write(constants, request));
+        var copy = ByteBuffer.allocate(Math.toIntExact(bytes)).order(ByteOrder.LITTLE_ENDIAN);
+        MemorySegment.ofBuffer(copy).copyFrom(readback().mapped().asSlice(0, bytes));
+        return copy;
+    }
+
     /// Traces `request` through `scene`, writing `output` into the hits buffer
     /// and copying it to the readback buffer, and returns how many bytes it
     /// wrote.
     private long dispatch(AccelerationScene scene, TraceRequest request, TraceOutput output) {
+        return dispatch(scene, request, output, constants -> RayConstants.write(constants, request, output));
+    }
+
+    /// [#dispatch(AccelerationScene, TraceRequest, TraceOutput)], with the push
+    /// constants written by `constantsWriter`.
+    private long dispatch(
+            AccelerationScene scene,
+            TraceRequest request,
+            TraceOutput output,
+            Consumer<MemorySegment> constantsWriter) {
         requireOpen();
         var pixels = request.pixels();
         if (pixels > device.limits().maxDispatch()) {
@@ -130,10 +158,10 @@ public final class VulkanRayTracer implements AutoCloseable {
         var bytes = output.bytes(request.width(), request.height());
         var written = hits(bytes);
         var host = readback(bytes);
-        pipeline.bind(scene.topLevel(), written);
+        pipeline.bind(scene, written);
         try (var arena = Arena.ofConfined()) {
             var constants = arena.allocate(RayConstants.SIZE, Integer.BYTES);
-            RayConstants.write(constants, request, output);
+            constantsWriter.accept(constants);
             commands.run(buffer -> {
                 if (output.zeroed()) {
                     device.functions().cmdFillBuffer().call(buffer, written.handle(), 0, bytes, 0);

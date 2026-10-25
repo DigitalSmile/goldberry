@@ -12,6 +12,7 @@ import java.nio.ByteOrder;
 import java.nio.ReadOnlyBufferException;
 import java.util.List;
 import java.util.Optional;
+import java.util.OptionalInt;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -405,6 +406,90 @@ class RayTraceValuesTest {
         void refuses() {
             assertThrows(IllegalArgumentException.class, () -> ShadowMask.of(2, 2, ByteBuffer.allocate(3)));
             assertThrows(IllegalArgumentException.class, () -> ShadowMask.of(0, 1, ByteBuffer.allocate(0)));
+        }
+    }
+
+    @Nested
+    @DisplayName("a lighting request")
+    class LightingRequests {
+
+        private final TraceRequest rays = TraceRequest.of(
+                        Camera.lookingAt(new Vector3(0, 0, 5), Vector3.ZERO, 60), 40, 30)
+                .withShadowsToward(new Vector3(0, 1, 0));
+
+        @Test
+        @DisplayName("asks for shadows, eight occlusion rays a unit long and reflections by default")
+        void defaults() {
+            var request = LightingRequest.of(rays);
+            assertEquals(LightingRequest.DEFAULT_OCCLUSION_RAYS, request.occlusionRays());
+            assertEquals(LightingRequest.DEFAULT_OCCLUSION_RADIUS, request.occlusionRadius());
+            assertTrue(request.reflections());
+            assertEquals(
+                    40L * 30 * (2 + 8 + 2), request.maxRays(), "primary, shadow, occlusion, reflection and its shadow");
+            var plain = request.withOcclusion(0, 2).withReflections(false);
+            assertEquals(40L * 30 * 2, plain.maxRays());
+            assertEquals(new LightingRequest(rays, 0, 2, false), plain);
+        }
+
+        @Test
+        @DisplayName("refuses rays with no light, more than 64 occlusion rays, and a radius that is not positive")
+        void refuses() {
+            assertThrows(
+                    IllegalArgumentException.class,
+                    () -> LightingRequest.of(TraceRequest.of(rays.camera(), 4, 4)),
+                    "no light");
+            var request = LightingRequest.of(rays);
+            assertThrows(IllegalArgumentException.class, () -> request.withOcclusion(65, 1));
+            assertThrows(IllegalArgumentException.class, () -> request.withOcclusion(-1, 1));
+            assertThrows(IllegalArgumentException.class, () -> request.withOcclusion(8, 0));
+            assertThrows(IllegalArgumentException.class, () -> request.withOcclusion(8, Float.POSITIVE_INFINITY));
+            request.withOcclusion(LightingRequest.MAX_OCCLUSION_RAYS, 1);
+        }
+    }
+
+    @Nested
+    @DisplayName("the lighting")
+    class Lightings {
+
+        /// Two pixels: the first lit, half open, seeing instance 7 at full light;
+        /// the second a miss.
+        private static ByteBuffer planes() {
+            var planes = ByteBuffer.allocate(2 * Lighting.BYTES_PER_PIXEL).order(ByteOrder.LITTLE_ENDIAN);
+            planes.put((byte) 0xFF).put((byte) 128).put((byte) 0xFF).put((byte) 0xFF);
+            planes.put((byte) 0xFF).put((byte) 0xFF).put((byte) 0).put((byte) 0);
+            planes.putFloat(7).putFloat(Lighting.NO_REFLECTION);
+            return planes.flip();
+        }
+
+        @Test
+        @DisplayName("reads each pixel's shadow, openness and reflection from its two planes")
+        void reads() {
+            var lighting = Lighting.of(2, 1, planes());
+            assertTrue(lighting.isHit(0, 0));
+            assertTrue(lighting.isLit(0, 0));
+            assertEquals(128 / 255f, lighting.openness(0, 0));
+            assertEquals(1, lighting.reflectedLight(0, 0));
+            assertEquals(OptionalInt.of(7), lighting.reflectedId(0, 0));
+            assertFalse(lighting.isHit(1, 0));
+            assertTrue(lighting.reflectedId(1, 0).isEmpty());
+            assertEquals(0, lighting.shadowedCount());
+            assertThrows(IndexOutOfBoundsException.class, () -> lighting.isLit(2, 0));
+        }
+
+        @Test
+        @DisplayName("lends its planes read-only and laid out for their textures")
+        void planesForTextures() {
+            var lighting = Lighting.of(2, 1, planes());
+            var shading = lighting.shading();
+            assertEquals(8, shading.remaining());
+            assertEquals((byte) 128, shading.get(1));
+            assertThrows(ReadOnlyBufferException.class, () -> shading.put(0, (byte) 0));
+            var ids = lighting.reflectedIds();
+            assertEquals(ByteOrder.LITTLE_ENDIAN, ids.order());
+            assertEquals(7f, ids.getFloat(0));
+            assertEquals(Lighting.NO_REFLECTION, ids.getFloat(4));
+            assertThrows(IllegalArgumentException.class, () -> Lighting.of(2, 2, planes()), "the wrong size");
+            assertThrows(IllegalArgumentException.class, () -> Lighting.of(0, 1, ByteBuffer.allocate(0)));
         }
     }
 

@@ -6,6 +6,7 @@ import java.util.Set;
 import org.jspecify.annotations.Nullable;
 
 import dev.goldberry.css.ComputedStyle;
+import dev.goldberry.gpu.upscale.RenderScale;
 import dev.goldberry.paint.Box;
 import dev.goldberry.paint.Frame;
 import dev.goldberry.paint.Painter;
@@ -24,8 +25,14 @@ import dev.goldberry.widget.style.Styled;
 /// compares painters by equality to decide what was damaged: the painter is
 /// equal from frame to frame while the canvas has nothing new to show, so its
 /// box is not repainted, and differs when it has -- every frame while it is
-/// continuous, and at a new revision otherwise.
-record Canvas3dSurface(Canvas3dLayer layer, boolean continuous, long revision, Owner owner, Attributes attributes)
+/// continuous, and at a new revision or render scale otherwise.
+record Canvas3dSurface(
+        Canvas3dLayer layer,
+        boolean continuous,
+        long revision,
+        RenderScale renderScale,
+        Owner owner,
+        Attributes attributes)
         implements Widget.Leaf, Styled, Paints, Semantics {
 
     /// The fill where there is no GPU to draw with, when the theme names none.
@@ -84,6 +91,7 @@ record Canvas3dSurface(Canvas3dLayer layer, boolean continuous, long revision, O
                         nanos,
                         continuous,
                         revision,
+                        renderScale,
                         context.color(UNAVAILABLE_TOKEN, DEFAULT_UNAVAILABLE),
                         owner));
     }
@@ -106,12 +114,20 @@ record Canvas3dSurface(Canvas3dLayer layer, boolean continuous, long revision, O
     /// Places the layer over the whole box, or fills it where the frame cannot
     /// show one. Equal while there is nothing new to draw: see the class.
     record Canvas3dPainter(
-            Canvas3dLayer layer, long stamp, long nanos, boolean continuous, long revision, int fallback, Owner owner)
+            Canvas3dLayer layer,
+            long stamp,
+            long nanos,
+            boolean continuous,
+            long revision,
+            RenderScale renderScale,
+            int fallback,
+            Owner owner)
             implements Painter {
 
         @Override
         public void paint(Frame frame, LogicalSize size) {
             layer.frame(nanos, continuous);
+            layer.scale(renderScale);
             var drawn = frame.gpuLayer(layer, 0, 0, size.width(), size.height());
             if (!drawn) {
                 frame.fillRect(0, 0, size.width(), size.height(), fallback);

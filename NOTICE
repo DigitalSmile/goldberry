@@ -32,6 +32,10 @@ The following assets are embedded in goldberry-core:
   JetBrains Mono       SIL Open Font License 1.1   https://www.jetbrains.com/lp/mono/
   Lucide               ISC; MIT for Feather icons  https://lucide.dev
 
+And goldberry-gpu's shaders are ported from:
+
+  FidelityFX Super Resolution 1   MIT license   https://github.com/GPUOpen-Effects/FidelityFX-FSR
+
 And one is embedded in goldberry-emoji, which is an OPTIONAL artifact:
 
   Noto Color Emoji     SIL Open Font License 1.1   https://github.com/googlefonts/noto-emoji

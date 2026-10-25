@@ -17,7 +17,13 @@ native ABI 26 binds the SDL_GPU calls a game needs, and `:gpu` has indirect
 draws, a stencil test, constant blending and GPU-to-GPU copies. **Phase 2 is
 done** (ADR-0670): a window's present mode and frame cap change at run time,
 the `hud` shows them, and `GpuDevice.features()` answers what a device can do.
-The rest of the plan is open. The next free ADR number is 0671.
+**Phase 5 is done** (ADR-0671): `canvas3d` draws at a render scale and
+upscales bilinearly or with FSR 1, through `dev.goldberry.gpu.upscale`.
+**Phase 7 is done** (ADR-0672, ADR-0673): the ray tracer traces a pixel's
+lighting, occlusion and reflection included, and the showcase's GPU screen has
+a ray-traced room with a game's graphics settings. Open: phase 3 (the software
+tier, and the panel's Software segment with it) and phase 6 (HDR, waiting for
+a display). The next free ADR number is 0674.
 
 ## 1. Where things stand
 
@@ -69,7 +75,7 @@ test inline ray queries in hardware, and lavapipe can.**
    phase 0 has measured what reaching the device costs (D3).
 5. **Game settings**: present mode and frame cap changed at run time, a
    `canvas3d` render scale with an upscaler (bilinear, or AMD FSR 1's EASU and
-   RCAS as compute shaders), and an optional HDR10 swapchain.
+   RCAS, built as fragment passes), and an optional HDR10 swapchain.
 6. **A showcase chapter** with a ray-traced scene (shadows, reflections, ambient
    occlusion) and a settings panel that switches all of it live.
 
@@ -254,9 +260,9 @@ Taken up first, on 2026-10-25, once D3 was decided.
 
 | Item | Status |
 |------|--------|
-| `canvas3d render-scale=` and `upscale=`: the renderer's target at the scaled size, and the layer upscales into its box | open |
-| FSR 1 EASU and RCAS ported to HLSL compute (MIT, AMD; `THIRD-PARTY-NOTICES.md`), with a sharpness setting | open |
-| Goldens at 0.5, 0.75 and 1.0 on lavapipe, with a tolerance written beside the test | open |
+| `canvas3d render-scale=` and `upscale=`: the renderer's target at the scaled size, and the layer upscales into its box | done (ADR-0671): `RenderScale` (factor 0.5–2, `UpscaleFilter`, sharpness 0–1) on `Canvas3d` as a sixth component, the five-argument constructor kept; `render-scale=`, `upscale=`, `sharpness=` in markup. The layer draws into a colour and depth texture of its own at the scaled size and hands the result to an `Upscaler`; at 1 it draws into the target as before. A new scale changes the painter, so an on-demand canvas is drawn again, resized, not re-initialised. `Upscaler` is public in the new exported `dev.goldberry.gpu.upscale`, for a renderer's own textures |
+| FSR 1 EASU and RCAS ported to HLSL compute (MIT, AMD; `THIRD-PARTY-NOTICES.md`), with a sharpness setting | done, as **fragment** shaders, not compute: the target is `B8G8R8A8_UNORM`, which SDL_GPU cannot write as storage everywhere, so compute would cost a copy a frame. `easu.frag`, `rcas.frag`, `fsr.hlsli`, checked against `ffx_fsr1.h` at `a21ffb8f`; RCAS's limiters keep their divisors off zero (AMD's 0×∞ NaN). Sharpness is RCAS's lobe scale, AMD's 0.2 stops (0.87) by default, 0 skips RCAS. A scale above 1, or FSR 1 bringing a picture down, is bilinear. Licence in `licenses/fidelityfx-fsr.txt`, `THIRD-PARTY-NOTICES.md`, `NOTICE` |
+| Goldens at 0.5, 0.75 and 1.0 on lavapipe, with a tolerance written beside the test | done: `canvas3d-cube-fsr1-50`, `-fsr1-75`, `-linear-50` blessed on lavapipe beside the Metal-blessed 1.0; `Canvas3dGoldenTest.UPSCALED` (4 levels, 0.3% stray), the 1660 Ti 3 levels off. `UpscalerTest` (9) holds each pass to `Fsr1Reference`: exact on lavapipe, ≤1 a pass and ≤3 through EASU then RCAS on the 1660 Ti (RCAS's gain, 2.9 at the default). Not done: a mip-bias hint for the renderer |
 
 ### Phase 6 — HDR output (D6)
 
@@ -269,9 +275,9 @@ Taken up first, on 2026-10-25, once D3 was decided.
 
 | Item | Status |
 |------|--------|
-| A scene with ray-traced shadows, reflections and ambient occlusion, its HLSL the showcase's own and checked by `ShowcaseShadersTest` | open |
-| A settings panel: ray tracing off/software/hardware (disabled with the device's reason), render scale and upscaler, MSAA, anisotropy, present mode and cap. All of it live | open |
-| Goldens on lavapipe; the unavailable state on every lane; the guide section parked in `docs/snapshot/` until the release | open |
+| A scene with ray-traced shadows, reflections and ambient occlusion, its HLSL the showcase's own and checked by `ShowcaseShadersTest` | done (ADR-0672, ADR-0673). The hardware tier had primary and shadow rays only, so it gained a **lighting trace**: the scene keeps its face normals (bindings 2 and 3, read by the closest-hit shader through `WorldToObject3x4`), and `RayTracer.traceLighting` traces a shadow ray, cosine-weighted occlusion rays from a fixed hash sequence and a reflection ray from each hit, into `Lighting`'s `R8G8B8A8_UNORM` and `R32_FLOAT` planes; held to the double-precision reference (`LightingReference`) on the 1660 Ti and lavapipe. The room (`dev.goldberry.example.gpu.scene`: `RoomScene`, `Mesh`, `RoomRenderer`, `SceneSettings`; `room.vert`/`room.frag`) traces at the size the canvas draws at, uploads the two planes and reads a texel a pixel |
+| A settings panel: ray tracing off/software/hardware (disabled with the device's reason), render scale and upscaler, MSAA, anisotropy, present mode and cap. All of it live | done (`RayTracedRoom`, a wide card on the GPU screen): ray tracing Off/Hardware, the effects' toggles, render scale (native and FSR 1's quality modes) and upscaler, anti-aliasing off/2×/4×/8×, anisotropy off/4×/16×, present mode, frame cap. **Changed:** everything shown by default is the same on every machine, for the goldens, so tracing starts off and `availability()` is asked when Hardware is chosen (disabled with the reason where unavailable), and MSAA and anisotropy are fixed counts the renderer fits to the device. **Software is not offered** until phase 3 builds it. Present mode and cap go to `host.window()`, kept where there is none |
+| Goldens on lavapipe; the unavailable state on every lane; the guide section parked in `docs/snapshot/` until the release | done: `RoomRendererTest` (`gpu-room` on any driver at a tolerance of 3 levels, written beside it; `gpu-room-traced` on lavapipe; the refusal under `goldberry.raytracing=off`; 4× MSAA), `GpuChapterTest` (the unavailable reason and disabled segment with no device, every lane), `RoomSceneTest` (meshes, ids, and raster and traced cameras agreeing pixel for pixel). `gallery-gpu`, `gallery-gpu-drawn`, `shell-home`, the search index and `screen-forms-*.webp` retaken for the new card. **Open:** CI's GPU lane does not run `:example:gpuTest`, so these GPU goldens run locally. The lighting's guide paragraph is parked in `components-gpu.md` |
 
 ## 5. Risks
 
@@ -295,13 +301,17 @@ Taken up first, on 2026-10-25, once D3 was decided.
 | `docs/snapshot/components-gpu.md` `## Ray tracing` | the guide section for `dev.goldberry.gpu.raytrace` | done (2026-10-25), parked; `update`, `structureBytes` and `traceShadows` added with ADR-0667 |
 | `docs/snapshot/adr/0669-…` | phase 1: indirect draws, the stencil test, GPU copies | done (2026-10-25) |
 | `docs/snapshot/components-gpu.md` `## Indirect draws, stencil and copies` | the guide section for phase 1 | done (2026-10-25), parked |
-| `docs/status.md` M4 | each phase as it closes | phase 1 and phase 4 written; the rest open |
-| `docs/snapshot/components-gpu.md` | settings, render scale; moved to the book at release | open; ray tracing and phase 1 written |
+| `docs/status.md` M4 | each phase as it closes | phases 1, 2, 4, 5 and 7 written; 3 and 6 open |
+| `docs/snapshot/components-gpu.md` | settings, render scale; moved to the book at release | ray tracing, phases 1, 2 and 5 written |
 | `docs/snapshot/changelog-breaking-changes.md` | `PipelineSpec`'s and `DepthTarget`'s new components, the new constants, the refused texture, ABI 26 | done (2026-10-25); phase 2's unpaced MAILBOX and the `pacing` reading added |
 | `docs/snapshot/adr/0670-…` | phase 2: present mode and frame cap per window, `GpuFeatures` | done (2026-10-25) |
 | `docs/snapshot/guide-windows-present-mode.md`, `components-overlays-hud-pacing.md`, `components-gpu.md` `## What a device can do` | phase 2's guide pieces | done (2026-10-25), parked |
-| `gpu/src/main/java/module-info.java` | the new exported package | done: `exports dev.goldberry.gpu.raytrace` |
-| `THIRD-PARTY-NOTICES.md` | FSR 1 (MIT) | open |
+| `gpu/src/main/java/module-info.java` | the new exported packages | done: `exports dev.goldberry.gpu.raytrace`, `exports dev.goldberry.gpu.upscale` |
+| `THIRD-PARTY-NOTICES.md` | FSR 1 (MIT) | done (2026-10-25), with `licenses/fidelityfx-fsr.txt` and `NOTICE` |
+| `docs/snapshot/adr/0671-…` | phase 5: render scale and FSR 1 | done (2026-10-25) |
+| `docs/snapshot/components-gpu.md` `## Render scale and upscaling` | phase 5's guide section and attribute rows | done (2026-10-25), parked |
+| `docs/snapshot/adr/0672-…`, `0673-…` | phase 7: the lighting trace; the showcase's room and settings | done (2026-10-25) |
+| `docs/snapshot/components-gpu.md` `## Ray tracing`, **The lighting.** | `traceLighting` and `Lighting` | done (2026-10-25), parked |
 | `docs/gpu-plan.md` §2 "Not in M4" | HDR swapchains, compute in the public API: link here | open |
 
 ## 7. Log
@@ -316,3 +326,6 @@ Taken up first, on 2026-10-25, once D3 was decided.
 | 2026-10-25 | Snapshot 76 and Qodana 80, the first runs of the ray tracer. Phase 0's runner question is answered: both legs' lavapipe has the extensions, and x64 passes required. Three failures, all the ray tracer's. (1) `RayTracerTest` closed a tracer it never opened when it skipped, so the Java job, which has no device, failed all 15 skips; reproduced with `-Dgoldberry.raytracing.device=no-such-device`. (2) On arm64, lavapipe at 128-bit vectors crashes the JVM in its acceleration-structure build; reproduced on x86 with `LP_NATIVE_VECTOR_WIDTH=128` (Mesa 26.0.8), and no build flag or scratch size avoids it, so `RayDevice` refuses it (ADR-0668) and the CI step requires the tests on x64 alone. (3) Qodana: `DeviceBuffer` and `ShowcasePlayers` join the owned types in `profile.yaml`, the extension lookup is a set, the two log lines differ, and `Hits.height()` and `Ray.at()` are tested. Outside the plan, Windows failed `:example:prepareCatalogs` because two builds fetched one archive on a cold cache; `AssetCache` keeps the other build's archive when its own move is refused (`AssetCacheTest`) |
 | 2026-10-25 | **Phase 1 built** (ADR-0669). Native ABI 26 exports the fourteen SDL_GPU calls §1 names plus `SDL_GetStringProperty`, probes their five structs, and binds them in the existing `…calls` records. Two of the plan's assumptions were wrong: `BufferUsage.INDIRECT` was not mapped, and a stencil reference and blend constants needed pipelines that read them, so a `StencilTest`, the two depth-stencil formats and `BlendMode.CONSTANT` joined the phase. The first lavapipe run of the new tests ended in an SDL assertion (a texture both `SAMPLER` and `GRAPHICS_STORAGE_READ`), which `TextureSpec` let through and now refuses. `GpuGameFeaturesTest` draws a command a compute pass wrote, a stencil mask, a constant mix, GPU copies, a sampled compute pass and a mesh displaced by a storage texture; green on lavapipe and the 1660 Ti. Not yet run by CI. Next: phase 2 |
 | 2026-10-25 | **Phase 2 built** (ADR-0670). Present mode belongs to the window as a request and as the mode in effect: the claim is made in VSYNC and the window sets the swapchain to the request or its nearest fallback, keeping the request while on the CPU. The frame loop stops holding windows in MAILBOX or IMMEDIATE to the display; a per-window `FrameCap` holds them instead, with lateness counted from when the cap lets a frame go. `FrameStats.budgetHertz()` makes every `hud` budget a share of the cap where it is slower, and `pacing` shows both. `GpuDevice.features()` landed without ray tracing (D4 changed). The first lavapipe run found sample counts with a gap (1, 4, 8). Green on lavapipe and the 1660 Ti (`:gpu:gpuTest` 120); CI not yet run |
+| 2026-10-25 | **Phase 5 built** (ADR-0671). `canvas3d render-scale= upscale= sharpness=` and `dev.goldberry.gpu.upscale` (`RenderScale`, `UpscaleFilter`, `Upscaler`). The plan said EASU and RCAS in compute; they are fragment passes, because the layer's `B8G8R8A8_UNORM` target is not a storage format everywhere. The port was written, then checked against upstream `ffx_fsr1.h`, and matches it but for RCAS's divisors, kept off zero against a NaN. `Fsr1Reference` reproduces it in Java: lavapipe matches exactly; the 1660 Ti is a level off a pass and three through EASU then RCAS, which the first NVIDIA run failed at a tolerance of 2 until the chain got its own, from RCAS's gain. Three goldens on lavapipe. `CompositeHarness.openResources()` for the leak check of a test outside `…gpu`. Green on lavapipe and the 1660 Ti (`:gpu:gpuTest` 133); CI not yet run. Next: phase 7 |
+| 2026-10-25 | **Phase 7 built** (ADR-0672, ADR-0673). The plan asked for reflections and occlusion, which the hardware tier could not trace: it had no normal at a hit, and the 1660 Ti has no position fetch. The scene now keeps its face normals, and `traceLighting` adds occlusion rays and a reflection ray, matching the reference on both devices the first time; a one-bit change to the hash fails it, so the comparison is real. The showcase's GPU screen has a ray-traced room and a settings panel. Two plan items changed for the goldens: tracing starts off and asks for the device when chosen, and MSAA and anisotropy are fixed counts; Software waits for phase 3. The untraced room is three levels apart between NVIDIA and lavapipe on the floor's filtered texels, so its tolerance is 3. The new card moved five pictures that show the screen or the sidebar's counts. Green: `:gpu:check`, `:example:check`, `:example:gpuTest` and the ray-tracing tests on lavapipe and the 1660 Ti. Not in CI: `:example:gpuTest`. Next: phase 3, or HDR when a display is at hand |
+

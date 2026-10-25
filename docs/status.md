@@ -7476,6 +7476,25 @@ a painted frame reaches the screen, and what else can be on it.
   budgets by the cap. `GpuDevice.features()` answers sample counts, stencil and
   compressed formats, float targets and the adapter. Green on lavapipe and the
   GTX 1660 Ti, CI not yet run.
+- **A 3D view is drawn at a scale of its box and upscaled** (ADR-0671, parked,
+  2026-10-25; the gaming plan's phase 5). `canvas3d render-scale=0.5..2
+  upscale="linear|fsr1" sharpness=0..1` has the renderer draw into a texture at
+  the scaled size, which the layer brings to the box: bilinearly, or with AMD
+  FidelityFX Super Resolution 1 (EASU, then RCAS), ported to two fragment
+  shaders. `dev.goldberry.gpu.upscale`'s `Upscaler` does the same for a
+  renderer's own textures. The shaders match a Java reference exactly on
+  lavapipe and within three levels on the GTX 1660 Ti; goldens at 0.5 and
+  0.75 are blessed on lavapipe. CI not yet run.
+- **The showcase has a ray-traced room and a game's graphics settings**
+  (ADR-0672, ADR-0673, parked, 2026-10-25; the gaming plan's phase 7). The ray
+  tracer traces a pixel's lighting: from each hit a shadow ray, occlusion rays
+  and a reflection ray, using normals the scene now keeps, into two textures'
+  worth of data (`RayTracer.traceLighting`). It matches the double-precision
+  reference on the GTX 1660 Ti and lavapipe. The GPU screen's new card draws
+  a room with it, under a panel of ray tracing, its effects, render scale and
+  upscaler, anti-aliasing, anisotropy, present mode and frame cap. Tracing
+  starts off, so the screen is the same picture on every machine. Its GPU
+  goldens run in `:example:gpuTest`, which CI's lane does not run yet.
 
 **What is not proven.** Everything above was built and measured on Metal. On
 Linux the composited path has run on this project's machine, under X11 on

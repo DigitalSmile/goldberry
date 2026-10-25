@@ -162,6 +162,12 @@ Everything below is measured against 2026.2 (tag commit d3eacfdc).
   is unchanged. `BackendWindow`, `CompositedWindow` and `FrameStats` gain
   default methods.
   <!-- ADR-0670 -->
+- `Canvas3d` has a sixth component, `renderScale`, before `attributes`. Its
+  five-argument constructor stays, so code that calls it compiles unchanged,
+  but a record pattern that deconstructs a `Canvas3d` names the new component.
+  `Canvas3dTarget.colour()` is at the size the canvas draws at, which is its
+  box's only at the default scale of 1.
+  <!-- ADR-0671 -->
 
 #### Markup
 

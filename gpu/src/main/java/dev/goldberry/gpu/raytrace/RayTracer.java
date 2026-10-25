@@ -16,10 +16,12 @@ import dev.goldberry.natives.vulkan.VulkanException;
 /// beside it: the scene is built there, rays are traced there, and the
 /// [Hits] come back through this process's memory. From there they go into
 /// SDL's textures and buffers with a [dev.goldberry.gpu.CopyPass] — a
-/// [ShadowMask] into an `R8_UNORM` texture, [Hits#records()] into a storage
+/// [ShadowMask] into an `R8_UNORM` texture, [Lighting]'s planes into an
+/// `R8G8B8A8_UNORM` and an `R32_FLOAT` one, [Hits#records()] into a storage
 /// buffer — where a renderer's own shaders read them. Every call returns once
 /// the GPU is done, so a trace costs its copy back as well as its rays: 24
-/// bytes a pixel for [#trace], one for [#traceShadows].
+/// bytes a pixel for [#trace], eight for [#traceLighting], one for
+/// [#traceShadows].
 ///
 /// ```java
 /// try (var tracer = RayTracer.open(RayTracingMode.AUTO).orElseThrow();
@@ -162,6 +164,30 @@ public final class RayTracer implements AutoCloseable {
             return ShadowMask.of(request.width(), request.height(), vulkan.traceShadows(structures, request));
         } catch (VulkanException e) {
             throw new GpuException("shadows could not be traced on " + device.device(), e);
+        }
+    }
+
+    /// Traces `request` through `scene` for its lighting: from each primary
+    /// hit a shadow ray, the occlusion rays and a reflection ray, packed on the
+    /// GPU into [Lighting]'s two planes, eight bytes a pixel.
+    ///
+    /// @throws IllegalArgumentException when `scene` was built by another
+    ///                                  tracer, or the picture has more pixels
+    ///                                  than the device starts in one dispatch
+    /// @throws IllegalStateException    when `scene` is closed
+    /// @throws WrongThreadException     when called from another thread than
+    ///                                  its owner's
+    /// @throws GpuException             when the device refuses
+    public Lighting traceLighting(RayScene scene, LightingRequest request) {
+        Objects.requireNonNull(scene, "scene");
+        Objects.requireNonNull(request, "request");
+        requireOpen();
+        var structures = scene.structuresFor(this);
+        try {
+            var rays = request.rays();
+            return Lighting.of(rays.width(), rays.height(), vulkan.traceLighting(structures, request));
+        } catch (VulkanException e) {
+            throw new GpuException("the lighting could not be traced on " + device.device(), e);
         }
     }
 

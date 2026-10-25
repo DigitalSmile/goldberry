@@ -10,6 +10,8 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 
 import dev.goldberry.assets.BundledFont;
 import dev.goldberry.css.Stylesheet;
@@ -18,6 +20,8 @@ import dev.goldberry.css.cascade.CascadeLayer;
 import dev.goldberry.golden.GoldenImage;
 import dev.goldberry.golden.Tolerance;
 import dev.goldberry.gpu.composite.CompositeHarness;
+import dev.goldberry.gpu.upscale.RenderScale;
+import dev.goldberry.gpu.upscale.UpscaleFilter;
 import dev.goldberry.image.Image;
 import dev.goldberry.natives.sdl.gpu.GpuTestLauncher;
 import dev.goldberry.offscreen.Offscreen;
@@ -135,6 +139,44 @@ class Canvas3dGoldenTest {
             try (var scene = new Mounted(cube(new TestCube()))) {
                 return harness.composited(surface -> scene.picture(at, scale.factor(), surface))
                         .image();
+            }
+        });
+    }
+
+    /// What an upscaled cube may differ by on another driver than lavapipe,
+    /// which blessed it. [Tolerance#GPU]'s reasons hold, and grow. RCAS
+    /// sharpens each rounding difference of the lit faces by up to three times,
+    /// so a channel may be four levels apart anywhere: an NVIDIA GPU is three
+    /// apart on the FSR goldens and one on the bilinear one. And a silhouette
+    /// pixel that flips at the size drawn is upscaled into about three of the
+    /// box's, so the share that may stray further is three times the GPU's.
+    /// A cube in the wrong place or a face of the wrong colour moves thousands.
+    private static final Tolerance UPSCALED = new Tolerance(4, 1, 0.003);
+
+    @ParameterizedTest(name = "{0}")
+    @CsvSource({
+        "canvas3d-cube-fsr1-50, 0.5, fsr1, 80x60",
+        "canvas3d-cube-fsr1-75, 0.75, fsr1, 120x90",
+        "canvas3d-cube-linear-50, 0.5, linear, 80x60"
+    })
+    @DisplayName("draws the cube at a render scale and upscales it into the box, the same both ways")
+    void renderScale(String golden, double factor, String filter, String drawn) {
+        var scale = new RenderScale(factor, UpscaleFilter.named(filter), RenderScale.DEFAULT_SHARPNESS);
+        var size = new PhysicalSize(WIDTH, HEIGHT);
+        var cube = new TestCube();
+        try (var scene = new Mounted(cube(cube).renderScale(scale))) {
+            var composited = harness.composited(surface -> scene.picture(size, 1f, surface));
+            assertEquals(
+                    PhysicalRect.of(20, 20, 160, 120),
+                    composited.placed().getFirst().target(),
+                    "placed in the whole box, whatever it was drawn at");
+            assertEquals(List.of("init", "resize " + drawn, "render " + drawn), cube.calls);
+            var readBack = harness.readBack(surface -> scene.picture(size, 1f, surface));
+            CompositeHarness.assertSamePicture(golden, composited.image(), readBack);
+        }
+        GoldenImage.assertMatchesAtOneScale(golden, WIDTH, HEIGHT, 1f, UPSCALED, (at, at1) -> {
+            try (var scene = new Mounted(cube(new TestCube()).renderScale(scale))) {
+                return harness.readBack(surface -> scene.picture(at, at1.factor(), surface));
             }
         });
     }

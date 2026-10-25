@@ -58,6 +58,12 @@ public final class CompositeHarness implements AutoCloseable {
         return api;
     }
 
+    /// How many SDL resources [#device] holds open: what a test that must not
+    /// leak compares before and after.
+    public int openResources() {
+        return compositor.device().orElseThrow().openResources();
+    }
+
     /// A second device, as a replaced one would be: closed with the harness,
     /// and closed early by [#closeOther].
     public GpuDevice otherDevice() {

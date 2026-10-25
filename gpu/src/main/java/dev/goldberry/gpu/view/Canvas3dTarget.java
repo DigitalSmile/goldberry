@@ -17,7 +17,8 @@ import dev.goldberry.render.model.PhysicalSize;
 ///
 /// Read more: [The renderer](https://goldberry.dev/docs/components/gpu.html#the-renderer).
 ///
-/// @param colour a colour target at the canvas's size in physical pixels, in
+/// @param colour a colour target at the size the canvas draws at -- its size
+///               in physical pixels, times its render scale -- in
 ///               [dev.goldberry.gpu.TextureFormat#B8G8R8A8_UNORM];
 ///               the toolkit's, for this frame only
 /// @param depth  a depth target of the same size, when the canvas asked for
@@ -41,7 +42,8 @@ public record Canvas3dTarget(GpuTexture colour, @Nullable GpuTexture depth, long
         }
     }
 
-    /// The canvas's size in physical pixels.
+    /// The size drawn at, in physical pixels: the canvas's, times its render
+    /// scale.
     public PhysicalSize size() {
         return new PhysicalSize(colour.width(), colour.height());
     }

@@ -1,9 +1,10 @@
 package dev.goldberry.gpu.raytrace.vulkan;
 
 import dev.goldberry.gpu.raytrace.Hits;
+import dev.goldberry.gpu.raytrace.Lighting;
 
 /// What one dispatch of `trace.lib.hlsl` writes, chosen by its `output` push
-/// constant, a ray generation a pixel either way: how many bytes that is for
+/// constant, a ray generation a pixel each way: how many bytes that is for
 /// a picture, and whether the buffer is zeroed first.
 enum TraceOutput {
 
@@ -21,6 +22,15 @@ enum TraceOutput {
         @Override
         long bytes(int width, int height) {
             return ((long) width * height + Integer.BYTES - 1) / Integer.BYTES * Integer.BYTES;
+        }
+    },
+
+    /// Two planes, each written whole: four bytes of shading a pixel, then a
+    /// float a pixel, the id of the instance its reflection sees.
+    LIGHTING(2, false) {
+        @Override
+        long bytes(int width, int height) {
+            return (long) width * height * Lighting.BYTES_PER_PIXEL;
         }
     };
 

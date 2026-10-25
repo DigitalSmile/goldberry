@@ -27,7 +27,13 @@ public enum BuiltInShader {
     YUV2_HDR_FRAGMENT("yuv2hdr.frag", SdlGpuShaderStage.FRAGMENT, 2, 2),
     /// [#YUV3_FRAGMENT], then HDR or wide-gamut R'G'B' to SDR BT.709 from a
     /// second uniform block ([ToneMapping]).
-    YUV3_HDR_FRAGMENT("yuv3hdr.frag", SdlGpuShaderStage.FRAGMENT, 3, 2);
+    YUV3_HDR_FRAGMENT("yuv3hdr.frag", SdlGpuShaderStage.FRAGMENT, 3, 2),
+    /// FSR 1's EASU: a picture upscaled along its edges, from one uniform
+    /// block of sixteen floats ([dev.goldberry.gpu.upscale.fsr.Fsr1#easu]).
+    EASU_FRAGMENT("easu.frag", SdlGpuShaderStage.FRAGMENT, 1, 1),
+    /// FSR 1's RCAS: a picture sharpened within its neighbours' range, from
+    /// one uniform block of four floats ([dev.goldberry.gpu.upscale.fsr.Fsr1#rcas]).
+    RCAS_FRAGMENT("rcas.frag", SdlGpuShaderStage.FRAGMENT, 1, 1);
 
     private final String fileName;
     private final SdlGpuShaderStage stage;
