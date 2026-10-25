@@ -168,22 +168,27 @@ jobs:
             tools: >-
               sudo apt-get update && sudo apt-get install -y
               gstreamer1.0-plugins-base gstreamer1.0-plugins-good gstreamer1.0-plugins-bad gstreamer1.0-libav
+            media-foundation: false
           - target: linux-aarch64
             runner: ubuntu-24.04-arm
             platform-required: true
             tools: >-
               sudo apt-get update && sudo apt-get install -y
               gstreamer1.0-plugins-base gstreamer1.0-plugins-good gstreamer1.0-plugins-bad gstreamer1.0-libav
+            media-foundation: false
           - target: macos-aarch64
             runner: macos-14
             platform-required: true
             tools: 'true'
+            media-foundation: false
           - target: windows-x64
             runner: windows-2022
-            # Media Foundation's decoders are held back in this release, off unless
-            # -Dgoldberry.media.mediaFoundation=true, so there is nothing to require.
-            platform-required: false
+            # Media Foundation's decoders are held back, off unless
+            # -Dgoldberry.media.mediaFoundation=true: this job turns them on and
+            # requires them, so that they go on by default once it is green.
+            platform-required: true
             tools: 'true'
+            media-foundation: true
     runs-on: ${{ matrix.runner }}
     defaults:
       run:
@@ -209,15 +214,18 @@ jobs:
       # `check` includes the natives-jar test, which packages this directory.
       #
       # Each job requires its own system's decoders too: VideoToolbox and
-      # AudioToolbox on macOS, GStreamer on Linux; not Media Foundation on
-      # Windows, which is held back. A test for another system's decoders still
-      # skips, since the flag fails a test only on its own system.
+      # AudioToolbox on macOS, GStreamer on Linux, Media Foundation on Windows,
+      # switched on for the job while it is held back. A codec the system has no
+      # decoder for skips (Windows Server has none for HEVC, AC-3 or E-AC-3), and
+      # so does a test for another system's decoders, since the flag fails a test
+      # only on its own system.
       - name: Test :media against it
         run: >-
           ./gradlew :media:check
           -Pgoldberry.skipNative=true -Pgoldberry.media.required=true
           -Pgoldberry.media.libdir="${{ github.workspace }}/media-natives"
-          -Pgoldberry.platform.required=${{ matrix.platform-required }} --no-daemon
+          -Pgoldberry.platform.required=${{ matrix.platform-required }}
+          -Pgoldberry.media.mediaFoundation=${{ matrix.media-foundation }} --no-daemon
 
   sanitizer:
     name: libgoldberry-media under AddressSanitizer (linux-x64)

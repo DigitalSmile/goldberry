@@ -78,6 +78,7 @@ final class HResult {
             case 0x8004_0154 -> "REGDB_E_CLASSNOTREG";
             case 0x8004_01F0 -> "CO_E_NOTINITIALIZED";
             case RPC_E_CHANGED_MODE -> "RPC_E_CHANGED_MODE";
+            case 0xC00D_36B1 -> "MF_E_BUFFERTOOSMALL";
             case 0xC00D_36B3 -> "MF_E_INVALIDSTREAMNUMBER";
             case MF_E_INVALIDMEDIATYPE -> "MF_E_INVALIDMEDIATYPE";
             case MF_E_NOTACCEPTING -> "MF_E_NOTACCEPTING";

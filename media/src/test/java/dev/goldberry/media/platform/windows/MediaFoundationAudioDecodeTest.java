@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -28,7 +29,8 @@ import dev.goldberry.media.platform.fixtures.Fixtures;
 ///
 /// Lossy codecs do not decode to known samples, so what is checked is what
 /// survives encoding: the tone's frequency and level, the channel each tone was
-/// put in, and timing that runs on without a gap or an overlap.
+/// put in, and timing that runs on without a gap or an overlap. AC-3 and E-AC-3
+/// skip on a Windows without their decoders, as Windows Server is.
 @DisplayName("Media Foundation audio, on the fixtures")
 class MediaFoundationAudioDecodeTest {
 
@@ -47,6 +49,7 @@ class MediaFoundationAudioDecodeTest {
     private record Decoded(float[][] channels, List<Long> pts, List<Integer> sizes) {}
 
     private Decoded decodeAll(String name) {
+        requireDecoderFor(name);
         var interleaved = new ArrayList<float[]>();
         var pts = new ArrayList<Long>();
         var sizes = new ArrayList<Integer>();
@@ -163,11 +166,33 @@ class MediaFoundationAudioDecodeTest {
             assertTrue(provider.supports(demuxer.request(audio.index())));
             assertFalse(provider.supports(demuxer.request(video.index())));
         }
+        // Claimed where the system has the decoder, and only there: Windows
+        // Server has neither, and a track claimed there failed at open.
+        var mf = WindowsRequirement.enforce();
         for (var name : List.of("tone-eac3.mp4", "tones-ac3-5.1.mkv")) {
             try (var demuxer = Fixtures.demux(name)) {
                 var audio = demuxer.info().defaultTrack(MediaType.AUDIO).orElseThrow();
-                assertTrue(provider.supports(demuxer.request(audio.index())), name);
+                var request = demuxer.request(audio.index());
+                var present = mf.hasDecoder(
+                        MfGuids.MFT_CATEGORY_AUDIO_DECODER,
+                        MfGuids.MFMediaType_Audio,
+                        MediaFoundationAudioProvider.subtype(request.codec()).orElseThrow());
+                assertEquals(present, provider.supports(request), name);
             }
+        }
+    }
+
+    /// Skips `name` when this Windows has no decoder for its audio codec.
+    private static void requireDecoderFor(String name) {
+        var mf = WindowsRequirement.enforce();
+        try (var demuxer = Fixtures.demux(name)) {
+            var audio = demuxer.info().defaultTrack(MediaType.AUDIO).orElseThrow();
+            var codec = demuxer.request(audio.index()).codec();
+            var present = mf.hasDecoder(
+                    MfGuids.MFT_CATEGORY_AUDIO_DECODER,
+                    MfGuids.MFMediaType_Audio,
+                    MediaFoundationAudioProvider.subtype(codec).orElseThrow());
+            assumeTrue(present, "no " + codec + " decoder on this Windows");
         }
     }
 

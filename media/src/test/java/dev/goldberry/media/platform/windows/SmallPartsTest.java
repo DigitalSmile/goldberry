@@ -36,6 +36,7 @@ class SmallPartsTest {
                     "MF_E_TRANSFORM_STREAM_CHANGE (0xC00D6D61)",
                     HResult.describe(HResult.MF_E_TRANSFORM_STREAM_CHANGE));
             assertEquals("MF_E_NOTACCEPTING (0xC00D36B5)", HResult.describe(HResult.MF_E_NOTACCEPTING));
+            assertEquals("MF_E_BUFFERTOOSMALL (0xC00D36B1)", HResult.describe(0xC00D_36B1));
             assertEquals("MF_E_NO_MORE_TYPES (0xC00D36B9)", HResult.describe(HResult.MF_E_NO_MORE_TYPES));
             assertEquals("MF_E_TRANSFORM_TYPE_NOT_SET (0xC00D6D60)", HResult.describe(0xC00D_6D60));
             assertEquals("RPC_E_CHANGED_MODE (0x80010106)", HResult.describe(HResult.RPC_E_CHANGED_MODE));

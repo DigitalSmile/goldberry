@@ -228,13 +228,13 @@ final class MediaFoundationAudioDecoder implements Decoder {
                     chooseOutputType();
                     clock.rate(sampleRate);
                 }
-                case Transform.Output.Failed(var hr) -> {
-                    if (ending) {
-                        throw new HResult.Failure("IMFTransform::ProcessOutput draining " + codecName, hr);
-                    }
-                    rejected(hr);
-                    return Received.NEEDS_INPUT;
-                }
+                // The MFT still holds what it took: answering NEEDS_INPUT over it
+                // would have it refuse the packet asked for.
+                case Transform.Output.Failed(var hr, var detail) ->
+                    throw new HResult.Failure(
+                            "IMFTransform::ProcessOutput " + (ending ? "draining " : "") + codecName + " [" + detail
+                                    + "]",
+                            hr);
             }
         }
     }

@@ -42,6 +42,8 @@ public final class ForwardedProperties {
             "goldberry.media.required",
             "goldberry.platform.required",
             "goldberry.gpu.required",
+            // Media Foundation's decoders, held back on Windows until their lane is green.
+            "goldberry.media.mediaFoundation",
             // The GPU lane's video driver, `offscreen` for lavapipe.
             "goldberry.gpu.videoDriver",
             // Read into a static final when the renderer initialises.

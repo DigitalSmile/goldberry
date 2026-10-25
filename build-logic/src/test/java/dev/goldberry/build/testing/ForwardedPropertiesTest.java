@@ -66,7 +66,8 @@ class ForwardedPropertiesTest {
                 .map(Repository::workflow)
                 .flatMap(text -> flag.matcher(text).results().map(match -> match.group(1)))
                 .filter(name -> name.endsWith(".required") || name.startsWith("goldberry.golden.")
-                        || name.equals("goldberry.gpu.videoDriver"))
+                        || name.equals("goldberry.gpu.videoDriver")
+                        || name.equals("goldberry.media.mediaFoundation"))
                 .collect(Collectors.toCollection(TreeSet::new));
         assertTrue(set.contains("goldberry.native.required"), "no workflow sets native.required: " + set);
         var missing = set.stream().filter(name -> !ForwardedProperties.TO_TESTS.contains(name)).toList();

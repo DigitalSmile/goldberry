@@ -248,9 +248,9 @@ Kept as the work lands. "Done" means built, tested and green on this machine
 - [x] FFmpeg-era comments swept from `:media`'s sources and tests;
       `BuiltInDecoders` and `MediaCapabilities` say PCM decodes without the
       library.
-- [ ] `media.yml` and `publish.yml` have not been through CI; the Windows lane
-      (MinGW, `-static`, the `.def` export) is the one most likely to need a
-      round.
+- [x] `media.yml` and `publish.yml` through CI: three rounds, Snapshot #72 to
+      #74 on 2026-10-25, recorded at the end of this log. Windows took one
+      round, for the export check, not for MinGW or `-static`.
 - [x] `HardwareDecoding` was stored and never read: no provider could see it.
       It is in every `DecoderRequest` now (`hardware`, `softwareOnly()`), and
       the system decoders honour `OFF`: GStreamer passes over the decoders
@@ -463,8 +463,11 @@ The items, each "done" when built, tested and green here:
         a GPU that decodes AV1.
   - [x] The provider registered (`module-info`, `META-INF/services`), the
         Vulkan downcalls in the native image's foreign metadata.
-- [ ] Media Foundation on by default (after its CI lane)
-- [ ] `media.yml`, `publish.yml` and the sanitizer job green on the runners
+- [ ] Media Foundation on by default (after its CI lane): fixed and required by
+      the Windows lane, on by default once that is green; see "Media
+      Foundation" at the end of this log
+- [x] `media.yml`, `publish.yml` and the sanitizer job green on the runners:
+      Snapshot #74 on a1326bed, 2026-10-25
 
 ### The first CI run: Snapshot #72 on b83be6c4 (2026-10-25)
 
@@ -530,5 +533,39 @@ of its own, so the `:media` job never ran:
       now packages the library the tests load. And `testNativesJar` had run no
       test since `NativesJarTest` left with FFmpeg: `ffm.MediaNativesJarTest`
       loads the library from the jar, decodes, and finds the notices.
-- [ ] The next run: the `:media` job on four targets is the first time the
-      tests meet each target's library.
+- [x] **Snapshot #74 on a1326bed**: all 19 jobs green, the snapshot published
+      to Central. The `:media` job passed on linux-x64, linux-aarch64,
+      macos-aarch64 and windows-x64, the first time the tests met each
+      target's library. GStreamer ran on both Linux targets and VideoToolbox
+      and AudioToolbox on macOS; what skipped everywhere was Vulkan Video and
+      `ffmpeg-cli` (no GPU, no `ffmpeg` on a runner) and `SdlAudioSink` (the job
+      runs without libgoldberry), and on Windows every Media Foundation test,
+      the switch being off there.
+
+### Media Foundation (2026-10-25)
+
+The last item of phases 4 and 5. ADR-0520 held the decoders back on three
+faults; read again, the log of their one run (Media #5, 2026-10-02) shows one:
+the transform's reused output sample kept its buffer's length, so the second
+`ProcessOutput` had no room, and `receive()` answered the failure as
+`NEEDS_INPUT`. ADR-0664 parked.
+
+- [x] `Transform` empties the reused buffer before each output; a failed
+      `ProcessOutput` fails the decoder with the output stream's flags and
+      sizes, the sample handed over, the status words and the count before.
+- [x] The tests follow the system: AC-3 and E-AC-3 skip without their
+      decoders (Windows Server), the claim test asserts what `MFTEnumEx` finds,
+      HEVC playback skips without the HEVC Video Extensions.
+- [x] The Windows `:media` job passes `-Pgoldberry.media.mediaFoundation=true`
+      and `-Pgoldberry.platform.required=true`; the switch is forwarded to the
+      test JVM. Green here (290 platform tests on Linux, build-logic), which
+      runs none of the Windows decoders.
+- [ ] The Windows `:media` job green with them, after the next push.
+- [ ] Then the switch defaults to on (`MediaFoundation.enabled()`, the
+      `PlatformDecoders` table, `WindowsRequirement`, the guide's media page
+      and limitations row, parked) and ADR-0664 says the hold-back is over.
+
+Cleaned up beside it: the `goldberry.media.ffmpegLibdir` wiring in
+`media/build.gradle` (nothing read it since the bindings went), a comment on
+the `ffmpeg-sources` classifier in `checkout.cmake`, and the FFmpeg trees in
+this machine's `media/.deps` and `media/build/ffmpeg`.

@@ -28,10 +28,12 @@ import dev.goldberry.media.PlayerStatus;
 import dev.goldberry.media.audio.AudioFormat;
 import dev.goldberry.media.audio.VirtualSink;
 import dev.goldberry.media.codec.DecoderProvider;
+import dev.goldberry.media.codec.MediaType;
 import dev.goldberry.media.io.MediaIO;
 import dev.goldberry.media.io.MediaIOProvider;
 import dev.goldberry.media.io.MemoryIO;
 import dev.goldberry.media.io.Source;
+import dev.goldberry.media.platform.fixtures.Fixtures;
 import dev.goldberry.media.platform.linux.GStreamerAudioProvider;
 import dev.goldberry.media.platform.linux.GStreamerVideoProvider;
 import dev.goldberry.media.platform.macos.AudioToolboxProvider;
@@ -153,10 +155,25 @@ class PlatformPlaybackTest {
     @Test
     @DisplayName("listed by PlatformDecoders: an HEVC file plays to the end")
     void playsThroughTheList() {
+        requireHevcOnWindows();
         play("clip-hevc.mp4", MediaPlayer.builder().decoderProviders(PlatformDecoders.providers()));
         var ended = await(status -> status.state() == PlaybackState.ENDED || status.state() == PlaybackState.ERROR);
         assertEquals(PlaybackState.ENDED, ended.state(), () -> "failed: " + ended.error());
         assertEquals(Names.current().video(), ended.videoDecoder().orElseThrow());
+    }
+
+    /// Skips on a Windows without the HEVC Video Extensions, which Windows Server
+    /// is: HEVC's decoder is a download there. The other lanes require theirs.
+    private static void requireHevcOnWindows() {
+        if (!Names.current().video().equals(MediaFoundationVideoProvider.NAME)) {
+            return;
+        }
+        try (var demuxer = Fixtures.demux("clip-hevc.mp4")) {
+            var video = demuxer.info().defaultTrack(MediaType.VIDEO).orElseThrow();
+            Assumptions.assumeTrue(
+                    new MediaFoundationVideoProvider().supports(demuxer.request(video.index())),
+                    "no HEVC decoder: the HEVC Video Extensions");
+        }
     }
 
     @Test

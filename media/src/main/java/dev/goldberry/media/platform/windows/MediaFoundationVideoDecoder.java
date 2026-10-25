@@ -43,7 +43,9 @@ import dev.goldberry.media.codec.VideoFrame;
 ///
 /// **Failures:** a packet the decoder rejects is dropped and logged, as FFmpeg's
 /// decoders drop one; a run of them fails the decoder, and the Engine walks its
-/// fallback ladder.
+/// fallback ladder. A failed `ProcessOutput` fails it at once: the MFT still
+/// holds what it took, so answering [Received#NEEDS_INPUT] over it would have it
+/// refuse the packet asked for.
 final class MediaFoundationVideoDecoder implements Decoder {
 
     private static final Logger LOG = Logs.of(MediaFoundationVideoDecoder.class);
@@ -221,13 +223,11 @@ final class MediaFoundationVideoDecoder implements Decoder {
                     }
                     chooseOutputType();
                 }
-                case Transform.Output.Failed(var hr) -> {
-                    if (ending) {
-                        throw new HResult.Failure("IMFTransform::ProcessOutput draining " + codecName, hr);
-                    }
-                    rejected(hr, null);
-                    return Received.NEEDS_INPUT;
-                }
+                case Transform.Output.Failed(var hr, var detail) ->
+                    throw new HResult.Failure(
+                            "IMFTransform::ProcessOutput " + (ending ? "draining " : "") + codecName + " [" + detail
+                                    + "]",
+                            hr);
             }
         }
     }

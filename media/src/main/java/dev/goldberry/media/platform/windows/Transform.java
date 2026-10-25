@@ -6,6 +6,7 @@ import static java.lang.foreign.ValueLayout.JAVA_INT;
 import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
 import java.util.ArrayList;
+import java.util.Locale;
 import java.util.Optional;
 import java.util.function.Predicate;
 import java.util.function.ToLongFunction;
@@ -24,7 +25,9 @@ import dev.goldberry.media.codec.Frame;
 ///
 /// **Output** goes into a sample this class allocates and reuses when the MFT
 /// neither provides its own nor can, as the Microsoft software decoders do; or
-/// into the MFT's own sample, which the caller releases.
+/// into the MFT's own sample, which the caller releases. The reused sample's
+/// buffer is emptied before each `ProcessOutput`, so every output finds all of
+/// it free, as it would a new one.
 ///
 /// Every method is called with the thread in COM ([MediaFoundation#enterThread]),
 /// which the decoders see to.
@@ -46,8 +49,8 @@ final class Transform implements AutoCloseable {
         /// `MF_E_TRANSFORM_STREAM_CHANGE`, or `MF_E_TRANSFORM_TYPE_NOT_SET`.
         record TypeChanged() implements Output {}
 
-        /// Any other failure.
-        record Failed(int hresult) implements Output {}
+        /// Any other failure, with what the MFT was asked for in `detail`.
+        record Failed(int hresult, String detail) implements Output {}
     }
 
     private final MediaFoundation mf;
@@ -61,7 +64,11 @@ final class Transform implements AutoCloseable {
     private MemorySegment transform;
     private MfTransform.StreamInfo info = new MfTransform.StreamInfo(0, 0, 0);
     private MemorySegment ownSample = MemorySegment.NULL;
+    /// The reused sample's one buffer, a reference of this class's own.
+    private MemorySegment ownBuffer = MemorySegment.NULL;
     private long ownSampleBytes;
+    /// Samples `ProcessOutput` has produced, for the failure message.
+    private long produced;
 
     private Transform(MediaFoundation mf, MemorySegment transform, String description) {
         this.mf = mf;
@@ -206,7 +213,9 @@ final class Transform implements AutoCloseable {
         outputBuffer.fill((byte) 0);
         outputBuffer.set(ADDRESS, MfTransform.OUTPUT_SAMPLE, MemorySegment.NULL);
         if (info.callerAllocates()) {
-            outputBuffer.set(ADDRESS, MfTransform.OUTPUT_SAMPLE, ownSample(Math.max(info.size(), minimumBytes)));
+            var sample = ownSample(Math.max(info.size(), minimumBytes));
+            MfBuffer.setCurrentLength(ownBuffer, 0);
+            outputBuffer.set(ADDRESS, MfTransform.OUTPUT_SAMPLE, sample);
         }
         var hr = MfTransform.processOutput(transform, outputBuffer, outputStatus);
         Com.release(outputBuffer.get(ADDRESS, MfTransform.OUTPUT_EVENTS));
@@ -220,13 +229,35 @@ final class Transform implements AutoCloseable {
                 case HResult.MF_E_TRANSFORM_NEED_MORE_INPUT -> new Output.NeedsInput();
                 case HResult.MF_E_TRANSFORM_STREAM_CHANGE, HResult.MF_E_TRANSFORM_TYPE_NOT_SET ->
                     new Output.TypeChanged();
-                default -> new Output.Failed(hr);
+                default -> new Output.Failed(hr, state(hr));
             };
         }
         if (sample.equals(MemorySegment.NULL)) {
-            return new Output.Failed(HResult.E_FAIL);
+            return new Output.Failed(HResult.E_FAIL, "no sample came back: " + state(hr));
         }
+        produced++;
         return new Output.Produced(sample, own);
+    }
+
+    /// What the MFT was asked for when `ProcessOutput` answered `hr`: the output
+    /// stream's flags and sizes, the sample handed to it, the status it set and
+    /// how far it got. Media Foundation says no more than `E_FAIL`, so this is
+    /// what a failure on a machine nobody here can reach has to go on.
+    String state(int hr) {
+        var handed = info.callerAllocates() ? ownSampleBytes + " bytes of ours" : "none, the MFT's own";
+        return String.format(
+                Locale.ROOT,
+                "%s answered %s; output stream flags 0x%X, %d bytes, aligned to %d; sample handed: %s;"
+                        + " buffer status 0x%X, status 0x%X; %d samples before",
+                description,
+                HResult.describe(hr),
+                info.flags(),
+                info.size(),
+                info.alignment(),
+                handed,
+                outputBuffer.get(JAVA_INT, MfTransform.OUTPUT_STATUS),
+                outputStatus.get(JAVA_INT, 0),
+                produced);
     }
 
     /// What the decoder is, for messages.
@@ -236,8 +267,7 @@ final class Transform implements AutoCloseable {
 
     @Override
     public void close() {
-        Com.release(ownSample);
-        ownSample = MemorySegment.NULL;
+        releaseOwnSample();
         Com.release(transform);
         transform = MemorySegment.NULL;
         if (arena.scope().isAlive()) {
@@ -254,23 +284,29 @@ final class Transform implements AutoCloseable {
         if (bytes <= 0 || bytes > Integer.MAX_VALUE) {
             throw new IllegalStateException(description + " asked for output buffers of " + bytes + " bytes");
         }
-        Com.release(ownSample);
-        ownSample = MemorySegment.NULL;
+        releaseOwnSample();
         var buffer = mf.mfplat().createAlignedMemoryBuffer((int) bytes, info.alignment());
+        var sample = MemorySegment.NULL;
         try {
-            var sample = mf.mfplat().createSample();
-            try {
-                MfSample.addBuffer(sample, buffer);
-            } catch (RuntimeException e) {
-                Com.release(sample);
-                throw e;
-            }
-            ownSample = sample;
-            ownSampleBytes = bytes;
-        } finally {
+            sample = mf.mfplat().createSample();
+            MfSample.addBuffer(sample, buffer);
+        } catch (RuntimeException e) {
+            Com.release(sample);
             Com.release(buffer);
+            throw e;
         }
+        ownSample = sample;
+        ownBuffer = buffer;
+        ownSampleBytes = bytes;
         return ownSample;
+    }
+
+    private void releaseOwnSample() {
+        Com.release(ownSample);
+        Com.release(ownBuffer);
+        ownSample = MemorySegment.NULL;
+        ownBuffer = MemorySegment.NULL;
+        ownSampleBytes = 0;
     }
 
     /// `nanos` in Media Foundation's 100-nanosecond units, rounded down.

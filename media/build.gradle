@@ -377,11 +377,6 @@ def skipNative = providers.gradleProperty('goldberry.skipNative').map { Boolean.
 
 // libgoldberry, JEP 472 and the forwarded properties come from
 // `goldberry.native-tests`; libgoldberry-media is this module's own.
-//
-// While FFmpeg is still being taken out, its bindings read
-// `goldberry.media.ffmpegLibdir`, pointed at what an earlier `ffmpegBuild` left
-// on this machine; their tests skip where there is none.
-def ffmpegLibraryDirectory = layout.buildDirectory.dir("ffmpeg/${hostTargetId}/install/lib").get().asFile
 tasks.withType(Test).configureEach {
     // SDL's dummy driver: it consumes audio in real time and plays nothing, so the
     // tests are silent, and they run on a CI runner with no sound card.
@@ -393,9 +388,6 @@ tasks.withType(Test).configureEach {
     def testedLibrary = name == 'sanitizerTest' ? asanLibraryDirectory : libraryDirectory
     if (name != 'testNativesJar') {
         systemProperty 'goldberry.media.libdir', testedLibrary.get()
-    }
-    if (ffmpegLibraryDirectory.isDirectory()) {
-        systemProperty 'goldberry.media.ffmpegLibdir', ffmpegLibraryDirectory.absolutePath
     }
 
     // How hard the robustness tests mutate: rounds per fixture and kind of
@@ -437,9 +429,6 @@ tasks.named('test') {
 nativeTests.gpuTests('dev.goldberry.media').configure {
     environment 'SDL_AUDIO_DRIVER', 'dummy'
     systemProperty 'goldberry.media.libdir', libraryDirectory.get()
-    if (ffmpegLibraryDirectory.isDirectory()) {
-        systemProperty 'goldberry.media.ffmpegLibdir', ffmpegLibraryDirectory.absolutePath
-    }
     inputs.files(providers.provider {
         var directory = file(libraryDirectory.get())
         directory.isDirectory() ? fileTree(directory) : files()
@@ -465,9 +454,6 @@ nativeTests.probe('videoPresentProbe', 'dev.goldberry.media.view.VideoPresentPro
     workingDir = projectDir
     systemProperty 'logback.configurationFile', file('src/benchmark/probe/logback.xml').absolutePath
     systemProperty 'goldberry.media.libdir', libraryDirectory.get()
-    if (ffmpegLibraryDirectory.isDirectory()) {
-        systemProperty 'goldberry.media.ffmpegLibdir', ffmpegLibraryDirectory.absolutePath
-    }
     systemProperty 'goldberry.log.level', providers.gradleProperty('goldberry.log.level').getOrElse('info')
     ['goldberry.probe.clip', 'goldberry.gpu', 'goldberry.gpu.composite'].each { name ->
         var value = providers.systemProperty(name).orElse(providers.gradleProperty(name))
