@@ -41,3 +41,15 @@ would, and change its menu while the icon is up.
    And in the `macos.yml`, `windows.yml` row's last cell, after "with
    `native.required` and `webview.required`", add: ", and `tray.required` on
    Windows".
+
+6. (ray tracing on lavapipe) In `### The GPU tests`, after its paragraph, add:
+
+The ray tracer makes a Vulkan device of its own rather than SDL's, so its tests
+are in `:gpu:test`, not the GPU lane, and skip wherever no device has the
+ray-tracing extensions. `-Pgoldberry.raytracing.device=llvmpipe` points them at
+lavapipe, which has the extensions, and `-Pgoldberry.raytracing.required=true`
+makes a skip a failure.
+
+   And in the `linux.yml` row's last cell, after "then the GPU tests on
+   lavapipe", add: ", the ray tracer's tests on lavapipe, required where its
+   lavapipe has the ray-tracing extensions".

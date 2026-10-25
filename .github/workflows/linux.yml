@@ -415,6 +415,35 @@ jobs:
             -Dgoldberry.gpu.required=true \
             -Dgoldberry.gpu.videoDriver=offscreen
 
+      # The ray tracer, on lavapipe too. It makes a Vulkan device of its own
+      # rather than SDL's, so its tests are in `:gpu:test`, not the GPU lane,
+      # and skip wherever no device has the ray-tracing extensions. Lavapipe
+      # has them since Mesa 24.1, and noble's updates carry 25.2, so the step
+      # prints what this runner's lavapipe has and requires the tests where it
+      # has both. Where it lacks one, the tests skip with a notice that says
+      # which, rather than failing over the runner's Mesa.
+      # https://goldberry.dev/docs/contributing/testing.html#the-gpu-tests
+      - name: Ray tracing on lavapipe
+        run: |
+          icd=$(ls /usr/share/vulkan/icd.d/lvp_icd.json /usr/share/vulkan/icd.d/lvp_icd.*.json 2>/dev/null | head -n 1 || true)
+          export VK_DRIVER_FILES="$icd" VK_ICD_FILENAMES="$icd"
+          extensions=$(vulkaninfo 2>/dev/null \
+            | grep -oE '\bVK_KHR_(acceleration_structure|ray_tracing_pipeline|ray_query|deferred_host_operations|buffer_device_address)\b' \
+            | sort -u || true)
+          echo "lavapipe's ray-tracing extensions:"
+          echo "${extensions:-none}"
+          required=true
+          for wanted in VK_KHR_acceleration_structure VK_KHR_ray_tracing_pipeline; do
+            if ! grep -qx "$wanted" <<<"$extensions"; then
+              echo "::notice::lavapipe on ${{ matrix.target }} has no $wanted; the ray-tracing tests skip"
+              required=false
+            fi
+          done
+          ./gradlew :gpu:test --tests 'dev.goldberry.gpu.raytrace.*' --no-daemon \
+            -Dgoldberry.native.library="$PWD/native-lib/libgoldberry.so" \
+            -Dgoldberry.raytracing.device=llvmpipe \
+            -Dgoldberry.raytracing.required=$required
+
       - uses: actions/upload-artifact@v4
         if: always()
         with:
