@@ -272,11 +272,10 @@ public final class Upscaler implements AutoCloseable {
         if (!device.isClosed()) {
             var made = new ArrayList<GpuResource>(pipelines.values());
             made.addAll(fragments.values());
-            for (var resource : new GpuResource[] {vertex, linear, nearest, between}) {
-                if (resource != null) {
-                    made.add(resource);
-                }
-            }
+            addIfMade(made, vertex);
+            addIfMade(made, linear);
+            addIfMade(made, nearest);
+            addIfMade(made, between);
             made.forEach(GpuResource::close);
         }
         pipelines.clear();
@@ -285,6 +284,12 @@ public final class Upscaler implements AutoCloseable {
         linear = null;
         nearest = null;
         between = null;
+    }
+
+    private static void addIfMade(List<GpuResource> made, @Nullable GpuResource resource) {
+        if (resource != null) {
+            made.add(resource);
+        }
     }
 
     @Override

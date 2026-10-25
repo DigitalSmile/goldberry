@@ -7475,7 +7475,7 @@ a painted frame reaches the screen, and what else can be on it.
   or IMMEDIATE by its cap alone. The `hud` shows both as `pacing` and judges
   budgets by the cap. `GpuDevice.features()` answers sample counts, stencil and
   compressed formats, float targets and the adapter. Green on lavapipe and the
-  GTX 1660 Ti, CI not yet run.
+  GTX 1660 Ti, and on both Linux legs' lavapipe in Snapshot 78.
 - **A 3D view is drawn at a scale of its box and upscaled** (ADR-0671, parked,
   2026-10-25; the gaming plan's phase 5). `canvas3d render-scale=0.5..2
   upscale="linear|fsr1" sharpness=0..1` has the renderer draw into a texture at
@@ -7484,7 +7484,8 @@ a painted frame reaches the screen, and what else can be on it.
   shaders. `dev.goldberry.gpu.upscale`'s `Upscaler` does the same for a
   renderer's own textures. The shaders match a Java reference exactly on
   lavapipe and within three levels on the GTX 1660 Ti; goldens at 0.5 and
-  0.75 are blessed on lavapipe. CI not yet run.
+  0.75 are blessed on lavapipe. Snapshot 78 ran them on lavapipe; Metal's
+  lane stopped before `:gpu:gpuTest` on a test fixed since.
 - **The showcase has a ray-traced room and a game's graphics settings**
   (ADR-0672, ADR-0673, parked, 2026-10-25; the gaming plan's phase 7). The ray
   tracer traces a pixel's lighting: from each hit a shadow ray, occlusion rays

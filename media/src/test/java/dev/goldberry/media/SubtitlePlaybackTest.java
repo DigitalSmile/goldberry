@@ -89,12 +89,35 @@ class SubtitlePlaybackTest {
         throw new AssertionError("timed out; last status " + player.status());
     }
 
-    /// Moves the clock to `millis` of stream time, and says what shows there.
+    /// Moves the clock to `millis` of stream time, and checks `expected` shows
+    /// there.
+    ///
+    /// What shows is waited for, up to 10 s. The clip has no audio, so its
+    /// position is the hand-moved clock and not how far the demux thread has
+    /// read: on a slow machine the clock reaches a cue before its packet is
+    /// read, and the cue shows a moment later. One that never shows still fails.
+    private void assertShows(long millis, String... expected) {
+        moveTo(millis);
+        var wanted = List.of(expected);
+        var deadline = System.nanoTime() + 10_000_000_000L;
+        var showing = showing();
+        while (!showing.equals(wanted) && System.nanoTime() < deadline) {
+            Thread.onSpinWait();
+            showing = showing();
+        }
+        assertEquals(wanted, showing, () -> "at " + millis + " ms");
+    }
+
+    private List<String> showing() {
+        return player.currentSubtitles().stream().map(Cue::text).toList();
+    }
+
+    /// Moves the clock to `millis` of stream time.
     ///
     /// In steps of at most [#STEP], each waited for: while a seek settles the
     /// position reads its target and does not move with the clock, and a clock
     /// moved the whole way at once would run past the target when the seek lands.
-    private List<String> at(long millis) {
+    private void moveTo(long millis) {
         var target = Duration.ofMillis(millis);
         var deadline = System.nanoTime() + 10_000_000_000L;
         while (player.status().position().compareTo(target) < 0 && System.nanoTime() < deadline) {
@@ -105,10 +128,9 @@ class SubtitlePlaybackTest {
                 Thread.onSpinWait();
             }
         }
-        return player.currentSubtitles().stream().map(Cue::text).toList();
     }
 
-    /// The most [#at] moves the clock before it looks again.
+    /// The most [#moveTo] moves the clock before it looks again.
     private static final Duration STEP = Duration.ofMillis(5);
 
     private Track subtitleTrack(CodecId codec) {
@@ -131,9 +153,9 @@ class SubtitlePlaybackTest {
         var english = subtitleTrack(CodecId.SUBRIP);
         player.selectTrack(english);
         await(status -> status.subtitles().equals(Optional.of(new SubtitleSource.Embedded(english))));
-        assertEquals(List.of("First line"), at(200));
-        assertEquals(List.of(), at(450));
-        assertEquals(List.of("Second line"), at(600));
+        assertShows(200, "First line");
+        assertShows(450);
+        assertShows(600, "Second line");
     }
 
     @Test
@@ -142,8 +164,8 @@ class SubtitlePlaybackTest {
         var french = subtitleTrack(CodecId.ASS);
         player.selectTrack(french);
         await(status -> status.subtitles().isPresent());
-        assertEquals(List.of("Première\nligne"), at(300));
-        assertEquals(List.of(), at(700));
+        assertShows(300, "Première\nligne");
+        assertShows(700);
     }
 
     @Test
@@ -155,11 +177,11 @@ class SubtitlePlaybackTest {
         player.loadSubtitles(file);
         assertEquals(
                 Optional.of(new SubtitleSource.External(file)), player.status().subtitles());
-        assertEquals(List.of("From a file"), at(100));
+        assertShows(100, "From a file");
 
         player.hideSubtitles();
         assertEquals(Optional.empty(), player.status().subtitles());
-        assertEquals(List.of(), at(200));
+        assertShows(200);
     }
 
     @Test
@@ -170,6 +192,6 @@ class SubtitlePlaybackTest {
         var video = player.status().videoTrack().orElseThrow();
         player.selectTrack(video);
         assertEquals(Optional.of(video), player.status().videoTrack());
-        assertEquals(List.of("First line"), at(200));
+        assertShows(200, "First line");
     }
 }

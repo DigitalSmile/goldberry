@@ -93,7 +93,7 @@ class SdlGpuDeviceTest {
     @DisplayName("makes every format the toolkit uses, as a sampled texture")
     void supportsTheFormatsTheToolkitUses() {
         for (var format : SdlGpuTextureFormat.values()) {
-            if (!format.isCompressed()) {
+            if (!format.isCompressed() && !format.hasStencil()) {
                 assertTrue(device.supports(format, EnumSet.of(SdlGpuTextureUsage.SAMPLER)), format::toString);
             }
         }
@@ -102,6 +102,10 @@ class SdlGpuDeviceTest {
         var sampled = EnumSet.of(SdlGpuTextureUsage.SAMPLER);
         assertTrue(device.supports(SdlGpuTextureFormat.BC7_RGBA_UNORM, sampled)
                 || device.supports(SdlGpuTextureFormat.ASTC_4x4_UNORM, sampled));
+        // And one depth-stencil format or both: Apple's GPUs have no
+        // D24_UNORM_S8_UINT, which is what GpuFeatures.stencilFormat() is for.
+        assertTrue(device.supports(SdlGpuTextureFormat.D24_UNORM_S8_UINT, sampled)
+                || device.supports(SdlGpuTextureFormat.D32_FLOAT_S8_UINT, sampled));
         assertTrue(device.supports(SdlGpuTextureType.CUBE, SdlGpuTextureFormat.B8G8R8A8_UNORM, sampled));
         assertTrue(device.supports(SdlGpuTextureType.THREE_D, SdlGpuTextureFormat.R8G8B8A8_UNORM, sampled));
     }
