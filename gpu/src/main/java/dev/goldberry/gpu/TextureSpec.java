@@ -58,7 +58,9 @@ public record TextureSpec(
     ///                                  format is asked to be anything but a
     ///                                  depth target (sampled or not), a colour
     ///                                  format to be a depth target, a
-    ///                                  multisampled texture to be sampled,
+    ///                                  texture to be both sampled and read as
+    ///                                  storage by a draw, a multisampled
+    ///                                  texture to be sampled,
     ///                                  layered, mipmapped or other than 2D, a
     ///                                  cube not to be six square layers or to
     ///                                  be other than sampled and rendered
@@ -128,6 +130,10 @@ public record TextureSpec(
                 throw new IllegalArgumentException(format + " is stored in " + block.width() + "x" + block.height()
                         + " blocks, and level 0 of " + width + "x" + height + " is not whole blocks");
             }
+        }
+        if (usages.containsAll(EnumSet.of(TextureUsage.GRAPHICS_STORAGE_READ, TextureUsage.SAMPLER))) {
+            throw new IllegalArgumentException("a texture is sampled or read as storage by a draw, not both: " + usages
+                    + "; a shader that wants both samples it");
         }
         if (samples > 1) {
             if (type != TextureType.TWO_D || mipLevels > 1) {

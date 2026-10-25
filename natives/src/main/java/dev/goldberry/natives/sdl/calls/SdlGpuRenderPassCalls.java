@@ -1,9 +1,12 @@
 package dev.goldberry.natives.sdl.calls;
 
 import static java.lang.foreign.ValueLayout.ADDRESS;
+import static java.lang.foreign.ValueLayout.JAVA_BYTE;
+import static java.lang.foreign.ValueLayout.JAVA_FLOAT;
 import static java.lang.foreign.ValueLayout.JAVA_INT;
 
 import java.lang.foreign.FunctionDescriptor;
+import java.lang.foreign.MemoryLayout;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SymbolLookup;
 import java.lang.invoke.MethodHandle;
@@ -11,7 +14,8 @@ import java.lang.invoke.MethodHandle;
 import dev.goldberry.natives.Downcalls;
 
 /// What a render pass records: the pipeline, the viewport and scissor, the
-/// textures sampled, the uniforms pushed, and the draws.
+/// textures sampled, the uniforms pushed, the stencil reference and blend
+/// constants, and the draws, direct and indirect.
 ///
 /// One holder per function: its handle, its address, and a `call` whose
 /// parameters are the C prototype’s. See [Downcalls] for why the handle is a
@@ -27,7 +31,12 @@ public record SdlGpuRenderPassCalls(
         BindGPUVertexSamplers bindGPUVertexSamplers,
         BindGPUVertexStorageBuffers bindGPUVertexStorageBuffers,
         BindGPUFragmentStorageBuffers bindGPUFragmentStorageBuffers,
-        BindGPUFragmentStorageTextures bindGPUFragmentStorageTextures) {
+        BindGPUFragmentStorageTextures bindGPUFragmentStorageTextures,
+        BindGPUVertexStorageTextures bindGPUVertexStorageTextures,
+        SetGPUStencilReference setGPUStencilReference,
+        SetGPUBlendConstants setGPUBlendConstants,
+        DrawGPUPrimitivesIndirect drawGPUPrimitivesIndirect,
+        DrawGPUIndexedPrimitivesIndirect drawGPUIndexedPrimitivesIndirect) {
 
     /// Binds every function above.
     ///
@@ -44,7 +53,12 @@ public record SdlGpuRenderPassCalls(
                 new BindGPUVertexSamplers(lookup),
                 new BindGPUVertexStorageBuffers(lookup),
                 new BindGPUFragmentStorageBuffers(lookup),
-                new BindGPUFragmentStorageTextures(lookup));
+                new BindGPUFragmentStorageTextures(lookup),
+                new BindGPUVertexStorageTextures(lookup),
+                new SetGPUStencilReference(lookup),
+                new SetGPUBlendConstants(lookup),
+                new DrawGPUPrimitivesIndirect(lookup),
+                new DrawGPUIndexedPrimitivesIndirect(lookup));
     }
 
     /// Binds the pipeline the next draws use.
@@ -360,6 +374,157 @@ public record SdlGpuRenderPassCalls(
                 FD_SDL_BindGPUFragmentStorageTextures.invokeExact(address, renderPass, firstSlot, bindings, count);
             } catch (Throwable t) {
                 throw Downcalls.failure("SDL_BindGPUFragmentStorageTextures", t);
+            }
+        }
+    }
+
+    /// Binds storage textures the vertex shader reads.
+    ///
+    /// `void SDL_BindGPUVertexStorageTextures(void*, Uint32, void*, Uint32)`
+    public static final class BindGPUVertexStorageTextures {
+
+        private static final MethodHandle FD_SDL_BindGPUVertexStorageTextures =
+                Downcalls.link(FunctionDescriptor.ofVoid(ADDRESS, JAVA_INT, ADDRESS, JAVA_INT));
+
+        private final MemorySegment address;
+
+        BindGPUVertexStorageTextures(SymbolLookup lookup) {
+            this.address = Downcalls.symbol(lookup, "SDL_BindGPUVertexStorageTextures");
+        }
+
+        /// Calls `SDL_BindGPUVertexStorageTextures`.
+        ///
+        /// @param renderPass the pass
+        /// @param firstSlot  the first slot bound
+        /// @param bindings   an `SDL_GPUTexture**` array
+        /// @param count      how many bindings
+        public void call(MemorySegment renderPass, int firstSlot, MemorySegment bindings, int count) {
+            try {
+                FD_SDL_BindGPUVertexStorageTextures.invokeExact(address, renderPass, firstSlot, bindings, count);
+            } catch (Throwable t) {
+                throw Downcalls.failure("SDL_BindGPUVertexStorageTextures", t);
+            }
+        }
+    }
+
+    /// Sets the value the stencil test of the next draws compares against and
+    /// writes with `REPLACE`.
+    ///
+    /// `void SDL_SetGPUStencilReference(void*, Uint8)`
+    public static final class SetGPUStencilReference {
+
+        private static final MethodHandle FD_SDL_SetGPUStencilReference =
+                Downcalls.link(FunctionDescriptor.ofVoid(ADDRESS, JAVA_BYTE));
+
+        private final MemorySegment address;
+
+        SetGPUStencilReference(SymbolLookup lookup) {
+            this.address = Downcalls.symbol(lookup, "SDL_SetGPUStencilReference");
+        }
+
+        /// Calls `SDL_SetGPUStencilReference`.
+        ///
+        /// @param renderPass the pass
+        /// @param reference  the reference, an unsigned byte
+        public void call(MemorySegment renderPass, byte reference) {
+            try {
+                FD_SDL_SetGPUStencilReference.invokeExact(address, renderPass, reference);
+            } catch (Throwable t) {
+                throw Downcalls.failure("SDL_SetGPUStencilReference", t);
+            }
+        }
+    }
+
+    /// Sets the colour the constant blend factors of the next draws read.
+    ///
+    /// `void SDL_SetGPUBlendConstants(void*, SDL_FColor)`: the colour is passed
+    /// by value, as a struct of four floats.
+    public static final class SetGPUBlendConstants {
+
+        /// `SDL_FColor`, written out rather than taken from `Layouts`: this
+        /// package is initialised when a native image is built, and nothing
+        /// else should be. The layout probe checks `SDL_FColor` itself.
+        private static final MemoryLayout FCOLOR = MemoryLayout.structLayout(
+                JAVA_FLOAT.withName("r"), JAVA_FLOAT.withName("g"), JAVA_FLOAT.withName("b"), JAVA_FLOAT.withName("a"));
+
+        private static final MethodHandle FD_SDL_SetGPUBlendConstants =
+                Downcalls.link(FunctionDescriptor.ofVoid(ADDRESS, FCOLOR));
+
+        private final MemorySegment address;
+
+        SetGPUBlendConstants(SymbolLookup lookup) {
+            this.address = Downcalls.symbol(lookup, "SDL_SetGPUBlendConstants");
+        }
+
+        /// Calls `SDL_SetGPUBlendConstants`.
+        ///
+        /// @param renderPass the pass
+        /// @param color      an `SDL_FColor`, copied
+        public void call(MemorySegment renderPass, MemorySegment color) {
+            try {
+                FD_SDL_SetGPUBlendConstants.invokeExact(address, renderPass, color);
+            } catch (Throwable t) {
+                throw Downcalls.failure("SDL_SetGPUBlendConstants", t);
+            }
+        }
+    }
+
+    /// Draws as many times as `SDL_GPUIndirectDrawCommand`s a buffer holds,
+    /// one after the other from an offset: draws whose counts the GPU wrote.
+    ///
+    /// `void SDL_DrawGPUPrimitivesIndirect(void*, void*, Uint32, Uint32)`
+    public static final class DrawGPUPrimitivesIndirect {
+
+        private static final MethodHandle FD_SDL_DrawGPUPrimitivesIndirect =
+                Downcalls.link(FunctionDescriptor.ofVoid(ADDRESS, ADDRESS, JAVA_INT, JAVA_INT));
+
+        private final MemorySegment address;
+
+        DrawGPUPrimitivesIndirect(SymbolLookup lookup) {
+            this.address = Downcalls.symbol(lookup, "SDL_DrawGPUPrimitivesIndirect");
+        }
+
+        /// Calls `SDL_DrawGPUPrimitivesIndirect`.
+        ///
+        /// @param renderPass the pass
+        /// @param buffer     an `SDL_GPUBuffer*` made for indirect use
+        /// @param offset     the byte the first command starts at
+        /// @param drawCount  how many commands
+        public void call(MemorySegment renderPass, MemorySegment buffer, int offset, int drawCount) {
+            try {
+                FD_SDL_DrawGPUPrimitivesIndirect.invokeExact(address, renderPass, buffer, offset, drawCount);
+            } catch (Throwable t) {
+                throw Downcalls.failure("SDL_DrawGPUPrimitivesIndirect", t);
+            }
+        }
+    }
+
+    /// Draws as many times as `SDL_GPUIndexedIndirectDrawCommand`s a buffer
+    /// holds, from the bound index buffer.
+    ///
+    /// `void SDL_DrawGPUIndexedPrimitivesIndirect(void*, void*, Uint32, Uint32)`
+    public static final class DrawGPUIndexedPrimitivesIndirect {
+
+        private static final MethodHandle FD_SDL_DrawGPUIndexedPrimitivesIndirect =
+                Downcalls.link(FunctionDescriptor.ofVoid(ADDRESS, ADDRESS, JAVA_INT, JAVA_INT));
+
+        private final MemorySegment address;
+
+        DrawGPUIndexedPrimitivesIndirect(SymbolLookup lookup) {
+            this.address = Downcalls.symbol(lookup, "SDL_DrawGPUIndexedPrimitivesIndirect");
+        }
+
+        /// Calls `SDL_DrawGPUIndexedPrimitivesIndirect`.
+        ///
+        /// @param renderPass the pass
+        /// @param buffer     an `SDL_GPUBuffer*` made for indirect use
+        /// @param offset     the byte the first command starts at
+        /// @param drawCount  how many commands
+        public void call(MemorySegment renderPass, MemorySegment buffer, int offset, int drawCount) {
+            try {
+                FD_SDL_DrawGPUIndexedPrimitivesIndirect.invokeExact(address, renderPass, buffer, offset, drawCount);
+            } catch (Throwable t) {
+                throw Downcalls.failure("SDL_DrawGPUIndexedPrimitivesIndirect", t);
             }
         }
     }

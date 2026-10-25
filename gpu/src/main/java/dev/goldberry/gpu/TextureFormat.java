@@ -78,7 +78,13 @@ public enum TextureFormat {
     /// 16-bit depth.
     D16_UNORM,
     /// 32-bit float depth.
-    D32_FLOAT;
+    D32_FLOAT,
+    /// 24-bit depth and an 8-bit stencil, for a [StencilTest]. Most desktop
+    /// GPUs have it and Apple's do not: ask [GpuDevice#supports] first, or
+    /// fall back to [#D32_FLOAT_S8_UINT].
+    D24_UNORM_S8_UINT,
+    /// 32-bit float depth and an 8-bit stencil, for a [StencilTest].
+    D32_FLOAT_S8_UINT;
 
     /// How many bytes one pixel takes.
     ///
@@ -143,6 +149,12 @@ public enum TextureFormat {
         return sdl().isDepth();
     }
 
+    /// Whether this is a depth format with an 8-bit stencil, which a
+    /// [StencilTest] reads and writes.
+    public boolean hasStencil() {
+        return sdl().hasStencil();
+    }
+
     /// Whether the channels are floats rather than normalised integers: a
     /// [Load.Clear] is taken as it is, past 1 and below 0, and [Readback#await]
     /// hands back float bytes.
@@ -174,6 +186,8 @@ public enum TextureFormat {
             case ASTC_4x4_UNORM_SRGB -> SdlGpuTextureFormat.ASTC_4x4_UNORM_SRGB;
             case D16_UNORM -> SdlGpuTextureFormat.D16_UNORM;
             case D32_FLOAT -> SdlGpuTextureFormat.D32_FLOAT;
+            case D24_UNORM_S8_UINT -> SdlGpuTextureFormat.D24_UNORM_S8_UINT;
+            case D32_FLOAT_S8_UINT -> SdlGpuTextureFormat.D32_FLOAT_S8_UINT;
         };
     }
 }

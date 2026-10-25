@@ -1,6 +1,7 @@
 package dev.goldberry.natives.sdl.gpu;
 
 import java.lang.foreign.MemorySegment;
+import java.util.Objects;
 import java.util.Optional;
 
 import dev.goldberry.natives.sdl.Sdl;
@@ -8,6 +9,7 @@ import dev.goldberry.natives.sdl.SdlException;
 import dev.goldberry.natives.sdl.SdlWindowHandle;
 import dev.goldberry.natives.sdl.calls.SdlGpuSwapchainCalls;
 import dev.goldberry.natives.sdl.gpu.enums.SdlGpuPresentMode;
+import dev.goldberry.natives.sdl.gpu.enums.SdlGpuSwapchainComposition;
 import dev.goldberry.natives.sdl.gpu.enums.SdlGpuTextureFormat;
 
 /// A window claimed by a [SdlGpuDevice]: it presents through a swapchain, and has
@@ -75,6 +77,18 @@ public final class SdlGpuWindow extends SdlGpuResource {
             throw new SdlException("SDL_SetGPUSwapchainParameters", Sdl.get().lastError());
         }
         presentMode = mode;
+    }
+
+    /// Whether the window's swapchain can present in `composition` on the
+    /// display it is on now: always for [SdlGpuSwapchainComposition#SDR],
+    /// and for HDR where the display, the driver and the desktop all have it.
+    /// The answer may change when the window moves to another display.
+    public boolean supports(SdlGpuSwapchainComposition composition) {
+        Objects.requireNonNull(composition, "composition");
+        return device().calls()
+                .swapchain()
+                .windowSupportsGPUSwapchainComposition()
+                .call(device().handle(), handle(), composition.value());
     }
 
     /// The `SDL_Window*`, for the command buffer's acquire.

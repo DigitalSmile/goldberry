@@ -7,13 +7,15 @@ import java.util.Objects;
 
 import dev.goldberry.natives.sdl.gpu.SdlGpuCommandBuffer;
 import dev.goldberry.natives.sdl.gpu.SdlGpuRegion;
+import dev.goldberry.natives.sdl.gpu.SdlGpuTextureLocation;
 import dev.goldberry.render.PixelBuffer;
 import dev.goldberry.render.model.PhysicalRect;
 import dev.goldberry.render.model.PhysicalSize;
 import dev.goldberry.render.model.PixelFormat;
 
-/// A copy pass of a [GpuFrame]: CPU memory into textures and buffers, usable
-/// only inside the body [GpuFrame#copyPass] runs it in.
+/// A copy pass of a [GpuFrame]: CPU memory into textures and buffers, and
+/// copies from one texture or buffer to another on the GPU, usable only inside
+/// the body [GpuFrame#copyPass] runs it in.
 ///
 /// Every upload goes through the device's staging memory: the bytes
 /// are copied out of the caller's buffer before the method returns, so the
@@ -276,6 +278,100 @@ public final class CopyPass {
         GpuDevice.run(() -> upload.stage(source));
         var transfer = upload.buffer();
         sdl.uploadToBuffer(transfer, 0, buffer, offset, size, offset == 0 && size == destination.size());
+    }
+
+    /// Copies the whole of `source` into `destination`, level 0 of layer 0 of
+    /// each, GPU to GPU: a scene kept as last frame's, a texture duplicated
+    /// before a pass changes it.
+    ///
+    /// @throws IllegalArgumentException as
+    ///                                  [#copy(TextureView, int, int, TextureView, int, int, int, int)],
+    ///                                  or when the two are not one size
+    public void copy(GpuTexture source, GpuTexture destination) {
+        if (source.width() != destination.width() || source.height() != destination.height()) {
+            throw new IllegalArgumentException(source + " and " + destination + " are not one size");
+        }
+        copy(source.view(0, 0), 0, 0, destination.view(0, 0), 0, 0, source.width(), source.height());
+    }
+
+    /// Copies a `width` by `height` box of texels from `(sourceX, sourceY)` of
+    /// `source` to `(destinationX, destinationY)` of `destination`, GPU to
+    /// GPU: one level of one layer to another, of two textures or of one.
+    ///
+    /// The two are of one format and single-sampled; a multisampled target is
+    /// resolved by its render pass instead. For a block-compressed format the
+    /// box starts on a block and ends on one or at the level's edge.
+    ///
+    /// @throws IllegalArgumentException when a box lies outside its level or
+    ///                                  off its blocks, the formats differ, a
+    ///                                  texture is multisampled, the copy is
+    ///                                  from a level and layer to itself, or
+    ///                                  either is another device's or closed
+    public void copy(
+            TextureView source,
+            int sourceX,
+            int sourceY,
+            TextureView destination,
+            int destinationX,
+            int destinationY,
+            int width,
+            int height) {
+        Objects.requireNonNull(source, "source");
+        Objects.requireNonNull(destination, "destination");
+        requireOpen();
+        var target = destination.texture();
+        // Fresh memory for the destination only when every texel of it is
+        // about to be written, as an upload of the whole of a texture does.
+        var whole = target.mipLevels() == 1
+                && target.layers() == 1
+                && target.depth() == 1
+                && destinationX == 0
+                && destinationY == 0
+                && width == destination.width()
+                && height == destination.height();
+        sdl.copyTexture(
+                new SdlGpuTextureLocation(
+                        source.texture().sdl(device), source.level(), source.layer(), sourceX, sourceY),
+                new SdlGpuTextureLocation(
+                        target.sdl(device), destination.level(), destination.layer(), destinationX, destinationY),
+                width,
+                height,
+                whole);
+    }
+
+    /// Copies the whole of `source` into `destination`, GPU to GPU.
+    ///
+    /// @throws IllegalArgumentException as
+    ///                                  [#copy(GpuBuffer, int, GpuBuffer, int, int)],
+    ///                                  or when the two are not one size
+    public void copy(GpuBuffer source, GpuBuffer destination) {
+        if (source.size() != destination.size()) {
+            throw new IllegalArgumentException(source + " and " + destination + " are not one size");
+        }
+        copy(source, 0, destination, 0, source.size());
+    }
+
+    /// Copies `size` bytes from byte `sourceOffset` of `source` into
+    /// `destination` from byte `destinationOffset`, GPU to GPU: what a compute
+    /// pass wrote, kept for the next frame, or moved into a buffer of another
+    /// usage. Offsets and size are multiples of 4, which Metal requires.
+    ///
+    /// @throws IllegalArgumentException when a range runs past its buffer, the
+    ///                                  offsets or size are not multiples of
+    ///                                  4, the two ranges overlap in one
+    ///                                  buffer, or either is another device's
+    ///                                  or closed
+    public void copy(GpuBuffer source, int sourceOffset, GpuBuffer destination, int destinationOffset, int size) {
+        Objects.requireNonNull(source, "source");
+        Objects.requireNonNull(destination, "destination");
+        requireOpen();
+        sdl.copyBuffer(
+                source.sdl(device),
+                sourceOffset,
+                destination.sdl(device),
+                destinationOffset,
+                size,
+                source != destination && destinationOffset == 0 && size == destination.size());
     }
 
     /// The pass has ended with its body: every method throws from now on.

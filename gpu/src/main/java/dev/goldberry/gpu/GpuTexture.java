@@ -1,5 +1,6 @@
 package dev.goldberry.gpu;
 
+import java.util.Objects;
 import java.util.Set;
 
 import dev.goldberry.natives.sdl.gpu.SdlGpuTexture;
@@ -122,6 +123,16 @@ public final class GpuTexture extends GpuResource implements RenderTarget {
                 && region.y() >= 0
                 && (long) region.x() + region.width() <= spec.width()
                 && (long) region.y() + region.height() <= spec.height();
+    }
+
+    /// Names it for a frame capture in RenderDoc, PIX or Xcode, which shows
+    /// textures by name. A driver with no debugger attached ignores it.
+    ///
+    /// @throws IllegalStateException when it is closed
+    public void setDebugName(String name) {
+        Objects.requireNonNull(name, "name");
+        var gpu = device();
+        gpu.sdl().setName(sdl(gpu), name);
     }
 
     /// The SDL texture, for `user`'s commands.

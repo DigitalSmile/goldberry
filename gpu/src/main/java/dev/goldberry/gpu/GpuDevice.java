@@ -86,6 +86,26 @@ public final class GpuDevice {
         return sdl.driver();
     }
 
+    /// What the system says this device is: the adapter's and the driver's
+    /// names and versions, for a settings screen, a crash report or a log.
+    /// Free text that differs between drivers and releases; shown, never
+    /// parsed.
+    ///
+    /// @throws GpuException when the driver has nothing to say
+    public GpuAdapter adapter() {
+        var adapter = call(sdl()::adapter);
+        return new GpuAdapter(adapter.name(), adapter.driverName(), adapter.driverVersion(), adapter.driverInfo());
+    }
+
+    /// Blocks until the GPU has finished every frame submitted to this device:
+    /// before replacing every target at a resize, or before reading what a
+    /// frame wrote without a [Readback].
+    ///
+    /// @throws GpuException when the driver fails
+    public void waitForIdle() {
+        run(sdl()::waitForIdle);
+    }
+
     /// Whether [CopyPass#upload(GpuTexture, UploadBuffer, int, int)] copies
     /// padded rows in one go. Where it does not (Metal), padded rows are
     /// recorded one by one, and packed rows are what to stage.
@@ -313,7 +333,8 @@ public final class GpuDevice {
                 spec.depthTest()
                         .map(test -> new SdlGpuPipelineDescription.DepthTest(
                                 test.format().sdl(), test.compare().sdl(), test.write())),
-                SdlGpuSampleCount.of(spec.samples()));
+                SdlGpuSampleCount.of(spec.samples()),
+                spec.stencilTest().map(StencilTest::sdl));
         var pipeline = call(() -> device.createGraphicsPipeline(description));
         return new GraphicsPipeline(this, pipeline, spec);
     }

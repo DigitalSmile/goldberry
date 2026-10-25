@@ -142,6 +142,96 @@ particles, glows and light. The counts and the usages are checked in Java
 before SDL sees a dispatch or a draw, as everything in this API is.
 
 
+## Indirect draws, stencil and copies
+
+A draw can take its counts from a buffer rather than from its arguments, so
+that a compute pass decides what is drawn: the instances that survived
+culling, or the particles still alive, with nothing read back. The buffer is
+made with `BufferUsage.INDIRECT`, and with `COMPUTE_STORAGE_WRITE` too when a
+compute pass writes it. Its commands are the records in
+`dev.goldberry.gpu.indirect`: a `DrawCommand` is four words (vertices,
+instances, first vertex, first instance), an `IndexedDrawCommand` five, and a
+`DispatchCommand` three.
+
+```java
+var usages = EnumSet.of(BufferUsage.COMPUTE_STORAGE_WRITE, BufferUsage.INDIRECT);
+var commands = device.createBuffer(usages, DrawCommand.BYTES);
+
+frame.computePass(commands, pass -> {
+    pass.bindPipeline(cull);
+    pass.bindStorageBuffers(instances);
+    pass.dispatch(INSTANCES / 64);
+});
+frame.renderPass(target, Load.clear(0, 0, 0, 1), depth, pass -> {
+    pass.bindPipeline(lit);
+    pass.bindVertexBuffer(0, cube);
+    pass.drawIndirect(commands, 0, 1);
+});
+```
+
+`drawIndirect(buffer, offset, count)` draws `count` commands that lie one
+after another from `offset`, and `drawIndexedIndirect` does the same from the
+bound index buffer. `ComputePass.dispatchIndirect(buffer, offset)` reads its
+workgroups the same way. A command with zero vertices or zero workgroups does
+nothing, which is what a culling pass writes when it culls everything. From
+Java, `IndirectCommand.pack(list)` lays the commands out to upload. The offset
+is a whole word, and a command that runs past the buffer's end is refused.
+
+A stencil test masks where a pipeline draws. It needs a depth format with a
+stencil, `D24_UNORM_S8_UINT` or `D32_FLOAT_S8_UINT`. Apple's GPUs have only
+the second, so ask `device.supports(format, usages)` first. One pipeline
+marks the pixels with the pass's reference, and the next draws only where
+the mark is:
+
+```java
+var stencil = TextureFormat.D32_FLOAT_S8_UINT;
+var depthStencil = device.createTexture(TextureSpec.depth(stencil, width, height));
+var mark = device.createPipeline(PipelineSpec.builder(vertex, flat, format).depthTest(DepthTest.off(stencil)).stencilTest(StencilTest.replace()).build());
+var through = device.createPipeline(PipelineSpec.builder(vertex, lit, format).depthTest(DepthTest.less(stencil)).stencilTest(StencilTest.equal()).build());
+
+frame.renderPass(target, Load.clear(0, 0, 0, 1), DepthTarget.clear(depthStencil, 1, 0), pass -> {
+    pass.setStencilReference(1);
+    pass.bindPipeline(mark);
+    drawPortal(pass);
+    pass.bindPipeline(through);
+    drawFarRoom(pass);
+});
+```
+
+`StencilTest.notEqual()` draws everywhere but the mark, as an outline around
+a selection does. `DepthTest.off(format)` passes every fragment and writes no
+depth, for a pipeline that tests stencil alone. A `DepthTarget` clears the
+stencil with the depth, to the value its fourth component gives, and keeps it
+at the end of the pass.
+
+`BlendMode.CONSTANT` mixes the output into the target by the pass's blend
+constants, `src × c + dst × (1 − c)` channel by channel: a cross-fade, or a
+tint, changed per draw with `pass.setBlendConstants(r, g, b, a)` and no
+second pipeline.
+
+A copy pass also copies on the GPU. `copy.copy(source, destination)` copies a
+whole texture into one of its size and format, or a whole buffer into one of
+its size. The longer forms copy a box of texels from one level and layer to
+another, or a range of bytes, in whole words, between two buffers or two parts
+of one that do not overlap. Last frame's picture for a motion blur, a
+history buffer, or the output of a compute pass moved into a buffer of
+another usage are all copies.
+
+A compute shader samples textures through `pass.bindSamplers(sampler,
+textures...)`, as many as `ComputeCode.builder(...).samplers(n)` declares, in
+`t[n]` and `s[n]` of space 0 before its read-only storage. A vertex shader
+reads storage textures, texel by texel, through `bindVertexStorageTextures`:
+a height field that a compute pass wrote, displacing a terrain. Such a
+texture is made with `GRAPHICS_STORAGE_READ` and not `SAMPLER`. SDL takes a
+texture as one or the other, and `TextureSpec` refuses both.
+
+`device.adapter()` names the GPU and its driver in the system's words, for a
+settings screen or a log. `device.waitForIdle()` waits until everything
+submitted has finished. `texture.setDebugName(name)` and
+`buffer.setDebugName(name)` are what RenderDoc, PIX and Xcode show the
+resource as.
+
+
 ## Rendering offscreen
 
 A test of a scene with a `canvas3d` in it opens an `OffscreenGpu` and hands

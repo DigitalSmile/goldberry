@@ -12,6 +12,7 @@ import dev.goldberry.natives.sdl.gpu.enums.SdlGpuFrontFace;
 import dev.goldberry.natives.sdl.gpu.enums.SdlGpuPrimitiveType;
 import dev.goldberry.natives.sdl.gpu.enums.SdlGpuSampleCount;
 import dev.goldberry.natives.sdl.gpu.enums.SdlGpuShaderStage;
+import dev.goldberry.natives.sdl.gpu.enums.SdlGpuStencilOp;
 import dev.goldberry.natives.sdl.gpu.enums.SdlGpuTextureFormat;
 import dev.goldberry.natives.sdl.gpu.enums.SdlGpuVertexFormat;
 import dev.goldberry.natives.sdl.gpu.enums.SdlGpuVertexInputRate;
@@ -21,8 +22,9 @@ import dev.goldberry.natives.sdl.gpu.enums.SdlGpuVertexInputRate;
 /// At most one colour target, filled polygons: what the composited window and
 /// `canvas3d` draw with. A pipeline with no colour target writes depth alone:
 /// a shadow map. A pipeline with more than one sample draws into a
-/// multisampled target, which a pass resolves. Several colour targets,
-/// stencil and depth bias join when something asks for them.
+/// multisampled target, which a pass resolves. A stencil test reads and writes
+/// the stencil of a depth format that has one. Several colour targets and
+/// depth bias join when something asks for them.
 ///
 /// Read more: [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
 ///
@@ -41,6 +43,8 @@ import dev.goldberry.natives.sdl.gpu.enums.SdlGpuVertexInputRate;
 ///                         the buffers
 /// @param depth            the depth test, or empty for none
 /// @param sampleCount      how many samples the targets it draws into have
+/// @param stencil          the stencil test, or empty for none; it needs a
+///                         depth test of a format with a stencil
 public record SdlGpuPipelineDescription(
         SdlGpuShader vertex,
         SdlGpuShader fragment,
@@ -52,7 +56,36 @@ public record SdlGpuPipelineDescription(
         List<VertexBuffer> vertexBuffers,
         List<VertexAttribute> vertexAttributes,
         Optional<DepthTest> depth,
-        SdlGpuSampleCount sampleCount) {
+        SdlGpuSampleCount sampleCount,
+        Optional<StencilTest> stencil) {
+
+    /// A description with no stencil test.
+    public SdlGpuPipelineDescription(
+            SdlGpuShader vertex,
+            SdlGpuShader fragment,
+            Optional<SdlGpuTextureFormat> targetFormat,
+            SdlGpuBlend blend,
+            SdlGpuPrimitiveType primitiveType,
+            SdlGpuCullMode cullMode,
+            SdlGpuFrontFace frontFace,
+            List<VertexBuffer> vertexBuffers,
+            List<VertexAttribute> vertexAttributes,
+            Optional<DepthTest> depth,
+            SdlGpuSampleCount sampleCount) {
+        this(
+                vertex,
+                fragment,
+                targetFormat,
+                blend,
+                primitiveType,
+                cullMode,
+                frontFace,
+                vertexBuffers,
+                vertexAttributes,
+                depth,
+                sampleCount,
+                Optional.empty());
+    }
 
     /// A description for single-sampled targets.
     public SdlGpuPipelineDescription(
@@ -130,12 +163,44 @@ public record SdlGpuPipelineDescription(
         }
     }
 
+    /// A stencil test, the same for both faces.
+    ///
+    /// @param compare   how the pass's stencil reference is compared with the
+    ///                  sample's stencil, both masked by `readMask`
+    /// @param fail      what a sample that fails the stencil test does to it
+    /// @param pass      what a sample that passes both tests does to it
+    /// @param depthFail what a sample that passes the stencil test and fails
+    ///                  the depth test does to it
+    /// @param readMask  the bits compared, 0 to 255
+    /// @param writeMask the bits written, 0 to 255
+    public record StencilTest(
+            SdlGpuCompareOp compare,
+            SdlGpuStencilOp fail,
+            SdlGpuStencilOp pass,
+            SdlGpuStencilOp depthFail,
+            int readMask,
+            int writeMask) {
+
+        /// Checks the masks are bytes.
+        public StencilTest {
+            Objects.requireNonNull(compare, "compare");
+            Objects.requireNonNull(fail, "fail");
+            Objects.requireNonNull(pass, "pass");
+            Objects.requireNonNull(depthFail, "depthFail");
+            if (readMask < 0 || readMask > 0xFF || writeMask < 0 || writeMask > 0xFF) {
+                throw new IllegalArgumentException("stencil masks " + readMask + " and " + writeMask + ", not bytes");
+            }
+        }
+    }
+
     /// Checks the description is whole and consistent, and copies the lists.
     ///
     /// @throws IllegalArgumentException when a shader is for the wrong stage or
     ///                                  of another device, the colour target is
     ///                                  a depth format, there is neither a
-    ///                                  colour target nor a depth test, a slot
+    ///                                  colour target nor a depth test, a
+    ///                                  stencil test has no depth format with a
+    ///                                  stencil to test, a slot
     ///                                  or a location is declared twice, or an
     ///                                  attribute reads a slot not declared or
     ///                                  past its element
@@ -149,6 +214,7 @@ public record SdlGpuPipelineDescription(
         Objects.requireNonNull(frontFace, "frontFace");
         Objects.requireNonNull(depth, "depth");
         Objects.requireNonNull(sampleCount, "sampleCount");
+        Objects.requireNonNull(stencil, "stencil");
         vertexBuffers = List.copyOf(vertexBuffers);
         vertexAttributes = List.copyOf(vertexAttributes);
         if (vertex.stage() != SdlGpuShaderStage.VERTEX || fragment.stage() != SdlGpuShaderStage.FRAGMENT) {
@@ -163,6 +229,11 @@ public record SdlGpuPipelineDescription(
         }
         if (targetFormat.isEmpty() && depth.isEmpty()) {
             throw new IllegalArgumentException("a pipeline with no colour target needs a depth test");
+        }
+        if (stencil.isPresent()
+                && depth.map(test -> !test.format().hasStencil()).orElse(true)) {
+            throw new IllegalArgumentException("a stencil test needs a depth test of a format with a stencil, not "
+                    + depth.map(test -> test.format().toString()).orElse("none"));
         }
         var slots = new HashSet<Integer>();
         for (var buffer : vertexBuffers) {

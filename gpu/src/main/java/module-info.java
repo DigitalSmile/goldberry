@@ -39,6 +39,9 @@ module dev.goldberry.gpu {
     /// nothing of `:natives`.
     exports dev.goldberry.gpu;
 
+    /// The commands an indirect draw or dispatch reads from a buffer.
+    exports dev.goldberry.gpu.indirect;
+
     /// `canvas3d` and the renderer an application draws it with.
     exports dev.goldberry.gpu.view;
 

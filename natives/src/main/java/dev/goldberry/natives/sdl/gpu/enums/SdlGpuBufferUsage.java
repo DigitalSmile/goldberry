@@ -4,8 +4,8 @@ import java.util.Collection;
 
 /// What a buffer may be used for, as SDL's `SDL_GPU_BUFFERUSAGE_*` bits.
 ///
-/// The uses a draw and a compute dispatch have. Indirect buffers join when a
-/// caller for them does.
+/// The uses a draw and a compute dispatch have, and the buffer an indirect
+/// draw or dispatch reads its counts from.
 ///
 /// Read more: [The GPU canvas](https://goldberry.dev/docs/components/gpu.html#canvas3d) and
 /// [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
@@ -14,6 +14,9 @@ public enum SdlGpuBufferUsage {
     VERTEX(1),
     /// Indices, 16 or 32 bits each, for an indexed draw.
     INDEX(1 << 1),
+    /// `SDL_GPUIndirectDrawCommand`s, `…IndexedIndirectDrawCommand`s or
+    /// `…IndirectDispatchCommand`s, read by an indirect draw or dispatch.
+    INDIRECT(1 << 2),
     /// Read as a storage buffer by a vertex or fragment shader.
     GRAPHICS_STORAGE_READ(1 << 3),
     /// Read as a storage buffer by a compute shader.

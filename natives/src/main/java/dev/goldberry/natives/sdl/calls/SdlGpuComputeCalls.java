@@ -11,7 +11,8 @@ import java.lang.invoke.MethodHandle;
 import dev.goldberry.natives.Downcalls;
 
 /// What a compute pass records -- the pipeline, the storage buffers and
-/// textures it reads, the uniforms pushed and the dispatch -- and the one
+/// textures it reads, the textures it samples, the uniforms pushed and the
+/// dispatch, direct or from a buffer -- and the one
 /// command outside a pass that is compute-shaped: generating a texture's mip
 /// chain.
 ///
@@ -26,7 +27,9 @@ public record SdlGpuComputeCalls(
         PushGPUComputeUniformData pushGPUComputeUniformData,
         DispatchGPUCompute dispatchGPUCompute,
         EndGPUComputePass endGPUComputePass,
-        GenerateMipmapsForGPUTexture generateMipmapsForGPUTexture) {
+        GenerateMipmapsForGPUTexture generateMipmapsForGPUTexture,
+        BindGPUComputeSamplers bindGPUComputeSamplers,
+        DispatchGPUComputeIndirect dispatchGPUComputeIndirect) {
 
     /// Binds every function above.
     ///
@@ -40,7 +43,9 @@ public record SdlGpuComputeCalls(
                 new PushGPUComputeUniformData(lookup),
                 new DispatchGPUCompute(lookup),
                 new EndGPUComputePass(lookup),
-                new GenerateMipmapsForGPUTexture(lookup));
+                new GenerateMipmapsForGPUTexture(lookup),
+                new BindGPUComputeSamplers(lookup),
+                new DispatchGPUComputeIndirect(lookup));
     }
 
     /// Begins a compute pass, naming the storage textures and buffers it
@@ -273,6 +278,64 @@ public record SdlGpuComputeCalls(
                 FD_SDL_GenerateMipmapsForGPUTexture.invokeExact(address, commandBuffer, texture);
             } catch (Throwable t) {
                 throw Downcalls.failure("SDL_GenerateMipmapsForGPUTexture", t);
+            }
+        }
+    }
+
+    /// Binds textures, each with its sampler, that the compute shader samples.
+    ///
+    /// `void SDL_BindGPUComputeSamplers(void*, Uint32, void*, Uint32)`
+    public static final class BindGPUComputeSamplers {
+
+        private static final MethodHandle FD_SDL_BindGPUComputeSamplers =
+                Downcalls.link(FunctionDescriptor.ofVoid(ADDRESS, JAVA_INT, ADDRESS, JAVA_INT));
+
+        private final MemorySegment address;
+
+        BindGPUComputeSamplers(SymbolLookup lookup) {
+            this.address = Downcalls.symbol(lookup, "SDL_BindGPUComputeSamplers");
+        }
+
+        /// Calls `SDL_BindGPUComputeSamplers`.
+        ///
+        /// @param computePass the pass
+        /// @param firstSlot   the first slot bound
+        /// @param bindings    an `SDL_GPUTextureSamplerBinding*` array
+        /// @param count       how many
+        public void call(MemorySegment computePass, int firstSlot, MemorySegment bindings, int count) {
+            try {
+                FD_SDL_BindGPUComputeSamplers.invokeExact(address, computePass, firstSlot, bindings, count);
+            } catch (Throwable t) {
+                throw Downcalls.failure("SDL_BindGPUComputeSamplers", t);
+            }
+        }
+    }
+
+    /// Runs the bound pipeline over the workgroups an
+    /// `SDL_GPUIndirectDispatchCommand` in a buffer names: a grid the GPU sized.
+    ///
+    /// `void SDL_DispatchGPUComputeIndirect(void*, void*, Uint32)`
+    public static final class DispatchGPUComputeIndirect {
+
+        private static final MethodHandle FD_SDL_DispatchGPUComputeIndirect =
+                Downcalls.link(FunctionDescriptor.ofVoid(ADDRESS, ADDRESS, JAVA_INT));
+
+        private final MemorySegment address;
+
+        DispatchGPUComputeIndirect(SymbolLookup lookup) {
+            this.address = Downcalls.symbol(lookup, "SDL_DispatchGPUComputeIndirect");
+        }
+
+        /// Calls `SDL_DispatchGPUComputeIndirect`.
+        ///
+        /// @param computePass the pass
+        /// @param buffer      an `SDL_GPUBuffer*` made for indirect use
+        /// @param offset      the byte the command starts at
+        public void call(MemorySegment computePass, MemorySegment buffer, int offset) {
+            try {
+                FD_SDL_DispatchGPUComputeIndirect.invokeExact(address, computePass, buffer, offset);
+            } catch (Throwable t) {
+                throw Downcalls.failure("SDL_DispatchGPUComputeIndirect", t);
             }
         }
     }

@@ -7456,6 +7456,17 @@ a painted frame reaches the screen, and what else can be on it.
   machine's) is refused, because its scene build crashes the process
   (ADR-0668, parked). The CI verify job runs it on lavapipe on the x64 leg,
   required. Nothing in the showcase uses it yet.
+- **What a game asks of SDL_GPU is bound** (ADR-0669, parked, 2026-10-25; the
+  gaming plan's phase 1). Native ABI 26 exports indirect draws and dispatches,
+  the stencil reference and blend constants, copies from texture to texture
+  and buffer to buffer, compute samplers, vertex storage textures, the
+  adapter's name, an idle wait, debug names and the HDR composition query.
+  `:gpu` uses them: `drawIndirect` and `dispatchIndirect` over
+  `dev.goldberry.gpu.indirect`'s command records, a `StencilTest` on the two
+  new depth-stencil formats, `BlendMode.CONSTANT`, `CopyPass.copy` GPU to GPU,
+  `GpuDevice.adapter()`. `GpuGameFeaturesTest` (15) checks each against what it
+  draws, on lavapipe and on the GTX 1660 Ti. A texture both sampled and read as
+  storage by a draw is now refused in Java, where SDL used to abort.
 
 **What is not proven.** Everything above was built and measured on Metal. On
 Linux the composited path has run on this project's machine, under X11 on

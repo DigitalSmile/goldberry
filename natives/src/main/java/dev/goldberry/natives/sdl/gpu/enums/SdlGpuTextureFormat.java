@@ -58,6 +58,12 @@ public enum SdlGpuTextureFormat {
     D16_UNORM(58, 2),
     /// A 32-bit float depth target.
     D32_FLOAT(60, 4),
+    /// A 24-bit depth target with an 8-bit stencil: what most desktop GPUs
+    /// pack in a word, and Apple's do not have.
+    D24_UNORM_S8_UINT(61, 4),
+    /// A 32-bit float depth target with an 8-bit stencil, five bytes a texel
+    /// as SDL counts them.
+    D32_FLOAT_S8_UINT(62, 5),
     /// ASTC: RGBA in 16 bytes a 4×4 block, which Apple's GPUs and most mobile
     /// ones decode.
     ASTC_4x4_UNORM(63, 4, 4, 16),
@@ -129,14 +135,23 @@ public enum SdlGpuTextureFormat {
     /// Whether this is a depth format: one a render pass tests depth against,
     /// never a colour target.
     public boolean isDepth() {
-        return this == D16_UNORM || this == D32_FLOAT;
+        return switch (this) {
+            case D16_UNORM, D32_FLOAT, D24_UNORM_S8_UINT, D32_FLOAT_S8_UINT -> true;
+            default -> false;
+        };
+    }
+
+    /// Whether this is a depth format with a stencil: one a pipeline's stencil
+    /// test reads and writes.
+    public boolean hasStencil() {
+        return this == D24_UNORM_S8_UINT || this == D32_FLOAT_S8_UINT;
     }
 
     /// Whether the channels are floats rather than normalised integers: a
     /// clear colour is taken as is, and a `Readback` hands back float bytes.
     public boolean isFloat() {
         return switch (this) {
-            case R16G16B16A16_FLOAT, R32_FLOAT, R11G11B10_UFLOAT, D32_FLOAT -> true;
+            case R16G16B16A16_FLOAT, R32_FLOAT, R11G11B10_UFLOAT, D32_FLOAT, D32_FLOAT_S8_UINT -> true;
             default -> false;
         };
     }

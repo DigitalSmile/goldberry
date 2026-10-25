@@ -30,7 +30,9 @@ public record SdlGpuCommandCalls(
         UploadToGPUTexture uploadToGPUTexture,
         DownloadFromGPUTexture downloadFromGPUTexture,
         EndGPUCopyPass endGPUCopyPass,
-        BlitGPUTexture blitGPUTexture) {
+        BlitGPUTexture blitGPUTexture,
+        CopyGPUTextureToTexture copyGPUTextureToTexture,
+        CopyGPUBufferToBuffer copyGPUBufferToBuffer) {
 
     /// Binds every function above.
     ///
@@ -49,7 +51,9 @@ public record SdlGpuCommandCalls(
                 new UploadToGPUTexture(lookup),
                 new DownloadFromGPUTexture(lookup),
                 new EndGPUCopyPass(lookup),
-                new BlitGPUTexture(lookup));
+                new BlitGPUTexture(lookup),
+                new CopyGPUTextureToTexture(lookup),
+                new CopyGPUBufferToBuffer(lookup));
     }
 
     /// `SDL_GPU_LOADOP_LOAD`: a render pass keeps what the target held.
@@ -440,6 +444,80 @@ public record SdlGpuCommandCalls(
                 FD_SDL_BlitGPUTexture.invokeExact(address, commandBuffer, info);
             } catch (Throwable t) {
                 throw Downcalls.failure("SDL_BlitGPUTexture", t);
+            }
+        }
+    }
+
+    /// Copies a box of texels from one texture to another, GPU to GPU, in a
+    /// copy pass.
+    ///
+    /// `void SDL_CopyGPUTextureToTexture(void*, void*, void*, Uint32, Uint32, Uint32, _Bool)`
+    public static final class CopyGPUTextureToTexture {
+
+        private static final MethodHandle FD_SDL_CopyGPUTextureToTexture = Downcalls.link(
+                FunctionDescriptor.ofVoid(ADDRESS, ADDRESS, ADDRESS, JAVA_INT, JAVA_INT, JAVA_INT, JAVA_BOOLEAN));
+
+        private final MemorySegment address;
+
+        CopyGPUTextureToTexture(SymbolLookup lookup) {
+            this.address = Downcalls.symbol(lookup, "SDL_CopyGPUTextureToTexture");
+        }
+
+        /// Calls `SDL_CopyGPUTextureToTexture`.
+        ///
+        /// @param copyPass    the pass
+        /// @param source      an `SDL_GPUTextureLocation*`
+        /// @param destination an `SDL_GPUTextureLocation*`
+        /// @param width       texels across
+        /// @param height      texels down
+        /// @param depth       layers or slices
+        /// @param cycle       take fresh memory for the destination if the GPU
+        ///                    still reads the old
+        public void call(
+                MemorySegment copyPass,
+                MemorySegment source,
+                MemorySegment destination,
+                int width,
+                int height,
+                int depth,
+                boolean cycle) {
+            try {
+                FD_SDL_CopyGPUTextureToTexture.invokeExact(
+                        address, copyPass, source, destination, width, height, depth, cycle);
+            } catch (Throwable t) {
+                throw Downcalls.failure("SDL_CopyGPUTextureToTexture", t);
+            }
+        }
+    }
+
+    /// Copies bytes from one buffer to another, GPU to GPU, in a copy pass.
+    ///
+    /// `void SDL_CopyGPUBufferToBuffer(void*, void*, void*, Uint32, _Bool)`
+    public static final class CopyGPUBufferToBuffer {
+
+        private static final MethodHandle FD_SDL_CopyGPUBufferToBuffer =
+                Downcalls.link(FunctionDescriptor.ofVoid(ADDRESS, ADDRESS, ADDRESS, JAVA_INT, JAVA_BOOLEAN));
+
+        private final MemorySegment address;
+
+        CopyGPUBufferToBuffer(SymbolLookup lookup) {
+            this.address = Downcalls.symbol(lookup, "SDL_CopyGPUBufferToBuffer");
+        }
+
+        /// Calls `SDL_CopyGPUBufferToBuffer`.
+        ///
+        /// @param copyPass    the pass
+        /// @param source      an `SDL_GPUBufferLocation*`
+        /// @param destination an `SDL_GPUBufferLocation*`
+        /// @param size        how many bytes
+        /// @param cycle       take fresh memory for the destination if the GPU
+        ///                    still reads the old
+        public void call(
+                MemorySegment copyPass, MemorySegment source, MemorySegment destination, int size, boolean cycle) {
+            try {
+                FD_SDL_CopyGPUBufferToBuffer.invokeExact(address, copyPass, source, destination, size, cycle);
+            } catch (Throwable t) {
+                throw Downcalls.failure("SDL_CopyGPUBufferToBuffer", t);
             }
         }
     }

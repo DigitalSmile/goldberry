@@ -14,8 +14,9 @@ import dev.goldberry.natives.Downcalls;
 /// SDL's property groups: the options a call takes by name rather than by
 /// field, which is how `SDL_CreateGPUDeviceWithProperties` is configured.
 ///
-/// Only the setters and the lifecycle: the three getters a window's native handle
-/// is read through are in [SdlWindowCalls], beside the window they read.
+/// The setters, the lifecycle, and the string getter a GPU device's adapter
+/// and driver names are read through. The getters a window's native handle is
+/// read through are in [SdlWindowCalls], beside the window they read.
 ///
 /// One holder per function: its handle, its address, and a `call` whose
 /// parameters are the C prototype’s. See [Downcalls] for why the handle is a
@@ -24,7 +25,8 @@ public record SdlPropertiesCalls(
         CreateProperties createProperties,
         DestroyProperties destroyProperties,
         SetBooleanProperty setBooleanProperty,
-        SetStringProperty setStringProperty) {
+        SetStringProperty setStringProperty,
+        GetStringProperty getStringProperty) {
 
     /// Binds every function above.
     ///
@@ -34,7 +36,8 @@ public record SdlPropertiesCalls(
                 new CreateProperties(lookup),
                 new DestroyProperties(lookup),
                 new SetBooleanProperty(lookup),
-                new SetStringProperty(lookup));
+                new SetStringProperty(lookup),
+                new GetStringProperty(lookup));
     }
 
     /// Creates an empty property group, which is how SDL takes options that have
@@ -143,6 +146,37 @@ public record SdlPropertiesCalls(
                 return (boolean) FD_SDL_SetStringProperty.invokeExact(address, props, name, value);
             } catch (Throwable t) {
                 throw Downcalls.failure("SDL_SetStringProperty", t);
+            }
+        }
+    }
+
+    /// Reads a string property, or the default when the group has none by
+    /// that name. The string is the group's, valid until the property changes.
+    ///
+    /// `void* SDL_GetStringProperty(uint32_t, void*, void*)`
+    public static final class GetStringProperty {
+
+        private static final MethodHandle FD_SDL_GetStringProperty =
+                Downcalls.link(FunctionDescriptor.of(ADDRESS, JAVA_INT, ADDRESS, ADDRESS));
+
+        private final MemorySegment address;
+
+        GetStringProperty(SymbolLookup lookup) {
+            this.address = Downcalls.symbol(lookup, "SDL_GetStringProperty");
+        }
+
+        /// Calls `SDL_GetStringProperty`.
+        ///
+        /// @param props        the group
+        /// @param name         the property's name, a C string
+        /// @param defaultValue what to return when it is not set, a C string or
+        ///                     NULL
+        /// @return a C string, or `defaultValue`
+        public MemorySegment call(int props, MemorySegment name, MemorySegment defaultValue) {
+            try {
+                return (MemorySegment) FD_SDL_GetStringProperty.invokeExact(address, props, name, defaultValue);
+            } catch (Throwable t) {
+                throw Downcalls.failure("SDL_GetStringProperty", t);
             }
         }
     }

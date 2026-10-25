@@ -29,7 +29,9 @@ public record SdlGpuDeviceCalls(
         GetGPUDeviceDriver getGPUDeviceDriver,
         GetGPUShaderFormats getGPUShaderFormats,
         TextureSupportsFormat textureSupportsFormat,
-        TextureSupportsSampleCount textureSupportsSampleCount) {
+        TextureSupportsSampleCount textureSupportsSampleCount,
+        WaitForGPUIdle waitForGPUIdle,
+        GetGPUDeviceProperties getGPUDeviceProperties) {
 
     /// Binds every function above.
     ///
@@ -43,7 +45,9 @@ public record SdlGpuDeviceCalls(
                 new GetGPUDeviceDriver(lookup),
                 new GetGPUShaderFormats(lookup),
                 new TextureSupportsFormat(lookup),
-                new TextureSupportsSampleCount(lookup));
+                new TextureSupportsSampleCount(lookup),
+                new WaitForGPUIdle(lookup),
+                new GetGPUDeviceProperties(lookup));
     }
 
     /// Creates a GPU device on the first driver that can serve the options.
@@ -264,6 +268,62 @@ public record SdlGpuDeviceCalls(
                 return (boolean) FD_SDL_GPUTextureSupportsSampleCount.invokeExact(address, device, format, sampleCount);
             } catch (Throwable t) {
                 throw Downcalls.failure("SDL_GPUTextureSupportsSampleCount", t);
+            }
+        }
+    }
+
+    /// Blocks until the device has finished everything submitted to it.
+    ///
+    /// `_Bool SDL_WaitForGPUIdle(void*)`
+    public static final class WaitForGPUIdle {
+
+        private static final MethodHandle FD_SDL_WaitForGPUIdle =
+                Downcalls.link(FunctionDescriptor.of(JAVA_BOOLEAN, ADDRESS));
+
+        private final MemorySegment address;
+
+        WaitForGPUIdle(SymbolLookup lookup) {
+            this.address = Downcalls.symbol(lookup, "SDL_WaitForGPUIdle");
+        }
+
+        /// Calls `SDL_WaitForGPUIdle`.
+        ///
+        /// @param device the device
+        /// @return false if SDL failed
+        public boolean call(MemorySegment device) {
+            try {
+                return (boolean) FD_SDL_WaitForGPUIdle.invokeExact(address, device);
+            } catch (Throwable t) {
+                throw Downcalls.failure("SDL_WaitForGPUIdle", t);
+            }
+        }
+    }
+
+    /// The device's property group: the adapter's name and the driver's,
+    /// as the system reports them. The group is the device's, and is not
+    /// destroyed by the caller.
+    ///
+    /// `uint32_t SDL_GetGPUDeviceProperties(void*)`
+    public static final class GetGPUDeviceProperties {
+
+        private static final MethodHandle FD_SDL_GetGPUDeviceProperties =
+                Downcalls.link(FunctionDescriptor.of(JAVA_INT, ADDRESS));
+
+        private final MemorySegment address;
+
+        GetGPUDeviceProperties(SymbolLookup lookup) {
+            this.address = Downcalls.symbol(lookup, "SDL_GetGPUDeviceProperties");
+        }
+
+        /// Calls `SDL_GetGPUDeviceProperties`.
+        ///
+        /// @param device the device
+        /// @return the group, or 0 on failure
+        public int call(MemorySegment device) {
+            try {
+                return (int) FD_SDL_GetGPUDeviceProperties.invokeExact(address, device);
+            } catch (Throwable t) {
+                throw Downcalls.failure("SDL_GetGPUDeviceProperties", t);
             }
         }
     }

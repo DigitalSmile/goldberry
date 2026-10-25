@@ -26,6 +26,8 @@ import dev.goldberry.natives.sdl.gpu.enums.SdlGpuIndexSize;
 import dev.goldberry.natives.sdl.gpu.enums.SdlGpuPrimitiveType;
 import dev.goldberry.natives.sdl.gpu.enums.SdlGpuSampleCount;
 import dev.goldberry.natives.sdl.gpu.enums.SdlGpuShaderFormat;
+import dev.goldberry.natives.sdl.gpu.enums.SdlGpuStencilOp;
+import dev.goldberry.natives.sdl.gpu.enums.SdlGpuSwapchainComposition;
 import dev.goldberry.natives.sdl.gpu.enums.SdlGpuTextureFormat;
 import dev.goldberry.natives.sdl.gpu.enums.SdlGpuTextureType;
 import dev.goldberry.natives.sdl.gpu.enums.SdlGpuTextureUsage;
@@ -171,7 +173,6 @@ public final class NativeConstants {
         constants.add(new NativeConstant("SDL_GPU_FILTER_NEAREST", SdlGpuCommandCalls.FILTER_NEAREST));
         constants.add(new NativeConstant("SDL_GPU_FILTER_LINEAR", SdlGpuCommandCalls.FILTER_LINEAR));
         constants.add(new NativeConstant("SDL_FLIP_NONE", SdlGpuCommandCalls.FLIP_NONE));
-        constants.add(new NativeConstant("SDL_GPU_SWAPCHAINCOMPOSITION_SDR", SdlGpuSwapchainCalls.COMPOSITION_SDR));
         constants.add(new NativeConstant("SDL_GPU_PRESENTMODE_VSYNC", SdlGpuSwapchainCalls.PRESENTMODE_VSYNC));
         constants.add(new NativeConstant("SDL_GPU_PRESENTMODE_IMMEDIATE", SdlGpuSwapchainCalls.PRESENTMODE_IMMEDIATE));
         constants.add(new NativeConstant("SDL_GPU_PRESENTMODE_MAILBOX", SdlGpuSwapchainCalls.PRESENTMODE_MAILBOX));
@@ -216,6 +217,19 @@ public final class NativeConstants {
         for (var usage : SdlGpuBufferUsage.values()) {
             constants.add(new NativeConstant(usage.nativeName(), usage.bit()));
         }
+        // ABI 26: the stencil test, constant blending and the compositions a
+        // window may present in.
+        for (var op : SdlGpuStencilOp.values()) {
+            constants.add(new NativeConstant(op.nativeName(), op.value()));
+        }
+        for (var composition : SdlGpuSwapchainComposition.values()) {
+            constants.add(new NativeConstant(composition.nativeName(), composition.value()));
+        }
+        constants.add(new NativeConstant(
+                "SDL_GPU_BLENDFACTOR_CONSTANT_COLOR", SdlGpuPipelineCalls.BLENDFACTOR_CONSTANT_COLOR));
+        constants.add(new NativeConstant(
+                "SDL_GPU_BLENDFACTOR_ONE_MINUS_CONSTANT_COLOR",
+                SdlGpuPipelineCalls.BLENDFACTOR_ONE_MINUS_CONSTANT_COLOR));
         return List.copyOf(constants);
     }
 }

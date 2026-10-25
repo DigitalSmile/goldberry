@@ -108,7 +108,7 @@
 #endif
 
 /* Bumped whenever the exported surface changes shape. */
-#define GOLDBERRY_ABI_VERSION 25u
+#define GOLDBERRY_ABI_VERSION 26u
 
 GOLDBERRY_EXPORT uint32_t goldberry_abi_version(void) {
     return GOLDBERRY_ABI_VERSION;
@@ -807,6 +807,50 @@ static const goldberry_layout_entry_t GOLDBERRY_LAYOUTS[] = {
     GB_FIELD(SDL_GPUStorageTextureReadWriteBinding, padding1),
     GB_FIELD(SDL_GPUStorageTextureReadWriteBinding, padding2),
     GB_FIELD(SDL_GPUStorageTextureReadWriteBinding, padding3),
+    /* ABI 26: indirect draws and dispatches, texture and buffer copies, the
+     * stencil test and its formats, constant blending, and HDR compositions
+     * (docs/gpu-gaming-plan.md, phase 1). */
+    GB_STRUCT(SDL_GPUIndirectDrawCommand),
+    GB_FIELD(SDL_GPUIndirectDrawCommand, num_vertices),
+    GB_FIELD(SDL_GPUIndirectDrawCommand, num_instances),
+    GB_FIELD(SDL_GPUIndirectDrawCommand, first_vertex),
+    GB_FIELD(SDL_GPUIndirectDrawCommand, first_instance),
+    GB_STRUCT(SDL_GPUIndexedIndirectDrawCommand),
+    GB_FIELD(SDL_GPUIndexedIndirectDrawCommand, num_indices),
+    GB_FIELD(SDL_GPUIndexedIndirectDrawCommand, num_instances),
+    GB_FIELD(SDL_GPUIndexedIndirectDrawCommand, first_index),
+    GB_FIELD(SDL_GPUIndexedIndirectDrawCommand, vertex_offset),
+    GB_FIELD(SDL_GPUIndexedIndirectDrawCommand, first_instance),
+    GB_STRUCT(SDL_GPUIndirectDispatchCommand),
+    GB_FIELD(SDL_GPUIndirectDispatchCommand, groupcount_x),
+    GB_FIELD(SDL_GPUIndirectDispatchCommand, groupcount_y),
+    GB_FIELD(SDL_GPUIndirectDispatchCommand, groupcount_z),
+    GB_STRUCT(SDL_GPUTextureLocation),
+    GB_FIELD(SDL_GPUTextureLocation, texture),
+    GB_FIELD(SDL_GPUTextureLocation, mip_level),
+    GB_FIELD(SDL_GPUTextureLocation, layer),
+    GB_FIELD(SDL_GPUTextureLocation, x),
+    GB_FIELD(SDL_GPUTextureLocation, y),
+    GB_FIELD(SDL_GPUTextureLocation, z),
+    GB_STRUCT(SDL_GPUBufferLocation),
+    GB_FIELD(SDL_GPUBufferLocation, buffer),
+    GB_FIELD(SDL_GPUBufferLocation, offset),
+    GB_CONSTANT("SDL_GPU_BUFFERUSAGE_INDIRECT", SDL_GPU_BUFFERUSAGE_INDIRECT),
+    GB_CONSTANT("SDL_GPU_TEXTUREFORMAT_D24_UNORM_S8_UINT", SDL_GPU_TEXTUREFORMAT_D24_UNORM_S8_UINT),
+    GB_CONSTANT("SDL_GPU_TEXTUREFORMAT_D32_FLOAT_S8_UINT", SDL_GPU_TEXTUREFORMAT_D32_FLOAT_S8_UINT),
+    GB_CONSTANT("SDL_GPU_BLENDFACTOR_CONSTANT_COLOR", SDL_GPU_BLENDFACTOR_CONSTANT_COLOR),
+    GB_CONSTANT("SDL_GPU_BLENDFACTOR_ONE_MINUS_CONSTANT_COLOR", SDL_GPU_BLENDFACTOR_ONE_MINUS_CONSTANT_COLOR),
+    GB_CONSTANT("SDL_GPU_STENCILOP_KEEP", SDL_GPU_STENCILOP_KEEP),
+    GB_CONSTANT("SDL_GPU_STENCILOP_ZERO", SDL_GPU_STENCILOP_ZERO),
+    GB_CONSTANT("SDL_GPU_STENCILOP_REPLACE", SDL_GPU_STENCILOP_REPLACE),
+    GB_CONSTANT("SDL_GPU_STENCILOP_INCREMENT_AND_CLAMP", SDL_GPU_STENCILOP_INCREMENT_AND_CLAMP),
+    GB_CONSTANT("SDL_GPU_STENCILOP_DECREMENT_AND_CLAMP", SDL_GPU_STENCILOP_DECREMENT_AND_CLAMP),
+    GB_CONSTANT("SDL_GPU_STENCILOP_INVERT", SDL_GPU_STENCILOP_INVERT),
+    GB_CONSTANT("SDL_GPU_STENCILOP_INCREMENT_AND_WRAP", SDL_GPU_STENCILOP_INCREMENT_AND_WRAP),
+    GB_CONSTANT("SDL_GPU_STENCILOP_DECREMENT_AND_WRAP", SDL_GPU_STENCILOP_DECREMENT_AND_WRAP),
+    GB_CONSTANT("SDL_GPU_SWAPCHAINCOMPOSITION_SDR_LINEAR", SDL_GPU_SWAPCHAINCOMPOSITION_SDR_LINEAR),
+    GB_CONSTANT("SDL_GPU_SWAPCHAINCOMPOSITION_HDR_EXTENDED_LINEAR", SDL_GPU_SWAPCHAINCOMPOSITION_HDR_EXTENDED_LINEAR),
+    GB_CONSTANT("SDL_GPU_SWAPCHAINCOMPOSITION_HDR10_ST2084", SDL_GPU_SWAPCHAINCOMPOSITION_HDR10_ST2084),
 
     /* Event types Goldberry dispatches on. */
     GB_CONSTANT("SDL_EVENT_QUIT", SDL_EVENT_QUIT),

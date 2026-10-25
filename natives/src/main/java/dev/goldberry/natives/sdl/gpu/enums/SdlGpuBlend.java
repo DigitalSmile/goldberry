@@ -12,5 +12,9 @@ public enum SdlGpuBlend {
     /// premultiplied.
     PREMULTIPLIED_OVER,
     /// Additive: `src + dst` on every channel. Particles, glows, light.
-    ADDITIVE
+    ADDITIVE,
+    /// A mix by the pass's blend constants: `src × c + dst × (1 − c)`, channel
+    /// by channel. A cross-fade, or a tint, set per draw rather than per
+    /// pipeline.
+    CONSTANT
 }

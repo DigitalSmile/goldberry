@@ -12,6 +12,7 @@ import dev.goldberry.natives.Downcalls;
 /// Debug groups and labels in a command buffer: what a frame capture in Xcode,
 /// RenderDoc or PIX names each layer's commands by, since a frame opens one
 /// group per layer. They cost nothing a driver without a debugger attached notices.
+/// And the names a capture shows a texture or a buffer by.
 ///
 /// One holder per function: its handle, its address, and a `call` whose
 /// parameters are the C prototype’s. See [Downcalls] for why the handle is a
@@ -22,14 +23,20 @@ import dev.goldberry.natives.Downcalls;
 public record SdlGpuDebugCalls(
         PushGPUDebugGroup pushGPUDebugGroup,
         PopGPUDebugGroup popGPUDebugGroup,
-        InsertGPUDebugLabel insertGPUDebugLabel) {
+        InsertGPUDebugLabel insertGPUDebugLabel,
+        SetGPUTextureName setGPUTextureName,
+        SetGPUBufferName setGPUBufferName) {
 
     /// Binds every function above.
     ///
     /// @param lookup the loaded `libgoldberry`
     public static SdlGpuDebugCalls bind(SymbolLookup lookup) {
         return new SdlGpuDebugCalls(
-                new PushGPUDebugGroup(lookup), new PopGPUDebugGroup(lookup), new InsertGPUDebugLabel(lookup));
+                new PushGPUDebugGroup(lookup),
+                new PopGPUDebugGroup(lookup),
+                new InsertGPUDebugLabel(lookup),
+                new SetGPUTextureName(lookup),
+                new SetGPUBufferName(lookup));
     }
 
     /// Begins a named group of commands.
@@ -107,6 +114,62 @@ public record SdlGpuDebugCalls(
                 FD_SDL_InsertGPUDebugLabel.invokeExact(address, commandBuffer, text);
             } catch (Throwable t) {
                 throw Downcalls.failure("SDL_InsertGPUDebugLabel", t);
+            }
+        }
+    }
+
+    /// Names a texture for a frame capture.
+    ///
+    /// `void SDL_SetGPUTextureName(void*, void*, const char*)`
+    public static final class SetGPUTextureName {
+
+        private static final MethodHandle FD_SDL_SetGPUTextureName =
+                Downcalls.link(FunctionDescriptor.ofVoid(ADDRESS, ADDRESS, ADDRESS));
+
+        private final MemorySegment address;
+
+        SetGPUTextureName(SymbolLookup lookup) {
+            this.address = Downcalls.symbol(lookup, "SDL_SetGPUTextureName");
+        }
+
+        /// Calls `SDL_SetGPUTextureName`.
+        ///
+        /// @param device  the device
+        /// @param texture the texture
+        /// @param name    a UTF-8 C string, copied
+        public void call(MemorySegment device, MemorySegment texture, MemorySegment name) {
+            try {
+                FD_SDL_SetGPUTextureName.invokeExact(address, device, texture, name);
+            } catch (Throwable t) {
+                throw Downcalls.failure("SDL_SetGPUTextureName", t);
+            }
+        }
+    }
+
+    /// Names a buffer for a frame capture.
+    ///
+    /// `void SDL_SetGPUBufferName(void*, void*, const char*)`
+    public static final class SetGPUBufferName {
+
+        private static final MethodHandle FD_SDL_SetGPUBufferName =
+                Downcalls.link(FunctionDescriptor.ofVoid(ADDRESS, ADDRESS, ADDRESS));
+
+        private final MemorySegment address;
+
+        SetGPUBufferName(SymbolLookup lookup) {
+            this.address = Downcalls.symbol(lookup, "SDL_SetGPUBufferName");
+        }
+
+        /// Calls `SDL_SetGPUBufferName`.
+        ///
+        /// @param device the device
+        /// @param buffer the buffer
+        /// @param name   a UTF-8 C string, copied
+        public void call(MemorySegment device, MemorySegment buffer, MemorySegment name) {
+            try {
+                FD_SDL_SetGPUBufferName.invokeExact(address, device, buffer, name);
+            } catch (Throwable t) {
+                throw Downcalls.failure("SDL_SetGPUBufferName", t);
             }
         }
     }

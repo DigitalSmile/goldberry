@@ -2,6 +2,7 @@ package dev.goldberry.natives.sdl.gpu;
 
 import static java.lang.foreign.ValueLayout.ADDRESS;
 import static java.lang.foreign.ValueLayout.JAVA_BOOLEAN;
+import static java.lang.foreign.ValueLayout.JAVA_BYTE;
 import static java.lang.foreign.ValueLayout.JAVA_FLOAT;
 import static java.lang.foreign.ValueLayout.JAVA_INT;
 
@@ -47,7 +48,9 @@ import dev.goldberry.natives.sdl.gpu.enums.SdlGpuTransferUsage;
 ///   [#cancel], every method throws;
 /// - a transfer buffer is unmapped while a copy pass uses it;
 /// - resources are the same device's, regions lie inside their texture, and
-///   the bytes fit the transfer buffer.
+///   the bytes fit the transfer buffer;
+/// - an indirect draw or dispatch reads whole commands from inside a buffer
+///   made for it, and a copy between buffers moves whole words.
 ///
 /// Read more: [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
 public final class SdlGpuCommandBuffer {
@@ -224,8 +227,8 @@ public final class SdlGpuCommandBuffer {
     }
 
     /// The `SDL_GPUDepthStencilTargetInfo` for `depth`, which must be `width`
-    /// by `height`, the pass's size. Stencil is neither loaded nor kept: the
-    /// depth formats here have none.
+    /// by `height`, the pass's size. A format with a stencil has it cleared or
+    /// kept with the depth, and kept at the pass's end.
     private MemorySegment depthTarget(Arena arena, int width, int height, SdlGpuDepthTarget depth) {
         var texture = depth.texture();
         requireOwn(texture);
@@ -241,8 +244,17 @@ public final class SdlGpuCommandBuffer {
                 info.offsetOf("load_op"),
                 depth.clear() ? SdlGpuCommandCalls.LOADOP_CLEAR : SdlGpuCommandCalls.LOADOP_LOAD);
         segment.set(JAVA_INT, info.offsetOf("store_op"), SdlGpuCommandCalls.STOREOP_STORE);
-        segment.set(JAVA_INT, info.offsetOf("stencil_load_op"), SdlGpuCommandCalls.LOADOP_DONT_CARE);
-        segment.set(JAVA_INT, info.offsetOf("stencil_store_op"), SdlGpuCommandCalls.STOREOP_DONT_CARE);
+        if (texture.format().hasStencil()) {
+            segment.set(
+                    JAVA_INT,
+                    info.offsetOf("stencil_load_op"),
+                    depth.clear() ? SdlGpuCommandCalls.LOADOP_CLEAR : SdlGpuCommandCalls.LOADOP_LOAD);
+            segment.set(JAVA_INT, info.offsetOf("stencil_store_op"), SdlGpuCommandCalls.STOREOP_STORE);
+            segment.set(JAVA_BYTE, info.offsetOf("clear_stencil"), (byte) depth.clearStencil());
+        } else {
+            segment.set(JAVA_INT, info.offsetOf("stencil_load_op"), SdlGpuCommandCalls.LOADOP_DONT_CARE);
+            segment.set(JAVA_INT, info.offsetOf("stencil_store_op"), SdlGpuCommandCalls.STOREOP_DONT_CARE);
+        }
         segment.set(JAVA_BOOLEAN, info.offsetOf("cycle"), false);
         return segment;
     }
@@ -569,6 +581,7 @@ public final class SdlGpuCommandBuffer {
         private int boundVertexStorageBuffers;
         private int boundFragmentStorageBuffers;
         private int boundFragmentStorageTextures;
+        private int boundVertexStorageTextures;
         private boolean indexBound;
         private boolean ended;
 
@@ -654,6 +667,7 @@ public final class SdlGpuCommandBuffer {
             boundVertexStorageBuffers = 0;
             boundFragmentStorageBuffers = 0;
             boundFragmentStorageTextures = 0;
+            boundVertexStorageTextures = 0;
             boundVertexSlots.clear();
         }
 
@@ -753,6 +767,71 @@ public final class SdlGpuCommandBuffer {
                 device.calls().renderPass().bindGPUFragmentStorageTextures().call(pass, 0, handles, textures.length);
             }
             boundFragmentStorageTextures = textures.length;
+        }
+
+        /// Binds `textures` to the vertex shader's storage-texture slots from
+        /// 0: every slot it declares, and no more. Read texel by texel, with no
+        /// sampler: a height field a compute pass wrote, displacing a mesh.
+        ///
+        /// @throws IllegalStateException    when no pipeline is bound
+        /// @throws IllegalArgumentException when the count is not the shader's,
+        ///                                  or a texture was not made to be read
+        ///                                  as storage by a draw
+        public void bindVertexStorageTextures(SdlGpuTexture... textures) {
+            requireOpen();
+            var bound = requirePipeline("bindVertexStorageTextures");
+            var shader = bound.description().vertex();
+            if (textures.length != shader.storageTextures()) {
+                throw new IllegalArgumentException(
+                        shader + " reads " + shader.storageTextures() + " storage textures, not " + textures.length);
+            }
+            try (var arena = Arena.ofConfined()) {
+                var handles = storageTextures(arena, SdlGpuTextureUsage.GRAPHICS_STORAGE_READ, textures);
+                device.calls().renderPass().bindGPUVertexStorageTextures().call(pass, 0, handles, textures.length);
+            }
+            boundVertexStorageTextures = textures.length;
+        }
+
+        /// Sets the value, 0 to 255, the stencil test of the draws that follow
+        /// compares against and a `REPLACE` writes. 0 until set.
+        ///
+        /// @throws IllegalStateException    when the pass's depth target has no
+        ///                                  stencil
+        /// @throws IllegalArgumentException when it is not a byte
+        public void setStencilReference(int reference) {
+            requireOpen();
+            if (depthFormat.map(format -> !format.hasStencil()).orElse(true)) {
+                throw new IllegalStateException("a stencil reference in a pass whose depth target is "
+                        + depthFormat.map(Object::toString).orElse("none") + ", with no stencil");
+            }
+            if (reference < 0 || reference > 0xFF) {
+                throw new IllegalArgumentException("stencil reference " + reference + ", not 0 to 255");
+            }
+            device.calls().renderPass().setGPUStencilReference().call(pass, (byte) reference);
+        }
+
+        /// Sets the colour a pipeline that blends by its constants mixes by, for the
+        /// draws that follow: each channel's weight of the output against the
+        /// target, 0 to 1.
+        ///
+        /// @throws IllegalArgumentException when a channel is outside 0 to 1
+        public void setBlendConstants(float red, float green, float blue, float alpha) {
+            requireOpen();
+            for (var channel : new float[] {red, green, blue, alpha}) {
+                if (!(channel >= 0 && channel <= 1)) {
+                    throw new IllegalArgumentException(
+                            "blend constants " + red + ", " + green + ", " + blue + ", " + alpha + " outside 0 to 1");
+                }
+            }
+            var color = Layouts.SDL_FCOLOR;
+            try (var arena = Arena.ofConfined()) {
+                var constants = arena.allocate(color.layout());
+                constants.set(JAVA_FLOAT, color.offsetOf("r"), red);
+                constants.set(JAVA_FLOAT, color.offsetOf("g"), green);
+                constants.set(JAVA_FLOAT, color.offsetOf("b"), blue);
+                constants.set(JAVA_FLOAT, color.offsetOf("a"), alpha);
+                device.calls().renderPass().setGPUBlendConstants().call(pass, constants);
+            }
         }
 
         /// Maps clip space onto `x, y, width, height` of the target, in pixels.
@@ -989,6 +1068,48 @@ public final class SdlGpuCommandBuffer {
                     .call(pass, indices, instances, firstIndex, vertexOffset, firstInstance);
         }
 
+        /// Draws `drawCount` times, each draw's counts read from the
+        /// `SDL_GPUIndirectDrawCommand` at its place in `buffer`, the first at
+        /// byte `offset` and the others 16 bytes apart: draws a compute pass
+        /// sized.
+        ///
+        /// A command with a first instance other than 0 needs the device's
+        /// `drawIndirectFirstInstance` on Vulkan, which not every driver has.
+        ///
+        /// @throws IllegalStateException    as [#draw(int, int, int, int)]
+        /// @throws IllegalArgumentException when the buffer is another device's
+        ///                                  or not made for indirect use, the
+        ///                                  offset is not a whole word, there
+        ///                                  are no draws, or they run past the
+        ///                                  buffer's end
+        public void drawIndirect(SdlGpuBuffer buffer, int offset, int drawCount) {
+            requireOpen();
+            requireDrawable("drawIndirect");
+            requireIndirect(buffer, offset, drawCount, INDIRECT_DRAW_BYTES);
+            device.calls().renderPass().drawGPUPrimitivesIndirect().call(pass, buffer.handle(), offset, drawCount);
+        }
+
+        /// Draws `drawCount` times from the bound index buffer, each draw's
+        /// counts read from the `SDL_GPUIndexedIndirectDrawCommand` at its
+        /// place in `buffer`, the first at byte `offset` and the others 20
+        /// bytes apart.
+        ///
+        /// @throws IllegalStateException    as
+        ///                                  [#drawIndexed(int, int, int, int, int)]
+        /// @throws IllegalArgumentException as [#drawIndirect]
+        public void drawIndexedIndirect(SdlGpuBuffer buffer, int offset, int drawCount) {
+            requireOpen();
+            requireDrawable("drawIndexedIndirect");
+            if (!indexBound) {
+                throw new IllegalStateException("drawIndexedIndirect with no index buffer bound");
+            }
+            requireIndirect(buffer, offset, drawCount, INDEXED_INDIRECT_DRAW_BYTES);
+            device.calls()
+                    .renderPass()
+                    .drawGPUIndexedPrimitivesIndirect()
+                    .call(pass, buffer.handle(), offset, drawCount);
+        }
+
         private void requireDrawable(String operation) {
             var bound = requirePipeline(operation);
             if (boundSamplers != bound.samplers()) {
@@ -1000,6 +1121,10 @@ public final class SdlGpuCommandBuffer {
             if (boundVertexSamplers != vertex.samplers()) {
                 throw new IllegalStateException(vertex + " samples " + vertex.samplers() + " textures, and "
                         + boundVertexSamplers + " are bound");
+            }
+            if (boundVertexStorageTextures != vertex.storageTextures()) {
+                throw new IllegalStateException(vertex + " reads " + vertex.storageTextures()
+                        + " storage textures, and " + boundVertexStorageTextures + " are bound");
             }
             if (boundVertexStorageBuffers != vertex.storageBuffers()) {
                 throw new IllegalStateException(vertex + " reads " + vertex.storageBuffers() + " storage buffers, and "
@@ -1128,6 +1253,7 @@ public final class SdlGpuCommandBuffer {
         private @Nullable SdlGpuComputePipeline pipeline;
         private int boundStorageBuffers;
         private int boundStorageTextures;
+        private int boundSamplers;
         private boolean ended;
 
         private ComputePass(MemorySegment pass, int writtenBuffers, int writtenTextures) {
@@ -1158,6 +1284,38 @@ public final class SdlGpuCommandBuffer {
             pipeline = bound;
             boundStorageBuffers = 0;
             boundStorageTextures = 0;
+            boundSamplers = 0;
+        }
+
+        /// Binds `textures`, each read with `sampler`, to the shader's sampler
+        /// slots from 0: every slot it declares, and no more.
+        ///
+        /// @throws IllegalStateException    when no pipeline is bound
+        /// @throws IllegalArgumentException when the count is not the shader's,
+        ///                                  or a texture cannot be sampled
+        public void bindSamplers(SdlGpuSampler sampler, SdlGpuTexture... textures) {
+            bindSamplers(bindings(sampler, textures));
+        }
+
+        /// Binds each texture with its own sampler to the shader's sampler
+        /// slots from 0, in order: every slot it declares, and no more. Filtered
+        /// reads in compute: a downsample, a blur, an upscaler's taps.
+        ///
+        /// @throws IllegalStateException    when no pipeline is bound
+        /// @throws IllegalArgumentException when the count is not the shader's,
+        ///                                  or a texture cannot be sampled
+        public void bindSamplers(List<SdlGpuSamplerBinding> slots) {
+            requireOpen();
+            var bound = requirePipeline("bindSamplers");
+            if (slots.size() != bound.samplers()) {
+                throw new IllegalArgumentException(
+                        bound + " samples " + bound.samplers() + " textures, not " + slots.size());
+            }
+            try (var arena = Arena.ofConfined()) {
+                var bindings = samplerBindings(arena, slots);
+                device.calls().compute().bindGPUComputeSamplers().call(pass, 0, bindings, slots.size());
+            }
+            boundSamplers = slots.size();
         }
 
         /// Binds `buffers` to the shader's read-only storage slots from 0:
@@ -1238,7 +1396,31 @@ public final class SdlGpuCommandBuffer {
         /// @throws IllegalArgumentException when a count is below one
         public void dispatch(int x, int y, int z) {
             requireOpen();
-            var bound = requirePipeline("dispatch");
+            requireDispatchable("dispatch");
+            if (x <= 0 || y <= 0 || z <= 0) {
+                throw new IllegalArgumentException("dispatch of " + x + "x" + y + "x" + z + " workgroups");
+            }
+            device.calls().compute().dispatchGPUCompute().call(pass, x, y, z);
+        }
+
+        /// Runs the bound pipeline over the workgroups the
+        /// `SDL_GPUIndirectDispatchCommand` at byte `offset` of `buffer` names:
+        /// three words, x, y and z, which an earlier pass may have written.
+        ///
+        /// @throws IllegalStateException    as [#dispatch(int, int, int)]
+        /// @throws IllegalArgumentException when the buffer is another device's
+        ///                                  or not made for indirect use, the
+        ///                                  offset is not a whole word, or the
+        ///                                  command runs past the buffer's end
+        public void dispatchIndirect(SdlGpuBuffer buffer, int offset) {
+            requireOpen();
+            requireDispatchable("dispatchIndirect");
+            requireIndirect(buffer, offset, 1, INDIRECT_DISPATCH_BYTES);
+            device.calls().compute().dispatchGPUComputeIndirect().call(pass, buffer.handle(), offset);
+        }
+
+        private void requireDispatchable(String operation) {
+            var bound = requirePipeline(operation);
             if (boundStorageBuffers != bound.readOnlyStorageBuffers()) {
                 throw new IllegalStateException(bound + " reads " + bound.readOnlyStorageBuffers()
                         + " storage buffers, and " + boundStorageBuffers + " are bound");
@@ -1247,10 +1429,10 @@ public final class SdlGpuCommandBuffer {
                 throw new IllegalStateException(bound + " reads " + bound.readOnlyStorageTextures()
                         + " storage textures, and " + boundStorageTextures + " are bound");
             }
-            if (x <= 0 || y <= 0 || z <= 0) {
-                throw new IllegalArgumentException("dispatch of " + x + "x" + y + "x" + z + " workgroups");
+            if (boundSamplers != bound.samplers()) {
+                throw new IllegalStateException(
+                        bound + " samples " + bound.samplers() + " textures, and " + boundSamplers + " are bound");
             }
-            device.calls().compute().dispatchGPUCompute().call(pass, x, y, z);
         }
 
         /// Ends the pass. Idempotent.
@@ -1282,6 +1464,36 @@ public final class SdlGpuCommandBuffer {
                 throw new IllegalStateException("the compute pass has ended");
             }
             device.handle();
+        }
+    }
+
+    /// Bytes from one `SDL_GPUIndirectDrawCommand` to the next.
+    private static final int INDIRECT_DRAW_BYTES = (int) Layouts.SDL_GPU_INDIRECT_DRAW_COMMAND.byteSize();
+
+    /// Bytes from one `SDL_GPUIndexedIndirectDrawCommand` to the next.
+    private static final int INDEXED_INDIRECT_DRAW_BYTES =
+            (int) Layouts.SDL_GPU_INDEXED_INDIRECT_DRAW_COMMAND.byteSize();
+
+    /// Bytes an `SDL_GPUIndirectDispatchCommand` takes.
+    private static final int INDIRECT_DISPATCH_BYTES = (int) Layouts.SDL_GPU_INDIRECT_DISPATCH_COMMAND.byteSize();
+
+    /// Checks `count` commands of `stride` bytes from `offset` lie in
+    /// `buffer`, which is this device's and made for indirect use, and that
+    /// the offset is a whole word, as Vulkan and Metal read them.
+    private void requireIndirect(SdlGpuBuffer buffer, int offset, int count, int stride) {
+        requireOwn(buffer);
+        if (!buffer.usages().contains(SdlGpuBufferUsage.INDIRECT)) {
+            throw new IllegalArgumentException(buffer + " was not made for indirect use");
+        }
+        if (count <= 0) {
+            throw new IllegalArgumentException(count + " indirect commands");
+        }
+        if (offset % Integer.BYTES != 0) {
+            throw new IllegalArgumentException("indirect offset " + offset + " is not a whole word");
+        }
+        if (!buffer.fits(offset, (long) count * stride)) {
+            throw new IllegalArgumentException(count + " commands of " + stride + " bytes from offset " + offset
+                    + " run past the end of " + buffer);
         }
     }
 
@@ -1568,6 +1780,155 @@ public final class SdlGpuCommandBuffer {
                                 bufferRegion(arena, source, sourceOffset, size),
                                 location(arena, destination, destinationOffset));
             }
+        }
+
+        /// Records a copy of a `width` by `height` box of texels from
+        /// `source` to `destination`, GPU to GPU: one level of one layer to
+        /// another, of two textures or of one. The two must be of one format
+        /// and single-sampled; for a block-compressed format the box starts on
+        /// a block and ends on one or at the level's edge.
+        ///
+        /// @param cycle take fresh memory for the destination if the GPU still
+        ///              reads the old; only right when the whole of it is
+        ///              about to be written
+        /// @throws IllegalArgumentException when either is another device's, a
+        ///                                  level or layer does not exist, a
+        ///                                  box lies outside its level or off
+        ///                                  its blocks, the formats differ, a
+        ///                                  texture is multisampled, or the
+        ///                                  copy is from a level and layer to
+        ///                                  itself
+        public void copyTexture(
+                SdlGpuTextureLocation source, SdlGpuTextureLocation destination, int width, int height, boolean cycle) {
+            requireOpen();
+            Objects.requireNonNull(source, "source");
+            Objects.requireNonNull(destination, "destination");
+            if (width <= 0 || height <= 0) {
+                throw new IllegalArgumentException("a copy of " + width + "x" + height + " texels");
+            }
+            var from = source.texture();
+            var to = destination.texture();
+            checkCopyEnd(source, width, height);
+            checkCopyEnd(destination, width, height);
+            if (from.format() != to.format()) {
+                throw new IllegalArgumentException(
+                        "a copy from " + from.format() + " to " + to.format() + "; the formats must be one");
+            }
+            if (from == to && source.level() == destination.level() && source.layer() == destination.layer()) {
+                throw new IllegalArgumentException("a copy within level " + source.level() + " of layer "
+                        + source.layer() + " of " + from + "; copy through a second texture");
+            }
+            try (var arena = Arena.ofConfined()) {
+                device.calls()
+                        .commands()
+                        .copyGPUTextureToTexture()
+                        .call(pass, location(arena, source), location(arena, destination), width, height, 1, cycle);
+            }
+        }
+
+        /// Records a copy of `size` bytes from byte `sourceOffset` of `source`
+        /// into `destination` from byte `destinationOffset`, GPU to GPU. Whole
+        /// words: Metal moves nothing else.
+        ///
+        /// @param cycle take fresh memory for the destination if the GPU still
+        ///              reads the old; only right when the whole of it is
+        ///              about to be written
+        /// @throws IllegalArgumentException when either is another device's, a
+        ///                                  range runs past its buffer, the
+        ///                                  offsets or the size are not whole
+        ///                                  words, or the ranges overlap in one
+        ///                                  buffer
+        public void copyBuffer(
+                SdlGpuBuffer source,
+                int sourceOffset,
+                SdlGpuBuffer destination,
+                int destinationOffset,
+                int size,
+                boolean cycle) {
+            requireOpen();
+            requireOwn(source);
+            requireOwn(destination);
+            if (size <= 0) {
+                throw new IllegalArgumentException("copy of " + size + " bytes");
+            }
+            if (sourceOffset % Integer.BYTES != 0
+                    || destinationOffset % Integer.BYTES != 0
+                    || size % Integer.BYTES != 0) {
+                throw new IllegalArgumentException("a copy of " + size + " bytes from " + sourceOffset + " to "
+                        + destinationOffset + "; all three must be whole words");
+            }
+            if (!source.fits(sourceOffset, size)) {
+                throw new IllegalArgumentException(
+                        size + " bytes from offset " + sourceOffset + " do not fit " + source);
+            }
+            if (!destination.fits(destinationOffset, size)) {
+                throw new IllegalArgumentException(
+                        size + " bytes from offset " + destinationOffset + " do not fit " + destination);
+            }
+            if (source == destination
+                    && sourceOffset < destinationOffset + size
+                    && destinationOffset < sourceOffset + size) {
+                throw new IllegalArgumentException("a copy within " + source + " whose two ranges overlap");
+            }
+            try (var arena = Arena.ofConfined()) {
+                device.calls()
+                        .commands()
+                        .copyGPUBufferToBuffer()
+                        .call(
+                                pass,
+                                bufferLocation(arena, source, sourceOffset),
+                                bufferLocation(arena, destination, destinationOffset),
+                                size,
+                                cycle);
+            }
+        }
+
+        /// Checks one end of a texture copy: this device's, single-sampled,
+        /// and a box of `width` by `height` from its texel inside its level and
+        /// on its blocks.
+        private void checkCopyEnd(SdlGpuTextureLocation end, int width, int height) {
+            var texture = end.texture();
+            requireOwn(texture);
+            if (texture.sampleCount() != SdlGpuSampleCount.ONE) {
+                throw new IllegalArgumentException(texture + " is multisampled; resolve it, then copy");
+            }
+            texture.requireSubresource(end.level(), end.layer());
+            var levelWidth = texture.levelWidth(end.level());
+            var levelHeight = texture.levelHeight(end.level());
+            var box = new SdlGpuRegion(end.x(), end.y(), width, height);
+            if (!box.fitsIn(levelWidth, levelHeight)) {
+                throw new IllegalArgumentException(box + " is outside level " + end.level() + " of " + texture);
+            }
+            var format = texture.format();
+            if (!onBlocks(end.x(), width, format.blockWidth(), levelWidth)
+                    || !onBlocks(end.y(), height, format.blockHeight(), levelHeight)) {
+                throw new IllegalArgumentException(box + " of level " + end.level() + " of " + texture
+                        + " does not start and end on its " + format.blockWidth() + "x" + format.blockHeight()
+                        + " blocks");
+            }
+        }
+
+        /// The `SDL_GPUTextureLocation` of `end`: for a 3D texture the layer is
+        /// the depth slice, and SDL's layer is 0.
+        private static MemorySegment location(Arena arena, SdlGpuTextureLocation end) {
+            var info = Layouts.SDL_GPU_TEXTURE_LOCATION;
+            var segment = arena.allocate(info.layout());
+            var volume = end.texture().type() == SdlGpuTextureType.THREE_D;
+            segment.set(ADDRESS, info.offsetOf("texture"), end.texture().handle());
+            segment.set(JAVA_INT, info.offsetOf("mip_level"), end.level());
+            segment.set(JAVA_INT, info.offsetOf("layer"), volume ? 0 : end.layer());
+            segment.set(JAVA_INT, info.offsetOf("x"), end.x());
+            segment.set(JAVA_INT, info.offsetOf("y"), end.y());
+            segment.set(JAVA_INT, info.offsetOf("z"), volume ? end.layer() : 0);
+            return segment;
+        }
+
+        private static MemorySegment bufferLocation(Arena arena, SdlGpuBuffer buffer, int offset) {
+            var info = Layouts.SDL_GPU_BUFFER_LOCATION;
+            var segment = arena.allocate(info.layout());
+            segment.set(ADDRESS, info.offsetOf("buffer"), buffer.handle());
+            segment.set(JAVA_INT, info.offsetOf("offset"), offset);
+            return segment;
         }
 
         private void checkBufferCopy(

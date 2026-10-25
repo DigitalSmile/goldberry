@@ -10,7 +10,7 @@ import org.jspecify.annotations.Nullable;
 
 /// What a [GraphicsPipeline] is made from: its two shaders, the colour target it
 /// draws into, how it blends, assembles and culls, the vertex buffers it reads,
-/// and its depth test. Built with [#builder], or [#depthOnly] for a pipeline
+/// and its depth and stencil tests. Built with [#builder], or [#depthOnly] for a pipeline
 /// with no colour target; everything but the shaders and the target has a
 /// default.
 ///
@@ -30,6 +30,8 @@ import org.jspecify.annotations.Nullable;
 /// @param depthTest      the depth test, or empty for none
 /// @param samples        how many samples the targets it draws into have: 1,
 ///                       2, 4 or 8
+/// @param stencilTest    the stencil test, or empty for none; it needs a depth
+///                       test of a format with a stencil
 public record PipelineSpec(
         Shader vertexShader,
         Shader fragmentShader,
@@ -40,7 +42,34 @@ public record PipelineSpec(
         FrontFace frontFace,
         List<VertexBufferLayout> vertexBuffers,
         Optional<DepthTest> depthTest,
-        int samples) {
+        int samples,
+        Optional<StencilTest> stencilTest) {
+
+    /// A spec with no stencil test.
+    public PipelineSpec(
+            Shader vertexShader,
+            Shader fragmentShader,
+            Optional<TextureFormat> targetFormat,
+            BlendMode blend,
+            PrimitiveType primitiveType,
+            CullMode cullMode,
+            FrontFace frontFace,
+            List<VertexBufferLayout> vertexBuffers,
+            Optional<DepthTest> depthTest,
+            int samples) {
+        this(
+                vertexShader,
+                fragmentShader,
+                targetFormat,
+                blend,
+                primitiveType,
+                cullMode,
+                frontFace,
+                vertexBuffers,
+                depthTest,
+                samples,
+                Optional.empty());
+    }
 
     /// A spec for single-sampled targets.
     public PipelineSpec(
@@ -72,8 +101,9 @@ public record PipelineSpec(
     ///                                  the two are different devices', the
     ///                                  target format is a depth format, there
     ///                                  is neither a colour target nor a depth
-    ///                                  test, or a slot or a location is
-    ///                                  declared twice
+    ///                                  test, a stencil test has no depth
+    ///                                  format with a stencil, or a slot or a
+    ///                                  location is declared twice
     public PipelineSpec {
         Objects.requireNonNull(vertexShader, "vertexShader");
         Objects.requireNonNull(fragmentShader, "fragmentShader");
@@ -83,6 +113,7 @@ public record PipelineSpec(
         Objects.requireNonNull(cullMode, "cullMode");
         Objects.requireNonNull(frontFace, "frontFace");
         Objects.requireNonNull(depthTest, "depthTest");
+        Objects.requireNonNull(stencilTest, "stencilTest");
         vertexBuffers = List.copyOf(vertexBuffers);
         if (vertexShader.stage() != ShaderStage.VERTEX) {
             throw new IllegalArgumentException(vertexShader + " is not a vertex shader");
@@ -98,6 +129,11 @@ public record PipelineSpec(
         }
         if (targetFormat.isEmpty() && depthTest.isEmpty()) {
             throw new IllegalArgumentException("a pipeline with no colour target needs a depth test");
+        }
+        if (stencilTest.isPresent()
+                && depthTest.map(test -> !test.format().hasStencil()).orElse(true)) {
+            throw new IllegalArgumentException("a stencil test needs a depth test of a format with a stencil, not "
+                    + depthTest.map(test -> test.format().toString()).orElse("none"));
         }
         if (samples != 1 && samples != 2 && samples != 4 && samples != 8) {
             throw new IllegalArgumentException(samples + " samples; a target has 1, 2, 4 or 8");
@@ -147,6 +183,7 @@ public record PipelineSpec(
         private FrontFace frontFace = FrontFace.COUNTER_CLOCKWISE;
         private final List<VertexBufferLayout> vertexBuffers = new ArrayList<>();
         private @Nullable DepthTest depthTest;
+        private @Nullable StencilTest stencilTest;
         private int samples = 1;
 
         private Builder(Shader vertexShader, Shader fragmentShader, @Nullable TextureFormat targetFormat) {
@@ -186,6 +223,13 @@ public record PipelineSpec(
             return this;
         }
 
+        /// Tests stencil as `test` says, with the depth test's format, which
+        /// must have a stencil.
+        public Builder stencilTest(StencilTest test) {
+            this.stencilTest = Objects.requireNonNull(test, "test");
+            return this;
+        }
+
         /// Draws into targets of `count` samples: a multisampled texture, which
         /// the pass resolves.
         public Builder samples(int count) {
@@ -207,7 +251,8 @@ public record PipelineSpec(
                     frontFace,
                     vertexBuffers,
                     Optional.ofNullable(depthTest),
-                    samples);
+                    samples,
+                    Optional.ofNullable(stencilTest));
         }
     }
 }

@@ -96,6 +96,34 @@ final class TestShaders {
                 TestShaders.class::getResourceAsStream);
     }
 
+    /// `command.comp`: one thread writing the four words of uniform block 0
+    /// into the read-write storage buffer, as an indirect command.
+    static ComputeCode commandCompute() {
+        return ComputeCode.load(
+                DIRECTORY + "command.comp",
+                ComputeCode.builder(1, 1, 1).readWriteStorageBuffers(1).uniformBuffers(1),
+                TestShaders.class::getResourceAsStream);
+    }
+
+    /// `sampled.comp`: four threads, each sampling the texture in sampler
+    /// slot 0 at the centre of its column of the middle row and writing it to
+    /// its texel of the read-write storage texture's first row.
+    static ComputeCode sampledCompute() {
+        return ComputeCode.load(
+                DIRECTORY + "sampled.comp",
+                ComputeCode.builder(4, 1, 1).samplers(1).readWriteStorageTextures(1),
+                TestShaders.class::getResourceAsStream);
+    }
+
+    /// `displaced.vert`: [#meshVertex]'s inputs, placed with no matrix and
+    /// moved by the `xy` of texel (0, 0) of storage texture slot 0.
+    static ShaderCode displacedVertex() {
+        return ShaderCode.load(
+                DIRECTORY + "displaced.vert",
+                ShaderCode.builder(ShaderStage.VERTEX).storageTextures(1),
+                TestShaders.class::getResourceAsStream);
+    }
+
     /// The vertex layout both describe.
     static VertexBufferLayout meshLayout() {
         return VertexBufferLayout.perVertex(

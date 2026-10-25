@@ -13,13 +13,18 @@ public enum BlendMode {
     PREMULTIPLIED_OVER,
     /// Additive: `src + dst` on every channel. Particles, glows, light, drawn
     /// over a scene that keeps getting brighter where they overlap.
-    ADDITIVE;
+    ADDITIVE,
+    /// A mix by the pass's [blend constants][RenderPass#setBlendConstants]:
+    /// `src × c + dst × (1 − c)`, channel by channel. A cross-fade between two
+    /// scenes, or a tint, changed per draw with no second pipeline.
+    CONSTANT;
 
     SdlGpuBlend sdl() {
         return switch (this) {
             case REPLACE -> SdlGpuBlend.REPLACE;
             case PREMULTIPLIED_OVER -> SdlGpuBlend.PREMULTIPLIED_OVER;
             case ADDITIVE -> SdlGpuBlend.ADDITIVE;
+            case CONSTANT -> SdlGpuBlend.CONSTANT;
         };
     }
 }

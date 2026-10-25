@@ -24,4 +24,10 @@ public record DepthTest(TextureFormat format, CompareOp compare, boolean write) 
     public static DepthTest less(TextureFormat format) {
         return new DepthTest(format, CompareOp.LESS, true);
     }
+
+    /// Every fragment passes and none writes its depth: a pipeline that tests
+    /// stencil alone, in a pass with a depth target of `format`.
+    public static DepthTest off(TextureFormat format) {
+        return new DepthTest(format, CompareOp.ALWAYS, false);
+    }
 }

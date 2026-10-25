@@ -145,6 +145,15 @@ Everything below is measured against 2026.2 (tag commit d3eacfdc).
   draw depth alone. `PipelineSpec`'s nine-argument constructor takes the format
   as an `Optional`; `PipelineSpec.builder` is unchanged.
   <!-- ADR-0563 -->
+- `PipelineSpec` has a twelfth component, `stencilTest`, and `DepthTarget` a
+  fourth, `clearStencil`. Both keep their previous constructors, so code that
+  calls them compiles unchanged, but a record pattern that deconstructs either
+  names the new component. `TextureFormat` and `BlendMode` have new constants
+  (`D24_UNORM_S8_UINT`, `D32_FLOAT_S8_UINT`, `CONSTANT`), and so does
+  `BufferUsage` (`INDIRECT`): an exhaustive `switch` over them gains a case.
+  A `TextureSpec` that is both `SAMPLER` and `GRAPHICS_STORAGE_READ` is
+  refused; SDL aborted the process on it before.
+  <!-- ADR-0669 -->
 
 #### Markup
 
@@ -203,12 +212,12 @@ Everything below is measured against 2026.2 (tag commit d3eacfdc).
 
 #### Native libraries
 
-- `libgoldberry`'s ABI is 25 (2026.2's was 18), and this release's jars refuse a
+- `libgoldberry`'s ABI is 26 (2026.2's was 18), and this release's jars refuse a
   library built for an older one. Take `goldberry-natives` at the same version
   as the other artifacts (the BOM does). An application that loads its own build
   through `-Dgoldberry.native.library` builds it again from this release's
   sources, and a GraalVM native image is built again from matching jars.
-  <!-- ADR-0562, ADR-0573, ADR-0580, ADR-0589, ADR-0615, ADR-0620, ADR-0639 -->
+  <!-- ADR-0562, ADR-0573, ADR-0580, ADR-0589, ADR-0615, ADR-0620, ADR-0639, ADR-0669 -->
 - `goldberry-media` refuses an `ffmpeg-<target>` jar built before this release,
   because the FFmpeg layout it checks has new fields. Take the `ffmpeg-<target>`
   jars at the same version as `goldberry-media`; an application's own FFmpeg

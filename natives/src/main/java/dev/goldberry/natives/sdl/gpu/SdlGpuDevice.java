@@ -104,6 +104,15 @@ public final class SdlGpuDevice implements AutoCloseable {
     /// Bound on strings read back from SDL: driver names are a dozen bytes.
     private static final long MAX_NAME_LENGTH = 256;
 
+    /// Bound on the adapter's free text, which a driver has been seen to make
+    /// several lines long.
+    private static final long MAX_TEXT_LENGTH = 4096;
+
+    private static final String DEVICE_NAME = "SDL.gpu.device.name";
+    private static final String DEVICE_DRIVER_NAME = "SDL.gpu.device.driver_name";
+    private static final String DEVICE_DRIVER_VERSION = "SDL.gpu.device.driver_version";
+    private static final String DEVICE_DRIVER_INFO = "SDL.gpu.device.driver_info";
+
     private final GpuCalls calls;
     private final MemorySegment handle;
     private final String driver;
@@ -273,7 +282,10 @@ public final class SdlGpuDevice implements AutoCloseable {
     ///                                  that is a depth target; or a
     ///                                  block-compressed texture that is not a
     ///                                  whole number of blocks, or is anything
-    ///                                  but sampled
+    ///                                  but sampled; a texture both sampled and
+    ///                                  read as storage by a draw; or a depth
+    ///                                  texture that is more than a sampled
+    ///                                  depth target
     /// @throws SdlException             when SDL refuses: a format the device
     ///                                  cannot make for these usages, or a size
     ///                                  beyond its limit
@@ -323,6 +335,17 @@ public final class SdlGpuDevice implements AutoCloseable {
                     throw new IllegalArgumentException("a 3D texture is not a depth target");
                 }
             }
+        }
+        // SDL asserts on both of these, which takes the process down rather
+        // than failing the call.
+        if (usages.containsAll(EnumSet.of(SdlGpuTextureUsage.GRAPHICS_STORAGE_READ, SdlGpuTextureUsage.SAMPLER))) {
+            throw new IllegalArgumentException(
+                    "a texture is sampled or read as storage by a draw, not both: " + usages);
+        }
+        if (format.isDepth()
+                && !EnumSet.of(SdlGpuTextureUsage.DEPTH_STENCIL_TARGET, SdlGpuTextureUsage.SAMPLER)
+                        .containsAll(usages)) {
+            throw new IllegalArgumentException(format + " is a depth target, sampled or not, and not " + usages);
         }
         if (sampleCount != SdlGpuSampleCount.ONE) {
             if (type != SdlGpuTextureType.TWO_D || mipLevels > 1) {
@@ -633,6 +656,9 @@ public final class SdlGpuDevice implements AutoCloseable {
                         target + targetLayout.offsetOf("depth_stencil_format"),
                         depth.format().value());
                 createInfo.set(JAVA_BOOLEAN, target + targetLayout.offsetOf("has_depth_stencil_target"), true);
+                if (description.stencil().isPresent()) {
+                    writeStencil(createInfo, state, description.stencil().get());
+                }
             }
             if (description.targetFormat().isPresent()) {
                 createInfo.set(
@@ -671,8 +697,44 @@ public final class SdlGpuDevice implements AutoCloseable {
                         blendState,
                         SdlGpuPipelineCalls.BLENDFACTOR_ONE,
                         SdlGpuPipelineCalls.BLENDFACTOR_ONE);
+            case CONSTANT ->
+                blendState(
+                        colorTarget,
+                        blendState,
+                        SdlGpuPipelineCalls.BLENDFACTOR_CONSTANT_COLOR,
+                        SdlGpuPipelineCalls.BLENDFACTOR_ONE_MINUS_CONSTANT_COLOR);
         }
         return colorTarget;
+    }
+
+    /// Turns on `stencil` in the `SDL_GPUDepthStencilState` at `state`, the
+    /// same for front and back faces.
+    private static void writeStencil(
+            MemorySegment createInfo, long state, SdlGpuPipelineDescription.StencilTest stencil) {
+        var stateLayout = Layouts.SDL_GPU_DEPTH_STENCIL_STATE;
+        var faceLayout = Layouts.SDL_GPU_STENCIL_OP_STATE;
+        for (var face : new String[] {"front_stencil_state", "back_stencil_state"}) {
+            var at = state + stateLayout.offsetOf(face);
+            createInfo.set(
+                    JAVA_INT,
+                    at + faceLayout.offsetOf("fail_op"),
+                    stencil.fail().value());
+            createInfo.set(
+                    JAVA_INT,
+                    at + faceLayout.offsetOf("pass_op"),
+                    stencil.pass().value());
+            createInfo.set(
+                    JAVA_INT,
+                    at + faceLayout.offsetOf("depth_fail_op"),
+                    stencil.depthFail().value());
+            createInfo.set(
+                    JAVA_INT,
+                    at + faceLayout.offsetOf("compare_op"),
+                    stencil.compare().value());
+        }
+        createInfo.set(JAVA_BYTE, state + stateLayout.offsetOf("compare_mask"), (byte) stencil.readMask());
+        createInfo.set(JAVA_BYTE, state + stateLayout.offsetOf("write_mask"), (byte) stencil.writeMask());
+        createInfo.set(JAVA_BOOLEAN, state + stateLayout.offsetOf("enable_stencil_test"), true);
     }
 
     /// Enables blending with `source` and `destination` factors on colour and
@@ -776,6 +838,58 @@ public final class SdlGpuDevice implements AutoCloseable {
         }
     }
 
+    /// What the system says this device is: the adapter's name and the
+    /// driver's, as free text that differs between drivers and releases.
+    /// Empty strings where the driver says nothing.
+    ///
+    /// @throws SdlException when SDL has no properties to give
+    public SdlGpuAdapter adapter() {
+        var props = calls.device().getGPUDeviceProperties().call(handle());
+        if (props == 0) {
+            throw new SdlException("SDL_GetGPUDeviceProperties", Sdl.get().lastError());
+        }
+        var get = calls.properties().getStringProperty();
+        try (var arena = Arena.ofConfined()) {
+            return new SdlGpuAdapter(
+                    readText(get.call(props, arena.allocateFrom(DEVICE_NAME), MemorySegment.NULL)),
+                    readText(get.call(props, arena.allocateFrom(DEVICE_DRIVER_NAME), MemorySegment.NULL)),
+                    readText(get.call(props, arena.allocateFrom(DEVICE_DRIVER_VERSION), MemorySegment.NULL)),
+                    readText(get.call(props, arena.allocateFrom(DEVICE_DRIVER_INFO), MemorySegment.NULL)));
+        }
+    }
+
+    /// Blocks until the GPU has finished everything submitted to this device:
+    /// before a resize that replaces every target, or a teardown.
+    ///
+    /// @throws SdlException when SDL fails
+    public void waitForIdle() {
+        if (!calls.device().waitForGPUIdle().call(handle())) {
+            throw new SdlException("SDL_WaitForGPUIdle", Sdl.get().lastError());
+        }
+    }
+
+    /// Names `resource`, a texture or a buffer of this device, for a frame
+    /// capture in RenderDoc, PIX or Xcode. A driver with no debugger attached
+    /// ignores it.
+    ///
+    /// @throws IllegalArgumentException when it is another device's, or neither
+    ///                                  a texture nor a buffer
+    public void setName(SdlGpuResource resource, String name) {
+        Objects.requireNonNull(name, "name");
+        if (resource.device() != this) {
+            throw new IllegalArgumentException(resource + " belongs to another device");
+        }
+        try (var arena = Arena.ofConfined()) {
+            var text = arena.allocateFrom(name);
+            switch (resource) {
+                case SdlGpuTexture texture -> calls.debug().setGPUTextureName().call(handle(), texture.handle(), text);
+                case SdlGpuBuffer buffer -> calls.debug().setGPUBufferName().call(handle(), buffer.handle(), text);
+                default ->
+                    throw new IllegalArgumentException(resource + " has no name to set; a texture or a buffer has");
+            }
+        }
+    }
+
     /// Whether [#close] has run.
     public boolean isClosed() {
         return closed;
@@ -834,5 +948,14 @@ public final class SdlGpuDevice implements AutoCloseable {
             return "";
         }
         return pointer.reinterpret(MAX_NAME_LENGTH).getString(0);
+    }
+
+    /// The C string at `pointer`, stripped, or empty for NULL.
+    @SuppressWarnings("restricted")
+    private static String readText(MemorySegment pointer) {
+        if (MemorySegment.NULL.equals(pointer)) {
+            return "";
+        }
+        return pointer.reinterpret(MAX_TEXT_LENGTH).getString(0).strip();
     }
 }

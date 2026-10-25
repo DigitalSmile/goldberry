@@ -446,6 +446,28 @@ SDL_DispatchGPUCompute
 SDL_EndGPUComputePass
 SDL_GenerateMipmapsForGPUTexture
 
+# ABI 26: what a game asks of SDL_GPU after a lit cube (docs/gpu-gaming-plan.md,
+# phase 1): draws and dispatches whose counts a buffer holds, the stencil
+# reference and blend constants a pipeline's tests read, copies from texture to
+# texture and buffer to buffer, textures sampled by compute and read as storage
+# by a vertex shader, the adapter's name, an idle wait, resource names for a
+# frame capture, and whether a window can present in HDR.
+SDL_DrawGPUPrimitivesIndirect
+SDL_DrawGPUIndexedPrimitivesIndirect
+SDL_DispatchGPUComputeIndirect
+SDL_SetGPUStencilReference
+SDL_SetGPUBlendConstants
+SDL_CopyGPUTextureToTexture
+SDL_CopyGPUBufferToBuffer
+SDL_BindGPUComputeSamplers
+SDL_BindGPUVertexStorageTextures
+SDL_WaitForGPUIdle
+SDL_GetGPUDeviceProperties
+SDL_GetStringProperty
+SDL_SetGPUTextureName
+SDL_SetGPUBufferName
+SDL_WindowSupportsGPUSwapchainComposition
+
 # --- Blend2D (sec. 5, paint & raster) ----------------------------------------
 # The image and context surface: enough to rasterize a frame into the buffer the
 # platform lends us. Paths, gradients, strokes and text follow. See ADR-0031.

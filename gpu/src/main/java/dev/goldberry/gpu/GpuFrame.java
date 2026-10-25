@@ -314,7 +314,8 @@ public final class GpuFrame implements AutoCloseable {
     }
 
     private SdlGpuDepthTarget sdlDepth(DepthTarget depth) {
-        return new SdlGpuDepthTarget(depth.texture().sdl(device), depth.clear(), depth.clearDepth());
+        return new SdlGpuDepthTarget(
+                depth.texture().sdl(device), depth.clear(), depth.clearDepth(), depth.clearStencil());
     }
 
     /// Records a copy of the whole of `source` into memory the CPU reads once

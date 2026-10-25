@@ -1,0 +1,23 @@
+#include <metal_stdlib>
+#include <simd/simd.h>
+
+using namespace metal;
+
+struct type_RWStructuredBuffer_uint
+{
+    uint _m0[1];
+};
+
+struct type_Command
+{
+    uint4 words;
+};
+
+kernel void main0(constant type_Command& Command [[buffer(0)]], device type_RWStructuredBuffer_uint& commands [[buffer(1)]])
+{
+    commands._m0[0u] = Command.words.x;
+    commands._m0[1u] = Command.words.y;
+    commands._m0[2u] = Command.words.z;
+    commands._m0[3u] = Command.words.w;
+}
+

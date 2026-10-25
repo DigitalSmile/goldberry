@@ -255,6 +255,12 @@ closed as decisions under [Answered](#answered).
   and crashes building a scene, so it is refused there (ADR-0668, parked). What
   is left of it — refitting a deforming mesh, lifting that refusal once Mesa
   fixes the build — and every other phase is in the plan's tables.
+
+  **Phase 1, the unbound SDL_GPU calls, is done** (ADR-0669, parked,
+  2026-10-25): native ABI 26, indirect draws and dispatches, a stencil test,
+  constant blending, GPU-to-GPU copies, compute samplers, vertex storage
+  textures, the adapter's name. Next in the plan: phase 2 (`GpuFeatures`,
+  present mode and frame cap at run time), then the software tier (phase 3).
 ## Platform, compositor and CI
 - **The 60 fps claim is measured on one machine, and closing M1 is a CI job.**
   §16's M1 asks for a styled wrapped paragraph *resized* at 60 fps on Linux,

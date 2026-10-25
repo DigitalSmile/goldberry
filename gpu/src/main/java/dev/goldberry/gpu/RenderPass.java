@@ -187,6 +187,43 @@ public final class RenderPass {
         sdl.bindFragmentStorageTextures(sdlTextures);
     }
 
+    /// Binds `textures` to the vertex shader's storage-texture slots from 0:
+    /// every slot its code declares, and no more. Read texel by texel, with no
+    /// sampler: a height field a compute pass wrote, displacing a terrain mesh.
+    ///
+    /// @throws IllegalStateException    when no pipeline is bound
+    /// @throws IllegalArgumentException as [#bindFragmentStorageTextures]
+    public void bindVertexStorageTextures(GpuTexture... textures) {
+        requireOpen();
+        var sdlTextures = new SdlGpuTexture[textures.length];
+        for (var i = 0; i < textures.length; i++) {
+            sdlTextures[i] = textures[i].sdl(device);
+        }
+        sdl.bindVertexStorageTextures(sdlTextures);
+    }
+
+    /// Sets the value, 0 to 255, that the [StencilTest] of the draws that
+    /// follow compares against, and that [StencilOp#REPLACE] writes. 0 until
+    /// set.
+    ///
+    /// @throws IllegalStateException    when the pass's depth target has no
+    ///                                  stencil
+    /// @throws IllegalArgumentException when it is not 0 to 255
+    public void setStencilReference(int reference) {
+        requireOpen();
+        sdl.setStencilReference(reference);
+    }
+
+    /// Sets the weights a [BlendMode#CONSTANT] pipeline mixes by, channel by
+    /// channel, for the draws that follow: 0 keeps the target, 1 is the
+    /// output. 0 until set.
+    ///
+    /// @throws IllegalArgumentException when a weight is outside 0 to 1
+    public void setBlendConstants(float red, float green, float blue, float alpha) {
+        requireOpen();
+        sdl.setBlendConstants(red, green, blue, alpha);
+    }
+
     private SdlGpuBuffer[] sdlBuffers(GpuBuffer[] buffers) {
         var sdlBuffers = new SdlGpuBuffer[buffers.length];
         for (var i = 0; i < buffers.length; i++) {
@@ -315,6 +352,34 @@ public final class RenderPass {
     public void drawIndexed(int indices, int instances, int firstIndex, int vertexOffset, int firstInstance) {
         requireOpen();
         sdl.drawIndexed(indices, instances, firstIndex, vertexOffset, firstInstance);
+    }
+
+    /// Draws `drawCount` times, each draw's counts read from the
+    /// [dev.goldberry.gpu.indirect.DrawCommand] at its place in `buffer`: the first at byte `offset`,
+    /// the others [dev.goldberry.gpu.indirect.DrawCommand#BYTES] apart. What a compute pass that culls
+    /// instances or counts live particles draws, with nothing read back.
+    ///
+    /// @throws IllegalStateException    as [#draw(int, int, int, int)]
+    /// @throws IllegalArgumentException when the buffer was not made with
+    ///                                  [BufferUsage#INDIRECT], the offset is
+    ///                                  not a multiple of 4, there are no
+    ///                                  draws, they run past the buffer's end,
+    ///                                  or it is another device's or closed
+    public void drawIndirect(GpuBuffer buffer, int offset, int drawCount) {
+        requireOpen();
+        sdl.drawIndirect(buffer.sdl(device), offset, drawCount);
+    }
+
+    /// Draws `drawCount` times from the bound index buffer, each draw's counts
+    /// read from the [dev.goldberry.gpu.indirect.IndexedDrawCommand] at its place in `buffer`: the first
+    /// at byte `offset`, the others [dev.goldberry.gpu.indirect.IndexedDrawCommand#BYTES] apart.
+    ///
+    /// @throws IllegalStateException    as
+    ///                                  [#drawIndexed(int, int, int, int, int)]
+    /// @throws IllegalArgumentException as [#drawIndirect]
+    public void drawIndexedIndirect(GpuBuffer buffer, int offset, int drawCount) {
+        requireOpen();
+        sdl.drawIndexedIndirect(buffer.sdl(device), offset, drawCount);
     }
 
     /// The pass has ended with its body: every method throws from now on.

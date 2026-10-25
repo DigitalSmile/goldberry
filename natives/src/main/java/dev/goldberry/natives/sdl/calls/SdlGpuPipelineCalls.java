@@ -69,6 +69,12 @@ public record SdlGpuPipelineCalls(
     /// `SDL_GPU_BLENDFACTOR_ONE_MINUS_SRC_ALPHA`: premultiplied "over".
     public static final int BLENDFACTOR_ONE_MINUS_SRC_ALPHA = 8;
 
+    /// `SDL_GPU_BLENDFACTOR_CONSTANT_COLOR`: the pass's blend constants.
+    public static final int BLENDFACTOR_CONSTANT_COLOR = 11;
+
+    /// `SDL_GPU_BLENDFACTOR_ONE_MINUS_CONSTANT_COLOR`.
+    public static final int BLENDFACTOR_ONE_MINUS_CONSTANT_COLOR = 12;
+
     /// `SDL_GPU_BLENDOP_ADD`.
     public static final int BLENDOP_ADD = 1;
 

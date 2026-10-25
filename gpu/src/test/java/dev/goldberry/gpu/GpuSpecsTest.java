@@ -245,6 +245,27 @@ class GpuSpecsTest {
         }
 
         @Test
+        @DisplayName("is sampled or read as storage by a draw, never both, as SDL asserts")
+        void sampledOrStorage() {
+            var storage = new TextureSpec(
+                    TextureFormat.R16G16B16A16_FLOAT, 4, 4, EnumSet.of(TextureUsage.GRAPHICS_STORAGE_READ));
+            assertEquals(EnumSet.of(TextureUsage.GRAPHICS_STORAGE_READ), storage.usages());
+            assertThrows(
+                    IllegalArgumentException.class,
+                    () -> new TextureSpec(
+                            TextureFormat.R16G16B16A16_FLOAT,
+                            4,
+                            4,
+                            EnumSet.of(TextureUsage.SAMPLER, TextureUsage.GRAPHICS_STORAGE_READ)));
+            // Compute's storage reads are not a draw's, and SDL takes them sampled.
+            new TextureSpec(
+                    TextureFormat.R8G8B8A8_UNORM,
+                    4,
+                    4,
+                    EnumSet.of(TextureUsage.SAMPLER, TextureUsage.COMPUTE_STORAGE_READ));
+        }
+
+        @Test
         @DisplayName("takes a block-compressed format sampled alone, in whole blocks, never multisampled")
         void compressed() {
             var bc7 = TextureSpec.sampled(TextureFormat.BC7_RGBA_UNORM, 2048, 1024)
@@ -437,6 +458,58 @@ class GpuSpecsTest {
                     shadow.withAddressMode(AddressMode.REPEAT).addressMode());
             assertEquals(
                     shadow.compare(), shadow.withAddressMode(AddressMode.REPEAT).compare(), "kept");
+        }
+    }
+
+    @Nested
+    @DisplayName("a stencil test")
+    class Stencils {
+
+        @Test
+        @DisplayName("marks with replace, and draws where marked with equal and around it with not-equal")
+        void presets() {
+            var mark = StencilTest.replace();
+            assertEquals(CompareOp.ALWAYS, mark.compare());
+            assertEquals(StencilOp.REPLACE, mark.pass());
+            assertEquals(StencilOp.KEEP, mark.fail());
+            assertEquals(StencilTest.ALL_BITS, mark.writeMask());
+            var inside = StencilTest.equal();
+            assertEquals(CompareOp.EQUAL, inside.compare());
+            assertEquals(0, inside.writeMask(), "reading the mark leaves it");
+            assertEquals(CompareOp.NOT_EQUAL, StencilTest.notEqual().compare());
+        }
+
+        @Test
+        @DisplayName("takes byte masks only")
+        void masks() {
+            var keep = StencilOp.KEEP;
+            assertThrows(
+                    IllegalArgumentException.class, () -> new StencilTest(CompareOp.EQUAL, keep, keep, keep, 256, 0));
+            assertThrows(
+                    IllegalArgumentException.class, () -> new StencilTest(CompareOp.EQUAL, keep, keep, keep, 0, -1));
+            assertThrows(NullPointerException.class, () -> new StencilTest(null, keep, keep, keep, 0, 0));
+            assertEquals(0x0F, new StencilTest(CompareOp.LESS, keep, keep, keep, 0x0F, 0xF0).readMask());
+        }
+
+        @Test
+        @DisplayName("has formats to test, and a depth test that leaves depth alone")
+        void formats() {
+            assertTrue(TextureFormat.D24_UNORM_S8_UINT.hasStencil());
+            assertTrue(TextureFormat.D32_FLOAT_S8_UINT.hasStencil());
+            assertTrue(TextureFormat.D32_FLOAT_S8_UINT.isDepth());
+            assertFalse(TextureFormat.D32_FLOAT.hasStencil());
+            var off = DepthTest.off(TextureFormat.D32_FLOAT_S8_UINT);
+            assertEquals(CompareOp.ALWAYS, off.compare());
+            assertFalse(off.write());
+            var depth = TextureSpec.depth(TextureFormat.D24_UNORM_S8_UINT, 8, 8);
+            assertEquals(EnumSet.of(TextureUsage.DEPTH_TARGET), depth.usages());
+        }
+
+        @Test
+        @DisplayName("is part of the constant blend's pipeline vocabulary")
+        void constantBlend() {
+            assertEquals(BlendMode.CONSTANT, BlendMode.valueOf("CONSTANT"));
+            assertTrue(EnumSet.allOf(BufferUsage.class).contains(BufferUsage.INDIRECT));
         }
     }
 

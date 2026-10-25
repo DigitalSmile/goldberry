@@ -22,6 +22,7 @@ import dev.goldberry.natives.sdl.gpu.enums.SdlGpuIndexSize;
 import dev.goldberry.natives.sdl.gpu.enums.SdlGpuPrimitiveType;
 import dev.goldberry.natives.sdl.gpu.enums.SdlGpuShaderFormat;
 import dev.goldberry.natives.sdl.gpu.enums.SdlGpuShaderStage;
+import dev.goldberry.natives.sdl.gpu.enums.SdlGpuStencilOp;
 import dev.goldberry.natives.sdl.gpu.enums.SdlGpuTextureFormat;
 import dev.goldberry.natives.sdl.gpu.enums.SdlGpuTextureUsage;
 import dev.goldberry.natives.sdl.gpu.enums.SdlGpuVertexFormat;
@@ -67,6 +68,7 @@ class GpuEnumsTest {
         bijection(VertexFormat.class, SdlGpuVertexFormat.class, VertexFormat::sdl);
         bijection(VertexInputRate.class, SdlGpuVertexInputRate.class, VertexInputRate::sdl);
         bijection(IndexFormat.class, SdlGpuIndexSize.class, IndexFormat::sdl);
+        bijection(StencilOp.class, SdlGpuStencilOp.class, StencilOp::sdl);
     }
 
     @Test
@@ -83,6 +85,9 @@ class GpuEnumsTest {
         }
         for (var type : PrimitiveType.values()) {
             assertEquals(type.name(), type.sdl().name());
+        }
+        for (var op : StencilOp.values()) {
+            assertEquals(op.name(), op.sdl().name());
         }
         assertEquals(SdlGpuTextureUsage.DEPTH_STENCIL_TARGET, TextureUsage.DEPTH_TARGET.sdl());
     }
@@ -108,9 +113,18 @@ class GpuEnumsTest {
         assertEquals(2, IndexFormat.UINT16.bytes());
         assertEquals(4, IndexFormat.UINT32.bytes());
         assertEquals(
-                EnumSet.of(TextureFormat.D16_UNORM, TextureFormat.D32_FLOAT),
+                EnumSet.of(
+                        TextureFormat.D16_UNORM,
+                        TextureFormat.D32_FLOAT,
+                        TextureFormat.D24_UNORM_S8_UINT,
+                        TextureFormat.D32_FLOAT_S8_UINT),
                 Arrays.stream(TextureFormat.values())
                         .filter(TextureFormat::isDepth)
+                        .collect(Collectors.toCollection(() -> EnumSet.noneOf(TextureFormat.class))));
+        assertEquals(
+                EnumSet.of(TextureFormat.D24_UNORM_S8_UINT, TextureFormat.D32_FLOAT_S8_UINT),
+                Arrays.stream(TextureFormat.values())
+                        .filter(TextureFormat::hasStencil)
                         .collect(Collectors.toCollection(() -> EnumSet.noneOf(TextureFormat.class))));
     }
 

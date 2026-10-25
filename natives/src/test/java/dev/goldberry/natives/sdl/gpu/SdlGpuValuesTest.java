@@ -15,6 +15,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 
+import dev.goldberry.natives.layout.Layouts;
 import dev.goldberry.natives.sdl.gpu.enums.SdlGpuAddressMode;
 import dev.goldberry.natives.sdl.gpu.enums.SdlGpuBufferUsage;
 import dev.goldberry.natives.sdl.gpu.enums.SdlGpuCompareOp;
@@ -25,6 +26,8 @@ import dev.goldberry.natives.sdl.gpu.enums.SdlGpuIndexSize;
 import dev.goldberry.natives.sdl.gpu.enums.SdlGpuPrimitiveType;
 import dev.goldberry.natives.sdl.gpu.enums.SdlGpuSampleCount;
 import dev.goldberry.natives.sdl.gpu.enums.SdlGpuShaderFormat;
+import dev.goldberry.natives.sdl.gpu.enums.SdlGpuStencilOp;
+import dev.goldberry.natives.sdl.gpu.enums.SdlGpuSwapchainComposition;
 import dev.goldberry.natives.sdl.gpu.enums.SdlGpuTextureFormat;
 import dev.goldberry.natives.sdl.gpu.enums.SdlGpuTextureType;
 import dev.goldberry.natives.sdl.gpu.enums.SdlGpuTextureUsage;
@@ -144,7 +147,7 @@ class SdlGpuValuesTest {
         assertEquals(2, SdlGpuIndexSize.UINT16.bytes());
         assertEquals(4, SdlGpuIndexSize.UINT32.bytes());
         assertEquals(3, SdlGpuBufferUsage.mask(EnumSet.of(SdlGpuBufferUsage.VERTEX, SdlGpuBufferUsage.INDEX)));
-        assertEquals(0b111011, SdlGpuBufferUsage.mask(EnumSet.allOf(SdlGpuBufferUsage.class)));
+        assertEquals(0b111111, SdlGpuBufferUsage.mask(EnumSet.allOf(SdlGpuBufferUsage.class)), "indirect is bit 2");
     }
 
     @Test
@@ -193,6 +196,58 @@ class SdlGpuValuesTest {
         assertThrows(
                 UnsupportedOperationException.class,
                 () -> defaults.shaderFormats().clear());
+    }
+
+    @Test
+    @DisplayName("the stencil ops, compositions and depth-stencil formats name SDL's constants")
+    void gamingNames() {
+        assertEquals("SDL_GPU_STENCILOP_INCREMENT_AND_WRAP", SdlGpuStencilOp.INCREMENT_AND_WRAP.nativeName());
+        assertEquals(1, SdlGpuStencilOp.KEEP.value(), "SDL's INVALID, 0, is not modelled");
+        assertEquals(8, SdlGpuStencilOp.DECREMENT_AND_WRAP.value());
+        assertEquals("SDL_GPU_SWAPCHAINCOMPOSITION_HDR10_ST2084", SdlGpuSwapchainComposition.HDR10_ST2084.nativeName());
+        assertEquals(0, SdlGpuSwapchainComposition.SDR.value());
+        assertEquals("SDL_GPU_BUFFERUSAGE_INDIRECT", SdlGpuBufferUsage.INDIRECT.nativeName());
+        assertEquals(1 << 2, SdlGpuBufferUsage.INDIRECT.bit());
+        for (var format : EnumSet.of(SdlGpuTextureFormat.D24_UNORM_S8_UINT, SdlGpuTextureFormat.D32_FLOAT_S8_UINT)) {
+            assertTrue(format.isDepth(), format + " is a depth format");
+            assertTrue(format.hasStencil(), format + " has a stencil");
+        }
+        assertFalse(SdlGpuTextureFormat.D32_FLOAT.hasStencil());
+        assertFalse(SdlGpuTextureFormat.B8G8R8A8_UNORM.hasStencil());
+        assertEquals(5, SdlGpuTextureFormat.D32_FLOAT_S8_UINT.bytesPerPixel(), "as SDL counts its texel");
+    }
+
+    @Test
+    @DisplayName("the indirect commands and copy locations are the sizes SDL reads")
+    void indirectLayouts() {
+        assertEquals(16, Layouts.SDL_GPU_INDIRECT_DRAW_COMMAND.byteSize());
+        assertEquals(20, Layouts.SDL_GPU_INDEXED_INDIRECT_DRAW_COMMAND.byteSize());
+        assertEquals(12, Layouts.SDL_GPU_INDIRECT_DISPATCH_COMMAND.byteSize());
+        assertEquals(32, Layouts.SDL_GPU_TEXTURE_LOCATION.byteSize(), "a pointer and five words, padded");
+        assertEquals(16, Layouts.SDL_GPU_BUFFER_LOCATION.byteSize());
+        assertTrue(Layouts.registry().contains(Layouts.SDL_GPU_TEXTURE_LOCATION), "the probe checks it");
+    }
+
+    @Test
+    @DisplayName("a stencil test's masks are bytes, and it needs a depth format with a stencil")
+    void stencilTests() {
+        var keep = SdlGpuStencilOp.KEEP;
+        var test = new SdlGpuPipelineDescription.StencilTest(SdlGpuCompareOp.EQUAL, keep, keep, keep, 0xFF, 0);
+        assertEquals(0xFF, test.readMask());
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> new SdlGpuPipelineDescription.StencilTest(SdlGpuCompareOp.EQUAL, keep, keep, keep, 256, 0));
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> new SdlGpuPipelineDescription.StencilTest(SdlGpuCompareOp.EQUAL, keep, keep, keep, 0, -1));
+    }
+
+    @Test
+    @DisplayName("an adapter's fields are never null")
+    void adapters() {
+        var adapter = new SdlGpuAdapter("llvmpipe", "llvmpipe", "Mesa 26.0.8", "");
+        assertEquals("llvmpipe", adapter.name());
+        assertThrows(NullPointerException.class, () -> new SdlGpuAdapter(null, "", "", ""));
     }
 
     @Test

@@ -32,6 +32,7 @@ import dev.goldberry.natives.sdl.gpu.enums.SdlGpuFilter;
 import dev.goldberry.natives.sdl.gpu.enums.SdlGpuPresentMode;
 import dev.goldberry.natives.sdl.gpu.enums.SdlGpuSampleCount;
 import dev.goldberry.natives.sdl.gpu.enums.SdlGpuShaderFormat;
+import dev.goldberry.natives.sdl.gpu.enums.SdlGpuSwapchainComposition;
 import dev.goldberry.natives.sdl.gpu.enums.SdlGpuTextureFormat;
 import dev.goldberry.natives.sdl.gpu.enums.SdlGpuTextureType;
 import dev.goldberry.natives.sdl.gpu.enums.SdlGpuTextureUsage;
@@ -333,6 +334,114 @@ class SdlGpuDeviceTest {
         }
     }
 
+    @Test
+    @DisplayName("names its adapter, waits for idle, and names its textures and buffers")
+    void adapterIdleAndNames() {
+        var adapter = device.adapter();
+        assertFalse(adapter.name().isBlank(), "every driver here names its adapter: " + adapter);
+        device.waitForIdle();
+        try (var texture = device.createTexture(SdlGpuTextureFormat.B8G8R8A8_UNORM, 8, 8, TARGET);
+                var buffer = device.createBuffer(EnumSet.of(SdlGpuBufferUsage.VERTEX), 64);
+                var fence = device.acquireCommandBuffer().submitWithFence()) {
+            device.setName(texture, "scene colour");
+            device.setName(buffer, "cube vertices");
+            assertThrows(IllegalArgumentException.class, () -> device.setName(fence, "a fence"), "no name to set");
+            fence.await();
+        }
+    }
+
+    @Nested
+    @DisplayName("copies on the GPU")
+    class Copies {
+
+        @Test
+        @DisplayName("move a box of texels between textures, and bytes between buffers, exactly")
+        void copyExactly() {
+            var bytes = new byte[8 * 8 * 4];
+            new Random(26).nextBytes(bytes);
+            var whole = new SdlGpuRegion(0, 0, 8, 8);
+            var storage = EnumSet.of(SdlGpuBufferUsage.VERTEX);
+            try (var source = device.createTexture(SdlGpuTextureFormat.B8G8R8A8_UNORM, 8, 8, TARGET);
+                    var destination = device.createTexture(SdlGpuTextureFormat.B8G8R8A8_UNORM, 16, 16, TARGET);
+                    var first = device.createBuffer(storage, bytes.length);
+                    var second = device.createBuffer(storage, bytes.length + 64);
+                    var upload = device.createTransferBuffer(SdlGpuTransferUsage.UPLOAD, bytes.length);
+                    var pixels = device.createTransferBuffer(SdlGpuTransferUsage.DOWNLOAD, bytes.length);
+                    var words = device.createTransferBuffer(SdlGpuTransferUsage.DOWNLOAD, bytes.length)) {
+                upload.map(false).put(bytes);
+                upload.unmap();
+                var commands = device.acquireCommandBuffer();
+                var placed = new SdlGpuRegion(4, 6, 8, 8);
+                try (var pass = commands.beginCopyPass()) {
+                    pass.upload(upload, 0, source, whole, false);
+                    pass.uploadToBuffer(upload, 0, first, 0, bytes.length, false);
+                    pass.copyTexture(
+                            SdlGpuTextureLocation.of(source),
+                            new SdlGpuTextureLocation(destination, 0, 0, placed.x(), placed.y()),
+                            8,
+                            8,
+                            false);
+                    pass.copyBuffer(first, 0, second, 64, bytes.length, false);
+                }
+                try (var pass = commands.beginCopyPass()) {
+                    pass.download(destination, placed, pixels, 0);
+                    pass.downloadFromBuffer(second, 64, bytes.length, words, 0);
+                }
+                try (var fence = commands.submitWithFence()) {
+                    fence.await();
+                }
+                var back = new byte[bytes.length];
+                pixels.map(false).get(back);
+                pixels.unmap();
+                assertArrayEquals(bytes, back, "the texels, where they were placed");
+                words.map(false).get(back);
+                words.unmap();
+                assertArrayEquals(bytes, back, "the bytes, 64 into the second buffer");
+            }
+        }
+
+        @Test
+        @DisplayName("refuse other formats, multisampled ends, boxes outside, parts of words and overlaps")
+        void refusesBadCopies() {
+            var storage = EnumSet.of(SdlGpuBufferUsage.VERTEX);
+            try (var bgra = device.createTexture(SdlGpuTextureFormat.B8G8R8A8_UNORM, 8, 8, TARGET);
+                    var rgba = device.createTexture(SdlGpuTextureFormat.R8G8B8A8_UNORM, 8, 8, TARGET);
+                    var buffer = device.createBuffer(storage, 64);
+                    var other = device.createBuffer(storage, 64)) {
+                var commands = device.acquireCommandBuffer();
+                try (var pass = commands.beginCopyPass()) {
+                    var origin = SdlGpuTextureLocation.of(bgra);
+                    assertThrows(
+                            IllegalArgumentException.class,
+                            () -> pass.copyTexture(origin, SdlGpuTextureLocation.of(rgba), 8, 8, false),
+                            "the formats differ");
+                    assertThrows(
+                            IllegalArgumentException.class,
+                            () -> pass.copyTexture(origin, origin, 4, 4, false),
+                            "a level and layer onto itself");
+                    assertThrows(
+                            IllegalArgumentException.class,
+                            () -> pass.copyTexture(origin, new SdlGpuTextureLocation(rgba, 0, 0, 4, 4), 8, 8, false),
+                            "past the destination's edge");
+                    assertThrows(
+                            IllegalArgumentException.class,
+                            () -> pass.copyTexture(origin, new SdlGpuTextureLocation(bgra, 1, 0, 0, 0), 1, 1, false),
+                            "no level 1");
+                    assertThrows(IllegalArgumentException.class, () -> pass.copyBuffer(buffer, 0, other, 0, 6, false));
+                    assertThrows(IllegalArgumentException.class, () -> pass.copyBuffer(buffer, 2, other, 0, 8, false));
+                    assertThrows(
+                            IllegalArgumentException.class, () -> pass.copyBuffer(buffer, 0, other, 32, 64, false));
+                    assertThrows(
+                            IllegalArgumentException.class,
+                            () -> pass.copyBuffer(buffer, 0, buffer, 16, 32, false),
+                            "overlapping ranges of one buffer");
+                    pass.copyBuffer(buffer, 0, buffer, 32, 32, false);
+                }
+                commands.cancel();
+            }
+        }
+    }
+
     @Nested
     @DisplayName("a claimed window")
     class ClaimedWindow {
@@ -408,6 +517,18 @@ class SdlGpuDeviceTest {
                 commands.submit();
                 texture.ifPresent(presented ->
                         assertThrows(IllegalStateException.class, () -> commands.clear(presented, 0, 0, 0, 1)));
+            }
+        }
+
+        @Test
+        @DisplayName("presents SDR always, and answers for the HDR compositions without failing")
+        void compositions() {
+            try (var claimed = device.claimWindow(window)) {
+                assertTrue(claimed.supports(SdlGpuSwapchainComposition.SDR));
+                for (var composition : SdlGpuSwapchainComposition.values()) {
+                    // The display's to grant: asked, and whatever it says is an answer.
+                    claimed.supports(composition);
+                }
             }
         }
 

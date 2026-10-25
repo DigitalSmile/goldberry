@@ -28,7 +28,8 @@ public record SdlGpuSwapchainCalls(
         WindowSupportsGPUPresentMode windowSupportsGPUPresentMode,
         SetGPUAllowedFramesInFlight setGPUAllowedFramesInFlight,
         GetGPUSwapchainTextureFormat getGPUSwapchainTextureFormat,
-        WaitAndAcquireGPUSwapchainTexture waitAndAcquireGPUSwapchainTexture) {
+        WaitAndAcquireGPUSwapchainTexture waitAndAcquireGPUSwapchainTexture,
+        WindowSupportsGPUSwapchainComposition windowSupportsGPUSwapchainComposition) {
 
     /// Binds every function above.
     ///
@@ -41,7 +42,8 @@ public record SdlGpuSwapchainCalls(
                 new WindowSupportsGPUPresentMode(lookup),
                 new SetGPUAllowedFramesInFlight(lookup),
                 new GetGPUSwapchainTextureFormat(lookup),
-                new WaitAndAcquireGPUSwapchainTexture(lookup));
+                new WaitAndAcquireGPUSwapchainTexture(lookup),
+                new WindowSupportsGPUSwapchainComposition(lookup));
     }
 
     /// `SDL_GPU_SWAPCHAINCOMPOSITION_SDR`: 8-bit sRGB, what every window has.
@@ -264,6 +266,37 @@ public record SdlGpuSwapchainCalls(
                         address, commandBuffer, window, texture, width, height);
             } catch (Throwable t) {
                 throw Downcalls.failure("SDL_WaitAndAcquireGPUSwapchainTexture", t);
+            }
+        }
+    }
+
+    /// Whether a claimed window's swapchain can present in a composition: SDR,
+    /// linear SDR, extended-linear HDR or HDR10.
+    ///
+    /// `_Bool SDL_WindowSupportsGPUSwapchainComposition(void*, void*, uint32_t)`
+    public static final class WindowSupportsGPUSwapchainComposition {
+
+        private static final MethodHandle FD_SDL_WindowSupportsGPUSwapchainComposition =
+                Downcalls.link(FunctionDescriptor.of(JAVA_BOOLEAN, ADDRESS, ADDRESS, JAVA_INT));
+
+        private final MemorySegment address;
+
+        WindowSupportsGPUSwapchainComposition(SymbolLookup lookup) {
+            this.address = Downcalls.symbol(lookup, "SDL_WindowSupportsGPUSwapchainComposition");
+        }
+
+        /// Calls `SDL_WindowSupportsGPUSwapchainComposition`.
+        ///
+        /// @param device      the device
+        /// @param window      an `SDL_Window*` the device has claimed
+        /// @param composition an `SDL_GPUSwapchainComposition`
+        /// @return whether it is supported
+        public boolean call(MemorySegment device, MemorySegment window, int composition) {
+            try {
+                return (boolean)
+                        FD_SDL_WindowSupportsGPUSwapchainComposition.invokeExact(address, device, window, composition);
+            } catch (Throwable t) {
+                throw Downcalls.failure("SDL_WindowSupportsGPUSwapchainComposition", t);
             }
         }
     }

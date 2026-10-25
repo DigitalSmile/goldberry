@@ -107,3 +107,6 @@ Appended to the index when the records move in, in this order.
 - [ADR-0663 Vulkan Video decodes on the GPU, with the headers read in Java](0663-vulkan-video-decodes-on-the-gpu-with-the-headers-read-in-java.md)
 - [ADR-0665 The showcase's model is a slice per part of the window](0665-the-showcases-model-is-a-slice-per-part-of-the-window.md)
 - [ADR-0666 Rays are traced on a Vulkan device of the toolkit's own](0666-rays-are-traced-on-a-vulkan-device-of-the-toolkits-own.md)
+- [ADR-0667 A moving scene rebuilds its top level, and shadows come back a byte a pixel](0667-a-moving-scene-rebuilds-its-top-level-and-shadows-come-back-a-byte-a-pixel.md)
+- [ADR-0668 Lavapipe at 128-bit vectors is refused for ray tracing](0668-lavapipe-at-128-bit-vectors-is-refused-for-ray-tracing.md)
+- [ADR-0669 Indirect draws, the stencil test and GPU copies join the GPU API](0669-indirect-draws-the-stencil-test-and-gpu-copies-join-the-gpu-api.md)

@@ -1,6 +1,9 @@
 package dev.goldberry.gpu;
 
 import java.nio.ByteBuffer;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Objects;
 
 import dev.goldberry.natives.sdl.gpu.SdlGpuBuffer;
 import dev.goldberry.natives.sdl.gpu.SdlGpuCommandBuffer;
@@ -70,6 +73,33 @@ public final class ComputePass {
         sdl.bindStorageTextures(sdlTextures);
     }
 
+    /// Binds `textures`, each read with `sampler`, to the shader's sampler
+    /// slots from 0: every slot its code declares ([ComputeCode#samplers]),
+    /// and no more. Filtered reads in compute: a downsample, a blur, an
+    /// upscaler's taps.
+    ///
+    /// @throws IllegalStateException    when no pipeline is bound
+    /// @throws IllegalArgumentException when the count is not the shader's, a
+    ///                                  texture was not made with
+    ///                                  [TextureUsage#SAMPLER], or anything is
+    ///                                  another device's or closed
+    public void bindSamplers(GpuSampler sampler, GpuTexture... textures) {
+        Objects.requireNonNull(sampler, "sampler");
+        bindSamplers(Arrays.stream(textures)
+                .map(texture -> new SamplerBinding(texture, sampler))
+                .toList());
+    }
+
+    /// Binds each texture with its own sampler to the shader's sampler slots
+    /// from 0, in order: every slot its code declares, and no more.
+    ///
+    /// @throws IllegalStateException    when no pipeline is bound
+    /// @throws IllegalArgumentException as [#bindSamplers(GpuSampler, GpuTexture...)]
+    public void bindSamplers(List<SamplerBinding> slots) {
+        requireOpen();
+        sdl.bindSamplers(slots.stream().map(slot -> slot.sdl(device)).toList());
+    }
+
     /// Sets the shader's uniform block `slot` to `values`, for the dispatches
     /// that follow; HLSL packs a `cbuffer` in 16-byte rows.
     ///
@@ -106,6 +136,21 @@ public final class ComputePass {
     /// @throws IllegalArgumentException as [#dispatch(int, int, int)]
     public void dispatch(int x) {
         dispatch(x, 1, 1);
+    }
+
+    /// Runs the bound pipeline over the workgroups the [dev.goldberry.gpu.indirect.DispatchCommand] at
+    /// byte `offset` of `buffer` names: a grid an earlier pass sized, such as
+    /// one workgroup per tile a classification pass found work in.
+    ///
+    /// @throws IllegalStateException    as [#dispatch(int, int, int)]
+    /// @throws IllegalArgumentException when the buffer was not made with
+    ///                                  [BufferUsage#INDIRECT], the offset is
+    ///                                  not a multiple of 4, the command runs
+    ///                                  past its end, or it is another
+    ///                                  device's or closed
+    public void dispatchIndirect(GpuBuffer buffer, int offset) {
+        requireOpen();
+        sdl.dispatchIndirect(buffer.sdl(device), offset);
     }
 
     void end() {

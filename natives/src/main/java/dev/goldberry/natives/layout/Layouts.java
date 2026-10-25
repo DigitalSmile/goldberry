@@ -679,6 +679,56 @@ public final class Layouts {
                     ValueLayout.JAVA_BYTE.withName("padding3"),
                     MemoryLayout.paddingLayout(4)));
 
+    /// `SDL_GPUIndirectDrawCommand`: one draw an indirect buffer holds.
+    public static final NativeStructLayout SDL_GPU_INDIRECT_DRAW_COMMAND = new NativeStructLayout(
+            "SDL_GPUIndirectDrawCommand",
+            MemoryLayout.structLayout(
+                    ValueLayout.JAVA_INT.withName("num_vertices"),
+                    ValueLayout.JAVA_INT.withName("num_instances"),
+                    ValueLayout.JAVA_INT.withName("first_vertex"),
+                    ValueLayout.JAVA_INT.withName("first_instance")));
+
+    /// `SDL_GPUIndexedIndirectDrawCommand`: one indexed draw an indirect
+    /// buffer holds; the vertex offset is signed.
+    public static final NativeStructLayout SDL_GPU_INDEXED_INDIRECT_DRAW_COMMAND = new NativeStructLayout(
+            "SDL_GPUIndexedIndirectDrawCommand",
+            MemoryLayout.structLayout(
+                    ValueLayout.JAVA_INT.withName("num_indices"),
+                    ValueLayout.JAVA_INT.withName("num_instances"),
+                    ValueLayout.JAVA_INT.withName("first_index"),
+                    ValueLayout.JAVA_INT.withName("vertex_offset"),
+                    ValueLayout.JAVA_INT.withName("first_instance")));
+
+    /// `SDL_GPUIndirectDispatchCommand`: the workgroups of one dispatch.
+    public static final NativeStructLayout SDL_GPU_INDIRECT_DISPATCH_COMMAND = new NativeStructLayout(
+            "SDL_GPUIndirectDispatchCommand",
+            MemoryLayout.structLayout(
+                    ValueLayout.JAVA_INT.withName("groupcount_x"),
+                    ValueLayout.JAVA_INT.withName("groupcount_y"),
+                    ValueLayout.JAVA_INT.withName("groupcount_z")));
+
+    /// `SDL_GPUTextureLocation`: a texel of one level of one layer, the corner
+    /// a texture-to-texture copy starts at.
+    public static final NativeStructLayout SDL_GPU_TEXTURE_LOCATION = new NativeStructLayout(
+            "SDL_GPUTextureLocation",
+            MemoryLayout.structLayout(
+                    ValueLayout.ADDRESS.withName("texture"),
+                    ValueLayout.JAVA_INT.withName("mip_level"),
+                    ValueLayout.JAVA_INT.withName("layer"),
+                    ValueLayout.JAVA_INT.withName("x"),
+                    ValueLayout.JAVA_INT.withName("y"),
+                    ValueLayout.JAVA_INT.withName("z"),
+                    MemoryLayout.paddingLayout(4)));
+
+    /// `SDL_GPUBufferLocation`: a byte of a buffer, either end of a
+    /// buffer-to-buffer copy.
+    public static final NativeStructLayout SDL_GPU_BUFFER_LOCATION = new NativeStructLayout(
+            "SDL_GPUBufferLocation",
+            MemoryLayout.structLayout(
+                    ValueLayout.ADDRESS.withName("buffer"),
+                    ValueLayout.JAVA_INT.withName("offset"),
+                    MemoryLayout.paddingLayout(4)));
+
     /// `SDL_GPUSamplerCreateInfo`: filters, mipmap and address modes, and the
     /// comparison a shadow map's sampler asks for.
     public static final NativeStructLayout SDL_GPU_SAMPLER_CREATE_INFO = new NativeStructLayout(
@@ -1473,6 +1523,11 @@ public final class Layouts {
                 SDL_GPU_VERTEX_BUFFER_DESCRIPTION,
                 SDL_GPU_VERTEX_ATTRIBUTE,
                 SDL_GPU_DEPTH_STENCIL_TARGET_INFO,
+                SDL_GPU_INDIRECT_DRAW_COMMAND,
+                SDL_GPU_INDEXED_INDIRECT_DRAW_COMMAND,
+                SDL_GPU_INDIRECT_DISPATCH_COMMAND,
+                SDL_GPU_TEXTURE_LOCATION,
+                SDL_GPU_BUFFER_LOCATION,
                 BL_OBJECT_DETAIL,
                 BL_PATH_CORE,
                 BL_IMAGE_DATA,
