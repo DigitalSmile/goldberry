@@ -208,8 +208,12 @@ where there are several.
 a mesh with a `Transform` and gives it an id, which is what a hit reports, and
 a mask. `SceneGeometry.of(instances…)` is the scene, and `tracer.build(scene)`
 builds it into a `RayScene`: one acceleration structure for each distinct
-mesh, shared by every instance of it, and one over the instances. A scene is
-built again when an instance moves.
+mesh, shared by every instance of it and compacted once built, and one over
+the instances. `scene.update(geometry)` places other instances of the same
+meshes — moved, renumbered, more or fewer — and rebuilds that last structure
+alone, which is what a frame of a moving scene costs. A mesh the scene was not
+built with, or one whose triangles changed, is a new scene.
+`scene.structureBytes()` is the GPU memory it holds.
 
 ```java
 try (var tracer = RayTracer.open(RayTracingMode.AUTO).orElseThrow()) {
@@ -219,8 +223,9 @@ try (var tracer = RayTracer.open(RayTracingMode.AUTO).orElseThrow()) {
     try (var scene = tracer.build(SceneGeometry.of(ground, box))) {
         var camera = Camera.lookingAt(new Vector3(0, 6, 8), Vector3.ZERO, 50);
         var request = TraceRequest.of(camera, 640, 360).withShadowsToward(sun);
-        var hits = tracer.trace(scene, request);
-        frame.copyPass(pass -> pass.upload(shadowMask, hits.shadowMask()));
+        var shadows = tracer.traceShadows(scene, request);
+        frame.copyPass(pass -> pass.upload(shadowTexture, shadows.pixels()));
+        scene.update(SceneGeometry.of(ground, box.withTransform(next)));
     }
 }
 ```
@@ -235,14 +240,22 @@ picture lines up with the drawn one.
 `Hits.MISS`), the triangle's index in its mesh, the distance along the ray,
 the barycentrics of the triangle's second and third vertex, and whether the
 light reaches the point. `hits.hit(x, y)` reads one as a `Hit`.
-`hits.shadowMask()` is an `R8_UNORM` picture, 255 in the light and 0 in
-shadow; `hits.distances(miss)` is an `R32_FLOAT` picture; `hits.records()` is
-the records themselves, for a storage buffer a shader reads.
+`hits.shadowMask()` is a `ShadowMask`; `hits.distances(miss)` is an
+`R32_FLOAT` picture; `hits.records()` is the records themselves, for a storage
+buffer a shader reads.
 
-**What it costs.** A trace returns when the GPU is done, with its records
-copied back: the rays, then the copy. The shadow mask is a byte a pixel; the
-records are 24. Tracing a smaller picture than the canvas and sampling it
-scaled is the usual way to keep that within a frame.
+**The shadows alone.** `tracer.traceShadows(scene, request)` traces the same
+rays and answers with a `ShadowMask`, made on the GPU: a byte a pixel, 255 in
+the light (or where the ray hit nothing) and 0 in shadow, rows with no
+padding. `mask.pixels()` uploads into an `R8_UNORM` texture, which a shader
+samples as 1 and 0; `mask.isLit(x, y)` reads one pixel. A request without a
+light is refused.
+
+**What it costs.** A trace returns when the GPU is done, with its output
+copied back: the rays, then the copy. `traceShadows` copies a byte a pixel,
+`trace` copies 24, so a renderer that wants the light alone asks for the mask.
+Tracing a smaller picture than the canvas and sampling it scaled is the usual
+way to keep that within a frame.
 
 **Where it runs.** Linux and Windows, on a GPU whose Vulkan driver has the
 ray-tracing pipeline extensions — NVIDIA from the GTX 16 series, AMD from

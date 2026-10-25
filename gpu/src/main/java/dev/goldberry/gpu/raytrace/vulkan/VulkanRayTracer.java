@@ -17,10 +17,11 @@ import dev.goldberry.natives.vulkan.VkConstants;
 import dev.goldberry.natives.vulkan.VkStructs;
 
 /// Rays traced in hardware on the [RayDevice]: a pipeline, one command
-/// buffer, a device-local buffer the shaders write the hits into, and a
-/// cached host buffer they are copied to in one transfer and read back from,
-/// both grown to the largest picture asked for. The shaders' scattered writes
-/// stay in the GPU's own memory; what crosses the bus is one bulk copy.
+/// buffer, a device-local buffer the shaders write the hits into (records, or
+/// a shadow mask packed four pixels a word), and a cached host buffer they
+/// are copied to in one transfer and read back from, both grown to the
+/// largest picture asked for. The shaders' scattered writes stay in the GPU's
+/// own memory; what crosses the bus is one bulk copy.
 ///
 /// Every build and every trace is one submission, waited for, so what it
 /// made is ready, or read, when the call returns. Not thread-safe: its owner
@@ -69,6 +70,19 @@ public final class VulkanRayTracer implements AutoCloseable {
         return AccelerationScene.build(device, commands, geometry);
     }
 
+    /// Rebuilds `scene`'s top level for `geometry`'s instances.
+    ///
+    /// @throws IllegalArgumentException                     when `geometry`
+    ///                                                      places a mesh
+    ///                                                      `scene` was not
+    ///                                                      built with
+    /// @throws dev.goldberry.natives.vulkan.VulkanException when the driver
+    ///                                                      refuses
+    public void update(AccelerationScene scene, SceneGeometry geometry) {
+        requireOpen();
+        scene.update(commands, geometry);
+    }
+
     /// Traces `request` through `scene`, and copies the hits out: a new
     /// little-endian buffer of [Hits#RECORD_BYTES] a pixel.
     ///
@@ -80,6 +94,32 @@ public final class VulkanRayTracer implements AutoCloseable {
     /// @throws dev.goldberry.natives.vulkan.VulkanException when the driver
     ///                                                      refuses
     public ByteBuffer trace(AccelerationScene scene, TraceRequest request) {
+        var bytes = dispatch(scene, request, TraceOutput.RECORDS);
+        var copy = ByteBuffer.allocate(Math.toIntExact(bytes)).order(ByteOrder.LITTLE_ENDIAN);
+        MemorySegment.ofBuffer(copy).copyFrom(readback().mapped().asSlice(0, bytes));
+        return copy;
+    }
+
+    /// Traces `request` through `scene` for its shadows alone, packed on the
+    /// GPU: a new buffer of a byte a pixel, rows from the top with no padding,
+    /// `0xFF` where the light reaches the pixel or its ray hit nothing and 0
+    /// in shadow.
+    ///
+    /// @throws IllegalArgumentException                     as [#trace] does
+    /// @throws dev.goldberry.natives.vulkan.VulkanException when the driver
+    ///                                                      refuses
+    public ByteBuffer traceShadows(AccelerationScene scene, TraceRequest request) {
+        dispatch(scene, request, TraceOutput.SHADOW_MASK);
+        var mask = ByteBuffer.allocate(request.width() * request.height());
+        var into = MemorySegment.ofBuffer(mask);
+        into.copyFrom(readback().mapped().asSlice(0, into.byteSize()));
+        return mask;
+    }
+
+    /// Traces `request` through `scene`, writing `output` into the hits buffer
+    /// and copying it to the readback buffer, and returns how many bytes it
+    /// wrote.
+    private long dispatch(AccelerationScene scene, TraceRequest request, TraceOutput output) {
         requireOpen();
         var pixels = request.pixels();
         if (pixels > device.limits().maxDispatch()) {
@@ -87,34 +127,47 @@ public final class VulkanRayTracer implements AutoCloseable {
                     request.width() + "×" + request.height() + " is " + pixels + " rays, and " + device.name()
                             + " starts at most " + device.limits().maxDispatch());
         }
-        var bytes = pixels * Hits.RECORD_BYTES;
-        var output = hits(bytes);
+        var bytes = output.bytes(request.width(), request.height());
+        var written = hits(bytes);
         var host = readback(bytes);
-        pipeline.bind(scene.topLevel(), output);
+        pipeline.bind(scene.topLevel(), written);
         try (var arena = Arena.ofConfined()) {
             var constants = arena.allocate(RayConstants.SIZE, Integer.BYTES);
-            RayConstants.write(constants, request);
+            RayConstants.write(constants, request, output);
             commands.run(buffer -> {
+                if (output.zeroed()) {
+                    device.functions().cmdFillBuffer().call(buffer, written.handle(), 0, bytes, 0);
+                    Barriers.filledToTrace(device, buffer);
+                }
                 pipeline.record(buffer, constants, request.width(), request.height());
                 Barriers.tracedToCopy(device, buffer);
-                copy(arena, buffer, output, host, bytes);
+                copy(arena, buffer, written, host, bytes);
                 Barriers.copiedToHost(device, buffer);
             });
         }
-        var copy = ByteBuffer.allocate(Math.toIntExact(bytes)).order(ByteOrder.LITTLE_ENDIAN);
-        MemorySegment.ofBuffer(copy).copyFrom(host.mapped().asSlice(0, bytes));
-        return copy;
+        return bytes;
     }
 
-    /// The device-local buffer the shaders write, at least `bytes` long.
+    /// The device-local buffer the shaders write, at least `bytes` long; a
+    /// fill zeroes it for the shadow mask.
     private DeviceBuffer hits(long bytes) {
         var grown = grown(
                 hits,
                 bytes,
-                VkConstants.VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VkConstants.VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+                VkConstants.VK_BUFFER_USAGE_STORAGE_BUFFER_BIT
+                        | VkConstants.VK_BUFFER_USAGE_TRANSFER_SRC_BIT
+                        | VkConstants.VK_BUFFER_USAGE_TRANSFER_DST_BIT,
                 DeviceBuffer.Memory.DEVICE_LOCAL);
         hits = grown;
         return grown;
+    }
+
+    /// The host buffer the last trace was copied to.
+    private DeviceBuffer readback() {
+        if (readback == null) {
+            throw new IllegalStateException("nothing has been traced");
+        }
+        return readback;
     }
 
     /// The host buffer the hits are copied to, at least `bytes` long.

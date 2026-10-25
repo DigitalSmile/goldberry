@@ -4,12 +4,15 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
+import java.util.Random;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 /// What ray tracing costs on this machine: building a scene of about 130,000
-/// triangles, and tracing a primary and a shadow ray a pixel through it at
-/// 1080p and at 4K, each trace waited for and its 24-byte records copied out,
-/// then the shadow mask made from them.
+/// triangles (its meshes' structures compacted), moving its instances, and
+/// tracing a primary and a shadow ray a pixel through it at 1080p and at 4K,
+/// each trace waited for: once with its 24-byte records copied out and the
+/// shadow mask made from them, once with the mask packed on the GPU.
 ///
 /// The scene is a 256 × 256 height field, one mesh, and 200 cubes of one shared
 /// mesh standing on it, under a low sun. Run by `:gpu:rayTraceProbe`, which
@@ -40,8 +43,26 @@ final class RayTraceProbe {
         System.out.println("| Measurement | median | p95 | mean |");
         System.out.println("|---|---|---|---|");
         try (var tracer = RayTracer.open(RayTracingMode.HARDWARE).orElseThrow()) {
-            row("build: every structure", BUILDS, () -> tracer.build(geometry), RayScene::close);
+            row("build: every structure, compacted", BUILDS, () -> tracer.build(geometry), RayScene::close);
             try (var scene = tracer.build(geometry)) {
+                var structures = scene.structuresFor(tracer);
+                System.out.printf(
+                        Locale.ROOT,
+                        "|   meshes' structures: %.1f MB built, %.1f MB compacted; %.1f MB in all | | | |%n",
+                        structures.bottomBytesBuilt() / 1e6,
+                        structures.bottomBytes() / 1e6,
+                        scene.structureBytes() / 1e6);
+                var frames = new SceneGeometry[] {geometry, moved(geometry)};
+                var frame = new int[1];
+                row(
+                        "update: " + geometry.instances().size() + " instances moved",
+                        TRACES,
+                        () -> {
+                            scene.update(frames[++frame[0] % 2]);
+                            return scene;
+                        },
+                        ignored -> {});
+                scene.update(geometry);
                 var camera = Camera.lookingAt(new Vector3(0, 40, 90), new Vector3(0, 0, 0), 50);
                 var sun = new Vector3(-1, 0.8f, 0.2f);
                 for (var size : new int[][] {{1920, 1080}, {3840, 2160}}) {
@@ -61,6 +82,11 @@ final class RayTraceProbe {
                             TRACES,
                             () -> last[0].shadowMask(),
                             ignored -> {});
+                    row(
+                            "trace " + label + ", shadows, mask packed on the GPU",
+                            TRACES,
+                            () -> tracer.traceShadows(scene, request),
+                            ignored -> {});
                     System.out.printf(
                             Locale.ROOT,
                             "|   %s: %,d of %,d pixels hit, %.1f MB of records | | | |%n",
@@ -73,7 +99,18 @@ final class RayTraceProbe {
         }
     }
 
-    private static <T> void row(String name, int runs, Supplier<T> work, java.util.function.Consumer<T> after) {
+    /// `geometry` with every cube raised a little: the same meshes, so an
+    /// update rather than a build.
+    private static SceneGeometry moved(SceneGeometry geometry) {
+        return new SceneGeometry(geometry.instances().stream()
+                .map(instance -> instance.id() == 0
+                        ? instance
+                        : instance.withTransform(
+                                instance.transform().then(Transform.translation(new Vector3(0, 0.5f, 0)))))
+                .toList());
+    }
+
+    private static <T> void row(String name, int runs, Supplier<T> work, Consumer<T> after) {
         after.accept(work.get());
         var times = new ArrayList<Double>();
         for (var i = 0; i < runs; i++) {
@@ -130,7 +167,7 @@ final class RayTraceProbe {
         var instances = new ArrayList<Instance>();
         instances.add(Instance.of(TriangleMesh.of(positions, indices), Transform.IDENTITY, 0));
         var cube = cube();
-        var random = new java.util.Random(7);
+        var random = new Random(7);
         for (var n = 0; n < CUBES; n++) {
             var x = (random.nextFloat() - 0.5f) * size * 0.8f;
             var z = (random.nextFloat() - 0.5f) * size * 0.8f;

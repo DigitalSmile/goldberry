@@ -553,6 +553,30 @@ public final class VkCalls {
         }
     }
 
+    /// `void vkCmdFillBuffer(VkCommandBuffer commandBuffer, VkBuffer dstBuffer, VkDeviceSize
+    /// dstOffset, VkDeviceSize size, uint32_t data)`, device-level.
+    public static final class CmdFillBuffer {
+
+        public static final String NAME = "vkCmdFillBuffer";
+        public static final FunctionDescriptor DESCRIPTOR =
+                FunctionDescriptor.ofVoid(ADDRESS, JAVA_LONG, JAVA_LONG, JAVA_LONG, JAVA_INT);
+        private static final MethodHandle HANDLE = Downcalls.link(DESCRIPTOR);
+
+        private final MemorySegment address;
+
+        public CmdFillBuffer(MemorySegment address) {
+            this.address = VulkanLinker.require(address, NAME);
+        }
+
+        public void call(MemorySegment commandBuffer, long dstBuffer, long dstOffset, long size, int data) {
+            try {
+                HANDLE.invokeExact(address, commandBuffer, dstBuffer, dstOffset, size, data);
+            } catch (Throwable t) {
+                throw VulkanLinker.failure(NAME, t);
+            }
+        }
+    }
+
     /// `VkResult vkCreateShaderModule(VkDevice device, const VkShaderModuleCreateInfo*
     /// pCreateInfo, const VkAllocationCallbacks* pAllocator, VkShaderModule* pShaderModule)`,
     /// device-level.
@@ -2466,6 +2490,7 @@ public final class VkCalls {
             QueueSubmit.DESCRIPTOR,
             GetBufferDeviceAddress.DESCRIPTOR,
             CmdCopyBuffer.DESCRIPTOR,
+            CmdFillBuffer.DESCRIPTOR,
             CreateShaderModule.DESCRIPTOR,
             DestroyShaderModule.DESCRIPTOR,
             CreatePipelineLayout.DESCRIPTOR,

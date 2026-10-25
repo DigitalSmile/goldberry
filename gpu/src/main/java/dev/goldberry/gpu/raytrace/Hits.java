@@ -124,14 +124,16 @@ public final class Hits {
         return records.asReadOnlyBuffer().order(ByteOrder.LITTLE_ENDIAN);
     }
 
-    /// An `R8_UNORM` picture of the light: 255 where it reaches, or where the
-    /// ray hit nothing, and 0 in shadow. A new buffer, one byte a pixel.
-    public ByteBuffer shadowMask() {
+    /// Where the light reaches, made from the records: [ShadowMask#LIT] where
+    /// it does, or where the ray hit nothing, and [ShadowMask#SHADOWED] in
+    /// shadow. A trace that wants the mask alone asks
+    /// [RayTracer#traceShadows], which packs it on the GPU.
+    public ShadowMask shadowMask() {
         var mask = ByteBuffer.allocate(width * height);
         for (var i = 0; i < width * height; i++) {
-            mask.put(i, records.getInt(i * RECORD_BYTES + 20) != 0 ? (byte) 0xFF : 0);
+            mask.put(i, records.getInt(i * RECORD_BYTES + 20) != 0 ? ShadowMask.LIT : ShadowMask.SHADOWED);
         }
-        return mask;
+        return ShadowMask.of(width, height, mask);
     }
 
     /// An `R32_FLOAT` picture of each hit's distance, and of `missDistance`

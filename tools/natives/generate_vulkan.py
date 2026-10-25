@@ -158,7 +158,7 @@ FUNCTIONS = {
         vkGetPhysicalDeviceFeatures2 vkGetPhysicalDeviceVideoCapabilitiesKHR vkGetPhysicalDeviceVideoFormatPropertiesKHR
         vkCreateDevice vkGetDeviceProcAddr'''.split(),
     'device': '''vkDestroyDevice vkGetDeviceQueue vkDeviceWaitIdle vkQueueWaitIdle vkQueueSubmit
-        vkGetBufferDeviceAddress vkCmdCopyBuffer
+        vkGetBufferDeviceAddress vkCmdCopyBuffer vkCmdFillBuffer
         vkCreateShaderModule vkDestroyShaderModule vkCreatePipelineLayout vkDestroyPipelineLayout vkDestroyPipeline
         vkCreateDescriptorSetLayout vkDestroyDescriptorSetLayout vkCreateDescriptorPool vkDestroyDescriptorPool
         vkAllocateDescriptorSets vkUpdateDescriptorSets vkCmdBindPipeline vkCmdBindDescriptorSets vkCmdPushConstants

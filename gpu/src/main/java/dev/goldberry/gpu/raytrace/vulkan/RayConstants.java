@@ -9,12 +9,12 @@ import dev.goldberry.gpu.raytrace.TraceRequest;
 import dev.goldberry.gpu.raytrace.Vector3;
 
 /// The push constants of `trace.lib.hlsl`, written from a [TraceRequest]: the
-/// camera's frame, the light, the picture's size and the two distances, in the
-/// shader's `Constants` order.
+/// camera's frame, the light, the picture's size, the two distances and what
+/// the dispatch writes, in the shader's `Constants` order.
 final class RayConstants {
 
-    /// Their size, in bytes: five `float4`s and four 32-bit values.
-    static final int SIZE = 96;
+    /// Their size, in bytes: five `float4`s and five 32-bit values.
+    static final int SIZE = 100;
 
     static final long ORIGIN = 0;
     static final long FORWARD = 16;
@@ -25,12 +25,13 @@ final class RayConstants {
     static final long HEIGHT = 84;
     static final long MAX_DISTANCE = 88;
     static final long SHADOW_BIAS = 92;
+    static final long OUTPUT = 96;
 
     private RayConstants() {}
 
     /// Writes `request`'s constants into `into`, which is at least [#SIZE]
-    /// bytes.
-    static void write(MemorySegment into, TraceRequest request) {
+    /// bytes, for a dispatch that writes `output`.
+    static void write(MemorySegment into, TraceRequest request, TraceOutput output) {
         if (into.byteSize() < SIZE) {
             throw new IllegalArgumentException(
                     "the constants are " + SIZE + " bytes, and there are " + into.byteSize());
@@ -46,6 +47,7 @@ final class RayConstants {
         into.set(JAVA_INT_UNALIGNED, HEIGHT, request.height());
         into.set(JAVA_FLOAT_UNALIGNED, MAX_DISTANCE, request.maxDistance());
         into.set(JAVA_FLOAT_UNALIGNED, SHADOW_BIAS, request.shadowBias());
+        into.set(JAVA_INT_UNALIGNED, OUTPUT, output.code());
     }
 
     private static void vector(MemorySegment into, long at, Vector3 vector, float w) {

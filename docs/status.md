@@ -7447,7 +7447,11 @@ a painted frame reaches the screen, and what else can be on it.
   video through them as before — builds a scene's acceleration structures,
   traces a primary and a shadow ray a pixel through a ray-tracing pipeline, and
   hands back a hit record a pixel for `CopyPass.upload`. It matches a
-  double-precision reference on the GTX 1660 Ti and on lavapipe. Linux and
+  double-precision reference on the GTX 1660 Ti and on lavapipe. Since ADR-0667
+  (parked, the same day) a scene's instances move by rebuilding only the
+  structure over them, about a millisecond for 201 instances on the 1660 Ti;
+  the meshes' structures are compacted; and `traceShadows` packs the shadow
+  mask on the GPU, a byte a pixel instead of a 24-byte record. Linux and
   Windows only; macOS has none. Nothing in the showcase uses it yet, and the CI
   lane does not run it.
 

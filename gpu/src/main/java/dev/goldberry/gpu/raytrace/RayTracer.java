@@ -4,6 +4,7 @@ import java.util.Objects;
 import java.util.Optional;
 
 import dev.goldberry.gpu.GpuException;
+import dev.goldberry.gpu.raytrace.vulkan.AccelerationScene;
 import dev.goldberry.gpu.raytrace.vulkan.RayDevice;
 import dev.goldberry.gpu.raytrace.vulkan.VulkanRayTracer;
 import dev.goldberry.natives.vulkan.VulkanException;
@@ -14,19 +15,23 @@ import dev.goldberry.natives.vulkan.VulkanException;
 /// SDL's GPU has no ray tracing, so this runs on a Vulkan device of its own
 /// beside it: the scene is built there, rays are traced there, and the
 /// [Hits] come back through this process's memory. From there they go into
-/// SDL's textures and buffers with a [dev.goldberry.gpu.CopyPass] —
-/// [Hits#shadowMask()] into an `R8_UNORM` texture, [Hits#records()] into a
-/// storage buffer — where a renderer's own shaders read them. Every call
-/// returns once the GPU is done, so a trace costs its copy back as well as
-/// its rays.
+/// SDL's textures and buffers with a [dev.goldberry.gpu.CopyPass] — a
+/// [ShadowMask] into an `R8_UNORM` texture, [Hits#records()] into a storage
+/// buffer — where a renderer's own shaders read them. Every call returns once
+/// the GPU is done, so a trace costs its copy back as well as its rays: 24
+/// bytes a pixel for [#trace], one for [#traceShadows].
 ///
 /// ```java
 /// try (var tracer = RayTracer.open(RayTracingMode.AUTO).orElseThrow();
 ///         var scene = tracer.build(SceneGeometry.of(Instance.of(mesh, Transform.IDENTITY, 7)))) {
-///     var hits = tracer.trace(scene, TraceRequest.of(camera, 640, 360).withShadowsToward(sun));
-///     frame.copyPass(pass -> pass.upload(shadowTexture, hits.shadowMask()));
+///     var shadows = tracer.traceShadows(scene, TraceRequest.of(camera, 640, 360).withShadowsToward(sun));
+///     frame.copyPass(pass -> pass.upload(shadowTexture, shadows.pixels()));
 /// }
 /// ```
+///
+/// A scene whose instances move is [RayScene#update]d rather than built
+/// again: its meshes' structures stay, and only the one over the instances is
+/// rebuilt.
 ///
 /// Confined to the thread that opened it, as a [dev.goldberry.gpu.GpuDevice]
 /// is: any other throws [WrongThreadException].
@@ -129,6 +134,45 @@ public final class RayTracer implements AutoCloseable {
             return Hits.of(request.width(), request.height(), vulkan.trace(structures, request));
         } catch (VulkanException e) {
             throw new GpuException("rays could not be traced on " + device.device(), e);
+        }
+    }
+
+    /// Traces `request` through `scene` for its shadows alone: a primary ray
+    /// through each pixel's centre and a shadow ray from each hit, with the
+    /// mask packed on the GPU, so a byte a pixel comes back rather than a
+    /// record.
+    ///
+    /// @throws IllegalArgumentException when `request` asks for no shadows,
+    ///                                  `scene` was built by another tracer,
+    ///                                  or the picture has more pixels than
+    ///                                  the device starts in one dispatch
+    /// @throws IllegalStateException    when `scene` is closed
+    /// @throws WrongThreadException     when called from another thread than
+    ///                                  its owner's
+    /// @throws GpuException             when the device refuses
+    public ShadowMask traceShadows(RayScene scene, TraceRequest request) {
+        Objects.requireNonNull(scene, "scene");
+        Objects.requireNonNull(request, "request");
+        requireOpen();
+        if (request.towardLight().isEmpty()) {
+            throw new IllegalArgumentException("a shadow mask needs a light: ask withShadowsToward(direction)");
+        }
+        var structures = scene.structuresFor(this);
+        try {
+            return ShadowMask.of(request.width(), request.height(), vulkan.traceShadows(structures, request));
+        } catch (VulkanException e) {
+            throw new GpuException("shadows could not be traced on " + device.device(), e);
+        }
+    }
+
+    /// Rebuilds `scene`'s structure over its instances for `geometry`, which
+    /// places none but the meshes it was built with.
+    void update(RayScene scene, AccelerationScene structures, SceneGeometry geometry) {
+        requireOpen();
+        try {
+            vulkan.update(structures, geometry);
+        } catch (VulkanException e) {
+            throw new GpuException(scene + " could not be updated on " + device.device(), e);
         }
     }
 

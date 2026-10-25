@@ -5,6 +5,7 @@ import static java.lang.foreign.ValueLayout.JAVA_INT;
 import static java.lang.foreign.ValueLayout.JAVA_LONG;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -26,6 +27,7 @@ import org.junit.jupiter.api.Test;
 
 import dev.goldberry.gpu.raytrace.Camera;
 import dev.goldberry.gpu.raytrace.Instance;
+import dev.goldberry.gpu.raytrace.SceneGeometry;
 import dev.goldberry.gpu.raytrace.TraceRequest;
 import dev.goldberry.gpu.raytrace.Transform;
 import dev.goldberry.gpu.raytrace.TriangleMesh;
@@ -88,7 +90,7 @@ class RayTracerInternalsTest {
     class Constants {
 
         @Test
-        @DisplayName("are the camera's frame, the light, the size and the distances, in the shader's order")
+        @DisplayName("are the camera's frame, the light, the size, the distances and the output, in the shader's order")
         void layout() {
             var camera = Camera.lookingAt(new Vector3(0, 0, 5), Vector3.ZERO, 90);
             var request = TraceRequest.of(camera, 200, 100)
@@ -97,7 +99,7 @@ class RayTracerInternalsTest {
                     .withShadowBias(0.01f);
             try (var arena = Arena.ofConfined()) {
                 var constants = arena.allocate(RayConstants.SIZE);
-                RayConstants.write(constants, request);
+                RayConstants.write(constants, request, TraceOutput.SHADOW_MASK);
                 assertEquals(5, constants.get(JAVA_FLOAT, RayConstants.ORIGIN + 8));
                 assertEquals(1, constants.get(JAVA_FLOAT, RayConstants.ORIGIN + 12));
                 assertEquals(-1, constants.get(JAVA_FLOAT, RayConstants.FORWARD + 8), 1e-6);
@@ -109,11 +111,77 @@ class RayTracerInternalsTest {
                 assertEquals(100, constants.get(JAVA_INT, RayConstants.HEIGHT));
                 assertEquals(50, constants.get(JAVA_FLOAT, RayConstants.MAX_DISTANCE));
                 assertEquals(0.01f, constants.get(JAVA_FLOAT, RayConstants.SHADOW_BIAS));
+                assertEquals(1, constants.get(JAVA_INT, RayConstants.OUTPUT), "the shadow mask");
 
-                RayConstants.write(constants, TraceRequest.of(camera, 2, 2));
+                RayConstants.write(constants, TraceRequest.of(camera, 2, 2), TraceOutput.RECORDS);
                 assertEquals(0, constants.get(JAVA_FLOAT, RayConstants.TOWARD_LIGHT + 12), "no shadows");
-                assertThrows(IllegalArgumentException.class, () -> RayConstants.write(arena.allocate(16), request));
+                assertEquals(0, constants.get(JAVA_INT, RayConstants.OUTPUT), "the records");
+                assertThrows(
+                        IllegalArgumentException.class,
+                        () -> RayConstants.write(arena.allocate(16), request, TraceOutput.RECORDS));
             }
+        }
+    }
+
+    @Nested
+    @DisplayName("the outputs")
+    class Outputs {
+
+        @Test
+        @DisplayName("are a record a pixel, each written whole")
+        void records() {
+            assertEquals(5 * 24, TraceOutput.RECORDS.bytes(5, 1));
+            assertEquals(1920L * 1080 * 24, TraceOutput.RECORDS.bytes(1920, 1080));
+            assertFalse(TraceOutput.RECORDS.zeroed());
+        }
+
+        @Test
+        @DisplayName("pack the shadow mask a byte a pixel with no padding, rounded up to a word, zeroed first")
+        void shadowMask() {
+            assertEquals(4, TraceOutput.SHADOW_MASK.bytes(1, 1), "one pixel takes a word");
+            assertEquals(16, TraceOutput.SHADOW_MASK.bytes(5, 3), "15 bytes, rounded up");
+            assertEquals(1920L * 1080, TraceOutput.SHADOW_MASK.bytes(1920, 1080));
+            assertTrue(TraceOutput.SHADOW_MASK.zeroed(), "the shaders write lit pixels alone");
+        }
+
+        @Test
+        @DisplayName("are the codes the shader tests for")
+        void codes() throws IOException {
+            var source = Files.readString(Path.of("src/main/raytrace/trace.lib.hlsl"));
+            for (var output : TraceOutput.values()) {
+                assertTrue(
+                        source.contains("static const uint OUTPUT_" + output.name() + " = " + output.code() + ";"),
+                        output + " is " + output.code() + " in the shader too");
+            }
+        }
+    }
+
+    @Nested
+    @DisplayName("an update's meshes")
+    class UpdatedMeshes {
+
+        @Test
+        @DisplayName("are found among the built ones by identity, in any order and number")
+        void found() {
+            var a = TriangleMesh.of(new float[] {0, 0, 0, 1, 0, 0, 0, 1, 0}, new int[] {0, 1, 2});
+            var b = TriangleMesh.of(new float[] {0, 0, 0, 1, 0, 0, 0, 1, 0}, new int[] {0, 1, 2});
+            var geometry = new SceneGeometry(List.of(
+                    Instance.of(b, Transform.IDENTITY, 1),
+                    Instance.of(a, Transform.IDENTITY, 2),
+                    Instance.of(b, Transform.translation(new Vector3(1, 0, 0)), 3)));
+            assertArrayEquals(new int[] {1, 0, 1}, AccelerationScene.meshIndices(List.of(a, b), geometry));
+        }
+
+        @Test
+        @DisplayName("refuse a mesh the scene was not built with, even one of equal triangles")
+        void refused() {
+            var a = TriangleMesh.of(new float[] {0, 0, 0, 1, 0, 0, 0, 1, 0}, new int[] {0, 1, 2});
+            var twin = TriangleMesh.of(new float[] {0, 0, 0, 1, 0, 0, 0, 1, 0}, new int[] {0, 1, 2});
+            var geometry =
+                    SceneGeometry.of(Instance.of(a, Transform.IDENTITY, 1), Instance.of(twin, Transform.IDENTITY, 9));
+            var refusal = assertThrows(
+                    IllegalArgumentException.class, () -> AccelerationScene.meshIndices(List.of(a), geometry));
+            assertTrue(refusal.getMessage().contains("instance 9"), refusal.getMessage());
         }
     }
 

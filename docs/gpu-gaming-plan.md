@@ -10,8 +10,9 @@ status, phases with exit criteria, risks, and a log.
 Each decision becomes an ADR when it is taken, parked in `docs/snapshot/adr/`.
 **D3 was taken on 2026-10-25: option (b), a Vulkan device of the toolkit's own
 (ADR-0666), and with it D1 changed to ray-tracing pipelines.** The hardware
-tier (phase 4) is built and tested; the rest of the plan is open. The next
-free ADR number is 0667.
+tier (phase 4) is built and tested, with scene updates, compaction and a
+packed shadow mask (ADR-0667); its CI lane waits for phase 0. The rest of the
+plan is open. The next free ADR number is 0668.
 
 ## 1. Where things stand
 
@@ -230,15 +231,15 @@ Taken up first, on 2026-10-25, once D3 was decided.
 |------|--------|
 | `natives.vulkan`: `:media`'s bindings moved to `:natives` (exported to `:media` and `:gpu`), the holders in `…vulkan.calls` linked through `Downcalls` (so the foreign metadata records them, and the package is initialised at build time), device functions grouped core / video / ray tracing. The generator in `tools/natives/`, with the ray-tracing structs, constants and functions; its enum parser fixed (values beside `#ifdef` were dropped). `VulkanLayoutTest` (1633 probe lines), `VulkanHoldersTest`; `:media`'s Vulkan Video tests green on the 1660 Ti through the moved bindings | done |
 | `RayDevice`: one a process, the device with the extensions, features (buffer device address, synchronization2, acceleration structures, pipelines) and a compute queue; a discrete GPU first, the CPU last; `goldberry.raytracing.device` picks by name; a refusal names each device and what it lacks | done |
-| `AccelerationScene`: a BLAS a distinct mesh, all built in one call with scratch each, a barrier, the TLAS over `VkAccelerationStructureInstanceKHR`s (24-bit id, 8-bit mask, both faces); inputs freed after the build | done; **not compacted**, and a moved instance means a rebuild (no TLAS update yet) |
+| `AccelerationScene`: a BLAS a distinct mesh, all built in one call with scratch each, a barrier, the TLAS over `VkAccelerationStructureInstanceKHR`s (24-bit id, 8-bit mask, both faces); inputs freed after the build | done; compacted and updatable since ADR-0667 (the row below) |
 | `RayPipeline` from `trace.lib.hlsl` (`:gpu:compileRayShaders`, SPIR-V `lib_6_3`, its own task and manifest); shader binding table laid out by `ShaderBindingTable`; push constants by `RayConstants` | done |
 | `dev.goldberry.gpu.raytrace` (exported): `TriangleMesh`, `Transform`, `Instance`, `SceneGeometry`, `Camera`, `Ray`, `TraceRequest`, `RayTracer`, `RayScene`, `Hits`, `Hit`, `RayTracing`, `RayTracingMode`; `goldberry.raytracing=off|auto|hardware` | done |
 | Parity against a double-precision reference (every pixel off an edge: instance, triangle, distance, barycentrics, shadow) | done: `RayTracerTest`, 9 tests, green on the GTX 1660 Ti and on lavapipe (`-Pgoldberry.raytracing.device=llvmpipe`, 6.8 s); skipped without a device unless `goldberry.raytracing.required` |
 | The hits into SDL's textures: `Hits.shadowMask()` (`R8_UNORM`), `distances()` (`R32_FLOAT`), `records()` (storage buffer) for `CopyPass.upload` | done as data; no `canvas3d` sample draws them yet (phase 7) |
 | A device-local hits buffer, copied in one `vkCmdCopyBuffer` to a cached host buffer (`HOST_CACHED` preferred for readback) | done: the shaders writing 50 MB straight into host memory cost 99 ms of a 133 ms trace; now 15 ms GPU and copy, 14 ms into the Java heap |
-| Output packed (a shadow mask traced as bytes on the GPU, not 24-byte records copied and reduced in Java), TLAS updates and BLAS compaction | open: the heap copy of the records is now half of a 1080p trace |
+| Output packed (a shadow mask traced as bytes on the GPU, not 24-byte records copied and reduced in Java), TLAS updates and BLAS compaction | done (ADR-0667): `RayTracer.traceShadows` → `ShadowMask` (a fill, then an `InterlockedOr` a lit pixel; `vkCmdFillBuffer` bound), 1080p 8–9 ms against 30–33 ms of records plus 4–6 ms in Java on the 1660 Ti; `RayScene.update` rebuilds the TLAS alone over the same meshes, 201 instances in about 1 ms; BLASes compacted through a size query, 11.9 → 9.6 MB on NVIDIA, no change on lavapipe. Not built: refitting a deforming mesh's BLAS |
 | The GPU lane: `goldberry.raytracing.required` and the lavapipe device on `linux.yml`'s GPU job, once phase 0 says the runners' Mesa has the extensions | open |
-| Measured: `:gpu:rayTraceProbe`, a 132,450-triangle scene (a 256² height field and 200 cubes of one mesh), primary and shadow rays, records copied out | done (2026-10-25), medians: **GTX 1660 Ti** build 28 ms, 1080p 26 ms, 4K 96 ms; **lavapipe** build 300 ms, 1080p 600 ms, 4K 2.2 s; the shadow mask from the records 3.6 ms at 1080p, 13 ms at 4K |
+| Measured: `:gpu:rayTraceProbe`, a 132,450-triangle scene (a 256² height field and 200 cubes of one mesh), primary and shadow rays, records copied out | done (2026-10-25), medians: **GTX 1660 Ti** build 28 ms, 1080p 26 ms, 4K 96 ms; **lavapipe** build 300 ms, 1080p 600 ms, 4K 2.2 s; the shadow mask from the records 3.6 ms at 1080p, 13 ms at 4K. With ADR-0667 the probe adds the update, the compacted sizes and the packed mask; that ADR's table has the numbers, from a loaded machine |
 | The ray tracer on the module path with native access for `dev.goldberry.natives` alone and `--illegal-native-access=deny`: mapping (`reinterpret`) moved into `natives.vulkan.VulkanMemory`; `NativeAccessTest` keeps restricted calls out of `:gpu` | done |
 
 ### Phase 5 — render scale and upscaling
@@ -281,7 +282,8 @@ Taken up first, on 2026-10-25, once D3 was decided.
 |----------|--------------|--------|
 | `docs/TODO.md` | an entry pointing here | done (2026-10-25); D3 recorded |
 | `docs/snapshot/adr/0666-…` | the D3 decision, with D1's change | done (2026-10-25) |
-| `docs/snapshot/components-gpu.md` `## Ray tracing` | the guide section for `dev.goldberry.gpu.raytrace` | done (2026-10-25), parked |
+| `docs/snapshot/adr/0667-…` | scene updates, compaction, the packed shadow mask | done (2026-10-25) |
+| `docs/snapshot/components-gpu.md` `## Ray tracing` | the guide section for `dev.goldberry.gpu.raytrace` | done (2026-10-25), parked; `update`, `structureBytes` and `traceShadows` added with ADR-0667 |
 | `docs/status.md` M4 | each phase as it closes | open |
 | `docs/snapshot/components-gpu.md` | settings, render scale; moved to the book at release | open; ray tracing written |
 | `gpu/src/main/java/module-info.java` | the new exported package | done: `exports dev.goldberry.gpu.raytrace` |
@@ -295,3 +297,4 @@ Taken up first, on 2026-10-25, once D3 was decided.
 | 2026-10-25 | Plan written. Found: SDL_GPU 3.4.18 has no ray tracing and hands out no native handles, but `SDL_GPUVulkanOptions` can turn the extensions on in its own device; 26 SDL_GPU functions are unbound, indirect draws among them. Probed: the GTX 1660 Ti has acceleration structures and ray-tracing pipelines and **no ray queries**; lavapipe (Mesa 26.0.8) has all three. Proposed: ray queries from compute (D1), software first (D2), and a choice between an SDL patch and a second device for the hardware tier (D3), left to the user |
 | 2026-10-25 | **D3 decided by the user: (b)** (ADR-0666), and D1 changed to ray-tracing pipelines with it. Phase 4 built: `:media`'s Vulkan bindings moved to `:natives` (`natives.vulkan`, `…vulkan.calls`), grouped core / video / ray tracing, the generator in `tools/natives/` with its enum parser fixed; `dev.goldberry.gpu.raytrace` with `RayTracer` on its own device; `trace.lib.hlsl` compiled by the new `:gpu:compileRayShaders`. Green against a double-precision reference on the GTX 1660 Ti and on lavapipe. Open: packed output, TLAS updates, compaction, the CI lane, the measurements, and everything outside phase 4 |
 | 2026-10-25 | Phase 4 measured (`:gpu:rayTraceProbe`) and its first cost found: the shaders wrote the 50 MB of 1080p records straight into host memory, 133 ms a trace on the 1660 Ti. A device-local buffer copied once into cached host memory brought it to 26 ms (4K: 535 → 96 ms); lavapipe is 600 ms at 1080p. The tracer runs on the module path with native access for `:natives` alone, its one restricted step (`vkMapMemory`'s `reinterpret`) moved to `natives.vulkan.VulkanMemory` |
+| 2026-10-25 | Phase 4's packed output, TLAS updates and compaction built (ADR-0667). `RayTracer.traceShadows` returns a `ShadowMask` packed on the GPU. The first version traced four pixels per ray generation and wrote one word; it tied on the 1660 Ti and was 18% slower than the records on lavapipe, so the shader now zeroes the buffer with a fill (`vkCmdFillBuffer`, newly generated) and ORs a byte per lit pixel. `RayScene.update` rebuilds the TLAS alone, reusing its buffers; BLASes are compacted through a size query. 15 tests in `RayTracerTest`, green on the 1660 Ti and on lavapipe. No validation layer here, so the barriers were checked against the spec. Left in phase 4: the CI lane (phase 0) and BLAS refit for deforming meshes |

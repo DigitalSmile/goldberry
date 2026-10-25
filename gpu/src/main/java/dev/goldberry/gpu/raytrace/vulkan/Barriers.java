@@ -63,6 +63,18 @@ final class Barriers {
                 VkConstants.VK_ACCESS_2_ACCELERATION_STRUCTURE_READ_BIT_KHR);
     }
 
+    /// The zeroes a fill wrote are what the ray-tracing shaders read and
+    /// write after it.
+    static void filledToTrace(RayDevice device, MemorySegment commands) {
+        memory(
+                device,
+                commands,
+                VkConstants.VK_PIPELINE_STAGE_2_TRANSFER_BIT,
+                VkConstants.VK_ACCESS_2_TRANSFER_WRITE_BIT,
+                VkConstants.VK_PIPELINE_STAGE_2_RAY_TRACING_SHADER_BIT_KHR,
+                VkConstants.VK_ACCESS_2_SHADER_READ_BIT | VkConstants.VK_ACCESS_2_SHADER_WRITE_BIT);
+    }
+
     /// What the ray-tracing shaders wrote is complete for the copy after them.
     static void tracedToCopy(RayDevice device, MemorySegment commands) {
         memory(

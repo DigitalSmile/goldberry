@@ -1,9 +1,10 @@
 // The ray tracer's one shader library: primary rays from a pinhole camera,
-// one shadow ray toward a directional light from each hit, and a hit record
-// per pixel. Compiled by :gpu:compileRayShaders to SPIR-V alone: it runs on
-// the ray tracer's own Vulkan device, never on SDL's.
+// one shadow ray toward a directional light from each hit, and what each
+// pixel found, written as one of two outputs. Compiled by
+// :gpu:compileRayShaders to SPIR-V alone: it runs on the ray tracer's own
+// Vulkan device, never on SDL's.
 //
-// The push constants are RayConstants' 96 bytes, in its order.
+// The push constants are RayConstants' 100 bytes, in its order.
 
 struct Constants {
     float4 origin;      // xyz: the camera; w: unused
@@ -15,13 +16,27 @@ struct Constants {
     uint height;
     float tMax;
     float shadowBias;
+    uint output;        // OUTPUT_RECORDS or OUTPUT_SHADOW_MASK
 };
 
 [[vk::push_constant]] Constants constants;
 
 [[vk::binding(0, 0)]] RaytracingAccelerationStructure scene;
 
-// HitRecords' layout: 24 bytes a pixel, rows from the top.
+// What the dispatch writes, by constants.output, a ray generation a pixel:
+//
+// OUTPUT_RECORDS: a HitRecord a pixel, 24 bytes, rows from the top.
+//
+// OUTPUT_SHADOW_MASK: a byte a pixel, rows from the top with no padding,
+// 0xFF where the light reaches it or its ray hit nothing and 0 in shadow. The
+// buffer is zeroed before the dispatch, and a lit pixel ORs its byte into
+// the word it shares with three others.
+[[vk::binding(1, 0)]] RWByteAddressBuffer output;
+
+static const uint OUTPUT_RECORDS = 0;
+static const uint OUTPUT_SHADOW_MASK = 1;
+
+// Hits' layout.
 struct HitRecord {
     uint instanceId;   // the instance's id, or 0xFFFFFFFF where the ray hit nothing
     uint primitiveId;  // the triangle's index in its mesh
@@ -31,8 +46,7 @@ struct HitRecord {
     uint lit;          // 1 when the light reaches the hit, or no shadow was asked for
 };
 
-[[vk::binding(1, 0)]] RWStructuredBuffer<HitRecord> hits;
-
+static const uint RECORD_BYTES = 24;
 static const uint MISS = 0xFFFFFFFF;
 
 struct Payload {
@@ -46,9 +60,8 @@ struct ShadowPayload {
     uint lit;
 };
 
-[shader("raygeneration")]
-void RayGen() {
-    uint2 pixel = DispatchRaysIndex().xy;
+// What pixel's primary ray hits, and its shadow ray where one is asked for.
+HitRecord tracePixel(uint2 pixel) {
     float2 ndc = (float2(pixel) + 0.5) / float2(constants.width, constants.height) * 2.0 - 1.0;
 
     RayDesc ray;
@@ -88,8 +101,19 @@ void RayGen() {
                  0xFF, 0, 1, 1, shadow, shadowPayload);
         record.lit = shadowPayload.lit;
     }
+    return record;
+}
 
-    hits[pixel.y * constants.width + pixel.x] = record;
+[shader("raygeneration")]
+void RayGen() {
+    uint2 pixel = DispatchRaysIndex().xy;
+    HitRecord record = tracePixel(pixel);
+    uint index = pixel.y * constants.width + pixel.x;
+    if (constants.output == OUTPUT_RECORDS) {
+        output.Store<HitRecord>(index * RECORD_BYTES, record);
+    } else if (record.lit != 0) {
+        output.InterlockedOr(index & ~3u, 0xFFu << ((index & 3u) * 8));
+    }
 }
 
 [shader("miss")]

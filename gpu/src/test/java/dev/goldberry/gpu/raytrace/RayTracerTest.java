@@ -7,6 +7,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
+import java.util.Set;
+import java.util.TreeSet;
 import java.util.concurrent.Executors;
 
 import org.junit.jupiter.api.AfterEach;
@@ -63,10 +66,7 @@ class RayTracerTest {
         var named = System.getProperty("goldberry.raytracing.device");
         if (named != null && !named.isBlank()) {
             assertTrue(
-                    tracer.device()
-                            .device()
-                            .toLowerCase(java.util.Locale.ROOT)
-                            .contains(named.toLowerCase(java.util.Locale.ROOT)),
+                    tracer.device().device().toLowerCase(Locale.ROOT).contains(named.toLowerCase(Locale.ROOT)),
                     tracer.device() + " for " + named);
         }
     }
@@ -76,13 +76,22 @@ class RayTracerTest {
     void primaryRays() {
         var geometry = TestScenes.cubesOnGround();
         var scene = build(geometry);
-        var request = TraceRequest.of(TestScenes.camera(), WIDTH, HEIGHT);
-        var hits = tracer.trace(scene, request);
-        var reference = new ReferenceTracer(geometry);
+        var hits = tracer.trace(scene, TraceRequest.of(TestScenes.camera(), WIDTH, HEIGHT));
+        var instances = assertMatchesReference(geometry, hits);
+        assertEquals(
+                Set.of(TestScenes.GROUND, TestScenes.CUBE, TestScenes.CUBE + 1, TestScenes.CUBE + 2),
+                instances,
+                "every instance is seen");
+    }
 
+    /// Asserts that `hits`, traced from [TestScenes#camera] at [#WIDTH] by
+    /// [#HEIGHT], are what the reference finds in `geometry`, and returns the
+    /// ids of the instances they hit.
+    private static Set<Integer> assertMatchesReference(SceneGeometry geometry, Hits hits) {
+        var reference = new ReferenceTracer(geometry);
         var compared = 0;
         var hitPixels = 0;
-        var instances = new java.util.TreeSet<Integer>();
+        var instances = new TreeSet<Integer>();
         for (var y = 0; y < HEIGHT; y++) {
             for (var x = 0; x < WIDTH; x++) {
                 var ray = TestScenes.camera().ray(x, y, WIDTH, HEIGHT);
@@ -111,10 +120,7 @@ class RayTracerTest {
         }
         assertTrue(compared > WIDTH * HEIGHT * 0.9, "compared only " + compared + " pixels");
         assertTrue(hitPixels > WIDTH * HEIGHT / 2, "the camera looks at the scene: " + hitPixels + " hits");
-        assertEquals(
-                java.util.Set.of(TestScenes.GROUND, TestScenes.CUBE, TestScenes.CUBE + 1, TestScenes.CUBE + 2),
-                instances,
-                "every instance is seen");
+        return instances;
     }
 
     @Test
@@ -162,12 +168,117 @@ class RayTracerTest {
         assertTrue(shadowed > 50, "the cubes cast shadows: " + shadowed);
         assertTrue(lit > shadowed, "most of the ground is in the sun: " + lit + " lit, " + shadowed + " not");
 
-        var mask = hits.shadowMask();
-        var zeros = 0;
-        for (var i = 0; i < mask.capacity(); i++) {
-            zeros += mask.get(i) == 0 ? 1 : 0;
+        assertTrue(hits.shadowMask().shadowedCount() >= shadowed, "the mask has a 0 for every shadowed pixel");
+    }
+
+    @Test
+    @DisplayName("packs the shadow mask on the GPU as the records have it, at widths of whole words and not")
+    void packedShadows() {
+        var scene = build(TestScenes.cubesOnGround());
+        for (var size : new int[][] {{WIDTH, HEIGHT}, {97, 63}, {1, 1}, {3, 5}, {6, 2}}) {
+            var request = TraceRequest.of(TestScenes.camera(), size[0], size[1]).withShadowsToward(TestScenes.sun());
+            var packed = tracer.traceShadows(scene, request);
+            var fromRecords = tracer.trace(scene, request).shadowMask();
+            assertEquals(size[0], packed.width());
+            assertEquals(size[1], packed.height());
+            assertEquals(fromRecords, packed, size[0] + "×" + size[1]);
         }
-        assertTrue(zeros >= shadowed, "the mask has a 0 for every shadowed pixel");
+        var full = tracer.traceShadows(
+                scene, TraceRequest.of(TestScenes.camera(), WIDTH, HEIGHT).withShadowsToward(TestScenes.sun()));
+        assertTrue(full.shadowedCount() > 50, "the cubes cast shadows: " + full);
+        for (var i = 0; i < full.pixels().capacity(); i++) {
+            var value = full.pixels().get(i);
+            assertTrue(value == ShadowMask.LIT || value == ShadowMask.SHADOWED, "pixel " + i + " is " + value);
+        }
+    }
+
+    @Test
+    @DisplayName("refuses a shadow mask without a light")
+    void shadowsNeedALight() {
+        var scene = build(TestScenes.cubesOnGround());
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> tracer.traceShadows(scene, TraceRequest.of(TestScenes.camera(), 8, 8)));
+    }
+
+    @Test
+    @DisplayName("moves its instances without building their meshes again, and finds what the reference finds")
+    void moves() {
+        var geometry = TestScenes.cubesOnGround();
+        var scene = build(geometry);
+        var moved = new SceneGeometry(geometry.instances().stream()
+                .map(instance -> instance.id() == TestScenes.GROUND
+                        ? instance
+                        : instance.withTransform(
+                                        instance.transform().then(Transform.translation(new Vector3(0.7f, 0, 1.1f))))
+                                .withId(instance.id() + 100))
+                .toList());
+        var bottomBefore = scene.structuresFor(tracer).bottomBytes();
+        scene.update(moved);
+        assertEquals(moved, scene.geometry());
+        assertEquals(bottomBefore, scene.structuresFor(tracer).bottomBytes(), "the meshes' structures stay");
+        var instances =
+                assertMatchesReference(moved, tracer.trace(scene, TraceRequest.of(TestScenes.camera(), WIDTH, HEIGHT)));
+        assertEquals(
+                Set.of(TestScenes.GROUND, TestScenes.CUBE + 100, TestScenes.CUBE + 101, TestScenes.CUBE + 102),
+                instances,
+                "the new ids are reported");
+    }
+
+    @Test
+    @DisplayName("takes fewer instances, then more than it has room for, on update")
+    void changesItsInstanceCount() {
+        var geometry = TestScenes.cubesOnGround();
+        var scene = build(geometry);
+        var ground = geometry.instances().getFirst();
+        var cube = geometry.instances().get(1).mesh();
+
+        var groundAlone = SceneGeometry.of(ground);
+        scene.update(groundAlone);
+        assertMatchesReference(groundAlone, tracer.trace(scene, TraceRequest.of(TestScenes.camera(), WIDTH, HEIGHT)));
+
+        var crowd = new ArrayList<Instance>();
+        crowd.add(ground);
+        for (var i = 0; i < 40; i++) {
+            var place = Transform.scaling(0.4f)
+                    .then(Transform.translation(new Vector3(-3 + (i % 8) * 0.8f, 0.2f, -2 + (i / 8) * 0.9f)));
+            crowd.add(Instance.of(cube, place, 1000 + i));
+        }
+        var crowded = new SceneGeometry(crowd);
+        var bytes = scene.structureBytes();
+        scene.update(crowded);
+        assertTrue(scene.structureBytes() >= bytes, "the instances' structure grew: " + scene.structureBytes());
+        var instances = assertMatchesReference(
+                crowded, tracer.trace(scene, TraceRequest.of(TestScenes.camera(), WIDTH, HEIGHT)));
+        assertTrue(instances.size() > 30, "most of the crowd is seen: " + instances);
+    }
+
+    @Test
+    @DisplayName("refuses an update with a mesh it was not built with, and traces as it did")
+    void refusesANewMesh() {
+        var geometry = TestScenes.cubesOnGround();
+        var scene = build(geometry);
+        var request = TraceRequest.of(TestScenes.camera(), WIDTH, HEIGHT);
+        var before = tracer.trace(scene, request);
+        var stranger = SceneGeometry.of(Instance.of(TestScenes.cube(), Transform.IDENTITY, 5));
+        assertThrows(IllegalArgumentException.class, () -> scene.update(stranger));
+        assertEquals(geometry, scene.geometry());
+        assertEquals(before.records(), tracer.trace(scene, request).records());
+        scene.close();
+        assertThrows(IllegalStateException.class, () -> scene.update(geometry));
+    }
+
+    @Test
+    @DisplayName("compacts its meshes' structures, and counts what they hold")
+    void compacts() {
+        var scene = build(TestScenes.cubesOnGround());
+        var structures = scene.structuresFor(tracer);
+        assertEquals(2, structures.bottomLevelCount(), "the ground and the shared cube");
+        assertTrue(structures.bottomBytes() > 0);
+        assertTrue(
+                structures.bottomBytes() <= structures.bottomBytesBuilt(),
+                structures.bottomBytes() + " compacted, " + structures.bottomBytesBuilt() + " built");
+        assertTrue(scene.structureBytes() > structures.bottomBytes(), "the instances' structure counts too");
     }
 
     @Test

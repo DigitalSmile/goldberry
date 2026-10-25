@@ -249,8 +249,9 @@ closed as decisions under [Answered](#answered).
   (ADR-0666, parked), with ray-tracing pipelines rather than ray queries, and
   that hardware tier is built: `dev.goldberry.gpu.raytrace`, on `:natives`'
   Vulkan bindings, which moved there from `:media`. Green on the 1660 Ti and on
-  lavapipe. What is left of it — packed output, TLAS updates, compaction, the
-  CI lane, the measurements — and every other phase is in the plan's tables.
+  lavapipe. Packed shadow masks, scene updates and compaction followed the same
+  day (ADR-0667, parked). What is left of it — the CI lane, refitting a
+  deforming mesh — and every other phase is in the plan's tables.
 ## Platform, compositor and CI
 - **The 60 fps claim is measured on one machine, and closing M1 is a CI job.**
   §16's M1 asks for a styled wrapped paragraph *resized* at 60 fps on Linux,

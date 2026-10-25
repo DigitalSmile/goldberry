@@ -37,4 +37,17 @@ public record Instance(TriangleMesh mesh, Transform transform, int id, int mask)
     public static Instance of(TriangleMesh mesh, Transform transform, int id) {
         return new Instance(mesh, transform, id, VISIBLE);
     }
+
+    /// This instance, placed at `transform`: what a [RayScene#update] of a
+    /// moving scene is made of.
+    public Instance withTransform(Transform transform) {
+        return new Instance(mesh, transform, id, mask);
+    }
+
+    /// This instance, reported as `id`.
+    ///
+    /// @throws IllegalArgumentException when `id` is out of range
+    public Instance withId(int id) {
+        return new Instance(mesh, transform, id, mask);
+    }
 }

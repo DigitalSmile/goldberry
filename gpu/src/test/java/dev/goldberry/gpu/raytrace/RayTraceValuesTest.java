@@ -2,6 +2,8 @@ package dev.goldberry.gpu.raytrace;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -170,6 +172,18 @@ class RayTraceValuesTest {
         }
 
         @Test
+        @DisplayName("move and renumber, keeping their mesh and mask")
+        void withers() {
+            var cube = TestScenes.cube();
+            var instance = new Instance(cube, Transform.IDENTITY, 3, 0x0F);
+            var moved = Transform.translation(new Vector3(1, 2, 3));
+            assertEquals(new Instance(cube, moved, 3, 0x0F), instance.withTransform(moved));
+            assertEquals(new Instance(cube, Transform.IDENTITY, 9, 0x0F), instance.withId(9));
+            assertSame(cube, instance.withTransform(moved).withId(9).mesh(), "the same mesh, so an update places it");
+            assertThrows(IllegalArgumentException.class, () -> instance.withId(Instance.MAX_ID + 1));
+        }
+
+        @Test
         @DisplayName("builds each mesh once however many instances place it")
         void sharesMeshes() {
             var scene = TestScenes.cubesOnGround();
@@ -324,9 +338,11 @@ class RayTraceValuesTest {
             records.putInt(20, 0);
             var hits = Hits.of(2, 1, records);
             var mask = hits.shadowMask();
-            assertEquals(2, mask.capacity());
-            assertEquals(0, mask.get(0), "in shadow");
-            assertEquals((byte) 0xFF, mask.get(1), "a miss is lit");
+            assertEquals(2, mask.pixels().capacity());
+            assertEquals(ShadowMask.SHADOWED, mask.pixels().get(0), "in shadow");
+            assertEquals(ShadowMask.LIT, mask.pixels().get(1), "a miss is lit");
+            assertFalse(mask.isLit(0, 0));
+            assertTrue(mask.isLit(1, 0));
             var distances = hits.distances(100).order(ByteOrder.LITTLE_ENDIAN);
             assertEquals(2.5f, distances.getFloat(0));
             assertEquals(100, distances.getFloat(4));
@@ -337,6 +353,48 @@ class RayTraceValuesTest {
         void refuses() {
             assertThrows(IllegalArgumentException.class, () -> Hits.of(3, 1, twoPixels()));
             assertThrows(IllegalArgumentException.class, () -> Hits.of(0, 1, ByteBuffer.allocate(0)));
+        }
+    }
+
+    @Nested
+    @DisplayName("a shadow mask")
+    class ShadowMasks {
+
+        @Test
+        @DisplayName("reads a byte a pixel, rows from the top, anything but 0 lit")
+        void reads() {
+            var pixels = ByteBuffer.wrap(new byte[] {ShadowMask.LIT, 0, 0, ShadowMask.LIT, 1, 0});
+            var mask = ShadowMask.of(3, 2, pixels);
+            assertEquals(3, mask.width());
+            assertEquals(2, mask.height());
+            assertTrue(mask.isLit(0, 0));
+            assertFalse(mask.isLit(1, 0));
+            assertTrue(mask.isLit(0, 1));
+            assertTrue(mask.isLit(1, 1));
+            assertFalse(mask.isLit(2, 1));
+            assertEquals(3, mask.shadowedCount());
+            assertThrows(IndexOutOfBoundsException.class, () -> mask.isLit(3, 0));
+            assertThrows(IndexOutOfBoundsException.class, () -> mask.isLit(0, 2));
+            assertThrows(ReadOnlyBufferException.class, () -> mask.pixels().put(0, (byte) 0));
+            assertTrue(mask.toString().contains("3 in shadow"), mask.toString());
+        }
+
+        @Test
+        @DisplayName("are equal where their pixels are")
+        void equality() {
+            var a = ShadowMask.of(2, 1, ByteBuffer.wrap(new byte[] {0, ShadowMask.LIT}));
+            var b = ShadowMask.of(2, 1, ByteBuffer.wrap(new byte[] {0, ShadowMask.LIT}));
+            assertEquals(a, b);
+            assertEquals(a.hashCode(), b.hashCode());
+            assertNotEquals(a, ShadowMask.of(1, 2, ByteBuffer.wrap(new byte[] {0, ShadowMask.LIT})));
+            assertNotEquals(a, ShadowMask.of(2, 1, ByteBuffer.wrap(new byte[] {0, 0})));
+        }
+
+        @Test
+        @DisplayName("refuse pixels that are not the picture's size")
+        void refuses() {
+            assertThrows(IllegalArgumentException.class, () -> ShadowMask.of(2, 2, ByteBuffer.allocate(3)));
+            assertThrows(IllegalArgumentException.class, () -> ShadowMask.of(0, 1, ByteBuffer.allocate(0)));
         }
     }
 

@@ -8,7 +8,10 @@ import static java.lang.foreign.ValueLayout.JAVA_LONG;
 import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
 import java.util.ArrayList;
+import java.util.IdentityHashMap;
 import java.util.List;
+
+import org.jspecify.annotations.Nullable;
 
 import dev.goldberry.gpu.raytrace.SceneGeometry;
 import dev.goldberry.gpu.raytrace.TriangleMesh;
@@ -18,11 +21,16 @@ import dev.goldberry.natives.vulkan.VkStructs;
 import dev.goldberry.natives.vulkan.VulkanException;
 
 /// A [SceneGeometry] built for tracing: a bottom-level acceleration structure
-/// for each distinct mesh, and one top-level structure over the instances.
+/// for each distinct mesh, compacted, and one top-level structure over the
+/// instances.
 ///
-/// Built in one submission: every bottom level at once, each with scratch of
-/// its own, a barrier, then the top level. The geometry and scratch are freed
-/// when the build is done; what stays is the structures' own storage.
+/// Built in two submissions. The first builds every bottom level at once,
+/// each with scratch of its own, and asks how small each compacts to. The
+/// second copies each into a structure of that size, then builds the top
+/// level over the copies. The geometry, the scratch and the structures as
+/// first built are freed when that is done; what stays is the compacted
+/// structures, and what the top level is rebuilt from: its instance records,
+/// its scratch and its storage, each grown when an [#update] needs more.
 public final class AccelerationScene implements AutoCloseable {
 
     private static final int INPUT_USAGE =
@@ -33,21 +41,39 @@ public final class AccelerationScene implements AutoCloseable {
     private static final int SCRATCH_USAGE =
             VkConstants.VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VkConstants.VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
 
+    /// How a mesh's structure is built: for tracing speed, and to be compacted.
+    static final int BOTTOM_FLAGS = VkConstants.VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_TRACE_BIT_KHR
+            | VkConstants.VK_BUILD_ACCELERATION_STRUCTURE_ALLOW_COMPACTION_BIT_KHR;
+
+    /// How the structure over the instances is built: for tracing speed. It is
+    /// rebuilt rather than updated, so it allows neither.
+    static final int TOP_FLAGS = VkConstants.VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_TRACE_BIT_KHR;
+
     private final RayDevice device;
-    private final SceneGeometry geometry;
+    private final List<TriangleMesh> meshes;
     private final List<Structure> bottom;
-    private final Structure top;
+    private final long bottomBuiltBytes;
+    private SceneGeometry geometry;
+    private @Nullable Structure top;
+    private @Nullable DeviceBuffer instances;
+    private @Nullable DeviceBuffer topScratch;
     private boolean closed;
 
-    private AccelerationScene(RayDevice device, SceneGeometry geometry, List<Structure> bottom, Structure top) {
+    private AccelerationScene(
+            RayDevice device,
+            SceneGeometry geometry,
+            List<TriangleMesh> meshes,
+            List<Structure> bottom,
+            long bottomBuiltBytes) {
         this.device = device;
         this.geometry = geometry;
+        this.meshes = meshes;
         this.bottom = bottom;
-        this.top = top;
+        this.bottomBuiltBytes = bottomBuiltBytes;
     }
 
-    /// One acceleration structure and the buffer it lives in.
-    private record Structure(long handle, DeviceBuffer storage, long address) {}
+    /// One acceleration structure, the buffer it lives in, and its size.
+    private record Structure(long handle, DeviceBuffer storage, long address, long size) {}
 
     /// What one build is handed: its geometry, its build info, the primitive
     /// count and the structure's sizes.
@@ -59,65 +85,159 @@ public final class AccelerationScene implements AutoCloseable {
     static AccelerationScene build(RayDevice device, Commands commands, SceneGeometry geometry) {
         var meshes = geometry.meshes();
         var inputs = new ArrayList<DeviceBuffer>();
-        var bottom = new ArrayList<Structure>();
-        Structure top = null;
+        var built = new ArrayList<Structure>();
+        var compacted = new ArrayList<Structure>();
+        AccelerationScene scene = null;
         try (var arena = Arena.ofConfined()) {
-            var bottomBuilds = new ArrayList<Build>();
+            var builds = new ArrayList<Build>();
             for (var mesh : meshes) {
-                bottomBuilds.add(bottomLevel(device, arena, mesh, inputs));
+                builds.add(bottomLevel(device, arena, mesh, inputs));
             }
-            for (var build : bottomBuilds) {
-                bottom.add(structure(device, build, VkConstants.VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_KHR));
+            for (var build : builds) {
+                built.add(structure(device, build.size(), VkConstants.VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_KHR));
             }
-            for (var i = 0; i < bottomBuilds.size(); i++) {
-                prepare(device, bottomBuilds.get(i), bottom.get(i), inputs);
+            for (var i = 0; i < builds.size(); i++) {
+                prepare(device, builds.get(i), built.get(i), scratch(device, builds.get(i), inputs));
             }
 
-            var indices = geometry.meshIndices();
-            var instances = DeviceBuffer.create(
-                    device,
-                    InstanceRecords.SIZE * geometry.instances().size(),
-                    INPUT_USAGE,
-                    DeviceBuffer.Memory.HOST_VISIBLE);
-            inputs.add(instances);
-            for (var i = 0; i < indices.length; i++) {
-                InstanceRecords.write(
-                        instances.mapped(),
-                        i,
-                        geometry.instances().get(i),
-                        bottom.get(indices[i]).address());
+            long[] sizes;
+            try (var query = CompactedSizes.open(device, builds.size())) {
+                var handles = built.stream().map(Structure::handle).toList();
+                commands.run(buffer -> {
+                    query.reset(buffer);
+                    buildAll(device, arena, buffer, builds);
+                    Barriers.betweenBuilds(device, buffer);
+                    query.write(arena, buffer, handles);
+                });
+                sizes = query.read();
             }
-            var topBuild =
-                    topLevel(device, arena, instances, geometry.instances().size());
-            top = structure(device, topBuild, VkConstants.VK_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_KHR);
-            prepare(device, topBuild, top, inputs);
-            var topBuilt = top;
-
+            for (var size : sizes) {
+                compacted.add(structure(device, size, VkConstants.VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_KHR));
+            }
+            var builtBytes = built.stream().mapToLong(Structure::size).sum();
+            scene = new AccelerationScene(device, geometry, meshes, List.copyOf(compacted), builtBytes);
+            var topBuild = scene.placeInstances(arena, geometry);
             commands.run(buffer -> {
-                buildAll(device, arena, buffer, bottomBuilds);
+                for (var i = 0; i < built.size(); i++) {
+                    compact(device, arena, buffer, built.get(i), compacted.get(i));
+                }
                 Barriers.betweenBuilds(device, buffer);
                 buildAll(device, arena, buffer, List.of(topBuild));
                 Barriers.afterBuilds(device, buffer);
             });
-            return new AccelerationScene(device, geometry, List.copyOf(bottom), topBuilt);
+            return scene;
         } catch (RuntimeException e) {
-            if (top != null) {
-                destroy(device, top);
+            if (scene != null) {
+                scene.close();
+            } else {
+                compacted.forEach(structure -> destroy(device, structure));
             }
-            bottom.forEach(structure -> destroy(device, structure));
             throw e;
         } finally {
+            built.forEach(structure -> destroy(device, structure));
             inputs.forEach(DeviceBuffer::close);
         }
+    }
+
+    /// Rebuilds the top level over `geometry`'s instances, in place where its
+    /// storage holds them; the meshes' structures stay. A refused rebuild
+    /// closes the scene, whose top level is then not whole.
+    ///
+    /// @throws IllegalArgumentException when `geometry` places a mesh the
+    ///                                  scene was not built with
+    /// @throws VulkanException          when the driver refuses
+    void update(Commands commands, SceneGeometry geometry) {
+        requireOpen();
+        try (var arena = Arena.ofConfined()) {
+            var topBuild = placeInstances(arena, geometry);
+            commands.run(buffer -> {
+                buildAll(device, arena, buffer, List.of(topBuild));
+                Barriers.afterBuilds(device, buffer);
+            });
+        } catch (VulkanException e) {
+            close();
+            throw e;
+        }
+        this.geometry = geometry;
+    }
+
+    /// The index in `meshes` of each of `geometry`'s instances' mesh, by
+    /// identity.
+    ///
+    /// @throws IllegalArgumentException when one is not among them
+    static int[] meshIndices(List<TriangleMesh> meshes, SceneGeometry geometry) {
+        var byMesh = new IdentityHashMap<TriangleMesh, Integer>();
+        for (var i = 0; i < meshes.size(); i++) {
+            byMesh.put(meshes.get(i), i);
+        }
+        var instances = geometry.instances();
+        var indices = new int[instances.size()];
+        for (var i = 0; i < indices.length; i++) {
+            var index = byMesh.get(instances.get(i).mesh());
+            if (index == null) {
+                throw new IllegalArgumentException(
+                        "instance " + instances.get(i).id() + " places a mesh of "
+                                + instances.get(i).mesh().triangleCount()
+                                + " triangles the scene was not built with: build a new scene for it");
+            }
+            indices[i] = index;
+        }
+        return indices;
+    }
+
+    /// Writes `geometry`'s instance records, grows the top level's buffers to
+    /// hold them, and returns its build, pointed at its storage and scratch.
+    private Build placeInstances(Arena arena, SceneGeometry geometry) {
+        var indices = meshIndices(meshes, geometry);
+        var count = indices.length;
+        var records = InstanceRecords.SIZE * count;
+        if (instances == null || instances.size() < records) {
+            var grown = Math.max(records, instances == null ? 0 : instances.size() * 2);
+            if (instances != null) {
+                instances.close();
+                instances = null;
+            }
+            instances = DeviceBuffer.create(device, grown, INPUT_USAGE, DeviceBuffer.Memory.HOST_VISIBLE);
+        }
+        var placed = instances;
+        for (var i = 0; i < count; i++) {
+            InstanceRecords.write(
+                    placed.mapped(),
+                    i,
+                    geometry.instances().get(i),
+                    bottom.get(indices[i]).address());
+        }
+        var build = topLevel(device, arena, placed, count);
+        if (top == null || top.size() < build.size()) {
+            if (top != null) {
+                destroy(device, top);
+                top = null;
+            }
+            top = structure(device, build.size(), VkConstants.VK_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_KHR);
+        }
+        var alignment = device.limits().scratchAlignment();
+        if (topScratch == null || topScratch.size() < scratchBytes(build, alignment)) {
+            if (topScratch != null) {
+                topScratch.close();
+                topScratch = null;
+            }
+            topScratch = DeviceBuffer.create(
+                    device, scratchBytes(build, alignment), SCRATCH_USAGE, DeviceBuffer.Memory.DEVICE_LOCAL);
+        }
+        prepare(device, build, top, topScratch);
+        return build;
     }
 
     /// The top-level structure, for the descriptor that binds it.
     long topLevel() {
         requireOpen();
+        if (top == null) {
+            throw new IllegalStateException("this scene has no top level");
+        }
         return top.handle();
     }
 
-    /// What it was built from.
+    /// What it was built from, or last updated to.
     public SceneGeometry geometry() {
         return geometry;
     }
@@ -125,6 +245,22 @@ public final class AccelerationScene implements AutoCloseable {
     /// How many bottom-level structures it built: one a distinct mesh.
     public int bottomLevelCount() {
         return bottom.size();
+    }
+
+    /// How many bytes the meshes' structures took as first built, before they
+    /// were compacted.
+    public long bottomBytesBuilt() {
+        return bottomBuiltBytes;
+    }
+
+    /// How many bytes the meshes' compacted structures take.
+    public long bottomBytes() {
+        return bottom.stream().mapToLong(Structure::size).sum();
+    }
+
+    /// How many bytes every structure takes: the meshes' and the instances'.
+    public long structureBytes() {
+        return bottomBytes() + (top == null ? 0 : top.size());
     }
 
     /// Whether it has been closed.
@@ -138,15 +274,22 @@ public final class AccelerationScene implements AutoCloseable {
         }
     }
 
-    /// Frees every structure. No trace may still be running on it, and none
-    /// is: every trace is waited for. Idempotent.
+    /// Frees every structure and the top level's buffers. No trace may still
+    /// be running on it, and none is: every trace is waited for. Idempotent.
     @Override
     public void close() {
         if (closed) {
             return;
         }
         closed = true;
-        destroy(device, top);
+        if (top != null) {
+            destroy(device, top);
+        }
+        for (var buffer : new @Nullable DeviceBuffer[] {instances, topScratch}) {
+            if (buffer != null) {
+                buffer.close();
+            }
+        }
         bottom.forEach(structure -> destroy(device, structure));
     }
 
@@ -240,7 +383,7 @@ public final class AccelerationScene implements AutoCloseable {
         info.set(
                 JAVA_INT,
                 VkStructs.VkAccelerationStructureBuildGeometryInfoKHR.flags,
-                VkConstants.VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_TRACE_BIT_KHR);
+                type == VkConstants.VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_KHR ? BOTTOM_FLAGS : TOP_FLAGS);
         info.set(
                 JAVA_INT,
                 VkStructs.VkAccelerationStructureBuildGeometryInfoKHR.mode,
@@ -268,16 +411,16 @@ public final class AccelerationScene implements AutoCloseable {
                 sizes.get(JAVA_LONG, VkStructs.VkAccelerationStructureBuildSizesInfoKHR.buildScratchSize));
     }
 
-    /// The structure `build` builds, with its storage.
-    private static Structure structure(RayDevice device, Build build, int type) {
-        var storage = DeviceBuffer.create(device, build.size(), STORAGE_USAGE, DeviceBuffer.Memory.DEVICE_LOCAL);
+    /// A structure of `size` bytes, with its storage.
+    private static Structure structure(RayDevice device, long size, int type) {
+        var storage = DeviceBuffer.create(device, size, STORAGE_USAGE, DeviceBuffer.Memory.DEVICE_LOCAL);
         try (var arena = Arena.ofConfined()) {
             var create = Structs.allocate(
                     arena,
                     VkStructs.VkAccelerationStructureCreateInfoKHR.LAYOUT,
                     VkConstants.VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_CREATE_INFO_KHR);
             create.set(JAVA_LONG, VkStructs.VkAccelerationStructureCreateInfoKHR.buffer, storage.handle());
-            create.set(JAVA_LONG, VkStructs.VkAccelerationStructureCreateInfoKHR.size, build.size());
+            create.set(JAVA_LONG, VkStructs.VkAccelerationStructureCreateInfoKHR.size, size);
             create.set(JAVA_INT, VkStructs.VkAccelerationStructureCreateInfoKHR.type, type);
             var out = arena.allocate(JAVA_LONG);
             var result = device.rayTracing()
@@ -297,17 +440,29 @@ public final class AccelerationScene implements AutoCloseable {
             var address = device.rayTracing()
                     .getAccelerationStructureDeviceAddressKHR()
                     .call(device.handle(), addressInfo);
-            return new Structure(handle, storage, address);
+            return new Structure(handle, storage, address, size);
         }
     }
 
-    /// Points `build` at `structure` and at scratch memory of its own, which
-    /// joins `inputs` to be freed after the build.
-    private static void prepare(RayDevice device, Build build, Structure structure, List<DeviceBuffer> inputs) {
-        var alignment = device.limits().scratchAlignment();
+    /// How much scratch `build` takes, with room to start it on `alignment`.
+    private static long scratchBytes(Build build, long alignment) {
+        return Math.max(build.scratch(), 1) + alignment;
+    }
+
+    /// Scratch memory for `build` alone, which joins `inputs` to be freed
+    /// after the build.
+    private static DeviceBuffer scratch(RayDevice device, Build build, List<DeviceBuffer> inputs) {
         var scratch = DeviceBuffer.create(
-                device, Math.max(build.scratch(), 1) + alignment, SCRATCH_USAGE, DeviceBuffer.Memory.DEVICE_LOCAL);
+                device,
+                scratchBytes(build, device.limits().scratchAlignment()),
+                SCRATCH_USAGE,
+                DeviceBuffer.Memory.DEVICE_LOCAL);
         inputs.add(scratch);
+        return scratch;
+    }
+
+    /// Points `build` at `structure` and at `scratch`.
+    private static void prepare(RayDevice device, Build build, Structure structure, DeviceBuffer scratch) {
         build.info()
                 .set(
                         JAVA_LONG,
@@ -317,7 +472,22 @@ public final class AccelerationScene implements AutoCloseable {
                 .set(
                         JAVA_LONG,
                         VkStructs.VkAccelerationStructureBuildGeometryInfoKHR.scratchData,
-                        DeviceBuffer.align(scratch.address(), alignment));
+                        DeviceBuffer.align(scratch.address(), device.limits().scratchAlignment()));
+    }
+
+    /// Records the copy of `from` into `to`, compacted.
+    private static void compact(RayDevice device, Arena arena, MemorySegment commands, Structure from, Structure to) {
+        var copy = Structs.allocate(
+                arena,
+                VkStructs.VkCopyAccelerationStructureInfoKHR.LAYOUT,
+                VkConstants.VK_STRUCTURE_TYPE_COPY_ACCELERATION_STRUCTURE_INFO_KHR);
+        copy.set(JAVA_LONG, VkStructs.VkCopyAccelerationStructureInfoKHR.src, from.handle());
+        copy.set(JAVA_LONG, VkStructs.VkCopyAccelerationStructureInfoKHR.dst, to.handle());
+        copy.set(
+                JAVA_INT,
+                VkStructs.VkCopyAccelerationStructureInfoKHR.mode,
+                VkConstants.VK_COPY_ACCELERATION_STRUCTURE_MODE_COMPACT_KHR);
+        device.rayTracing().cmdCopyAccelerationStructureKHR().call(commands, copy);
     }
 
     /// Records one `vkCmdBuildAccelerationStructuresKHR` of every build.
