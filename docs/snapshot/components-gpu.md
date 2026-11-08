@@ -297,35 +297,44 @@ flags are listed under [Measuring](../performance/measuring.md#the-flags).
 
 ## Ray tracing
 
-`dev.goldberry.gpu.raytrace` traces rays through a scene of triangle meshes
-in hardware, and hands back what each pixel's ray hit and whether the light
-reaches it. The windowing layer's GPU has no ray tracing, so the tracer runs
-on a Vulkan device of its own beside it, and its answers come back through
-memory for a renderer to upload into a texture or a buffer of the canvas's
-device.
+`dev.goldberry.gpu.raytrace` traces rays through a scene of triangle meshes,
+and hands back what each pixel's ray hit and whether the light reaches it. It
+traces in one of two tiers, behind one API that answers alike:
 
-**Asking first.** `RayTracer.availability()` is `RayTracing.Hardware`, naming
-the device, or `RayTracing.Unavailable` with a sentence that says why — no
-Vulkan, or each device and what it lacks. A settings screen shows that
-sentence beside its switch. `RayTracer.open(RayTracingMode.AUTO)` is empty
-where there is no ray tracing; `HARDWARE` throws with the same sentence; `OFF`
-opens nothing. The system property `goldberry.raytracing=off` turns it off for
-the process, and `goldberry.raytracing.device=<part of a name>` picks a device
-where there are several.
+- **In software**, on the canvas's own device, any GPU it has: the scene is a
+  hierarchy of boxes built on the CPU, and compute shaders walk it.
+- **In hardware**, on a GPU whose driver has ray tracing. The windowing
+  layer's GPU has none, so this tier runs on a Vulkan device of its own beside
+  it, and its answers come back through memory for a renderer to upload into a
+  texture or a buffer of the canvas's device.
+
+**Asking first.** `RayTracer.open(device, mode)` opens a tracer on the
+canvas's device, which a renderer has from `init`. `RayTracingMode.SOFTWARE`
+traces in software; `HARDWARE` in hardware, or throws with a sentence that
+says why there is none — no Vulkan, or each device and what it lacks; `AUTO`
+in hardware where its device is a GPU, and in software otherwise; `OFF` opens
+nothing. `RayTracer.availability(device, mode)` answers which without opening
+anything: `RayTracing.Software` or `RayTracing.Hardware`, each naming its
+device, or `RayTracing.Unavailable` with the sentence. A settings screen shows
+that sentence beside its switch, and `tracer.device()` says which tier a
+tracer got. `RayTracer.availability()` is the hardware tier's answer alone,
+for a screen with no device to hand. The system property
+`goldberry.raytracing=off`, `software` or `hardware` overrides what an
+application asks, for the process, and `goldberry.raytracing.device=<part of a
+name>` picks the hardware tier's device where there are several.
 
 **The scene.** A `TriangleMesh` is positions and indices. An `Instance` places
 a mesh with a `Transform` and gives it an id, which is what a hit reports, and
 a mask. `SceneGeometry.of(instances…)` is the scene, and `tracer.build(scene)`
-builds it into a `RayScene`: one acceleration structure for each distinct
-mesh, shared by every instance of it and compacted once built, and one over
-the instances. `scene.update(geometry)` places other instances of the same
+builds it into a `RayScene`: one structure for each distinct mesh, shared by
+every instance of it, and one over the instances. `scene.update(geometry)` places other instances of the same
 meshes — moved, renumbered, more or fewer — and rebuilds that last structure
 alone, which is what a frame of a moving scene costs. A mesh the scene was not
 built with, or one whose triangles changed, is a new scene.
 `scene.structureBytes()` is the GPU memory it holds.
 
 ```java
-try (var tracer = RayTracer.open(RayTracingMode.AUTO).orElseThrow()) {
+try (var tracer = RayTracer.open(device, RayTracingMode.AUTO).orElseThrow()) {
     var cube = TriangleMesh.of(positions, indices);
     var ground = Instance.of(plane, Transform.IDENTITY, 1);
     var box = Instance.of(cube, Transform.translation(new Vector3(0, 0.5f, 0)), 2);
@@ -379,20 +388,38 @@ var lighting = tracer.traceLighting(scene, LightingRequest.of(request).withOcclu
 frame.copyPass(pass -> pass.upload(shadingTexture, lighting.shading()));
 ```
 
-**What it costs.** A trace returns when the GPU is done, with its output
-copied back: the rays, then the copy. `traceShadows` copies a byte a pixel,
-`traceLighting` eight and `trace` 24, so a renderer that wants the light alone
-asks for the mask. The lighting traces up to four rays a pixel and its
-occlusion rays besides.
-Tracing a smaller picture than the canvas and sampling it scaled is the usual
-way to keep that within a frame.
+**The lighting into textures.** A renderer that only samples the lighting
+can leave it on the GPU. `LightingTargets.create(device, width, height)` makes
+the two textures, sampled and written by compute, and
+`tracer.traceLighting(frame, scene, request, targets)` records the lighting
+into them in the frame, before the passes that sample them. In software the
+shaders write the textures where they are, and nothing crosses to the CPU; in
+hardware the tracer traces at once and the frame uploads the planes. Either
+way the textures hold what `traceLighting(scene, request)` returns.
 
-**Where it runs.** Linux and Windows, on a GPU whose Vulkan driver has the
-ray-tracing pipeline extensions — NVIDIA from the GTX 16 series, AMD from
-RDNA 2, Intel Arc — and on the CPU through Mesa's software Vulkan where it
-runs at 256-bit vectors, as x86 machines do. An arm64 machine's software
-Vulkan runs at 128 bits, crashes building a scene there, and is refused, so
-`availability()` says so. macOS has none.
+```java
+targets = LightingTargets.create(device, size.width(), size.height());
+tracer.traceLighting(frame, scene, LightingRequest.of(request), targets);
+```
+
+**What it costs.** A trace that returns its answers returns when the GPU is
+done, with its output copied back: the rays, then the copy. `traceShadows`
+copies a byte a pixel, `traceLighting` eight and `trace` 24, so a renderer
+that wants the light alone asks for the mask, and one that samples it traces
+into textures. The lighting traces up to four rays a pixel and its occlusion
+rays besides. The software tier walks its boxes in compute shaders, which on
+a GPU with ray-tracing hardware is slower than the hardware tier and on one
+without is not far from it. Tracing a smaller picture than the canvas and
+sampling it scaled is the usual way to keep either within a frame.
+
+**Where it runs.** The software tier runs wherever a `canvas3d` has a GPU:
+Metal, Direct3D 12 and Vulkan. The hardware tier runs on Linux and Windows, on
+a GPU whose Vulkan driver has the ray-tracing pipeline extensions — NVIDIA
+from the GTX 16 series, AMD from RDNA 2, Intel Arc — whichever API the window
+draws with, and on the CPU through Mesa's software Vulkan where it runs at
+256-bit vectors, as x86 machines do. An arm64 machine's software Vulkan runs at
+128 bits, crashes building a scene there, and is refused, so `availability()`
+says so. macOS has no hardware tier.
 
 ## Render scale and upscaling
 

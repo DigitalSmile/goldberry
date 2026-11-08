@@ -168,6 +168,17 @@ Everything below is measured against 2026.2 (tag commit d3eacfdc).
   `Canvas3dTarget.colour()` is at the size the canvas draws at, which is its
   box's only at the default scale of 1.
   <!-- ADR-0671 -->
+- `RayTracer.device()` answers `RayTracing.Available`, a sealed interface of
+  `RayTracing.Hardware` and the new `RayTracing.Software`, instead of
+  `RayTracing.Hardware`: code that read `device()` through it compiles
+  unchanged, and code that held the answer in a `RayTracing.Hardware` casts or
+  matches it. `RayTracing.isAvailable()` is true for either tier.
+  `RayTracingMode` has a new constant, `SOFTWARE`, so an exhaustive `switch`
+  over it gains a case, and `RayTracer.open(RayTracingMode.SOFTWARE)` is
+  refused: the software tier traces on a device, which
+  `RayTracer.open(device, mode)` takes. `goldberry.raytracing=software` is a
+  value the property takes, where it threw before.
+  <!-- ADR-0674 -->
 
 #### Markup
 

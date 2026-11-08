@@ -1,0 +1,1257 @@
+#pragma clang diagnostic ignored "-Wmissing-prototypes"
+#pragma clang diagnostic ignored "-Wmissing-braces"
+
+#include <metal_stdlib>
+#include <simd/simd.h>
+
+using namespace metal;
+
+template<typename T, size_t Num>
+struct spvUnsafeArray
+{
+    T elements[Num ? Num : 1];
+    
+    thread T& operator [] (size_t pos) thread
+    {
+        return elements[pos];
+    }
+    constexpr const thread T& operator [] (size_t pos) const thread
+    {
+        return elements[pos];
+    }
+    
+    device T& operator [] (size_t pos) device
+    {
+        return elements[pos];
+    }
+    constexpr const device T& operator [] (size_t pos) const device
+    {
+        return elements[pos];
+    }
+    
+    constexpr const constant T& operator [] (size_t pos) const constant
+    {
+        return elements[pos];
+    }
+    
+    threadgroup T& operator [] (size_t pos) threadgroup
+    {
+        return elements[pos];
+    }
+    constexpr const threadgroup T& operator [] (size_t pos) const threadgroup
+    {
+        return elements[pos];
+    }
+};
+
+struct type_Rays
+{
+    float4 origin;
+    float4 forward;
+    float4 right;
+    float4 up;
+    float4 towardLight;
+    uint width;
+    uint height;
+    float tMax;
+    float shadowBias;
+    uint _output;
+    uint occlusionRays;
+    float occlusionRadius;
+    uint reflections;
+};
+
+struct type_StructuredBuffer_v4float
+{
+    float4 _m0[1];
+};
+
+struct type_Words
+{
+    uint wordsPerRow;
+    uint words;
+    uint2 padding;
+};
+
+struct type_RWByteAddressBuffer
+{
+    uint _m0[1];
+};
+
+constant bool _76 = {};
+
+kernel void main0(constant type_Rays& Rays [[buffer(0)]], constant type_Words& Words [[buffer(1)]], device type_StructuredBuffer_v4float& topNodes [[buffer(2)]], device type_StructuredBuffer_v4float& instances [[buffer(3)]], device type_StructuredBuffer_v4float& bottomNodes [[buffer(4)]], device type_StructuredBuffer_v4float& triangles [[buffer(5)]], device type_RWByteAddressBuffer& written [[buffer(7)]], uint3 gl_GlobalInvocationID [[thread_position_in_grid]])
+{
+    do
+    {
+        uint _98 = (gl_GlobalInvocationID.y * Words.wordsPerRow) + gl_GlobalInvocationID.x;
+        if (_98 >= Words.words)
+        {
+            break;
+        }
+        uint _108 = Rays.width * Rays.height;
+        uint _115;
+        _115 = 0u;
+        spvUnsafeArray<uint, 48> _82;
+        spvUnsafeArray<float, 48> _83;
+        spvUnsafeArray<uint, 48> _84;
+        spvUnsafeArray<float, 48> _85;
+        spvUnsafeArray<uint, 48> _86;
+        spvUnsafeArray<float, 48> _87;
+        spvUnsafeArray<uint, 48> _88;
+        spvUnsafeArray<float, 48> _89;
+        bool _111;
+        bool _114;
+        uint _116;
+        bool _110;
+        bool _113;
+        for (uint _117 = 0u; _117 < 4u; _110 = _111, _113 = _114, _115 = _116, _117++)
+        {
+            uint _123 = (_98 * 4u) + _117;
+            bool _1241;
+            if (_123 < _108)
+            {
+                float2 _137 = (((float2(uint2(_123 % Rays.width, _123 / Rays.width)) + float2(0.5)) / float2(float(Rays.width), float(Rays.height))) * 2.0) - float2(1.0);
+                float3 _156 = fast::normalize((Rays.forward.xyz + (Rays.right.xyz * _137.x)) - (Rays.up.xyz * _137.y));
+                uint _678;
+                float _679;
+                do
+                {
+                    bool _665;
+                    float _666;
+                    uint _667;
+                    do
+                    {
+                        float _163 = _156.x;
+                        float _171;
+                        if (abs(_163) < 9.9999996826552253889678874634872e-21)
+                        {
+                            _171 = (_163 < 0.0) ? (-9.9999996826552253889678874634872e-21) : 9.9999996826552253889678874634872e-21;
+                        }
+                        else
+                        {
+                            _171 = _163;
+                        }
+                        float _172 = _156.y;
+                        float _180;
+                        if (abs(_172) < 9.9999996826552253889678874634872e-21)
+                        {
+                            _180 = (_172 < 0.0) ? (-9.9999996826552253889678874634872e-21) : 9.9999996826552253889678874634872e-21;
+                        }
+                        else
+                        {
+                            _180 = _172;
+                        }
+                        float _181 = _156.z;
+                        float _189;
+                        if (abs(_181) < 9.9999996826552253889678874634872e-21)
+                        {
+                            _189 = (_181 < 0.0) ? (-9.9999996826552253889678874634872e-21) : 9.9999996826552253889678874634872e-21;
+                        }
+                        else
+                        {
+                            _189 = _181;
+                        }
+                        float3 _191 = float3(1.0) / float3(_171, _180, _189);
+                        float3 _199 = (topNodes._m0[0u].xyz - Rays.origin.xyz) * _191;
+                        float3 _201 = (topNodes._m0[1u].xyz - Rays.origin.xyz) * _191;
+                        float3 _202 = precise::min(_199, _201);
+                        float3 _203 = precise::max(_199, _201);
+                        float _209 = precise::max(precise::max(precise::max(_202.x, _202.y), _202.z), 0.0);
+                        if (((_209 <= precise::min(precise::min(precise::min(_203.x, _203.y), _203.z), Rays.tMax)) ? _209 : 3.4028234663852885981170418348452e+38) == 3.4028234663852885981170418348452e+38)
+                        {
+                            _665 = false;
+                            _666 = Rays.tMax;
+                            _667 = 0u;
+                            break;
+                        }
+                        bool _223;
+                        uint _226;
+                        uint _228;
+                        float _230;
+                        uint _232;
+                        bool _222 = false;
+                        uint _225 = 0u;
+                        uint _227 = 0u;
+                        float _229 = Rays.tMax;
+                        uint _231 = 0u;
+                        for (;;)
+                        {
+                            uint _235 = 2u * _231;
+                            uint _242 = as_type<uint>(topNodes._m0[_235].w);
+                            uint _244 = as_type<uint>(topNodes._m0[_235 + 1u].w);
+                            uint _643;
+                            uint _644;
+                            if ((_244 & 2147483648u) != 0u)
+                            {
+                                uint _330 = _244 & 2147483647u;
+                                float _332;
+                                bool _337;
+                                uint _339;
+                                _332 = _229;
+                                _337 = _222;
+                                _339 = _225;
+                                float _333;
+                                bool _338;
+                                uint _340;
+                                for (uint _335 = 0u; _335 < _330; _332 = _333, _335++, _337 = _338, _339 = _340)
+                                {
+                                    uint _344 = _242 + _335;
+                                    do
+                                    {
+                                        uint _347 = 4u * _344;
+                                        uint _350 = _347 + 1u;
+                                        uint _353 = _347 + 2u;
+                                        uint4 _359 = as_type<uint4>(instances._m0[_347 + 3u]);
+                                        if (((_359.z >> 24u) & 255u) == 0u)
+                                        {
+                                            _338 = _337;
+                                            _333 = _332;
+                                            _340 = _339;
+                                            break;
+                                        }
+                                        float3 _378 = float3(dot(instances._m0[_347].xyz, Rays.origin.xyz) + instances._m0[_347].w, dot(instances._m0[_350].xyz, Rays.origin.xyz) + instances._m0[_350].w, dot(instances._m0[_353].xyz, Rays.origin.xyz) + instances._m0[_353].w);
+                                        float _379 = dot(instances._m0[_347].xyz, _156);
+                                        float _380 = dot(instances._m0[_350].xyz, _156);
+                                        float _381 = dot(instances._m0[_353].xyz, _156);
+                                        float3 _382 = float3(_379, _380, _381);
+                                        uint _383 = _359.x;
+                                        bool _640;
+                                        float _641;
+                                        uint _642;
+                                        do
+                                        {
+                                            float _393;
+                                            if (abs(_379) < 9.9999996826552253889678874634872e-21)
+                                            {
+                                                _393 = (_379 < 0.0) ? (-9.9999996826552253889678874634872e-21) : 9.9999996826552253889678874634872e-21;
+                                            }
+                                            else
+                                            {
+                                                _393 = _379;
+                                            }
+                                            float _401;
+                                            if (abs(_380) < 9.9999996826552253889678874634872e-21)
+                                            {
+                                                _401 = (_380 < 0.0) ? (-9.9999996826552253889678874634872e-21) : 9.9999996826552253889678874634872e-21;
+                                            }
+                                            else
+                                            {
+                                                _401 = _380;
+                                            }
+                                            float _409;
+                                            if (abs(_381) < 9.9999996826552253889678874634872e-21)
+                                            {
+                                                _409 = (_381 < 0.0) ? (-9.9999996826552253889678874634872e-21) : 9.9999996826552253889678874634872e-21;
+                                            }
+                                            else
+                                            {
+                                                _409 = _381;
+                                            }
+                                            float3 _411 = float3(1.0) / float3(_393, _401, _409);
+                                            uint _412 = 2u * _383;
+                                            float3 _421 = (bottomNodes._m0[_412].xyz - _378) * _411;
+                                            float3 _423 = (bottomNodes._m0[_412 + 1u].xyz - _378) * _411;
+                                            float3 _424 = precise::min(_421, _423);
+                                            float3 _425 = precise::max(_421, _423);
+                                            float _431 = precise::max(precise::max(precise::max(_424.x, _424.y), _424.z), 0.0);
+                                            if (((_431 <= precise::min(precise::min(precise::min(_425.x, _425.y), _425.z), _332)) ? _431 : 3.4028234663852885981170418348452e+38) == 3.4028234663852885981170418348452e+38)
+                                            {
+                                                _640 = _337;
+                                                _641 = _332;
+                                                _642 = _339;
+                                                break;
+                                            }
+                                            uint _445;
+                                            float _448;
+                                            uint _450;
+                                            bool _452;
+                                            uint _454;
+                                            uint _444 = 0u;
+                                            float _447 = _332;
+                                            uint _449 = _383;
+                                            bool _451 = _337;
+                                            uint _453 = _339;
+                                            for (;;)
+                                            {
+                                                uint _457 = 2u * _449;
+                                                uint _464 = as_type<uint>(bottomNodes._m0[_457].w);
+                                                uint _466 = as_type<uint>(bottomNodes._m0[_457 + 1u].w);
+                                                uint _618;
+                                                uint _619;
+                                                if ((_466 & 2147483648u) != 0u)
+                                                {
+                                                    uint _552 = _466 & 2147483647u;
+                                                    float _554;
+                                                    bool _559;
+                                                    uint _561;
+                                                    _554 = _447;
+                                                    _559 = _451;
+                                                    _561 = _453;
+                                                    float _555;
+                                                    bool _560;
+                                                    uint _562;
+                                                    for (uint _557 = 0u; _557 < _552; _554 = _555, _557++, _559 = _560, _561 = _562)
+                                                    {
+                                                        do
+                                                        {
+                                                            uint _569 = 3u * (_464 + _557);
+                                                            float3 _580 = cross(_382, triangles._m0[_569 + 2u].xyz);
+                                                            float _581 = dot(triangles._m0[_569 + 1u].xyz, _580);
+                                                            if (_581 == 0.0)
+                                                            {
+                                                                _560 = _559;
+                                                                _562 = _561;
+                                                                _555 = _554;
+                                                                break;
+                                                            }
+                                                            float _585 = 1.0 / _581;
+                                                            float3 _587 = _378 - triangles._m0[_569].xyz;
+                                                            float _589 = dot(_587, _580) * _585;
+                                                            bool _594;
+                                                            if ((isunordered(_589, (-9.9999999747524270787835121154785e-07)) || _589 >= (-9.9999999747524270787835121154785e-07)))
+                                                            {
+                                                                _594 = _589 > 1.00000095367431640625;
+                                                            }
+                                                            else
+                                                            {
+                                                                _594 = true;
+                                                            }
+                                                            if (_594)
+                                                            {
+                                                                _560 = _559;
+                                                                _562 = _561;
+                                                                _555 = _554;
+                                                                break;
+                                                            }
+                                                            float3 _597 = cross(_587, triangles._m0[_569 + 1u].xyz);
+                                                            float _599 = dot(_382, _597) * _585;
+                                                            bool _605;
+                                                            if ((isunordered(_599, (-9.9999999747524270787835121154785e-07)) || _599 >= (-9.9999999747524270787835121154785e-07)))
+                                                            {
+                                                                _605 = (_589 + _599) > 1.00000095367431640625;
+                                                            }
+                                                            else
+                                                            {
+                                                                _605 = true;
+                                                            }
+                                                            if (_605)
+                                                            {
+                                                                _560 = _559;
+                                                                _562 = _561;
+                                                                _555 = _554;
+                                                                break;
+                                                            }
+                                                            float _609 = dot(triangles._m0[_569 + 2u].xyz, _597) * _585;
+                                                            bool _614;
+                                                            if (_609 > 0.0)
+                                                            {
+                                                                _614 = _609 < _554;
+                                                            }
+                                                            else
+                                                            {
+                                                                _614 = false;
+                                                            }
+                                                            if (!_614)
+                                                            {
+                                                                _560 = _559;
+                                                                _562 = _561;
+                                                                _555 = _554;
+                                                                break;
+                                                            }
+                                                            _560 = true;
+                                                            _562 = _344;
+                                                            _555 = _609;
+                                                            break;
+                                                        } while(false);
+                                                    }
+                                                    _452 = _559;
+                                                    _454 = _561;
+                                                    _448 = _554;
+                                                    _618 = _444;
+                                                    _619 = 4294967295u;
+                                                }
+                                                else
+                                                {
+                                                    uint _472 = _449 + 1u;
+                                                    uint _473 = 2u * _472;
+                                                    float3 _482 = (bottomNodes._m0[_473].xyz - _378) * _411;
+                                                    float3 _484 = (bottomNodes._m0[_473 + 1u].xyz - _378) * _411;
+                                                    float3 _485 = precise::min(_482, _484);
+                                                    float3 _486 = precise::max(_482, _484);
+                                                    float _492 = precise::max(precise::max(precise::max(_485.x, _485.y), _485.z), 0.0);
+                                                    float _500 = (_492 <= precise::min(precise::min(precise::min(_486.x, _486.y), _486.z), _447)) ? _492 : 3.4028234663852885981170418348452e+38;
+                                                    uint _501 = 2u * _464;
+                                                    float3 _510 = (bottomNodes._m0[_501].xyz - _378) * _411;
+                                                    float3 _512 = (bottomNodes._m0[_501 + 1u].xyz - _378) * _411;
+                                                    float3 _513 = precise::min(_510, _512);
+                                                    float3 _514 = precise::max(_510, _512);
+                                                    float _520 = precise::max(precise::max(precise::max(_513.x, _513.y), _513.z), 0.0);
+                                                    float _528 = (_520 <= precise::min(precise::min(precise::min(_514.x, _514.y), _514.z), _447)) ? _520 : 3.4028234663852885981170418348452e+38;
+                                                    bool _529 = _500 != 3.4028234663852885981170418348452e+38;
+                                                    bool _533;
+                                                    if (_529)
+                                                    {
+                                                        _533 = _528 != 3.4028234663852885981170418348452e+38;
+                                                    }
+                                                    else
+                                                    {
+                                                        _533 = false;
+                                                    }
+                                                    uint _550;
+                                                    uint _551;
+                                                    if (_533)
+                                                    {
+                                                        bool _543 = _500 <= _528;
+                                                        _86[_444] = _543 ? _464 : _472;
+                                                        _87[_444] = _543 ? _528 : _500;
+                                                        _550 = _444 + 1u;
+                                                        _551 = _543 ? _472 : _464;
+                                                    }
+                                                    else
+                                                    {
+                                                        uint _542;
+                                                        if (_529)
+                                                        {
+                                                            _542 = _472;
+                                                        }
+                                                        else
+                                                        {
+                                                            _542 = (_528 != 3.4028234663852885981170418348452e+38) ? _464 : 4294967295u;
+                                                        }
+                                                        _550 = _444;
+                                                        _551 = _542;
+                                                    }
+                                                    _452 = _451;
+                                                    _454 = _453;
+                                                    _448 = _447;
+                                                    _618 = _550;
+                                                    _619 = _551;
+                                                }
+                                                _445 = _618;
+                                                _450 = _619;
+                                                uint _621;
+                                                bool _626;
+                                                uint _623;
+                                                for (;;)
+                                                {
+                                                    _626 = _450 == 4294967295u;
+                                                    bool _630;
+                                                    if (_626)
+                                                    {
+                                                        _630 = _445 > 0u;
+                                                    }
+                                                    else
+                                                    {
+                                                        _630 = false;
+                                                    }
+                                                    if (_630)
+                                                    {
+                                                        _621 = _445 - 1u;
+                                                        if (_87[_621] < _448)
+                                                        {
+                                                            _623 = _86[_621];
+                                                        }
+                                                        else
+                                                        {
+                                                            _623 = _450;
+                                                        }
+                                                        _445 = _621;
+                                                        _450 = _623;
+                                                        continue;
+                                                    }
+                                                    else
+                                                    {
+                                                        break;
+                                                    }
+                                                }
+                                                if (_626)
+                                                {
+                                                    break;
+                                                }
+                                                _444 = _445;
+                                                _447 = _448;
+                                                _449 = _450;
+                                                _451 = _452;
+                                                _453 = _454;
+                                                continue;
+                                            }
+                                            _640 = _452;
+                                            _641 = _448;
+                                            _642 = _454;
+                                            break;
+                                        } while(false);
+                                        _338 = _640;
+                                        _333 = _641;
+                                        _340 = _642;
+                                        break;
+                                    } while(false);
+                                }
+                                _223 = _337;
+                                _230 = _332;
+                                _226 = _339;
+                                _643 = _227;
+                                _644 = 4294967295u;
+                            }
+                            else
+                            {
+                                uint _250 = _231 + 1u;
+                                uint _251 = 2u * _250;
+                                float3 _260 = (topNodes._m0[_251].xyz - Rays.origin.xyz) * _191;
+                                float3 _262 = (topNodes._m0[_251 + 1u].xyz - Rays.origin.xyz) * _191;
+                                float3 _263 = precise::min(_260, _262);
+                                float3 _264 = precise::max(_260, _262);
+                                float _270 = precise::max(precise::max(precise::max(_263.x, _263.y), _263.z), 0.0);
+                                float _278 = (_270 <= precise::min(precise::min(precise::min(_264.x, _264.y), _264.z), _229)) ? _270 : 3.4028234663852885981170418348452e+38;
+                                uint _279 = 2u * _242;
+                                float3 _288 = (topNodes._m0[_279].xyz - Rays.origin.xyz) * _191;
+                                float3 _290 = (topNodes._m0[_279 + 1u].xyz - Rays.origin.xyz) * _191;
+                                float3 _291 = precise::min(_288, _290);
+                                float3 _292 = precise::max(_288, _290);
+                                float _298 = precise::max(precise::max(precise::max(_291.x, _291.y), _291.z), 0.0);
+                                float _306 = (_298 <= precise::min(precise::min(precise::min(_292.x, _292.y), _292.z), _229)) ? _298 : 3.4028234663852885981170418348452e+38;
+                                bool _307 = _278 != 3.4028234663852885981170418348452e+38;
+                                bool _311;
+                                if (_307)
+                                {
+                                    _311 = _306 != 3.4028234663852885981170418348452e+38;
+                                }
+                                else
+                                {
+                                    _311 = false;
+                                }
+                                uint _328;
+                                uint _329;
+                                if (_311)
+                                {
+                                    bool _321 = _278 <= _306;
+                                    _88[_227] = _321 ? _242 : _250;
+                                    _89[_227] = _321 ? _306 : _278;
+                                    _328 = _227 + 1u;
+                                    _329 = _321 ? _250 : _242;
+                                }
+                                else
+                                {
+                                    uint _320;
+                                    if (_307)
+                                    {
+                                        _320 = _250;
+                                    }
+                                    else
+                                    {
+                                        _320 = (_306 != 3.4028234663852885981170418348452e+38) ? _242 : 4294967295u;
+                                    }
+                                    _328 = _227;
+                                    _329 = _320;
+                                }
+                                _223 = _222;
+                                _230 = _229;
+                                _226 = _225;
+                                _643 = _328;
+                                _644 = _329;
+                            }
+                            _228 = _643;
+                            _232 = _644;
+                            uint _646;
+                            bool _651;
+                            uint _648;
+                            for (;;)
+                            {
+                                _651 = _232 == 4294967295u;
+                                bool _655;
+                                if (_651)
+                                {
+                                    _655 = _228 > 0u;
+                                }
+                                else
+                                {
+                                    _655 = false;
+                                }
+                                if (_655)
+                                {
+                                    _646 = _228 - 1u;
+                                    if (_89[_646] < _230)
+                                    {
+                                        _648 = _88[_646];
+                                    }
+                                    else
+                                    {
+                                        _648 = _232;
+                                    }
+                                    _228 = _646;
+                                    _232 = _648;
+                                    continue;
+                                }
+                                else
+                                {
+                                    break;
+                                }
+                            }
+                            if (_651)
+                            {
+                                break;
+                            }
+                            _222 = _223;
+                            _225 = _226;
+                            _227 = _228;
+                            _229 = _230;
+                            _231 = _232;
+                            continue;
+                        }
+                        _665 = _223;
+                        _666 = _230;
+                        _667 = _226;
+                        break;
+                    } while(false);
+                    if (!_665)
+                    {
+                        _678 = 4294967295u;
+                        _679 = 0.0;
+                        break;
+                    }
+                    _678 = as_type<uint4>(instances._m0[(4u * _667) + 3u]).z & 16777215u;
+                    _679 = _666;
+                    break;
+                } while(false);
+                bool _686;
+                if (_678 != 4294967295u)
+                {
+                    _686 = Rays.towardLight.w > 0.5;
+                }
+                else
+                {
+                    _686 = false;
+                }
+                bool _1237;
+                bool _1238;
+                uint _1239;
+                if (_686)
+                {
+                    float3 _690 = Rays.origin.xyz + (_156 * _679);
+                    float _697 = Rays.shadowBias * precise::max(1.0, _679);
+                    bool _1232;
+                    bool _1233;
+                    do
+                    {
+                        float _708;
+                        if (abs(Rays.towardLight.x) < 9.9999996826552253889678874634872e-21)
+                        {
+                            _708 = (Rays.towardLight.x < 0.0) ? (-9.9999996826552253889678874634872e-21) : 9.9999996826552253889678874634872e-21;
+                        }
+                        else
+                        {
+                            _708 = Rays.towardLight.x;
+                        }
+                        float _717;
+                        if (abs(Rays.towardLight.y) < 9.9999996826552253889678874634872e-21)
+                        {
+                            _717 = (Rays.towardLight.y < 0.0) ? (-9.9999996826552253889678874634872e-21) : 9.9999996826552253889678874634872e-21;
+                        }
+                        else
+                        {
+                            _717 = Rays.towardLight.y;
+                        }
+                        float _726;
+                        if (abs(Rays.towardLight.z) < 9.9999996826552253889678874634872e-21)
+                        {
+                            _726 = (Rays.towardLight.z < 0.0) ? (-9.9999996826552253889678874634872e-21) : 9.9999996826552253889678874634872e-21;
+                        }
+                        else
+                        {
+                            _726 = Rays.towardLight.z;
+                        }
+                        float3 _728 = float3(1.0) / float3(_708, _717, _726);
+                        float3 _734 = (topNodes._m0[0u].xyz - _690) * _728;
+                        float3 _736 = (topNodes._m0[1u].xyz - _690) * _728;
+                        float3 _737 = precise::min(_734, _736);
+                        float3 _738 = precise::max(_734, _736);
+                        float _744 = precise::max(precise::max(precise::max(_737.x, _737.y), _737.z), _697);
+                        if (((_744 <= precise::min(precise::min(precise::min(_738.x, _738.y), _738.z), Rays.tMax)) ? _744 : 3.4028234663852885981170418348452e+38) == 3.4028234663852885981170418348452e+38)
+                        {
+                            _1232 = _113;
+                            _1233 = false;
+                            break;
+                        }
+                        bool _758;
+                        bool _761;
+                        bool _763;
+                        uint _765;
+                        float _767;
+                        uint _769;
+                        bool _771;
+                        bool _1228;
+                        bool _1229;
+                        bool _1230;
+                        bool _757 = false;
+                        bool _760 = false;
+                        bool _762 = _113;
+                        uint _764 = 0u;
+                        float _766 = Rays.tMax;
+                        uint _768 = 0u;
+                        bool _770 = _110;
+                        for (;;)
+                        {
+                            uint _774 = 2u * _768;
+                            uint _781 = as_type<uint>(topNodes._m0[_774].w);
+                            uint _783 = as_type<uint>(topNodes._m0[_774 + 1u].w);
+                            uint _1205;
+                            uint _1206;
+                            if ((_783 & 2147483648u) != 0u)
+                            {
+                                uint _869 = _783 & 2147483647u;
+                                bool _872;
+                                float _875;
+                                bool _879;
+                                bool _1199;
+                                bool _1200;
+                                bool _1201;
+                                float _1202;
+                                bool _1203;
+                                bool _871 = _762;
+                                float _874 = _766;
+                                uint _876 = 0u;
+                                bool _878 = _760;
+                                for (;;)
+                                {
+                                    if (_876 < _869)
+                                    {
+                                        bool _1196;
+                                        do
+                                        {
+                                            uint _886 = 4u * (_781 + _876);
+                                            uint _889 = _886 + 1u;
+                                            uint _892 = _886 + 2u;
+                                            uint4 _898 = as_type<uint4>(instances._m0[_886 + 3u]);
+                                            if (((_898.z >> 24u) & 255u) == 0u)
+                                            {
+                                                _872 = _871;
+                                                _879 = _878;
+                                                _875 = _874;
+                                                _1196 = false;
+                                                break;
+                                            }
+                                            float3 _917 = float3(dot(instances._m0[_886].xyz, _690) + instances._m0[_886].w, dot(instances._m0[_889].xyz, _690) + instances._m0[_889].w, dot(instances._m0[_892].xyz, _690) + instances._m0[_892].w);
+                                            float _918 = dot(instances._m0[_886].xyz, Rays.towardLight.xyz);
+                                            float _919 = dot(instances._m0[_889].xyz, Rays.towardLight.xyz);
+                                            float _920 = dot(instances._m0[_892].xyz, Rays.towardLight.xyz);
+                                            float3 _921 = float3(_918, _919, _920);
+                                            uint _922 = _898.x;
+                                            bool _1193;
+                                            float _1194;
+                                            bool _1195;
+                                            do
+                                            {
+                                                float _932;
+                                                if (abs(_918) < 9.9999996826552253889678874634872e-21)
+                                                {
+                                                    _932 = (_918 < 0.0) ? (-9.9999996826552253889678874634872e-21) : 9.9999996826552253889678874634872e-21;
+                                                }
+                                                else
+                                                {
+                                                    _932 = _918;
+                                                }
+                                                float _940;
+                                                if (abs(_919) < 9.9999996826552253889678874634872e-21)
+                                                {
+                                                    _940 = (_919 < 0.0) ? (-9.9999996826552253889678874634872e-21) : 9.9999996826552253889678874634872e-21;
+                                                }
+                                                else
+                                                {
+                                                    _940 = _919;
+                                                }
+                                                float _948;
+                                                if (abs(_920) < 9.9999996826552253889678874634872e-21)
+                                                {
+                                                    _948 = (_920 < 0.0) ? (-9.9999996826552253889678874634872e-21) : 9.9999996826552253889678874634872e-21;
+                                                }
+                                                else
+                                                {
+                                                    _948 = _920;
+                                                }
+                                                float3 _950 = float3(1.0) / float3(_932, _940, _948);
+                                                uint _951 = 2u * _922;
+                                                float3 _960 = (bottomNodes._m0[_951].xyz - _917) * _950;
+                                                float3 _962 = (bottomNodes._m0[_951 + 1u].xyz - _917) * _950;
+                                                float3 _963 = precise::min(_960, _962);
+                                                float3 _964 = precise::max(_960, _962);
+                                                float _970 = precise::max(precise::max(precise::max(_963.x, _963.y), _963.z), _697);
+                                                if (((_970 <= precise::min(precise::min(precise::min(_964.x, _964.y), _964.z), _874)) ? _970 : 3.4028234663852885981170418348452e+38) == 3.4028234663852885981170418348452e+38)
+                                                {
+                                                    _1193 = _878;
+                                                    _1194 = _874;
+                                                    _1195 = false;
+                                                    break;
+                                                }
+                                                bool _984;
+                                                uint _987;
+                                                float _989;
+                                                uint _991;
+                                                bool _993;
+                                                bool _995;
+                                                bool _1188;
+                                                float _1189;
+                                                bool _1190;
+                                                bool _1191;
+                                                bool _983 = false;
+                                                uint _986 = 0u;
+                                                float _988 = _874;
+                                                uint _990 = _922;
+                                                bool _992 = _878;
+                                                bool _994 = _871;
+                                                for (;;)
+                                                {
+                                                    uint _998 = 2u * _990;
+                                                    uint _1005 = as_type<uint>(bottomNodes._m0[_998].w);
+                                                    uint _1007 = as_type<uint>(bottomNodes._m0[_998 + 1u].w);
+                                                    uint _1165;
+                                                    uint _1166;
+                                                    if ((_1007 & 2147483648u) != 0u)
+                                                    {
+                                                        uint _1093 = _1007 & 2147483647u;
+                                                        float _1096;
+                                                        bool _1101;
+                                                        bool _1160;
+                                                        bool _1161;
+                                                        float _1162;
+                                                        bool _1163;
+                                                        float _1095 = _988;
+                                                        uint _1098 = 0u;
+                                                        bool _1100 = _992;
+                                                        for (;;)
+                                                        {
+                                                            if (_1098 < _1093)
+                                                            {
+                                                                bool _1157;
+                                                                do
+                                                                {
+                                                                    uint _1108 = 3u * (_1005 + _1098);
+                                                                    float3 _1119 = cross(_921, triangles._m0[_1108 + 2u].xyz);
+                                                                    float _1120 = dot(triangles._m0[_1108 + 1u].xyz, _1119);
+                                                                    if (_1120 == 0.0)
+                                                                    {
+                                                                        _1101 = _1100;
+                                                                        _1096 = _1095;
+                                                                        _1157 = false;
+                                                                        break;
+                                                                    }
+                                                                    float _1124 = 1.0 / _1120;
+                                                                    float3 _1126 = _917 - triangles._m0[_1108].xyz;
+                                                                    float _1128 = dot(_1126, _1119) * _1124;
+                                                                    bool _1133;
+                                                                    if ((isunordered(_1128, (-9.9999999747524270787835121154785e-07)) || _1128 >= (-9.9999999747524270787835121154785e-07)))
+                                                                    {
+                                                                        _1133 = _1128 > 1.00000095367431640625;
+                                                                    }
+                                                                    else
+                                                                    {
+                                                                        _1133 = true;
+                                                                    }
+                                                                    if (_1133)
+                                                                    {
+                                                                        _1101 = _1100;
+                                                                        _1096 = _1095;
+                                                                        _1157 = false;
+                                                                        break;
+                                                                    }
+                                                                    float3 _1136 = cross(_1126, triangles._m0[_1108 + 1u].xyz);
+                                                                    float _1138 = dot(_921, _1136) * _1124;
+                                                                    bool _1144;
+                                                                    if ((isunordered(_1138, (-9.9999999747524270787835121154785e-07)) || _1138 >= (-9.9999999747524270787835121154785e-07)))
+                                                                    {
+                                                                        _1144 = (_1128 + _1138) > 1.00000095367431640625;
+                                                                    }
+                                                                    else
+                                                                    {
+                                                                        _1144 = true;
+                                                                    }
+                                                                    if (_1144)
+                                                                    {
+                                                                        _1101 = _1100;
+                                                                        _1096 = _1095;
+                                                                        _1157 = false;
+                                                                        break;
+                                                                    }
+                                                                    float _1148 = dot(triangles._m0[_1108 + 2u].xyz, _1136) * _1124;
+                                                                    bool _1153;
+                                                                    if (_1148 > _697)
+                                                                    {
+                                                                        _1153 = _1148 < _1095;
+                                                                    }
+                                                                    else
+                                                                    {
+                                                                        _1153 = false;
+                                                                    }
+                                                                    if (!_1153)
+                                                                    {
+                                                                        _1101 = _1100;
+                                                                        _1096 = _1095;
+                                                                        _1157 = false;
+                                                                        break;
+                                                                    }
+                                                                    _1101 = true;
+                                                                    _1096 = _1148;
+                                                                    _1157 = true;
+                                                                    break;
+                                                                } while(false);
+                                                                if (_1157)
+                                                                {
+                                                                    _1160 = _1101;
+                                                                    _1161 = true;
+                                                                    _1162 = _1096;
+                                                                    _1163 = true;
+                                                                    break;
+                                                                }
+                                                                _1095 = _1096;
+                                                                _1098++;
+                                                                _1100 = _1101;
+                                                                continue;
+                                                            }
+                                                            else
+                                                            {
+                                                                _1160 = _1100;
+                                                                _1161 = _994;
+                                                                _1162 = _1095;
+                                                                _1163 = _983;
+                                                                break;
+                                                            }
+                                                        }
+                                                        if (_1163)
+                                                        {
+                                                            _1188 = _1160;
+                                                            _1189 = _1162;
+                                                            _1190 = _1161;
+                                                            _1191 = _1163;
+                                                            break;
+                                                        }
+                                                        _984 = _1163;
+                                                        _993 = _1160;
+                                                        _995 = _1161;
+                                                        _989 = _1162;
+                                                        _1165 = _986;
+                                                        _1166 = 4294967295u;
+                                                    }
+                                                    else
+                                                    {
+                                                        uint _1013 = _990 + 1u;
+                                                        uint _1014 = 2u * _1013;
+                                                        float3 _1023 = (bottomNodes._m0[_1014].xyz - _917) * _950;
+                                                        float3 _1025 = (bottomNodes._m0[_1014 + 1u].xyz - _917) * _950;
+                                                        float3 _1026 = precise::min(_1023, _1025);
+                                                        float3 _1027 = precise::max(_1023, _1025);
+                                                        float _1033 = precise::max(precise::max(precise::max(_1026.x, _1026.y), _1026.z), _697);
+                                                        float _1041 = (_1033 <= precise::min(precise::min(precise::min(_1027.x, _1027.y), _1027.z), _988)) ? _1033 : 3.4028234663852885981170418348452e+38;
+                                                        uint _1042 = 2u * _1005;
+                                                        float3 _1051 = (bottomNodes._m0[_1042].xyz - _917) * _950;
+                                                        float3 _1053 = (bottomNodes._m0[_1042 + 1u].xyz - _917) * _950;
+                                                        float3 _1054 = precise::min(_1051, _1053);
+                                                        float3 _1055 = precise::max(_1051, _1053);
+                                                        float _1061 = precise::max(precise::max(precise::max(_1054.x, _1054.y), _1054.z), _697);
+                                                        float _1069 = (_1061 <= precise::min(precise::min(precise::min(_1055.x, _1055.y), _1055.z), _988)) ? _1061 : 3.4028234663852885981170418348452e+38;
+                                                        bool _1070 = _1041 != 3.4028234663852885981170418348452e+38;
+                                                        bool _1074;
+                                                        if (_1070)
+                                                        {
+                                                            _1074 = _1069 != 3.4028234663852885981170418348452e+38;
+                                                        }
+                                                        else
+                                                        {
+                                                            _1074 = false;
+                                                        }
+                                                        uint _1091;
+                                                        uint _1092;
+                                                        if (_1074)
+                                                        {
+                                                            bool _1084 = _1041 <= _1069;
+                                                            _82[_986] = _1084 ? _1005 : _1013;
+                                                            _83[_986] = _1084 ? _1069 : _1041;
+                                                            _1091 = _986 + 1u;
+                                                            _1092 = _1084 ? _1013 : _1005;
+                                                        }
+                                                        else
+                                                        {
+                                                            uint _1083;
+                                                            if (_1070)
+                                                            {
+                                                                _1083 = _1013;
+                                                            }
+                                                            else
+                                                            {
+                                                                _1083 = (_1069 != 3.4028234663852885981170418348452e+38) ? _1005 : 4294967295u;
+                                                            }
+                                                            _1091 = _986;
+                                                            _1092 = _1083;
+                                                        }
+                                                        _984 = _983;
+                                                        _993 = _992;
+                                                        _995 = _994;
+                                                        _989 = _988;
+                                                        _1165 = _1091;
+                                                        _1166 = _1092;
+                                                    }
+                                                    _987 = _1165;
+                                                    _991 = _1166;
+                                                    uint _1168;
+                                                    bool _1173;
+                                                    uint _1170;
+                                                    for (;;)
+                                                    {
+                                                        _1173 = _991 == 4294967295u;
+                                                        bool _1177;
+                                                        if (_1173)
+                                                        {
+                                                            _1177 = _987 > 0u;
+                                                        }
+                                                        else
+                                                        {
+                                                            _1177 = false;
+                                                        }
+                                                        if (_1177)
+                                                        {
+                                                            _1168 = _987 - 1u;
+                                                            if (_83[_1168] < _989)
+                                                            {
+                                                                _1170 = _82[_1168];
+                                                            }
+                                                            else
+                                                            {
+                                                                _1170 = _991;
+                                                            }
+                                                            _987 = _1168;
+                                                            _991 = _1170;
+                                                            continue;
+                                                        }
+                                                        else
+                                                        {
+                                                            break;
+                                                        }
+                                                    }
+                                                    if (_1173)
+                                                    {
+                                                        _1188 = _993;
+                                                        _1189 = _989;
+                                                        _1190 = false;
+                                                        _1191 = true;
+                                                        break;
+                                                    }
+                                                    _983 = _984;
+                                                    _986 = _987;
+                                                    _988 = _989;
+                                                    _990 = _991;
+                                                    _992 = _993;
+                                                    _994 = _995;
+                                                    continue;
+                                                }
+                                                if (_1191)
+                                                {
+                                                    _1193 = _1188;
+                                                    _1194 = _1189;
+                                                    _1195 = _1190;
+                                                    break;
+                                                }
+                                                _1193 = _1188;
+                                                _1194 = _1189;
+                                                _1195 = _1190;
+                                                break;
+                                            } while(false);
+                                            _872 = _1195;
+                                            _879 = _1193;
+                                            _875 = _1194;
+                                            _1196 = _1195;
+                                            break;
+                                        } while(false);
+                                        if (_1196)
+                                        {
+                                            _1199 = _872;
+                                            _1200 = _879;
+                                            _1201 = _879;
+                                            _1202 = _875;
+                                            _1203 = true;
+                                            break;
+                                        }
+                                        _871 = _872;
+                                        _874 = _875;
+                                        _876++;
+                                        _878 = _879;
+                                        continue;
+                                    }
+                                    else
+                                    {
+                                        _1199 = _871;
+                                        _1200 = _770;
+                                        _1201 = _878;
+                                        _1202 = _874;
+                                        _1203 = _757;
+                                        break;
+                                    }
+                                }
+                                if (_1203)
+                                {
+                                    _1228 = _1199;
+                                    _1229 = _1200;
+                                    _1230 = _1203;
+                                    break;
+                                }
+                                _758 = _1203;
+                                _763 = _1199;
+                                _771 = _1200;
+                                _761 = _1201;
+                                _767 = _1202;
+                                _1205 = _764;
+                                _1206 = 4294967295u;
+                            }
+                            else
+                            {
+                                uint _789 = _768 + 1u;
+                                uint _790 = 2u * _789;
+                                float3 _799 = (topNodes._m0[_790].xyz - _690) * _728;
+                                float3 _801 = (topNodes._m0[_790 + 1u].xyz - _690) * _728;
+                                float3 _802 = precise::min(_799, _801);
+                                float3 _803 = precise::max(_799, _801);
+                                float _809 = precise::max(precise::max(precise::max(_802.x, _802.y), _802.z), _697);
+                                float _817 = (_809 <= precise::min(precise::min(precise::min(_803.x, _803.y), _803.z), _766)) ? _809 : 3.4028234663852885981170418348452e+38;
+                                uint _818 = 2u * _781;
+                                float3 _827 = (topNodes._m0[_818].xyz - _690) * _728;
+                                float3 _829 = (topNodes._m0[_818 + 1u].xyz - _690) * _728;
+                                float3 _830 = precise::min(_827, _829);
+                                float3 _831 = precise::max(_827, _829);
+                                float _837 = precise::max(precise::max(precise::max(_830.x, _830.y), _830.z), _697);
+                                float _845 = (_837 <= precise::min(precise::min(precise::min(_831.x, _831.y), _831.z), _766)) ? _837 : 3.4028234663852885981170418348452e+38;
+                                bool _846 = _817 != 3.4028234663852885981170418348452e+38;
+                                bool _850;
+                                if (_846)
+                                {
+                                    _850 = _845 != 3.4028234663852885981170418348452e+38;
+                                }
+                                else
+                                {
+                                    _850 = false;
+                                }
+                                uint _867;
+                                uint _868;
+                                if (_850)
+                                {
+                                    bool _860 = _817 <= _845;
+                                    _84[_764] = _860 ? _781 : _789;
+                                    _85[_764] = _860 ? _845 : _817;
+                                    _867 = _764 + 1u;
+                                    _868 = _860 ? _789 : _781;
+                                }
+                                else
+                                {
+                                    uint _859;
+                                    if (_846)
+                                    {
+                                        _859 = _789;
+                                    }
+                                    else
+                                    {
+                                        _859 = (_845 != 3.4028234663852885981170418348452e+38) ? _781 : 4294967295u;
+                                    }
+                                    _867 = _764;
+                                    _868 = _859;
+                                }
+                                _758 = _757;
+                                _763 = _762;
+                                _771 = _770;
+                                _761 = _760;
+                                _767 = _766;
+                                _1205 = _867;
+                                _1206 = _868;
+                            }
+                            _765 = _1205;
+                            _769 = _1206;
+                            uint _1208;
+                            bool _1213;
+                            uint _1210;
+                            for (;;)
+                            {
+                                _1213 = _769 == 4294967295u;
+                                bool _1217;
+                                if (_1213)
+                                {
+                                    _1217 = _765 > 0u;
+                                }
+                                else
+                                {
+                                    _1217 = false;
+                                }
+                                if (_1217)
+                                {
+                                    _1208 = _765 - 1u;
+                                    if (_85[_1208] < _767)
+                                    {
+                                        _1210 = _84[_1208];
+                                    }
+                                    else
+                                    {
+                                        _1210 = _769;
+                                    }
+                                    _765 = _1208;
+                                    _769 = _1210;
+                                    continue;
+                                }
+                                else
+                                {
+                                    break;
+                                }
+                            }
+                            if (_1213)
+                            {
+                                _1228 = _763;
+                                _1229 = _761;
+                                _1230 = true;
+                                break;
+                            }
+                            _757 = _758;
+                            _760 = _761;
+                            _762 = _763;
+                            _764 = _765;
+                            _766 = _767;
+                            _768 = _769;
+                            _770 = _771;
+                            continue;
+                        }
+                        if (_1230)
+                        {
+                            _1232 = _1228;
+                            _1233 = _1229;
+                            break;
+                        }
+                        _1232 = _1228;
+                        _1233 = _1229;
+                        break;
+                    } while(false);
+                    _1237 = _1233;
+                    _1238 = _1232;
+                    _1239 = uint(int(!_1233));
+                }
+                else
+                {
+                    _1237 = _110;
+                    _1238 = _113;
+                    _1239 = 1u;
+                }
+                _111 = _1237;
+                _114 = _1238;
+                _1241 = _1239 != 0u;
+            }
+            else
+            {
+                _111 = _110;
+                _114 = _113;
+                _1241 = false;
+            }
+            if (_1241)
+            {
+                _116 = _115 | (255u << ((_117 * 8u) & 31u));
+            }
+            else
+            {
+                _116 = _115;
+            }
+        }
+        written._m0[(_98 * 4u) >> 2u] = _115;
+        break;
+    } while(false);
+}
+

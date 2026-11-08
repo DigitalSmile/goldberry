@@ -2,8 +2,10 @@ package dev.goldberry.example.ui.gpu;
 
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.EnumMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Optional;
 import java.util.function.Consumer;
 
@@ -18,6 +20,7 @@ import dev.goldberry.example.ui.gallery.ShowcaseCard;
 import dev.goldberry.example.ui.gallery.WideCard;
 import dev.goldberry.gpu.raytrace.RayTracer;
 import dev.goldberry.gpu.raytrace.RayTracing;
+import dev.goldberry.gpu.raytrace.RayTracingMode;
 import dev.goldberry.gpu.upscale.RenderScale;
 import dev.goldberry.gpu.upscale.UpscaleFilter;
 import dev.goldberry.gpu.view.Canvas3d;
@@ -39,9 +42,11 @@ import dev.goldberry.widgets.overlay.message.Message;
 /// change, live, on a `canvas3d` drawn by the showcase's [RoomRenderer]. A
 /// [WideCard], so the wall gives it a wide column and the room room to show.
 ///
-/// Ray tracing starts off, so the screen is the same picture on every machine;
-/// choosing it asks [RayTracer#availability()], and where there is none the
-/// choice is disabled and the reason is shown. Anti-aliasing and anisotropy
+/// Ray tracing starts off, so the screen is the same picture on every machine.
+/// It traces in software on any GPU, or in hardware where there is a device for
+/// it: choosing hardware asks [RayTracer#availability()], and where there is
+/// none, or where either tier refuses, the choice is disabled and the reason is
+/// shown. Anti-aliasing and anisotropy
 /// are offered at fixed counts, and the renderer takes the most the device has
 /// up to the one chosen. The render scale is the canvas's, and the present
 /// mode and the frame cap are the window's.
@@ -77,9 +82,9 @@ record RayTracedRoom() implements Widget.Stateful, WideCard {
         private PresentMode presentMode = PresentMode.VSYNC;
         private double frameCap;
 
-        /// Why there is no ray tracing here, once something asked; null
-        /// before.
-        private @Nullable String unavailable;
+        /// Why a tier cannot trace here, for each tier something asked of
+        /// and was refused.
+        private final Map<RayTracingMode, String> unavailable = new EnumMap<>(RayTracingMode.class);
 
         private @Nullable Host host;
 
@@ -87,7 +92,7 @@ record RayTracedRoom() implements Widget.Stateful, WideCard {
 
         /// The renderer's refusal, said from inside a paint: the tree is
         /// rebuilt on the next turn of the loop, as `canvas3d`'s notice is.
-        private void refused(String reason) {
+        private void refused(RayTracingMode mode, String reason) {
             var current = host;
             if (current == null) {
                 return;
@@ -95,8 +100,8 @@ record RayTracedRoom() implements Widget.Stateful, WideCard {
             current.after(Duration.ZERO, () -> {
                 if (isMounted()) {
                     setState(() -> {
-                        unavailable = reason;
-                        settings = settings.withRayTracing(false);
+                        unavailable.put(mode, reason);
+                        settings = settings.withRayTracing(RayTracingMode.OFF);
                     });
                 }
             });
@@ -168,51 +173,70 @@ record RayTracedRoom() implements Widget.Stateful, WideCard {
                             new Column(panel, Attributes.NONE.classes("gpu-room-settings")),
                             new Column(display, Attributes.NONE.classes("gpu-room-settings"))),
                     Attributes.NONE.classes("gpu-room-panel")));
-            var why = unavailable;
-            if (why != null) {
-                content.add(new Message(Message.Kind.WARNING, "No hardware ray tracing here: " + why)
+            var noHardware = unavailable.get(RayTracingMode.HARDWARE);
+            if (noHardware != null) {
+                content.add(new Message(Message.Kind.WARNING, "No hardware ray tracing here: " + noHardware)
                         .withAttributes(Attributes.NONE.id("gpu-room-unavailable")));
+            }
+            var noSoftware = unavailable.get(RayTracingMode.SOFTWARE);
+            if (noSoftware != null) {
+                content.add(new Message(Message.Kind.WARNING, "No software ray tracing here: " + noSoftware)
+                        .withAttributes(Attributes.NONE.id("gpu-room-software-unavailable")));
             }
             return new ShowcaseCard(
                             "gpu-room-card",
                             "Ray tracing and settings",
-                            "A room lit by the hardware ray tracer: shadows, occlusion and reflections traced at the"
-                                    + " size the canvas draws at, then drawn by the showcase's own shaders. Every"
-                                    + " setting applies to the next frame.",
+                            "A room lit by the ray tracer, in software on any GPU or in hardware where there is"
+                                    + " one: shadows, occlusion and reflections traced at the size the canvas draws"
+                                    + " at, then drawn by the showcase's own shaders. Every setting applies to the"
+                                    + " next frame.",
                             DocLink.to("components/gpu", "canvas3d"))
                     .wide()
                     .of(content);
         }
 
-        /// Off and on, the second disabled once there is known to be none.
+        /// Off, software and hardware, a tier disabled once it is known to
+        /// refuse.
         private Widget rayTracing() {
             return new Segmented(
-                    settings.rayTracing() ? "hardware" : "off",
+                    settings.rayTracing().name().toLowerCase(Locale.ROOT),
                     List.of(
                             new Option("off", "Off"),
-                            new Option(
-                                    "hardware", "Hardware", null, false, null, unavailable != null, Attributes.NONE)),
+                            tier(RayTracingMode.SOFTWARE, "Software"),
+                            tier(RayTracingMode.HARDWARE, "Hardware")),
                     null,
-                    value -> chooseRayTracing(value.equals("hardware")),
+                    value -> chooseRayTracing(RayTracingMode.parse(value)),
                     false,
                     Attributes.NONE.id("gpu-room-rt"));
         }
 
-        /// Turns tracing on where there is a device for it, and otherwise
-        /// says why and leaves it off.
-        void chooseRayTracing(boolean on) {
-            if (!on) {
-                setState(() -> settings = settings.withRayTracing(false));
+        private Option tier(RayTracingMode mode, String label) {
+            return new Option(
+                    mode.name().toLowerCase(Locale.ROOT),
+                    label,
+                    null,
+                    false,
+                    null,
+                    unavailable.containsKey(mode),
+                    Attributes.NONE);
+        }
+
+        /// Traces by `mode`'s tier: in software at once, the renderer saying
+        /// so if it cannot; in hardware where there is a device for it, and
+        /// otherwise says why and leaves tracing as it was.
+        void chooseRayTracing(RayTracingMode mode) {
+            if (mode != RayTracingMode.HARDWARE) {
+                setState(() -> settings = settings.withRayTracing(mode));
                 return;
             }
             switch (RayTracer.availability()) {
-                case RayTracing.Hardware _ -> setState(() -> settings = settings.withRayTracing(true));
-                case RayTracing.Unavailable(var reason) -> setState(() -> unavailable = reason);
+                case RayTracing.Available _ -> setState(() -> settings = settings.withRayTracing(mode));
+                case RayTracing.Unavailable(var reason) -> setState(() -> unavailable.put(mode, reason));
             }
         }
 
         private Widget effects() {
-            var off = !settings.rayTracing();
+            var off = !settings.traced();
             return new Column(
                     List.of(
                             new Toggle(

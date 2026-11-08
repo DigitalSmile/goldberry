@@ -498,12 +498,30 @@ class RayTraceValuesTest {
     class Modes {
 
         @Test
-        @DisplayName("parses off, auto and hardware, in any case")
+        @DisplayName("parses off, auto, hardware and software, in any case")
         void parses() {
             assertEquals(RayTracingMode.OFF, RayTracingMode.parse("OFF"));
             assertEquals(RayTracingMode.AUTO, RayTracingMode.parse(" auto "));
             assertEquals(RayTracingMode.HARDWARE, RayTracingMode.parse("Hardware"));
-            assertThrows(IllegalArgumentException.class, () -> RayTracingMode.parse("software"));
+            assertEquals(RayTracingMode.SOFTWARE, RayTracingMode.parse("software"));
+            assertThrows(IllegalArgumentException.class, () -> RayTracingMode.parse("cpu"));
+        }
+
+        @Test
+        @DisplayName("is refused in software without the device it traces on")
+        void softwareNeedsADevice() {
+            var refused = assertThrows(IllegalArgumentException.class, () -> RayTracer.open(RayTracingMode.SOFTWARE));
+            assertTrue(refused.getMessage().contains("open(device, mode)"), refused.getMessage());
+        }
+
+        @Test
+        @DisplayName("answers available for either tier, and not for a refusal")
+        void availability() {
+            assertTrue(new RayTracing.Hardware("a GPU").isAvailable());
+            assertTrue(new RayTracing.Software("a GPU").isAvailable());
+            assertFalse(new RayTracing.Unavailable("no").isAvailable());
+            RayTracing.Available software = new RayTracing.Software("lavapipe");
+            assertEquals("lavapipe", software.device());
         }
 
         @Test

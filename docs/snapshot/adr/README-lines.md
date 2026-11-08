@@ -114,3 +114,4 @@ Appended to the index when the records move in, in this order.
 - [ADR-0671 A 3D view is drawn at a scale of its box, and upscaled with FSR 1](0671-a-3d-view-is-drawn-at-a-scale-of-its-box-and-upscaled-with-fsr-1.md)
 - [ADR-0672 The ray tracer traces a pixel's lighting, occlusion and reflection included](0672-the-ray-tracer-traces-a-pixels-lighting-occlusion-and-reflection-included.md)
 - [ADR-0673 The showcase has a ray-traced room, and a game's graphics settings](0673-the-showcase-has-a-ray-traced-room-and-a-games-graphics-settings.md)
+- [ADR-0674 Rays are traced in software behind the same ray tracer](0674-rays-are-traced-in-software-behind-the-same-ray-tracer.md)

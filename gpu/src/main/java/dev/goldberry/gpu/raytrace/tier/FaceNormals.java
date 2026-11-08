@@ -1,4 +1,4 @@
-package dev.goldberry.gpu.raytrace.vulkan;
+package dev.goldberry.gpu.raytrace.tier;
 
 import java.util.List;
 
@@ -12,10 +12,10 @@ import dev.goldberry.gpu.raytrace.TriangleMesh;
 /// corner, normalised, so it points out of a counter-clockwise face. Which way
 /// it points does not matter to the shader, which turns it to face the ray;
 /// a triangle of no area has the y axis.
-final class FaceNormals {
+public final class FaceNormals {
 
     /// Bytes a triangle's normal takes.
-    static final int BYTES = 4 * Float.BYTES;
+    public static final int BYTES = 4 * Float.BYTES;
 
     private final float[] normals;
     private final int[] firstTriangles;
@@ -26,7 +26,7 @@ final class FaceNormals {
     }
 
     /// The normals of `meshes`, in order.
-    static FaceNormals of(List<TriangleMesh> meshes) {
+    public static FaceNormals of(List<TriangleMesh> meshes) {
         var firsts = new int[meshes.size()];
         var total = 0;
         for (var i = 0; i < meshes.size(); i++) {
@@ -56,17 +56,17 @@ final class FaceNormals {
     }
 
     /// Four floats a triangle, the fourth 0: a copy.
-    float[] normals() {
+    public float[] normals() {
         return normals.clone();
     }
 
     /// Where each mesh's normals start, in triangles: a copy.
-    int[] firstTriangles() {
+    public int[] firstTriangles() {
         return firstTriangles.clone();
     }
 
     /// How many triangles they cover.
-    int triangles() {
+    public int triangles() {
         return normals.length / 4;
     }
 }

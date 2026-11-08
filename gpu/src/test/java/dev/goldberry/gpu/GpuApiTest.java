@@ -770,6 +770,42 @@ class GpuApiTest {
         }
 
         @Test
+        @DisplayName("a buffer a compute pass wrote is read back, all of it or from an offset, and refused outside it")
+        void readsABufferBack() {
+            try (var input = buffer(EnumSet.of(BufferUsage.COMPUTE_STORAGE_READ), halfQuad());
+                    var output = device.createBuffer(EnumSet.of(BufferUsage.COMPUTE_STORAGE_WRITE), 6 * 16);
+                    var scale = device.createComputePipeline(TestShaders.scaleCompute());
+                    var frame = device.beginFrame()) {
+                frame.computePass(output, pass -> {
+                    pass.bindPipeline(scale);
+                    pass.bindStorageBuffers(input);
+                    pass.pushUniforms(0, 3f, 0f, 0f, 0f);
+                    pass.dispatch(1);
+                });
+                assertThrows(IllegalArgumentException.class, () -> frame.readback(output, 4, 6 * 16));
+                assertThrows(IllegalArgumentException.class, () -> frame.readback(output, 0, 0));
+                try (var whole = frame.readback(output, 0, 6 * 16);
+                        var tail = frame.readback(output, 16, 8)) {
+                    assertFalse(whole.isDone());
+                    assertThrows(IllegalStateException.class, whole::await, "not submitted yet");
+                    frame.submit();
+                    var expected = halfQuad().order(ByteOrder.nativeOrder());
+                    var bytes = whole.await();
+                    assertEquals(6 * 16, bytes.remaining());
+                    assertEquals(ByteOrder.LITTLE_ENDIAN, bytes.order());
+                    for (var i = 0; i < 6 * 4; i++) {
+                        assertEquals(3 * expected.getFloat(4 * i), bytes.getFloat(4 * i), "float " + i);
+                    }
+                    assertTrue(whole.isDone());
+                    var part = tail.await();
+                    assertEquals(8, tail.size());
+                    assertEquals(3 * expected.getFloat(16), part.getFloat(0), "the second corner's x");
+                    assertEquals(3 * expected.getFloat(20), part.getFloat(4), "and its y");
+                }
+            }
+        }
+
+        @Test
         @DisplayName("additive blending sums two translucent quads")
         void additive() {
             try (var quadBuffer = vertexBuffer(quad(4, 4, 28, 28, 0.5f, 0.25f, 0f, 0f));

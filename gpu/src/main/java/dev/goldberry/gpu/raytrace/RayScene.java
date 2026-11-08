@@ -2,14 +2,14 @@ package dev.goldberry.gpu.raytrace;
 
 import java.util.Objects;
 
-import dev.goldberry.gpu.raytrace.vulkan.AccelerationScene;
+import dev.goldberry.gpu.raytrace.tier.TracedScene;
 
 /// A [SceneGeometry] built for tracing by a [RayTracer]: its acceleration
 /// structures, on the tracer's device. Traced by that tracer alone, as often
 /// as wanted.
 ///
-/// Each distinct mesh has a structure of its own, built once and compacted,
-/// and one more structure is over the instances. When instances move, come or
+/// Each distinct mesh has a structure of its own, built once (and, in
+/// hardware, compacted), and one more structure is over the instances. When instances move, come or
 /// go, [#update] rebuilds that one alone, which is what a frame of a moving
 /// scene costs; a new mesh, or one whose triangles changed, is a new scene.
 ///
@@ -17,9 +17,9 @@ import dev.goldberry.gpu.raytrace.vulkan.AccelerationScene;
 public final class RayScene implements AutoCloseable {
 
     private final RayTracer owner;
-    private final AccelerationScene structures;
+    private final TracedScene structures;
 
-    RayScene(RayTracer owner, AccelerationScene structures) {
+    RayScene(RayTracer owner, TracedScene structures) {
         this.owner = owner;
         this.structures = structures;
     }
@@ -45,8 +45,8 @@ public final class RayScene implements AutoCloseable {
         owner.update(this, structuresFor(owner), geometry);
     }
 
-    /// How much GPU memory its structures hold, in bytes: the meshes'
-    /// compacted, and the one over the instances.
+    /// How much GPU memory its structures hold, in bytes: the meshes', and
+    /// the one over the instances.
     public long structureBytes() {
         return structures.structureBytes();
     }
@@ -57,7 +57,7 @@ public final class RayScene implements AutoCloseable {
     }
 
     /// The structures, for `user`, which must be the tracer that built them.
-    AccelerationScene structuresFor(RayTracer user) {
+    TracedScene structuresFor(RayTracer user) {
         if (user != owner) {
             throw new IllegalArgumentException(this + " was built by another ray tracer");
         }

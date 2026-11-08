@@ -3,10 +3,6 @@ package dev.goldberry.gpu;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
-import org.jspecify.annotations.Nullable;
-
-import dev.goldberry.natives.sdl.SdlException;
-import dev.goldberry.natives.sdl.gpu.SdlGpuTransferBuffer;
 import dev.goldberry.render.PixelBuffer;
 import dev.goldberry.render.model.PhysicalSize;
 import dev.goldberry.render.model.PixelFormat;
@@ -22,26 +18,13 @@ import dev.goldberry.render.model.PixelFormat;
 /// Closing one that was never awaited gives its memory back without waiting.
 public final class Readback implements AutoCloseable {
 
-    private enum State {
-        RECORDED,
-        SUBMITTED,
-        DONE,
-        DISCARDED,
-        CLOSED
-    }
-
-    private final GpuDevice device;
+    private final TransferState state;
     private final TextureFormat format;
     private final int width;
     private final int height;
-    private @Nullable SdlGpuTransferBuffer transfer;
-    private @Nullable SharedFence fence;
-    private @Nullable ByteBuffer pixels;
-    private State state = State.RECORDED;
 
-    Readback(GpuDevice device, SdlGpuTransferBuffer transfer, TextureFormat format, int width, int height) {
-        this.device = device;
-        this.transfer = transfer;
+    Readback(TransferState state, TextureFormat format, int width, int height) {
+        this.state = state;
         this.format = format;
         this.width = width;
         this.height = height;
@@ -65,7 +48,7 @@ public final class Readback implements AutoCloseable {
     /// Whether the pixels have arrived and been copied out: [#await] would
     /// not block.
     public boolean isDone() {
-        return state == State.DONE;
+        return state.isDone();
     }
 
     /// Waits for the GPU, then returns the pixels: tightly packed rows, top row
@@ -77,19 +60,7 @@ public final class Readback implements AutoCloseable {
     ///                               discarded, or this was closed
     /// @throws GpuException          when the wait fails: a lost device
     public ByteBuffer await() {
-        device.requireThread();
-        switch (state) {
-            case RECORDED -> throw new IllegalStateException("the frame this was read in has not been submitted");
-            case DISCARDED -> throw new IllegalStateException("the frame this was read in was discarded");
-            case CLOSED -> throw new IllegalStateException("this readback is closed");
-            case SUBMITTED -> copyOut();
-            case DONE -> {}
-        }
-        var done = pixels;
-        if (done == null) {
-            throw new IllegalStateException("no pixels");
-        }
-        return done.asReadOnlyBuffer().order(ByteOrder.nativeOrder());
+        return state.await().asReadOnlyBuffer().order(ByteOrder.nativeOrder());
     }
 
     /// [#await], as a [PixelBuffer] of premultiplied BGRA: the form a golden
@@ -122,66 +93,6 @@ public final class Readback implements AutoCloseable {
     /// Gives back its memory without waiting. Idempotent.
     @Override
     public void close() {
-        device.requireThread();
-        if (state == State.CLOSED) {
-            return;
-        }
-        state = State.CLOSED;
-        pixels = null;
-        releaseGpuSide();
-    }
-
-    /// Its frame was submitted, and `submitted` signals when the pixels are in.
-    void submitted(SharedFence submitted) {
-        if (state == State.CLOSED) {
-            submitted.release();
-            return;
-        }
-        fence = submitted;
-        state = State.SUBMITTED;
-    }
-
-    /// Its frame was discarded, and the pixels will never come.
-    void discarded() {
-        if (state == State.RECORDED) {
-            state = State.DISCARDED;
-            releaseGpuSide();
-        }
-    }
-
-    private void copyOut() {
-        var buffer = transfer;
-        var submitted = fence;
-        if (buffer == null || submitted == null || device.isClosed()) {
-            throw new IllegalStateException("the device this was read on is closed");
-        }
-        try {
-            submitted.await();
-            var mapped = buffer.map(false);
-            try {
-                var copy = ByteBuffer.allocate(mapped.remaining());
-                copy.put(0, mapped, 0, mapped.remaining());
-                pixels = copy;
-            } finally {
-                buffer.unmap();
-            }
-        } catch (SdlException e) {
-            throw GpuException.of(e);
-        }
-        state = State.DONE;
-        releaseGpuSide();
-    }
-
-    private void releaseGpuSide() {
-        var buffer = transfer;
-        transfer = null;
-        if (buffer != null) {
-            buffer.close();
-        }
-        var submitted = fence;
-        fence = null;
-        if (submitted != null) {
-            submitted.release();
-        }
+        state.close();
     }
 }

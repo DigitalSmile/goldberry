@@ -1,4 +1,4 @@
-package dev.goldberry.gpu.raytrace.vulkan;
+package dev.goldberry.gpu.raytrace.tier;
 
 import dev.goldberry.gpu.raytrace.Hits;
 import dev.goldberry.gpu.raytrace.Lighting;
@@ -6,12 +6,12 @@ import dev.goldberry.gpu.raytrace.Lighting;
 /// What one dispatch of `trace.lib.hlsl` writes, chosen by its `output` push
 /// constant, a ray generation a pixel each way: how many bytes that is for
 /// a picture, and whether the buffer is zeroed first.
-enum TraceOutput {
+public enum TraceOutput {
 
     /// A [Hits] record a pixel, each written whole.
     RECORDS(0, false) {
         @Override
-        long bytes(int width, int height) {
+        public long bytes(int width, int height) {
             return (long) width * height * Hits.RECORD_BYTES;
         }
     },
@@ -20,7 +20,7 @@ enum TraceOutput {
     /// zeroed, then each lit pixel ORs its byte into its word.
     SHADOW_MASK(1, true) {
         @Override
-        long bytes(int width, int height) {
+        public long bytes(int width, int height) {
             return ((long) width * height + Integer.BYTES - 1) / Integer.BYTES * Integer.BYTES;
         }
     },
@@ -29,7 +29,7 @@ enum TraceOutput {
     /// float a pixel, the id of the instance its reflection sees.
     LIGHTING(2, false) {
         @Override
-        long bytes(int width, int height) {
+        public long bytes(int width, int height) {
             return (long) width * height * Lighting.BYTES_PER_PIXEL;
         }
     };
@@ -43,16 +43,16 @@ enum TraceOutput {
     }
 
     /// The value of the shader's `output` constant.
-    int code() {
+    public int code() {
         return code;
     }
 
     /// Whether the buffer is zeroed before the dispatch, because the shaders
     /// write only some of it.
-    boolean zeroed() {
+    public boolean zeroed() {
         return zeroed;
     }
 
     /// How many bytes a `width` by `height` picture takes on the GPU.
-    abstract long bytes(int width, int height);
+    public abstract long bytes(int width, int height);
 }

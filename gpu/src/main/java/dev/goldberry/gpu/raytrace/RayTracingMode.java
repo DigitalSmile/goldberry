@@ -7,17 +7,22 @@ import java.util.Locale;
 public enum RayTracingMode {
     /// No ray tracing, whatever the device can do.
     OFF,
-    /// Ray tracing where the device has it, and none where it does not.
+    /// The best ray tracing there is: in hardware on a GPU that has it, in
+    /// software on the window's device otherwise, and none without either.
     AUTO,
     /// Ray tracing in hardware, or a refusal that says why there is none.
-    HARDWARE;
+    HARDWARE,
+    /// Ray tracing in software, on the window's device: compute shaders, on
+    /// any GPU it has.
+    SOFTWARE;
 
     /// `goldberry.raytracing`, which overrides what an application asks: `off`
-    /// turns ray tracing off for the process, and `auto` or `hardware` is
-    /// the mode it names.
+    /// turns ray tracing off for the process, and `auto`, `hardware` or
+    /// `software` is the mode it names.
     public static final String PROPERTY = "goldberry.raytracing";
 
-    /// The mode `value` names, ignoring case: `off`, `auto` or `hardware`.
+    /// The mode `value` names, ignoring case: `off`, `auto`, `hardware` or
+    /// `software`.
     ///
     /// @throws IllegalArgumentException when it names none
     public static RayTracingMode parse(String value) {
@@ -25,7 +30,10 @@ public enum RayTracingMode {
             case "off" -> OFF;
             case "auto" -> AUTO;
             case "hardware" -> HARDWARE;
-            default -> throw new IllegalArgumentException(PROPERTY + " is off, auto or hardware, not '" + value + "'");
+            case "software" -> SOFTWARE;
+            default ->
+                throw new IllegalArgumentException(
+                        PROPERTY + " is off, auto, hardware or software, not '" + value + "'");
         };
     }
 

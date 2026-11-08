@@ -15,6 +15,8 @@ import dev.goldberry.gpu.raytrace.Lighting;
 import dev.goldberry.gpu.raytrace.LightingRequest;
 import dev.goldberry.gpu.raytrace.SceneGeometry;
 import dev.goldberry.gpu.raytrace.TraceRequest;
+import dev.goldberry.gpu.raytrace.tier.RayConstants;
+import dev.goldberry.gpu.raytrace.tier.TraceOutput;
 import dev.goldberry.natives.vulkan.Structs;
 import dev.goldberry.natives.vulkan.VkConstants;
 import dev.goldberry.natives.vulkan.VkStructs;

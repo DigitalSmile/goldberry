@@ -268,9 +268,14 @@ closed as decisions under [Answered](#answered).
   `dev.goldberry.gpu.upscale.Upscaler` for a renderer's own textures.
   **Phase 7 is done** (ADR-0672, ADR-0673, parked, the same day): a lighting
   trace with occlusion and reflections, and the GPU screen's ray-traced room
-  with a game's settings. Left in the plan: the software tier (phase 3, and
-  the panel's Software segment with it), HDR (phase 6, waiting for a display),
-  and running `:example:gpuTest` in CI's GPU lane.
+  with a game's settings. **Phase 3 is done** (ADR-0674, parked, the same
+  day): rays traced in software behind the same `RayTracer`, on the window's
+  device — a BVH built in Java, walked by compute shaders, held to the same
+  references — and a frame's lighting traced into textures; the room's panel
+  offers Software. Left in the plan: HDR (phase 6, waiting for a display),
+  hardware ray tracing on Windows and macOS (phase 8: a hand test on Windows,
+  MoltenVK's ray tracing on macOS when it ships), and running
+  `:example:gpuTest` in CI's GPU lane.
 ## Platform, compositor and CI
 - **The 60 fps claim is measured on one machine, and closing M1 is a CI job.**
   §16's M1 asks for a styled wrapped paragraph *resized* at 60 fps on Linux,

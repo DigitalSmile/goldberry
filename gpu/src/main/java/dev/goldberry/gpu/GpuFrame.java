@@ -58,7 +58,7 @@ public final class GpuFrame implements AutoCloseable {
 
     private final GpuDevice device;
     private final SdlGpuCommandBuffer commands;
-    private final List<Readback> readbacks = new ArrayList<>();
+    private final List<TransferState> readbacks = new ArrayList<>();
     private State state = State.RECORDING;
     private @Nullable String openPass;
 
@@ -392,9 +392,40 @@ public final class GpuFrame implements AutoCloseable {
             transfer.close();
             throw e;
         }
-        var readback = new Readback(device, transfer, source.format(), region.width(), region.height());
-        readbacks.add(readback);
-        return readback;
+        var state = new TransferState(device, transfer);
+        readbacks.add(state);
+        return new Readback(state, source.format(), region.width(), region.height());
+    }
+
+    /// Records a copy of `size` bytes of `source` from byte `offset` into
+    /// memory the CPU reads once the frame is submitted: [BufferReadback#await].
+    /// Recorded in a copy pass of its own, after what was recorded before it,
+    /// so a compute pass's writes are read.
+    ///
+    /// @throws IllegalArgumentException when `size` is not positive, the bytes
+    ///                                  are not all inside `source`, or
+    ///                                  `source` is another device's or closed
+    /// @throws IllegalStateException    when the frame is finished or a pass is
+    ///                                  open
+    /// @throws GpuException             when the driver refuses the memory
+    public BufferReadback readback(GpuBuffer source, int offset, int size) {
+        Objects.requireNonNull(source, "source");
+        requireRecording("readback");
+        var buffer = source.sdl(device);
+        if (size <= 0 || offset < 0 || (long) offset + size > source.size()) {
+            throw new IllegalArgumentException(size + " bytes from offset " + offset + " are not inside " + source);
+        }
+        var sdlDevice = device.sdl();
+        var transfer = GpuDevice.call(() -> sdlDevice.createTransferBuffer(SdlGpuTransferUsage.DOWNLOAD, size));
+        try (var pass = GpuDevice.call(commands::beginCopyPass)) {
+            pass.downloadFromBuffer(buffer, offset, size, transfer, 0);
+        } catch (RuntimeException e) {
+            transfer.close();
+            throw e;
+        }
+        var state = new TransferState(device, transfer);
+        readbacks.add(state);
+        return new BufferReadback(state, size);
     }
 
     /// Begins a debug group named `name`, runs `body`, and ends it: the name a

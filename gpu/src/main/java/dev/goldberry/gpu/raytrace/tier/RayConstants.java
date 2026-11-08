@@ -1,4 +1,4 @@
-package dev.goldberry.gpu.raytrace.vulkan;
+package dev.goldberry.gpu.raytrace.tier;
 
 import static java.lang.foreign.ValueLayout.JAVA_FLOAT_UNALIGNED;
 import static java.lang.foreign.ValueLayout.JAVA_INT_UNALIGNED;
@@ -13,36 +13,36 @@ import dev.goldberry.gpu.raytrace.Vector3;
 /// camera's frame, the light, the picture's size, the two distances, what the
 /// dispatch writes and, for the lighting, its occlusion rays and reflections,
 /// in the shader's `Constants` order.
-final class RayConstants {
+public final class RayConstants {
 
     /// Their size, in bytes: five `float4`s and eight 32-bit values.
-    static final int SIZE = 112;
+    public static final int SIZE = 112;
 
-    static final long ORIGIN = 0;
-    static final long FORWARD = 16;
-    static final long RIGHT = 32;
-    static final long UP = 48;
-    static final long TOWARD_LIGHT = 64;
-    static final long WIDTH = 80;
-    static final long HEIGHT = 84;
-    static final long MAX_DISTANCE = 88;
-    static final long SHADOW_BIAS = 92;
-    static final long OUTPUT = 96;
-    static final long OCCLUSION_RAYS = 100;
-    static final long OCCLUSION_RADIUS = 104;
-    static final long REFLECTIONS = 108;
+    public static final long ORIGIN = 0;
+    public static final long FORWARD = 16;
+    public static final long RIGHT = 32;
+    public static final long UP = 48;
+    public static final long TOWARD_LIGHT = 64;
+    public static final long WIDTH = 80;
+    public static final long HEIGHT = 84;
+    public static final long MAX_DISTANCE = 88;
+    public static final long SHADOW_BIAS = 92;
+    public static final long OUTPUT = 96;
+    public static final long OCCLUSION_RAYS = 100;
+    public static final long OCCLUSION_RADIUS = 104;
+    public static final long REFLECTIONS = 108;
 
     private RayConstants() {}
 
     /// Writes `request`'s constants into `into`, which is at least [#SIZE]
     /// bytes, for a dispatch that writes `output`.
-    static void write(MemorySegment into, TraceRequest request, TraceOutput output) {
+    public static void write(MemorySegment into, TraceRequest request, TraceOutput output) {
         write(into, request, output, 0, 1, false);
     }
 
     /// Writes `lighting`'s constants into `into`, which is at least [#SIZE]
     /// bytes, for a dispatch that writes the lighting.
-    static void write(MemorySegment into, LightingRequest lighting) {
+    public static void write(MemorySegment into, LightingRequest lighting) {
         write(
                 into,
                 lighting.rays(),

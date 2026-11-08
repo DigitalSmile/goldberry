@@ -7484,8 +7484,8 @@ a painted frame reaches the screen, and what else can be on it.
   shaders. `dev.goldberry.gpu.upscale`'s `Upscaler` does the same for a
   renderer's own textures. The shaders match a Java reference exactly on
   lavapipe and within three levels on the GTX 1660 Ti; goldens at 0.5 and
-  0.75 are blessed on lavapipe. Snapshot 78 ran them on lavapipe; Metal's
-  lane stopped before `:gpu:gpuTest` on a test fixed since.
+  0.75 are blessed on lavapipe. Green in CI on lavapipe and on Metal
+  (Snapshot 79).
 - **The showcase has a ray-traced room and a game's graphics settings**
   (ADR-0672, ADR-0673, parked, 2026-10-25; the gaming plan's phase 7). The ray
   tracer traces a pixel's lighting: from each hit a shadow ray, occlusion rays
@@ -7496,6 +7496,16 @@ a painted frame reaches the screen, and what else can be on it.
   upscaler, anti-aliasing, anisotropy, present mode and frame cap. Tracing
   starts off, so the screen is the same picture on every machine. Its GPU
   goldens run in `:example:gpuTest`, which CI's lane does not run yet.
+- **Rays are traced in software too, behind the same ray tracer** (ADR-0674,
+  parked, 2026-10-25; the gaming plan's phase 3). `RayTracer.open(device,
+  mode)` traces on the window's own device in compute shaders where there is
+  no hardware tier, or where `SOFTWARE` is asked: a two-level hierarchy of boxes
+  built in Java, walked by `trace.comp`, `shadows.comp` and `lighting.comp`,
+  with the same records, shadow masks and lighting as the hardware tier. The
+  same tests hold both to the double-precision references, on lavapipe and the
+  GTX 1660 Ti. `traceLighting` into `LightingTargets` keeps a frame's lighting
+  on the GPU, which the showcase's room now does in either tier; its panel
+  offers Off, Software and Hardware.
 
 **What is not proven.** Everything above was built and measured on Metal. On
 Linux the composited path has run on this project's machine, under X11 on

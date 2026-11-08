@@ -1,6 +1,7 @@
 package dev.goldberry.example.ui.gpu;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
@@ -123,20 +124,25 @@ class GpuChapterTest {
 
     @Test
     @ResourceLock(Resources.SYSTEM_PROPERTIES)
-    @DisplayName("asking for ray tracing where there is none says why, disables the choice and leaves it off")
+    @DisplayName("asking for hardware ray tracing where there is none says why, and disables it alone")
     void theRoomSaysWhyThereIsNoTracing() {
         var previous = System.getProperty(RayTracingMode.PROPERTY);
         System.setProperty(RayTracingMode.PROPERTY, "off");
         try (var session = room()) {
             assertTrue(session.byId("gpu-room-unavailable").isEmpty(), "nothing said before anything is asked");
-            assertTrue(session.focus("gpu-room-rt"));
-            session.key(Key.RIGHT);
-            assertEquals("off", segmented(session, "gpu-room-rt").value());
             var options = optionsUnder(session.byId("gpu-room-rt").orElseThrow());
             assertEquals(
-                    List.of("off", "hardware"),
+                    List.of("off", "software", "hardware"),
                     options.stream().map(Option::value).toList());
-            assertTrue(options.get(1).disabled(), "hardware is disabled");
+            assertTrue(options.stream().noneMatch(Option::disabled), "nothing is refused before it is asked");
+            assertTrue(session.focus("gpu-room-rt"));
+            session.key(Key.RIGHT);
+            assertEquals("software", segmented(session, "gpu-room-rt").value(), "software is asked of the renderer");
+            session.key(Key.RIGHT);
+            assertEquals("software", segmented(session, "gpu-room-rt").value(), "hardware is refused, and left");
+            options = optionsUnder(session.byId("gpu-room-rt").orElseThrow());
+            assertTrue(options.get(2).disabled(), "hardware is disabled");
+            assertFalse(options.get(1).disabled(), "software is not");
             assertTrue(session.byId("gpu-room-unavailable").isPresent(), "the reason is shown");
             var message = under(session.byId("gpu-room-card").orElseThrow(), Message.class)
                     .getFirst();

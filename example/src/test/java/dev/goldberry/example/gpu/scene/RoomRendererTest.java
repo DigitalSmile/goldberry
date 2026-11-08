@@ -38,16 +38,17 @@ import dev.goldberry.widget.attr.Attributes;
 import dev.goldberry.widgets.Controls;
 
 /// The ray-traced room drawn on a real device and read back, on the GPU lane:
-/// lit by the sun's angle on every driver, traced where there is a ray
-/// tracer, and lit by the angle again, with the reason said, where tracing is
-/// asked for and there is none.
+/// lit by the sun's angle on every driver, traced in software on any device
+/// and in hardware where there is a ray-tracing device, and lit by the angle
+/// again, with the reason said, where tracing is asked for and there is none.
 ///
 /// **The goldens are lavapipe's.** The untraced room is a rasterized, lit
-/// scene, held to [#ROOM] on any driver. The traced one is held to its
-/// golden on lavapipe alone: there every occlusion ray is the same as when it
-/// was blessed, and on another device a ray that grazes an edge may go the
-/// other way and move a pixel by a twelfth of its light. Elsewhere the traced
-/// room is checked for being lit by the tracer and darker where it shadows.
+/// scene, held to [#ROOM] on any driver. The traced one is held to its golden
+/// on lavapipe alone, by either tier: there every occlusion ray is the same as
+/// when it was blessed, and on another device a ray that grazes an edge may go
+/// the other way and move a pixel by a twelfth of its light. Elsewhere the
+/// traced room is checked for being lit by the tracer and darker where it
+/// shadows.
 ///
 /// Read more: [The renderer](https://goldberry.dev/docs/components/gpu.html#the-renderer).
 @Tag(GpuTestLauncher.TAG)
@@ -100,7 +101,7 @@ class RoomRendererTest {
     }
 
     private static RoomRenderer renderer(SceneSettings settings, List<String> refusals) {
-        return new RoomRenderer(() -> settings, refusals::add);
+        return new RoomRenderer(() -> settings, (mode, reason) -> refusals.add(reason));
     }
 
     @Test
@@ -117,21 +118,34 @@ class RoomRendererTest {
     }
 
     @Test
-    @DisplayName("traces the room's shadows, occlusion and reflections where there is a ray tracer")
+    @DisplayName("traces the room's shadows, occlusion and reflections in hardware where there is a ray tracer")
     void traced() {
         var availability = RayTracer.availability();
         assumeTrue(availability.isAvailable(), () -> "no ray tracing here: " + availability);
-        var device = ((RayTracing.Hardware) availability).device();
+        assertTraced(RayTracingMode.HARDWARE);
+    }
+
+    @Test
+    @DisplayName("and in software on the device it draws with, which lavapipe traces as its golden has it")
+    void software() {
+        assertTraced(RayTracingMode.SOFTWARE);
+    }
+
+    /// Asserts the room traced by `mode`'s tier is lit by it, darker than the
+    /// untraced room, and on lavapipe its golden.
+    private static void assertTraced(RayTracingMode mode) {
         var refusals = new ArrayList<String>();
-        var renderer = renderer(SceneSettings.DEFAULT.withRayTracing(true), refusals);
+        var renderer = renderer(SceneSettings.DEFAULT.withRayTracing(mode), refusals);
         var traced = picture(renderer, WIDTH, HEIGHT, 1f);
         assertTrue(renderer.tracedLastFrame(), "lit by the tracer");
         assertEquals(List.of(), refusals);
+        var tier = renderer.lastTracedBy().orElseThrow();
+        assertEquals(mode == RayTracingMode.SOFTWARE, tier instanceof RayTracing.Software, tier.toString());
         var untraced = picture(renderer(SceneSettings.DEFAULT, refusals), WIDTH, HEIGHT, 1f);
         assertTrue(
                 brightness(traced) < brightness(untraced) * 0.97,
                 "shadows and occlusion darken the room: " + brightness(traced) + " against " + brightness(untraced));
-        if (device.toLowerCase(Locale.ROOT).contains("llvmpipe")) {
+        if (tier.device().toLowerCase(Locale.ROOT).contains("llvmpipe")) {
             GoldenImage.assertMatchesAtOneScale(
                     "gpu-room-traced",
                     WIDTH,
@@ -139,7 +153,7 @@ class RoomRendererTest {
                     1f,
                     ROOM,
                     (at, scale) -> picture(
-                            renderer(SceneSettings.DEFAULT.withRayTracing(true), refusals),
+                            renderer(SceneSettings.DEFAULT.withRayTracing(mode), refusals),
                             at.width(),
                             at.height(),
                             scale.factor()));
@@ -152,11 +166,13 @@ class RoomRendererTest {
         var previous = System.getProperty(RayTracingMode.PROPERTY);
         System.setProperty(RayTracingMode.PROPERTY, "off");
         try {
-            var refusals = new ArrayList<String>();
-            var renderer = renderer(SceneSettings.DEFAULT.withRayTracing(true), refusals);
-            picture(renderer, 96, 60, 1f);
-            assertFalse(renderer.tracedLastFrame());
-            assertEquals(List.of(RayTracingMode.PROPERTY + " is off"), refusals);
+            for (var mode : List.of(RayTracingMode.SOFTWARE, RayTracingMode.HARDWARE)) {
+                var refusals = new ArrayList<String>();
+                var renderer = renderer(SceneSettings.DEFAULT.withRayTracing(mode), refusals);
+                picture(renderer, 96, 60, 1f);
+                assertFalse(renderer.tracedLastFrame(), mode.toString());
+                assertEquals(List.of(RayTracingMode.PROPERTY + " is off"), refusals, mode.toString());
+            }
             GoldenImage.assertMatchesAtOneScale(
                     "gpu-room",
                     WIDTH,
@@ -164,7 +180,7 @@ class RoomRendererTest {
                     1f,
                     ROOM,
                     (at, scale) -> picture(
-                            renderer(SceneSettings.DEFAULT.withRayTracing(true), new ArrayList<>()),
+                            renderer(SceneSettings.DEFAULT.withRayTracing(RayTracingMode.SOFTWARE), new ArrayList<>()),
                             at.width(),
                             at.height(),
                             scale.factor()));

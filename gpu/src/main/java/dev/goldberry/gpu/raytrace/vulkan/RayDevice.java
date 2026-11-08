@@ -61,6 +61,7 @@ public final class RayDevice {
 
     private final MemorySegment handle;
     private final String name;
+    private final boolean cpu;
     private final int queueFamily;
     private final MemorySegment queue;
     private final VkDeviceFunctions functions;
@@ -73,6 +74,7 @@ public final class RayDevice {
             VulkanInstance instance, MemorySegment physical, MemorySegment handle, Candidate chosen, Limits limits) {
         this.handle = handle;
         this.name = chosen.name();
+        this.cpu = chosen.type() == VkConstants.VK_PHYSICAL_DEVICE_TYPE_CPU;
         this.queueFamily = chosen.computeFamily();
         this.limits = limits;
         Function<String, MemorySegment> procAddr = proc -> {
@@ -113,6 +115,12 @@ public final class RayDevice {
     /// The device's name, as its driver gives it.
     public String name() {
         return name;
+    }
+
+    /// Whether it is the CPU, as lavapipe is: a device that traces in
+    /// "hardware" on the processor, which a GPU's compute shaders outrun.
+    public boolean isCpu() {
+        return cpu;
     }
 
     /// What ray tracing on it is bounded by.

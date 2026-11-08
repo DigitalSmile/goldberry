@@ -15,6 +15,8 @@ import org.jspecify.annotations.Nullable;
 
 import dev.goldberry.gpu.raytrace.SceneGeometry;
 import dev.goldberry.gpu.raytrace.TriangleMesh;
+import dev.goldberry.gpu.raytrace.tier.FaceNormals;
+import dev.goldberry.gpu.raytrace.tier.TracedScene;
 import dev.goldberry.natives.vulkan.Structs;
 import dev.goldberry.natives.vulkan.VkConstants;
 import dev.goldberry.natives.vulkan.VkStructs;
@@ -35,7 +37,7 @@ import dev.goldberry.natives.vulkan.VulkanException;
 /// Beside them are what the closest-hit shader reads a hit's normal from:
 /// every mesh's [FaceNormals], uploaded once, and for each instance where its
 /// mesh's start, written with the instance records.
-public final class AccelerationScene implements AutoCloseable {
+public final class AccelerationScene implements TracedScene {
 
     private static final int INPUT_USAGE =
             VkConstants.VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR
@@ -293,6 +295,7 @@ public final class AccelerationScene implements AutoCloseable {
     }
 
     /// What it was built from, or last updated to.
+    @Override
     public SceneGeometry geometry() {
         return geometry;
     }
@@ -314,11 +317,13 @@ public final class AccelerationScene implements AutoCloseable {
     }
 
     /// How many bytes every structure takes: the meshes' and the instances'.
+    @Override
     public long structureBytes() {
         return bottomBytes() + (top == null ? 0 : top.size());
     }
 
     /// Whether it has been closed.
+    @Override
     public boolean isClosed() {
         return closed;
     }

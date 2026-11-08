@@ -14,6 +14,7 @@ import java.util.EnumSet;
 import java.util.HexFormat;
 import java.util.Optional;
 import java.util.Properties;
+import java.util.Set;
 import java.util.TreeSet;
 import java.util.stream.Collectors;
 
@@ -22,6 +23,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 
+import dev.goldberry.gpu.ShaderFormat;
 import dev.goldberry.natives.sdl.gpu.enums.SdlGpuShaderFormat;
 
 /// The committed shader bytecode is the bytecode of the committed sources, and
@@ -88,18 +90,35 @@ class ShaderManifestTest {
     }
 
     @Test
-    @DisplayName("are named in BuiltInShader, each of them, and nothing else is")
+    @DisplayName("are named in BuiltInShader or BuiltInComputeShader, each of them, and nothing else is")
     void everySourceHasAnEntry() throws IOException {
-        var names = Arrays.stream(BuiltInShader.values())
+        var graphics = Arrays.stream(BuiltInShader.values())
                 .map(BuiltInShader::fileName)
+                .collect(Collectors.toCollection(TreeSet::new));
+        var compute = Arrays.stream(BuiltInComputeShader.values())
+                .map(BuiltInComputeShader::fileName)
                 .collect(Collectors.toCollection(TreeSet::new));
         try (var files = Files.list(SOURCES)) {
             var sources = files.map(f -> f.getFileName().toString())
                     .filter(name -> name.endsWith(".hlsl"))
                     .map(name -> name.replace(".hlsl", ""))
                     .collect(Collectors.toCollection(TreeSet::new));
-            assertEquals(sources, names);
+            assertEquals(
+                    sources.stream().filter(name -> !name.endsWith(".comp")).collect(Collectors.toSet()), graphics);
+            assertEquals(sources.stream().filter(name -> name.endsWith(".comp")).collect(Collectors.toSet()), compute);
         }
+    }
+
+    @ParameterizedTest
+    @EnumSource(BuiltInComputeShader.class)
+    @DisplayName("load the compute shaders in each format the toolkit ships, with the entry point each names")
+    void computeLoadsInEveryFormat(BuiltInComputeShader shader) {
+        var code = shader.code();
+        assertEquals(Set.of(ShaderFormat.SPIRV, ShaderFormat.DXIL, ShaderFormat.MSL), code.formats());
+        assertEquals("main0", code.bytecode().get(ShaderFormat.MSL).entryPoint());
+        assertEquals("main", code.bytecode().get(ShaderFormat.SPIRV).entryPoint());
+        assertEquals(shader.threadsX(), code.threadsX());
+        assertEquals(shader.threadsY(), code.threadsY());
     }
 
     @ParameterizedTest

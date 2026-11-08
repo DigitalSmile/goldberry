@@ -8,6 +8,7 @@ import static java.lang.foreign.ValueLayout.JAVA_LONG;
 import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
 
+import dev.goldberry.gpu.raytrace.tier.RayConstants;
 import dev.goldberry.natives.vulkan.Structs;
 import dev.goldberry.natives.vulkan.VkConstants;
 import dev.goldberry.natives.vulkan.VkStructs;

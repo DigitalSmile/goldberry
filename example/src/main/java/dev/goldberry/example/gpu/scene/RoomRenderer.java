@@ -4,11 +4,14 @@ import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.ArrayList;
+import java.util.EnumMap;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
@@ -43,8 +46,10 @@ import dev.goldberry.gpu.VertexBufferLayout;
 import dev.goldberry.gpu.VertexFormat;
 import dev.goldberry.gpu.raytrace.Lighting;
 import dev.goldberry.gpu.raytrace.LightingRequest;
+import dev.goldberry.gpu.raytrace.LightingTargets;
 import dev.goldberry.gpu.raytrace.RayScene;
 import dev.goldberry.gpu.raytrace.RayTracer;
+import dev.goldberry.gpu.raytrace.RayTracing;
 import dev.goldberry.gpu.raytrace.RayTracingMode;
 import dev.goldberry.gpu.raytrace.TraceRequest;
 import dev.goldberry.gpu.view.Canvas3dRenderer;
@@ -57,14 +62,16 @@ import dev.goldberry.render.model.PhysicalSize;
 /// Every frame it places the room's solids for the frame's time and draws
 /// them. With ray tracing on it first traces the room's lighting at the size
 /// the canvas draws at — a shadow ray, occlusion rays and a reflection ray from
-/// every pixel's hit — and uploads it into two textures the fragment shader
-/// reads a texel a pixel. The tracer runs on a device of its own, so the
-/// lighting crosses through this process's memory: eight bytes a pixel.
+/// every pixel's hit — into two textures ([LightingTargets]) the fragment
+/// shader reads a texel a pixel. In software the tracer writes them where they
+/// are, in the frame; in hardware it traces on a device of its own and the
+/// frame uploads what it found, eight bytes a pixel.
 ///
-/// [SceneSettings] are read as the frame starts. Where the device lacks the
-/// anti-aliasing asked for, the most it has below it is used. Where there is no
-/// ray tracing the renderer says why, once, and draws the room lit by the sun's
-/// angle alone.
+/// [SceneSettings] are read as the frame starts, the tier among them: a new one
+/// closes the tracer and opens the other. Where the device lacks the
+/// anti-aliasing asked for, the most it has below it is used. Where a tier
+/// cannot trace the renderer says why, once for that tier, and draws the room
+/// lit by the sun's angle alone.
 ///
 /// Read more: [The renderer](https://goldberry.dev/docs/components/gpu.html#the-renderer).
 public final class RoomRenderer implements Canvas3dRenderer {
@@ -88,7 +95,7 @@ public final class RoomRenderer implements Canvas3dRenderer {
     private static final int CHECK = 32;
 
     private final Supplier<SceneSettings> settings;
-    private final Consumer<String> onUnavailable;
+    private final BiConsumer<RayTracingMode, String> onUnavailable;
     private final RoomScene room = new RoomScene();
     private final List<GpuResource> made = new ArrayList<>();
     /// By identity: a mesh does not define equality.
@@ -104,23 +111,24 @@ public final class RoomRenderer implements Canvas3dRenderer {
     private @Nullable GpuTexture checks;
     private @Nullable GpuTexture untracedShading;
     private @Nullable GpuTexture untracedReflections;
-    private @Nullable GpuTexture shading;
-    private @Nullable GpuTexture reflections;
+    private @Nullable LightingTargets targets;
     private @Nullable GpuTexture multisampled;
     private @Nullable GpuTexture multisampledDepth;
     private boolean uploaded;
 
     private @Nullable RayTracer tracer;
+    private RayTracingMode tracerMode = RayTracingMode.OFF;
     private @Nullable RayScene traced;
-    private @Nullable String refused;
+    private final Map<RayTracingMode, String> refused = new EnumMap<>(RayTracingMode.class);
 
     private int samplesInUse = 1;
     private boolean tracedLastFrame;
+    private RayTracing.@Nullable Available lastTracedBy;
 
     /// A renderer that reads `settings` as each frame starts, and tells
-    /// `onUnavailable` why, once, when ray tracing is asked for and there is
-    /// none. Both are called on the UI thread, from inside a paint.
-    public RoomRenderer(Supplier<SceneSettings> settings, Consumer<String> onUnavailable) {
+    /// `onUnavailable` why, once for each tier, when a tier is asked for and
+    /// cannot trace. Both are called on the UI thread, from inside a paint.
+    public RoomRenderer(Supplier<SceneSettings> settings, BiConsumer<RayTracingMode, String> onUnavailable) {
         this.settings = Objects.requireNonNull(settings, "settings");
         this.onUnavailable = Objects.requireNonNull(onUnavailable, "onUnavailable");
     }
@@ -147,11 +155,10 @@ public final class RoomRenderer implements Canvas3dRenderer {
     public void resize(PhysicalSize size) {
         // The traced textures and the multisampled targets follow the size
         // drawn at, and are made again at the next frame that needs them.
-        for (var texture : new @Nullable GpuTexture[] {shading, reflections, multisampled, multisampledDepth}) {
+        closeTargets();
+        for (var texture : new @Nullable GpuTexture[] {multisampled, multisampledDepth}) {
             release(texture);
         }
-        shading = null;
-        reflections = null;
         multisampled = null;
         multisampledDepth = null;
     }
@@ -166,26 +173,16 @@ public final class RoomRenderer implements Canvas3dRenderer {
         }
         var placed = room.at(target.seconds());
         var size = target.size();
-        var lighting = asked.rayTracing() ? trace(placed, size, asked) : null;
-        tracedLastFrame = lighting != null;
-        if (lighting != null) {
-            var shadingTexture = sized(on, shading, TextureFormat.R8G8B8A8_UNORM, size);
-            var reflectionTexture = sized(on, reflections, TextureFormat.R32_FLOAT, size);
-            shading = shadingTexture;
-            reflections = reflectionTexture;
-            frame.copyPass(copy -> {
-                copy.upload(shadingTexture, lighting.shading());
-                copy.upload(reflectionTexture, lighting.reflectedIds());
-            });
-        }
+        var lit = asked.traced() && trace(frame, on, placed, size, asked);
+        tracedLastFrame = lit;
         var samples = samplesFor(asked.samples());
         samplesInUse = samples;
         var pipeline = pipeline(on, samples);
         var floorSampler = anisotropic(on, asked.anisotropy());
-        var scene = sceneUniforms(asked, lighting != null, size);
+        var scene = sceneUniforms(asked, lit, size);
         var viewProjection = RoomScene.viewProjection(target.aspect());
-        var shadingInput = lighting != null ? required(shading) : required(untracedShading);
-        var reflectionInput = lighting != null ? required(reflections) : required(untracedReflections);
+        var shadingInput = lit ? required(targets).shading() : required(untracedShading);
+        var reflectionInput = lit ? required(targets).reflectedIds() : required(untracedReflections);
         var samplers = List.of(
                 new SamplerBinding(shadingInput, required(nearest)),
                 new SamplerBinding(reflectionInput, required(nearest)),
@@ -215,21 +212,29 @@ public final class RoomRenderer implements Canvas3dRenderer {
         frame.renderPass(colour, CLEAR, target.colour().view(0, 0), DepthTarget.clear(depth), draw);
     }
 
-    /// The room's lighting for `placed` at `size`, or null where there is no
-    /// ray tracing, said once to the panel.
-    private @Nullable Lighting trace(List<RoomScene.Placed> placed, PhysicalSize size, SceneSettings asked) {
-        if (refused != null) {
-            return null;
+    /// Traces the room's lighting for `placed` at `size` into the targets, in
+    /// `frame`, by the tier `asked` names; whether it did. A tier that cannot
+    /// is said once to the panel.
+    private boolean trace(
+            GpuFrame frame, GpuDevice on, List<RoomScene.Placed> placed, PhysicalSize size, SceneSettings asked) {
+        var mode = asked.rayTracing();
+        if (refused.containsKey(mode)) {
+            return false;
         }
         try {
             var opened = tracer;
+            if (opened != null && tracerMode != mode) {
+                closeTracer();
+                opened = null;
+            }
             if (opened == null) {
-                opened = RayTracer.open(RayTracingMode.HARDWARE).orElse(null);
+                opened = RayTracer.open(on, mode).orElse(null);
                 if (opened == null) {
-                    refuse(RayTracingMode.PROPERTY + " is off");
-                    return null;
+                    refuse(mode, RayTracingMode.PROPERTY + " is off");
+                    return false;
                 }
                 tracer = opened;
+                tracerMode = mode;
             }
             var geometry = RoomScene.geometry(placed);
             var scene = traced;
@@ -241,21 +246,42 @@ public final class RoomRenderer implements Canvas3dRenderer {
             }
             var rays = TraceRequest.of(RoomScene.camera(), size.width(), size.height())
                     .withShadowsToward(RoomScene.SUN);
-            return opened.traceLighting(
-                    scene,
-                    LightingRequest.of(rays)
-                            .withOcclusion(asked.occlusion() ? OCCLUSION_RAYS : 0, OCCLUSION_RADIUS)
-                            .withReflections(asked.reflections()));
+            var request = LightingRequest.of(rays)
+                    .withOcclusion(asked.occlusion() ? OCCLUSION_RAYS : 0, OCCLUSION_RADIUS)
+                    .withReflections(asked.reflections());
+            opened.traceLighting(frame, scene, request, targets(on, size));
+            lastTracedBy = opened.device();
+            return true;
         } catch (UnsupportedOperationException | GpuException e) {
-            refuse(e.getMessage() == null ? e.toString() : e.getMessage());
-            return null;
+            refuse(mode, e.getMessage() == null ? e.toString() : e.getMessage());
+            return false;
         }
     }
 
-    private void refuse(String reason) {
-        refused = reason;
+    /// The textures the lighting is traced into, at `size`.
+    private LightingTargets targets(GpuDevice on, PhysicalSize size) {
+        var current = targets;
+        if (current != null && current.width() == size.width() && current.height() == size.height()) {
+            return current;
+        }
+        closeTargets();
+        current = LightingTargets.create(on, size.width(), size.height());
+        targets = current;
+        return current;
+    }
+
+    private void closeTargets() {
+        var current = targets;
+        targets = null;
+        if (current != null && !current.shading().device().isClosed()) {
+            current.close();
+        }
+    }
+
+    private void refuse(RayTracingMode mode, String reason) {
+        refused.put(mode, reason);
         closeTracer();
-        onUnavailable.accept(reason);
+        onUnavailable.accept(mode, reason);
     }
 
     /// The scene's uniform block: the sun, the effects, the traced picture's
@@ -352,16 +378,6 @@ public final class RoomRenderer implements Canvas3dRenderer {
         return sampler;
     }
 
-    /// `current` when it is `size`, else a new sampled texture of `format` at
-    /// it, `current` released.
-    private GpuTexture sized(GpuDevice on, @Nullable GpuTexture current, TextureFormat format, PhysicalSize size) {
-        if (current != null && current.width() == size.width() && current.height() == size.height()) {
-            return current;
-        }
-        release(current);
-        return keep(on.createTexture(TextureSpec.sampled(format, size.width(), size.height())));
-    }
-
     /// `current` when it is `size` and `samples`, else a new multisampled
     /// target of `format`, `current` released.
     private GpuTexture multisampled(
@@ -388,9 +404,15 @@ public final class RoomRenderer implements Canvas3dRenderer {
         return tracedLastFrame;
     }
 
+    /// The tier and device that traced the last traced frame, if any has been.
+    public Optional<RayTracing.Available> lastTracedBy() {
+        return Optional.ofNullable(lastTracedBy);
+    }
+
     @Override
     public void dispose() {
         closeTracer();
+        closeTargets();
         var open = device;
         if (open != null && !open.isClosed()) {
             made.forEach(GpuResource::close);
@@ -407,11 +429,9 @@ public final class RoomRenderer implements Canvas3dRenderer {
         checks = null;
         untracedShading = null;
         untracedReflections = null;
-        shading = null;
-        reflections = null;
         multisampled = null;
         multisampledDepth = null;
-        refused = null;
+        refused.clear();
     }
 
     private void closeTracer() {
@@ -422,6 +442,7 @@ public final class RoomRenderer implements Canvas3dRenderer {
         }
         var opened = tracer;
         tracer = null;
+        tracerMode = RayTracingMode.OFF;
         if (opened != null) {
             opened.close();
         }

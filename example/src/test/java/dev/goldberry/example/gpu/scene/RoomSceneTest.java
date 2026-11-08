@@ -1,6 +1,7 @@
 package dev.goldberry.example.gpu.scene;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -11,6 +12,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
+import dev.goldberry.gpu.raytrace.RayTracingMode;
 import dev.goldberry.gpu.raytrace.Vector3;
 
 /// The ray-traced room's pieces that need no device: its settings, its meshes,
@@ -27,13 +29,14 @@ class RoomSceneTest {
         @DisplayName("start untraced, with every traced effect on, one sample and no anisotropy")
         void defaults() {
             var settings = SceneSettings.DEFAULT;
-            assertEquals(false, settings.rayTracing());
+            assertEquals(RayTracingMode.OFF, settings.rayTracing());
+            assertFalse(settings.traced());
             assertTrue(settings.shadows() && settings.occlusion() && settings.reflections());
             assertEquals(1, settings.samples());
             assertEquals(1, settings.anisotropy());
             assertEquals(
-                    new SceneSettings(true, false, true, false, 4, 16),
-                    settings.withRayTracing(true)
+                    new SceneSettings(RayTracingMode.SOFTWARE, false, true, false, 4, 16),
+                    settings.withRayTracing(RayTracingMode.SOFTWARE)
                             .withShadows(false)
                             .withReflections(false)
                             .withSamples(4)

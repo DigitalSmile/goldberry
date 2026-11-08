@@ -7,7 +7,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.Executors;
@@ -17,29 +16,35 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-/// Rays traced in hardware, against [ReferenceTracer]: the same instance, the
-/// same triangle, the same distance and barycentrics, and the same shadow,
-/// on every pixel whose answer does not hang on a rounding.
-///
-/// Needs a Vulkan device with the ray-tracing extensions: this machine's GPU,
-/// or lavapipe (`-Pgoldberry.raytracing.device=llvmpipe`). Skips without one,
-/// unless `goldberry.raytracing.required` is set.
-@DisplayName("the ray tracer, on a real device")
-class RayTracerTest {
+/// Rays traced by either tier, against [ReferenceTracer]: the same instance,
+/// the same triangle, the same distance and barycentrics, and the same shadow,
+/// on every pixel whose answer does not hang on a rounding. What holds of one
+/// tier holds of the other; each runs these through a subclass that opens it.
+abstract class RayTracerContract {
 
-    private static final int WIDTH = 96;
-    private static final int HEIGHT = 64;
+    static final int WIDTH = 96;
+    static final int HEIGHT = 64;
 
     /// Where single precision and the reference may disagree: a pixel this
     /// close to an edge, in barycentric units, is not compared.
     private static final double EDGE = 2e-3;
 
-    private RayTracer tracer;
+    RayTracer tracer;
     private final List<AutoCloseable> closing = new ArrayList<>();
+
+    /// A tracer of the tier under test, or the test skipped.
+    abstract RayTracer openTracer();
+
+    /// Another tracer of the same tier, which did not build this one's scenes.
+    abstract RayTracer openAnother();
+
+    /// What runs once the tracer and its scenes are closed: a check that
+    /// nothing was left open.
+    void afterClose() {}
 
     @BeforeEach
     void open() {
-        tracer = RayTracingRequirement.open();
+        tracer = openTracer();
     }
 
     @AfterEach
@@ -51,28 +56,14 @@ class RayTracerTest {
         // still runs this.
         if (tracer != null) {
             tracer.close();
+            afterClose();
         }
     }
 
-    private RayScene build(SceneGeometry geometry) {
+    RayScene build(SceneGeometry geometry) {
         var scene = tracer.build(geometry);
         closing.add(scene);
         return scene;
-    }
-
-    @Test
-    @DisplayName("names the device it traces on")
-    void namesItsDevice() {
-        assertTrue(RayTracer.availability().isAvailable());
-        assertEquals(RayTracer.availability(), tracer.device());
-        assertFalse(tracer.device().device().isBlank());
-        // A run that names its device, as the lavapipe run does, gets that one.
-        var named = System.getProperty("goldberry.raytracing.device");
-        if (named != null && !named.isBlank()) {
-            assertTrue(
-                    tracer.device().device().toLowerCase(Locale.ROOT).contains(named.toLowerCase(Locale.ROOT)),
-                    tracer.device() + " for " + named);
-        }
     }
 
     @Test
@@ -91,7 +82,7 @@ class RayTracerTest {
     /// Asserts that `hits`, traced from [TestScenes#camera] at [#WIDTH] by
     /// [#HEIGHT], are what the reference finds in `geometry`, and returns the
     /// ids of the instances they hit.
-    private static Set<Integer> assertMatchesReference(SceneGeometry geometry, Hits hits) {
+    static Set<Integer> assertMatchesReference(SceneGeometry geometry, Hits hits) {
         var reference = new ReferenceTracer(geometry);
         var compared = 0;
         var hitPixels = 0;
@@ -282,10 +273,8 @@ class RayTracerTest {
                                         instance.transform().then(Transform.translation(new Vector3(0.7f, 0, 1.1f))))
                                 .withId(instance.id() + 100))
                 .toList());
-        var bottomBefore = scene.structuresFor(tracer).bottomBytes();
         scene.update(moved);
         assertEquals(moved, scene.geometry());
-        assertEquals(bottomBefore, scene.structuresFor(tracer).bottomBytes(), "the meshes' structures stay");
         var instances =
                 assertMatchesReference(moved, tracer.trace(scene, TraceRequest.of(TestScenes.camera(), WIDTH, HEIGHT)));
         assertEquals(
@@ -338,19 +327,6 @@ class RayTracerTest {
     }
 
     @Test
-    @DisplayName("compacts its meshes' structures, and counts what they hold")
-    void compacts() {
-        var scene = build(TestScenes.cubesOnGround());
-        var structures = scene.structuresFor(tracer);
-        assertEquals(2, structures.bottomLevelCount(), "the ground and the shared cube");
-        assertTrue(structures.bottomBytes() > 0);
-        assertTrue(
-                structures.bottomBytes() <= structures.bottomBytesBuilt(),
-                structures.bottomBytes() + " compacted, " + structures.bottomBytesBuilt() + " built");
-        assertTrue(scene.structureBytes() > structures.bottomBytes(), "the instances' structure counts too");
-    }
-
-    @Test
     @DisplayName("traces one scene again, at another size, and the hits buffer grows")
     void tracesAgain() {
         var scene = build(TestScenes.cubesOnGround());
@@ -397,7 +373,7 @@ class RayTracerTest {
     void refusesForeignAndClosedScenes() {
         var scene = tracer.build(TestScenes.cubesOnGround());
         var request = TraceRequest.of(TestScenes.camera(), 8, 8);
-        try (var other = RayTracer.open(RayTracingMode.HARDWARE).orElseThrow()) {
+        try (var other = openAnother()) {
             assertThrows(IllegalArgumentException.class, () -> other.trace(scene, request));
         }
         scene.close();
