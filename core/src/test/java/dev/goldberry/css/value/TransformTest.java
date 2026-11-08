@@ -200,7 +200,7 @@ class TransformTest {
         }
 
         /// And the size it starts at when it declares none, which is
-        /// `Typography.INITIAL`'s 13 rather than the unrelated 16 the old
+        /// `Typography.INITIAL`'s 15 rather than the unrelated 16 the old
         /// constant supplied.
         @Test
         @DisplayName("and of the size it starts at when it declares none")
@@ -208,7 +208,7 @@ class TransformTest {
             var moved =
                     compute("button { transform: translateX(2em) }").transform().matrix(100, 40);
 
-            assertMaps(moved, 0, 0, 26, 0);
+            assertMaps(moved, 0, 0, 30, 0);
         }
 
         @Test

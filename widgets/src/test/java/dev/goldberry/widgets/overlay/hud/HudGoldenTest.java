@@ -68,6 +68,14 @@ class HudGoldenTest {
                 .frames(stats);
     }
 
+    /// Wide enough for the default plate's caption on one line at the
+    /// `caption` size: at 200 it wrapped, and the third line fell off the frame.
+    private static final int PLATE_WIDTH = 240;
+
+    /// Room under the default plate's three lines. At 60 the plate's bottom edge
+    /// was the frame's, and the 2x render rounded it off.
+    private static final int PLATE_HEIGHT = 72;
+
     private void paint(String name, Theme theme, FrameStats stats, int width, Widget hud) {
         paint(name, theme, stats, width, 60, hud);
     }
@@ -191,7 +199,7 @@ class HudGoldenTest {
     @Test
     @DisplayName("a hud on the dark theme")
     void dark() {
-        paint("hud-dark", Theme.NORD_DARK, SIXTY, 200, new Hud());
+        paint("hud-dark", Theme.NORD_DARK, SIXTY, PLATE_WIDTH, PLATE_HEIGHT, new Hud());
     }
 
     /// The same plate on the light theme, and it is the **same plate** — the one
@@ -200,7 +208,7 @@ class HudGoldenTest {
     @Test
     @DisplayName("a hud on the light theme is still a dark plate")
     void light() {
-        paint("hud-light", Theme.NORD_LIGHT, SIXTY, 200, new Hud());
+        paint("hud-light", Theme.NORD_LIGHT, SIXTY, PLATE_WIDTH, PLATE_HEIGHT, new Hud());
     }
 
     /// All three readings, which is the widest a HUD gets.

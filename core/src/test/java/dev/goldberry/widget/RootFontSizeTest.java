@@ -138,7 +138,7 @@ class RootFontSizeTest {
         assertEquals(Insets.all(Length.points(20)), captured[1].style.margin(), "2em is the element's own 10");
     }
 
-    /// A root that declares nothing computes `Typography.INITIAL`'s 13, and that
+    /// A root that declares nothing computes `Typography.INITIAL`'s 15, and that
     /// is what `rem` means below it — **not** the configured 16.
     ///
     /// This is the one assertion that changes an answer nobody asked to change,
@@ -153,8 +153,8 @@ class RootFontSizeTest {
     void aSilentRootStillDecides() {
         var captured = render("button { padding: 2rem }");
 
-        assertEquals(13, captured[0].style.typography().size(), 0.001, "the root computed the initial size");
-        assertEquals(Insets.all(Length.points(26)), captured[1].style.padding(), "2 × 13, not 2 × 16");
+        assertEquals(15, captured[0].style.typography().size(), 0.001, "the root computed the initial size");
+        assertEquals(Insets.all(Length.points(30)), captured[1].style.padding(), "2 × 15, not 2 × 16");
     }
 
     /// The root's own non-font-size declarations, through the renderer rather

@@ -116,10 +116,10 @@
      no gutter; `scrollbars-always.css` swaps them for the classic reserved
      gutter, which is the "always show scroll bars" setting. */
   --gb-scrollbar-gutter: 0px;
-  --gb-scrollbar-size: 8px;
+  --gb-scrollbar-size: 6px;
   --gb-scrollbar-track: transparent;
   --gb-scroll-thumb-size: 4px;
-  --gb-scroll-thumb-hover-size: 8px;
+  --gb-scroll-thumb-hover-size: 6px;
   --gb-select-height: var(--gb-control-height);
   /* The other half of that row. One token each rather than one shared one, so
      an application can pin a field without moving every dropdown with it. */
@@ -1206,12 +1206,13 @@ slider-tick {
 
    The **width is fixed and that is the point**: a label that sized itself to its
    content would take three pixels off the track between 9 and 10, which moves
-   the value under the finger that is setting it. 40 is `caption` wide enough for
-   four digits and a sign, which is what the formats a slider is given produce. */
+   the value under the finger that is setting it. 48 is 13px `caption` wide enough
+   for four digits and a sign, which is what the formats a slider is given produce,
+   and for a three-character readout at 150% text. */
 /* The readout, at a fixed width so the track does not move as the digits change
    — and **aligned to the trailing edge**, which is what a fixed width
    is for. A column of numbers beside a row of faders lines up on its units
-   column, and a left-aligned one in a 40px box lines up on nothing: `9` and `10`
+   column, and a left-aligned one in a 48px box lines up on nothing: `9` and `10`
    start in the same place and end two pixels apart.
 
    The CSS subset has listed `text-align` from the start and its own note said `Box` could
@@ -1220,7 +1221,7 @@ slider-tick {
    is untouched. `end` rather than `right`: `start` and `end` are the CSS words,
    and `flex-start` is Yoga's. */
 slider-value {
-  width: 40px;
+  width: 48px;
   font-size: var(--gb-font-caption);
   line-height: var(--gb-line-caption);
   color: var(--gb-text-muted);
@@ -3124,8 +3125,13 @@ hud {
 
 /* The readings are dim; the rate is not. There are only ever two or three
    numbers here and one of them is the answer -- the rest is context for it. */
+/* At least a caption line tall, so a reading is one line box at every scale:
+   sized by the face alone, a 13px line is 15.74 and rounds to a different
+   height at 1x than at 2x, and three of them move the plate's edge. Larger text
+   still grows it. */
 hud-reading {
   flex-shrink: 0;
+  min-height: var(--gb-line-caption);
   color: var(--gb-hud-text-muted);
 }
 
@@ -3169,6 +3175,7 @@ hud-reading.over {
    is read once and then never again, where the numbers are read every time the
    window is looked at. */
 hud-caption {
+  min-height: var(--gb-line-caption);
   color: var(--gb-hud-text-muted);
   font-size: var(--gb-font-caption);
   line-height: var(--gb-line-caption);
@@ -3672,11 +3679,11 @@ scroll-content {
 
 /* The design system's overlay scrollbars. Absolutely positioned, so they cost the content no
    width -- that is the difference between an overlay bar and the reserved 12px
-   gutter the same section describes for "always show scroll bars", which is not
-   built.
+   gutter the same section describes for "always show scroll bars", which is
+   `scrollbars-always.css`.
 
    The track is transparent until the pointer is over the viewport, which is what
-   "4px thumb -> 8px with visible track on hover" means: at rest there is a thumb
+   "4px thumb -> 6px with visible track on hover" means: at rest there is a thumb
    floating on the content and nothing else. */
 scrollbar {
   position: absolute;
@@ -3708,14 +3715,14 @@ scrollbar.horizontal {
   align-items: center;
 }
 
-/* The scrollbar rule's numbers: 4px at rest, 8 on hover, `full` radius. The width is the
+/* The scrollbar rule's numbers: 4px at rest, 6 on hover, `full` radius. The width is the
    thumb's; its *length* is the widget's, because how long it is says what
    proportion of the document is visible and no selector can know that. */
 scroll-thumb {
   background: var(--gb-text-muted);
   border-radius: 999px;
   /* Only the colour. The motion rules keep layout properties off the whitelist and
-     the motion engine refuses `transition: width` outright, so the 4->8 widening is a
+     the motion engine refuses `transition: width` outright, so the 4->6 widening is a
      jump rather than a slide -- which is what they ask for anyway: the
      alternative is running Yoga per frame to grow a 4px rectangle. */
   transition: background var(--gb-motion-fast);
@@ -3954,11 +3961,16 @@ table-cells {
   overflow: hidden;
 }
 
+/* One line, cut where it runs out. A row is `list`'s fixed height, so a cell
+   that wrapped would spill its second line over the row below; `item` makes the
+   same choice for the same reason. */
 table-cell {
   flex-direction: row;
   align-items: center;
   padding: 0 12px;
   overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 /* --- tree ------------------------------------------------------------- */
@@ -4154,15 +4166,15 @@ tour-card > column > row {
    not giving it. The typography ranks below stay unqualified, and correctly so —
    `.body` is applied to whatever an application puts it on. */
 text.tour-title {
-  font-size: 15px;
-  line-height: 20px;
+  font-size: var(--gb-font-heading);
+  line-height: var(--gb-line-heading);
   font-weight: 600;
   color: var(--gb-text);
 }
 
 text.tour-body {
-  font-size: 13px;
-  line-height: 18px;
+  font-size: var(--gb-font-body);
+  line-height: var(--gb-line-body);
   color: var(--gb-text-muted);
 }
 
@@ -4175,8 +4187,8 @@ text.tour-body {
    to `nord3`, which on `nord1` is a counter nobody can read -- the contrast
    floor applies to metadata too. The size carries the demotion instead. */
 text.tour-count {
-  font-size: 11px;
-  line-height: 16px;
+  font-size: var(--gb-font-caption);
+  line-height: var(--gb-line-caption);
   color: var(--gb-text-muted);
 }
 

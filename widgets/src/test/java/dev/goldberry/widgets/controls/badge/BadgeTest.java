@@ -105,7 +105,7 @@ class BadgeTest {
                 Corners.all(10),
                 style.decoration().corners(),
                 "a fully rounded corner on a 20px box, spelled the way toggle-track spells it");
-        assertEquals(11, style.typography().size(), 1e-9, "the `caption` type size");
+        assertEquals(13, style.typography().size(), 1e-9, "the `caption` type size");
         assertEquals(Align.CENTER, style.alignItems());
     }
 

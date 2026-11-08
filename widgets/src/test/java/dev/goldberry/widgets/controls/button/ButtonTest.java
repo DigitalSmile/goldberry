@@ -236,11 +236,11 @@ class ButtonTest {
         void bodyStrong() {
             var typography = style(null).typography();
 
-            // The design system's body-strong is Inter 600 at 13/18. The last of
+            // The design system's body-strong is Inter 600 at 15/20. The last of
             // the four things `controls.css` used to say it could not express.
             assertEquals("Inter", typography.family());
-            assertEquals(13, typography.size(), 1e-9);
-            assertEquals(18, typography.resolvedLineHeight(), 1e-9);
+            assertEquals(15, typography.size(), 1e-9);
+            assertEquals(20, typography.resolvedLineHeight(), 1e-9);
             assertEquals(600, typography.weight());
 
             // And it is a real second face rather than a synthetic smear: the

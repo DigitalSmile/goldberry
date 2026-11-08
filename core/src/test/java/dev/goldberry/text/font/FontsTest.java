@@ -114,7 +114,7 @@ class FontsTest {
             var body = fonts.of(Typography.INITIAL);
             var strong = fonts.of(Typography.INITIAL.weight(BundledFont.Weight.SEMI_BOLD));
 
-            assertEquals(13, body.size(), 1e-9, "the design system's body size");
+            assertEquals(15, body.size(), 1e-9, "the design system's body size");
             assertNotSame(body, strong, "600 is a different face, so a different font");
             assertEquals(2, fonts.openFaces());
         }
@@ -128,7 +128,7 @@ class FontsTest {
             // with no text in it.
             var style = Typography.INITIAL.family("Comic Sans MS");
 
-            assertSame(fonts.of(BundledFont.UI, 13), fonts.of(style));
+            assertSame(fonts.of(BundledFont.UI, Typography.INITIAL.size()), fonts.of(style));
         }
 
         @Test

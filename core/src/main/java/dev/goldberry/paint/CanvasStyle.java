@@ -39,9 +39,10 @@ import dev.goldberry.text.font.Font;
 /// @param reducedMotion whether the user asked for less movement
 public record CanvasStyle(Font font, int ink, double nowMillis, boolean reducedMotion) {
 
-    /// The size a font is when nothing resolved one — the toolkit's own body
-    /// size, and the number `Typography`'s default carries.
-    private static final double DEFAULT_SIZE = 14;
+    /// The size a font is when nothing resolved one: a step above the toolkit's
+    /// body size, so a label drawn by a painter that is not on a canvas reads
+    /// beside the text around it.
+    private static final double DEFAULT_SIZE = 16;
 
     public CanvasStyle {
         Objects.requireNonNull(font, "font");

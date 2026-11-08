@@ -42,13 +42,13 @@ Inter ships as **four faces**: 400 and 600, each upright and italic. A weight is
 
 | Token         | Font              | Size/Line | Use |
 |---------------|-------------------|-----------|-----|
-| `display`     | Inter 600         | 28/34     | Large titles, empty states |
-| `title`       | Inter 600         | 20/26     | Window/page titles |
-| `heading`     | Inter 600         | 15/20     | Section headers |
-| `body`        | Inter 400         | 13/18     | Default UI text |
-| `body-strong` | Inter 600         | 13/18     | Emphasis, buttons |
-| `caption`     | Inter 400         | 11/14     | Secondary metadata |
-| `mono`        | JetBrains Mono 400| 13/18     | Code, terminal |
+| `display`     | Inter 600         | 30/36     | Large titles, empty states |
+| `title`       | Inter 600         | 22/28     | Window/page titles |
+| `heading`     | Inter 600         | 17/22     | Section headers |
+| `body`        | Inter 400         | 15/20     | Default UI text |
+| `body-strong` | Inter 600         | 15/20     | Emphasis, buttons |
+| `caption`     | Inter 400         | 13/16     | Secondary metadata |
+| `mono`        | JetBrains Mono 400| 15/20     | Code, terminal |
 
 Global **text-scale token 90–150%**; every component must survive 150% without clipping (gallery-enforced). Switching to system fonts (`FontSource.system`) voids pixel-exact metrics — documented, intentional.
 
@@ -138,7 +138,7 @@ Every control renders all of: rest, `:hover`, `:active` (pressed), `:focus-visib
 
 ### 2.4 Scrolling and scrollbars
 
-- **Overlay auto-hiding scrollbars** by default: 4px thumb → 8px with visible track on hover, accent color while dragging, fade after 800ms idle. `full`-radius thumb.
+- **Overlay auto-hiding scrollbars** by default: 4px thumb → 6px with visible track on hover, accent color while dragging, fade after 800ms idle. `full`-radius thumb.
 - **"Always show scroll bars"** app/user setting swaps to a classic reserved **12px gutter** — components must survive the gutter appearing (layout, not overlay). Built as `Scrollbars.ALWAYS`, a token stylesheet beside the density ([ADR-0364](../book/src/adr/0364-always-shown-scroll-bars-are-a-token-sheet.md)).
 - Pixel-precise wheel/trackpad deltas with line fallback; track-click pages; keyboard per `scroll` spec in `core-widgets.md`.
 - **Hard edges, no overscroll bounce.** Scroll-chaining: inner scroller consumes until its edge, then chains to the ancestor — but never chains out of a menu or popover.

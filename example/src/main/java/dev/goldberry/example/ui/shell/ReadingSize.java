@@ -12,9 +12,9 @@ import dev.goldberry.css.cascade.CascadeLayer;
 /// How large the showcase sets its text: three steps of the type scale, each a
 /// stylesheet of tokens.
 ///
-/// The toolkit's scale is 13px body text, which is right for a label beside a
-/// control and small for the paragraphs a gallery is mostly made of. The
-/// showcase reads at [#MEDIUM], 15px, and a reader can step down to the
+/// The toolkit's scale is 15px body text. [#MEDIUM], where the showcase opens,
+/// has the same body size with a looser line and larger headings for the
+/// paragraphs a gallery is mostly made of; a reader can step down to the
 /// toolkit's own sizes or up to [#LARGE].
 ///
 /// A size is a sheet of custom properties on `:root`, in the application's
@@ -28,8 +28,8 @@ import dev.goldberry.css.cascade.CascadeLayer;
 /// Read more: [Text scale](https://goldberry.dev/docs/guide/text.html#text-scale).
 public enum ReadingSize {
 
-    /// The toolkit's own scale: 13px body text.
-    SMALL("Small", new Scale(28, 34, 20, 26, 15, 20, 13, 18, 11, 14, 13, 18)),
+    /// The toolkit's own scale: 15px body text.
+    SMALL("Small", new Scale(30, 36, 22, 28, 17, 22, 15, 20, 13, 16, 15, 20)),
 
     /// The showcase's: 15px body text.
     MEDIUM("Medium", new Scale(32, 40, 24, 30, 18, 24, 15, 22, 13, 18, 14, 20)),

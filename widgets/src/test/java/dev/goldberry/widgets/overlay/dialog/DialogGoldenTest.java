@@ -52,19 +52,24 @@ class DialogGoldenTest {
         host = new TestHost();
     }
 
+    /// Tall enough for the dialog at the body size: a dialog that meets the
+    /// scrim's height scrolls its body, and at 300 a 15px body was cut under its
+    /// first line.
+    private static final int WINDOW_HEIGHT = 340;
+
     /// A window with something in it, so the veil has something to dim. A dialog
     /// over an empty grey rectangle is a picture of a dialog; this is a picture
     /// of a *modal*.
     private static final String SCENE = """
             #window { padding: 16px; gap: 8px; background: var(--gb-bg);
-                      width: 460px; height: 300px }
+                      width: 460px; height: %dpx }
             /* The scrim takes what is left of the window, which in a real one is
                everything: `Dialogs.show` puts it in a *filling* overlay, and an
                overlay is inset to the window's four edges. Here it is a sibling
                in a column, so it has to be told to grow -- and being told is
                what makes this picture a modal rather than a panel. */
             dialog-scrim { flex-grow: 1 }
-            """;
+            """.formatted(WINDOW_HEIGHT);
 
     private static Widget window() {
         return new Column(
@@ -109,7 +114,7 @@ class DialogGoldenTest {
         renderer.render(tree);
         assertFalse(renderer.isAnimating(), "a dialog that has been open 300ms is still moving");
 
-        GoldenImage.assertMatches(name, 460, 300, 1.0f, frame -> BoxPainter.paint(frame, settled));
+        GoldenImage.assertMatches(name, 460, WINDOW_HEIGHT, 1.0f, frame -> BoxPainter.paint(frame, settled));
     }
 
     @Test
@@ -139,7 +144,7 @@ class DialogGoldenTest {
         clock.advance(120);
         var midway = renderer.render(tree);
 
-        GoldenImage.assertMatches("dialog-opening", 460, 300, 1.0f, frame -> BoxPainter.paint(frame, midway));
+        GoldenImage.assertMatches("dialog-opening", 460, WINDOW_HEIGHT, 1.0f, frame -> BoxPainter.paint(frame, midway));
     }
 
     /// The exit is the entrance reversed over the `base` duration, and during
@@ -161,6 +166,6 @@ class DialogGoldenTest {
         clock.advance(80);
         var midway = renderer.render(tree);
 
-        GoldenImage.assertMatches("dialog-closing", 460, 300, 1.0f, frame -> BoxPainter.paint(frame, midway));
+        GoldenImage.assertMatches("dialog-closing", 460, WINDOW_HEIGHT, 1.0f, frame -> BoxPainter.paint(frame, midway));
     }
 }

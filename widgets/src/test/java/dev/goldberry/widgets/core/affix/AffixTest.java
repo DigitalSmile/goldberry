@@ -47,6 +47,14 @@ class AffixTest {
 
     private static final int VIEWPORT_HEIGHT = 120;
 
+    /// How far one notch of the wheel scrolls: three lines of `--gb-scroll-line`'s 20px.
+    private static final double NOTCH = 3 * 20;
+
+    /// How many rows the push-out case scrolls: past the eight rows of the first
+    /// section and three quarters of its header, so the second header is a
+    /// quarter of a row from the top.
+    private static final double PUSHED_OUT_ROWS = 8.75;
+
     private TestFrames.Target target;
     private RenderTree render;
 
@@ -197,10 +205,11 @@ class AffixTest {
             var harness = new Harness(sections());
             var lineHeight = harness.contentTops().get(1) / 9;
 
-            // Scroll until the second header is two lines below the viewport's top:
-            // the first section's bottom is there too, so its header must sit
-            // directly above that, partly out of view, and not at zero.
-            harness.wheel((float) (7.0 / 3.0));
+            // Scroll until the second header is under a line from the viewport's
+            // top: the first section's bottom is there too, so its header must sit
+            // directly above that, partly out of view, and not at zero. In rows
+            // rather than pixels, so the type scale does not move the case.
+            harness.wheel((float) (PUSHED_OUT_ROWS * lineHeight / NOTCH));
             var tops = harness.contentTops();
             var first = tops.get(0);
             var second = tops.get(1);

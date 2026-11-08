@@ -43,7 +43,7 @@ class TableGoldenTest {
     }
 
     private static final String SCENE = """
-            table { padding: 8px; background: var(--gb-surface); width: 320px }
+            table { padding: 8px; background: var(--gb-surface); width: 360px }
             """;
 
     private static List<Column<Person>> columns() {
@@ -70,7 +70,7 @@ class TableGoldenTest {
                 List.of(Controls.baseStylesheet(), theme.load(), Stylesheet.parse(CascadeLayer.APPLICATION, SCENE)),
                 TestFont.get());
 
-        GoldenImage.assertMatches(name, 320, 176, 1.0f, frame -> BoxPainter.paint(frame, renderer.render(tree)));
+        GoldenImage.assertMatches(name, 360, 176, 1.0f, frame -> BoxPainter.paint(frame, renderer.render(tree)));
     }
 
     @Test

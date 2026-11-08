@@ -48,9 +48,14 @@ class TextAreaTest {
     /// texts wrap where the newlines are and nowhere else — so "line" means what
     /// the test wrote and the wrap is not silently under test too.
     private ElementTree mounted(TextArea area) {
+        return mounted(area, 200);
+    }
+
+    /// The same, `height` points tall.
+    private ElementTree mounted(TextArea area, float height) {
         var tree = new ElementTree(area, host);
         render(tree);
-        box(tree).measured(new Extent(300, 200), new Extent(300, 200));
+        box(tree).measured(new Extent(300, height), new Extent(300, height));
         render(tree);
         return tree;
     }
@@ -173,13 +178,13 @@ class TextAreaTest {
         @Test
         @DisplayName("takes its line count from the height it was given, not from max-rows")
         void linesComeFromTheHeight() {
-            var tree = mounted(document());
+            // Taller than `DEFAULT_MAX_ROWS` body lines and their padding, so the
+            // count cannot equal max-rows by coincidence: at a 20px line, 200
+            // points held exactly ten. The assertion is the *relationship* rather
+            // than a magic number, because the container is what decides.
+            var tree = mounted(document(), 290);
 
-            // 200 points tall, less the padding, at the test font's line height. The
-            // assertion is the *relationship* rather than a magic number: a filling
-            // area shows many more lines than `DEFAULT_MAX_ROWS`, because the
-            // container is what decides.
-            assertTrue(visibleRows(tree) > 5, "a 200-point pane holds more than five lines: " + visibleRows(tree));
+            assertTrue(visibleRows(tree) > 5, "a 290-point pane holds more than five lines: " + visibleRows(tree));
             assertNotEquals(
                     TextArea.DEFAULT_MAX_ROWS, visibleRows(tree), "max-rows is what a filling area stops consulting");
         }

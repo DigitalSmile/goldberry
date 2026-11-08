@@ -63,14 +63,14 @@ public record Typography(
     /// The weight nobody wrote: CSS's `normal`.
     private static final int REGULAR = 400;
 
-    /// Inter 400 upright at 13/18 — `body`, the design system's default UI text.
+    /// Inter 400 upright at 15/20 — `body`, the design system's default UI text.
     ///
     /// Deliberately the *specified* default rather than something neutral: a
     /// window with no stylesheet at all should read as the design system, because
     /// the alternative is a toolkit whose out-of-the-box text is a size nobody
     /// chose.
     public static final Typography INITIAL =
-            new Typography("Inter", 13, REGULAR, BundledFont.Style.UPRIGHT, 18, Lettering.NONE, FontVariation.NONE);
+            new Typography("Inter", 15, REGULAR, BundledFont.Style.UPRIGHT, 20, Lettering.NONE, FontVariation.NONE);
 
     /// Written out so that the parameters taking null for a default can say so.
     ///

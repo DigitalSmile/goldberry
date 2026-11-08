@@ -9,6 +9,8 @@ import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import dev.goldberry.css.Typography;
+
 @DisplayName("the reading size")
 class ReadingSizeTest {
 
@@ -23,11 +25,17 @@ class ReadingSizeTest {
     }
 
     @Test
-    @DisplayName("sets body text at 13, 15 and 17")
+    @DisplayName("sets body text at 15, 15 and 17")
     void bodySizes() {
         assertEquals(
-                List.of(13, 15, 17),
+                List.of(15, 15, 17),
                 List.of(ReadingSize.values()).stream().map(ReadingSize::body).toList());
+    }
+
+    @Test
+    @DisplayName("small is the toolkit's own body size")
+    void smallIsTheToolkits() {
+        assertEquals(Typography.INITIAL.size(), ReadingSize.SMALL.body(), 1e-9);
     }
 
     @Test

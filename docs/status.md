@@ -340,6 +340,16 @@ window, so it was built with M3's overlays and is written up there.
   reach `ComputedStyle`; a `Fonts` book caches faces by family+weight and fonts by
   (face, size), because a widget tree is re-rendered every frame and a heading at 20px
   would otherwise re-parse Inter sixty times a second.
+- **The type scale stepped up two pixels** (2026-11-08, ADR-0675, parked in
+  `docs/snapshot/adr/`). Body is 15/20 where it was 13/18, and every other rank
+  grew by two in size and in line: display 30/36, title 22/28, heading 17/22,
+  caption 13/16, mono 15/20. `Typography.INITIAL`, both Nord themes, the canvas
+  fallback (16) and the showcase's Small reading size moved together; the tour
+  card reads the tokens instead of writing the old numbers out. `ThemeTest`
+  holds every rank, and holds the body token to `Typography.INITIAL`. The
+  larger type exposed three layouts: the slider's readout is 48px wide (40
+  overran at 150% text), a table cell no longer wraps over the row below it,
+  and the dialog, HUD and table golden scenes were enlarged to fit.
 - **A weight is a face, not an axis**: Inter ships as a variable file *and* as its
   SemiBold static instance, because instancing `wght` needs symbols in both HarfBuzz and
   Blend2D and therefore three new export branches — the machinery that has caught the
@@ -2189,6 +2199,10 @@ from the test's side.
 §2.4's overlay scrollbars, taken as written: a 6px thumb widening to 10 with a
 visible track on hover, `full` radius, accent while dragging, and a fade 800ms
 after the last movement. Dragging scrolls and a click on the track pages.
+The numbers have since come down twice at the user's request: 4px on an 8px
+bar (2026-10-11, ADR-0629), then a 6px bar with the thumb widening to 6
+(2026-11-08, the same parked record amended). `Scrollbars.ALWAYS` keeps its
+12px gutter and 8px thumb.
 
 The thumb needed something that did not exist. ADR-0116's extents arrive on the
 event that asks to move, which is enough to clamp and useless for drawing — a

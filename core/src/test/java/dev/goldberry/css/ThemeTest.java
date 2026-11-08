@@ -367,4 +367,58 @@ class ThemeTest {
             assertTrue(alpha > 0 && alpha < 255, () -> theme + "'s selection alpha was " + alpha);
         }
     }
+
+    @Nested
+    @DisplayName("type scale")
+    class TypeScale {
+
+        /// One rank of the scale: its token suffix, and the size and line it
+        /// resolves to.
+        record Rank(String name, double size, double line) {}
+
+        /// The scale as the design system specifies it: body 15/20, and every
+        /// other rank two pixels above where it started, line and size alike.
+        private static final List<Rank> SCALE = List.of(
+                new Rank("display", 30, 36),
+                new Rank("title", 22, 28),
+                new Rank("heading", 17, 22),
+                new Rank("body", 15, 20),
+                new Rank("caption", 13, 16),
+                new Rank("code", 15, 20));
+
+        private static Typography rank(Theme theme, String name) {
+            return styleWith(
+                            theme,
+                            "button { font-size: var(--gb-font-%s); line-height: var(--gb-line-%s) }"
+                                    .formatted(name, name))
+                    .typography();
+        }
+
+        @ParameterizedTest
+        @EnumSource(Theme.class)
+        @DisplayName("every rank resolves to the design system's size and line")
+        void everyRankResolves(Theme theme) {
+            for (var expected : SCALE) {
+                var actual = rank(theme, expected.name());
+                assertEquals(expected.size(), actual.size(), 1e-9, () -> theme + " " + expected.name() + " size");
+                assertEquals(
+                        expected.line(),
+                        actual.resolvedLineHeight(),
+                        1e-9,
+                        () -> theme + " " + expected.name() + " line");
+            }
+        }
+
+        /// The default nobody wrote and the theme's body token are one number
+        /// written twice, so a change to one that misses the other goes red.
+        @ParameterizedTest
+        @EnumSource(Theme.class)
+        @DisplayName("the body token is the toolkit's initial typography")
+        void bodyIsTheInitial(Theme theme) {
+            var body = rank(theme, "body");
+
+            assertEquals(Typography.INITIAL.size(), body.size(), 1e-9);
+            assertEquals(Typography.INITIAL.lineHeight(), body.resolvedLineHeight(), 1e-9);
+        }
+    }
 }

@@ -546,21 +546,21 @@
      a high-contrast or large-text theme is still an alias swap and not a code
      path.
 
-     Sizes and line heights are the type scale exactly: display 28/34, title 20/26,
-     heading 15/20, body 13/18, caption 11/14, mono 13/18. Two weights, 400 and
+     Sizes and line heights are the type scale exactly: display 30/36, title 22/28,
+     heading 17/22, body 15/20, caption 13/16, mono 15/20. Two weights, 400 and
      600, which is the whole of what the system ships. */
-  --gb-font-display: 28px;
-  --gb-line-display: 34px;
-  --gb-font-title: 20px;
-  --gb-line-title: 26px;
-  --gb-font-heading: 15px;
-  --gb-line-heading: 20px;
-  --gb-font-body: 13px;
-  --gb-line-body: 18px;
-  --gb-font-caption: 11px;
-  --gb-line-caption: 14px;
-  --gb-font-code: 13px;
-  --gb-line-code: 18px;
+  --gb-font-display: 30px;
+  --gb-line-display: 36px;
+  --gb-font-title: 22px;
+  --gb-line-title: 28px;
+  --gb-font-heading: 17px;
+  --gb-line-heading: 22px;
+  --gb-font-body: 15px;
+  --gb-line-body: 20px;
+  --gb-font-caption: 13px;
+  --gb-line-caption: 16px;
+  --gb-font-code: 15px;
+  --gb-line-code: 20px;
 
   --gb-weight-regular: 400;
   --gb-weight-strong: 600;

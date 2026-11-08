@@ -169,7 +169,7 @@ class ShippedFontsTest {
                         Math.abs(advance(shipped, "iiii") - advance(shipped, "WWWW")) < 1e-6,
                         "the shipped bytes are a monospace face, which Inter is not");
                 assertSame(shipped, fonts.of(Typography.INITIAL.family("forum")), "one font per face and size");
-                assertSame(shipped, fonts.of(forum, 13));
+                assertSame(shipped, fonts.of(forum, Typography.INITIAL.size()));
                 assertEquals(1, reads.get(), "a face is read once, however often it is asked for");
             }
         }
@@ -198,9 +198,12 @@ class ShippedFontsTest {
             try (var fonts = Fonts.bundled(List.of(medium, heavy))) {
                 var forum = Typography.INITIAL.family("Forum");
 
-                assertSame(fonts.of(medium, 13), fonts.of(forum.weight(500)));
-                assertSame(fonts.of(heavy, 13), fonts.of(forum.weight(700)));
-                assertSame(fonts.of(medium, 13), fonts.of(forum), "400 tries heavier up to 500 first");
+                assertSame(fonts.of(medium, Typography.INITIAL.size()), fonts.of(forum.weight(500)));
+                assertSame(fonts.of(heavy, Typography.INITIAL.size()), fonts.of(forum.weight(700)));
+                assertSame(
+                        fonts.of(medium, Typography.INITIAL.size()),
+                        fonts.of(forum),
+                        "400 tries heavier up to 500 first");
             }
         }
 
@@ -212,7 +215,10 @@ class ShippedFontsTest {
             var mono = FontSource.of("Forum", 400, Style.UPRIGHT, BundledAssets.font(BundledFont.CODE));
             try (var fonts = Fonts.bundled(List.of(mono))) {
                 var forum = Typography.INITIAL.family("Forum");
-                assertSame(fonts.of(mono, 13), fonts.of(forum), "its own weight is the face as it is");
+                assertSame(
+                        fonts.of(mono, Typography.INITIAL.size()),
+                        fonts.of(forum),
+                        "its own weight is the face as it is");
                 var faces = fonts.openFaces();
                 assertNotSame(fonts.of(forum.weight(700)), fonts.of(forum));
                 assertEquals(faces + 1, fonts.openFaces(), "the 700 is a face of its own, pinned from the file");
@@ -224,7 +230,7 @@ class ShippedFontsTest {
         void cannotShadowInter() {
             var impostor = shipped("Inter", Weight.REGULAR, Style.UPRIGHT);
             try (var fonts = Fonts.bundled(List.of(impostor))) {
-                assertSame(fonts.of(BundledFont.UI, 13), fonts.of(Typography.INITIAL));
+                assertSame(fonts.of(BundledFont.UI, Typography.INITIAL.size()), fonts.of(Typography.INITIAL));
             }
         }
 
@@ -239,8 +245,8 @@ class ShippedFontsTest {
             try (var fonts = Fonts.bundled(List.of(broken))) {
                 var style = Typography.INITIAL.family("Forum");
 
-                assertSame(fonts.of(BundledFont.UI, 13), fonts.of(style));
-                assertSame(fonts.of(BundledFont.UI, 13), fonts.of(style));
+                assertSame(fonts.of(BundledFont.UI, Typography.INITIAL.size()), fonts.of(style));
+                assertSame(fonts.of(BundledFont.UI, Typography.INITIAL.size()), fonts.of(style));
                 assertEquals(1, reads.get(), "a face that failed once is not re-read every frame");
             }
         }

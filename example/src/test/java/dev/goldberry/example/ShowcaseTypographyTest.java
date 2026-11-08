@@ -12,6 +12,7 @@ import org.junit.jupiter.api.Test;
 import dev.goldberry.css.ComputedStyle;
 import dev.goldberry.css.Stylesheet;
 import dev.goldberry.css.Theme;
+import dev.goldberry.css.Typography;
 import dev.goldberry.css.cascade.CascadeLayer;
 import dev.goldberry.css.cascade.StyleResolver;
 import dev.goldberry.css.value.CssLength;
@@ -44,8 +45,8 @@ import dev.goldberry.widgets.text.Text;
 /// decided.
 class ShowcaseTypographyTest {
 
-    /// The toolkit's own body size, which the showcase reads above.
-    private static final double TOOLKIT_BODY = 13;
+    /// The toolkit's own body size, which the showcase reads at or above.
+    private static final double TOOLKIT_BODY = Typography.INITIAL.size();
 
     /// The showcase's body size, at the reading size it opens with.
     private static final double BODY = 15;
@@ -96,7 +97,7 @@ class ShowcaseTypographyTest {
     }
 
     @Test
-    @DisplayName("prose is set at the reading size's body, larger than the toolkit's")
+    @DisplayName("prose is set at the reading size's body, never below the toolkit's")
     void proseIsReadable() {
         var resolver = resolver();
         var tree = new ElementTree(new Column(new Text("Some prose").id("prose")).id("screen-text"));
@@ -105,10 +106,11 @@ class ShowcaseTypographyTest {
         var prose = styleOf(resolver, tree.root().children().getFirst());
 
         // Prose borrowed `heading`'s size while body text was 13px. The reading
-        // size sets body text at 15 now, so prose is body text again and grows
-        // with the rest when a reader asks for larger text.
+        // size sets body text at 15, which the toolkit's own scale has caught up
+        // with, so prose is body text and grows with the rest when a reader asks
+        // for larger text.
         assertEquals(BODY, prose.typography().size());
-        assertTrue(prose.typography().size() > TOOLKIT_BODY, "prose is set at the toolkit's label size");
+        assertTrue(prose.typography().size() >= TOOLKIT_BODY, "prose is set below the toolkit's body size");
     }
 
     @Test
@@ -119,7 +121,7 @@ class ShowcaseTypographyTest {
         tree.flush();
 
         // The reading size moves the body token itself, so a label nobody
-        // classed grows with the prose rather than staying at the toolkit's 13.
+        // classed grows with the prose rather than staying at the toolkit's size.
         assertEquals(
                 BODY,
                 inherited(resolver, tree.root(), tree.root().children().getFirst())
@@ -128,9 +130,10 @@ class ShowcaseTypographyTest {
     }
 
     @Test
-    @DisplayName("each reading size moves the body text, smallest to largest")
+    @DisplayName("each reading size moves the body text or its line, smallest to largest")
     void readingSizesStep() {
         var sizes = new ArrayList<Double>();
+        var lines = new ArrayList<Double>();
         for (var size : ReadingSize.values()) {
             var resolver = new StyleResolver(List.of(
                     Controls.baseStylesheet(),
@@ -139,11 +142,16 @@ class ShowcaseTypographyTest {
                     size.stylesheet()));
             var tree = new ElementTree(new Column(new Text("A label")).id("screen-text"));
             tree.flush();
-            sizes.add(inherited(resolver, tree.root(), tree.root().children().getFirst())
-                    .typography()
-                    .size());
+            var typography = inherited(
+                            resolver, tree.root(), tree.root().children().getFirst())
+                    .typography();
+            sizes.add(typography.size());
+            lines.add(typography.resolvedLineHeight());
         }
 
+        // Small is the toolkit's own scale, and its body is Medium's: Medium
+        // reads looser, on a taller line, rather than larger.
         assertEquals(List.of(TOOLKIT_BODY, BODY, 17.0), sizes);
+        assertEquals(List.of(Typography.INITIAL.lineHeight(), 22.0, 26.0), lines);
     }
 }

@@ -35,3 +35,21 @@ against it. The tab strip's own 6px/4px bar is unchanged.
 - `ScrollGutterTest` pins the overlay bar's 8px and the resting thumb's 4px.
 - `docs/design-system.md` §2.4 says 4px → 8px. The guide's numbers move at
   release (`docs/snapshot/layout-scroll-overlay-size.md`).
+
+## Amendment, 2026-11-08
+
+The user found the 8px bar still too large once the type scale stepped up
+(ADR-0675). **The overlay bar is 6px across, and the thumb widens to 6px on
+hover.** The resting thumb stays at 4px: it was not the complaint, and at
+2px it would be hard to see over text.
+
+| Token | 2026-10-11 | 2026-11-08 |
+|---|---|---|
+| `--gb-scrollbar-size` | `8px` | `6px` |
+| `--gb-scroll-thumb-size` | `4px` | `4px` |
+| `--gb-scroll-thumb-hover-size` | `8px` | `6px` |
+
+`Scrollbars.ALWAYS` stays at its 12px gutter and 8px thumb, for the reason
+above. The bar is now the tab strip's size. `ScrollGutterTest` pins the 6px.
+The record keeps its number and title until release: it is parked, and the
+title's "8px bar" is renamed when it moves into the book.

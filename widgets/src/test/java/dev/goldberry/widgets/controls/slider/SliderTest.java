@@ -827,7 +827,7 @@ class SliderTest {
                     Attributes.NONE);
             var style = styleOf(labelled, 1);
 
-            assertEquals(Length.points(40), style.width(), "a fixed box is what makes an alignment mean anything");
+            assertEquals(Length.points(48), style.width(), "a fixed box is what makes an alignment mean anything");
             assertEquals(TextAlign.END, style.textAlign());
             assertEquals(TextAlign.END, style.textFlow().textAlign(), "and it reaches the paragraph");
         }

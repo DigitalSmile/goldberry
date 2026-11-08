@@ -338,10 +338,10 @@ class ComputedStyleTest {
         @Test
         @DisplayName("and against the size it starts at when it declares none")
         void emWithoutADeclaration() {
-            // `Typography.INITIAL` is 13, so 1.5em is 19.5 -- not the 24 the old
+            // `Typography.INITIAL` is 15, so 1.5em is 22.5 -- not the 24 the old
             // code produced from `Context.DEFAULT`'s unrelated 16.
             assertEquals(
-                    Insets.all(Length.points(19.5f)),
+                    Insets.all(Length.points(22.5f)),
                     compute("button { padding: 1.5em }").padding());
         }
 
@@ -377,7 +377,7 @@ class ComputedStyleTest {
         /// the older semantics, and it is wrong for the element it was asserted
         /// on: a node with no parent *is* the root, and CSS says `rem` is the root
         /// element's **computed** `font-size`. This element declares none, so its
-        /// computed size is `Typography.INITIAL`'s 13, and `2rem` is 26.
+        /// computed size is `Typography.INITIAL`'s 15, and `2rem` is 30.
         ///
         /// On a root, `1rem` and `1em` coincide. That reads like the test having
         /// lost its point, and it is CSS's rule: the root has nothing above it for
@@ -393,7 +393,7 @@ class ComputedStyleTest {
             var declarations = new StyleResolver(List.of(sheet)).resolve(root.descend(1));
 
             var style = ComputedStyle.of(declarations, new CssLength.Context(20, 16));
-            assertEquals(Insets.all(Length.points(26)), style.padding());
+            assertEquals(Insets.all(Length.points(30)), style.padding());
         }
 
         /// The root's *own* half of the `rem` rule, which needs no renderer: once the
@@ -858,15 +858,15 @@ class ComputedStyleTest {
         }
 
         @Test
-        @DisplayName("the default is the design system's body: Inter 400 at 13/18")
+        @DisplayName("the default is the design system's body: Inter 400 at 15/20")
         void initial() {
             // Deliberately the specified default rather than something neutral:
             // a window with no stylesheet should read as the design system.
             var body = ComputedStyle.INITIAL.typography();
 
             assertEquals("Inter", body.family());
-            assertEquals(13, body.size(), 1e-9);
-            assertEquals(18, body.resolvedLineHeight(), 1e-9);
+            assertEquals(15, body.size(), 1e-9);
+            assertEquals(20, body.resolvedLineHeight(), 1e-9);
             assertEquals(400, body.weight());
         }
 

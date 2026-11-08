@@ -1,6 +1,5 @@
 package dev.goldberry.widgets.menu;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -132,7 +131,11 @@ class ItemTruncationTest {
                 .orElseThrow();
         var lineHeight = label.box().text().paragraph().font().lineHeight();
 
-        assertEquals(lineHeight, label.height(), 0.5, "two lines would be twice this");
+        // Between one line and two, rather than exactly one: Yoga rounds a text
+        // box's edges outward to the pixel grid, so an 18.15 line placed at a
+        // fractional offset is laid out 20 tall.
+        assertTrue(label.height() >= lineHeight, () -> "the label is " + label.height() + " tall, under one line");
+        assertTrue(label.height() < 2 * lineHeight, () -> "the label is " + label.height() + " tall: two lines");
     }
 
     @Test
@@ -161,7 +164,11 @@ class ItemTruncationTest {
                 .findFirst()
                 .orElseThrow();
 
-        assertEquals(label.natural(), label.width(), 0.5, "nothing was taken away");
+        // At least its natural width, as with the accelerator: the pixel grid
+        // rounds a box outward, and a cut would be under.
+        assertTrue(
+                label.width() >= label.natural(),
+                () -> "nothing was taken away, but it is " + label.width() + " against " + label.natural());
         assertFalse(label.width() > 600, "and the row still fits");
     }
 }

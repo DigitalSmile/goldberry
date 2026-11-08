@@ -123,7 +123,7 @@ class TooltipMetricsTest {
         var caption = styleOf("badge").typography().size();
 
         assertEquals(caption, style.typography().size(), 1e-9, "a tooltip is `caption`, like a badge");
-        assertEquals(11, caption, 1e-9, "and `caption` is 11");
+        assertEquals(13, caption, 1e-9, "and `caption` is 13");
     }
 
     /// The one number in the row that never drifted, asserted so the pair of
