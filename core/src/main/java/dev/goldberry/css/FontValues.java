@@ -141,7 +141,9 @@ final class FontValues {
             return Optional.of(new FontFeatures.Setting(tag, 0));
         }
         // A CSS integer: digits, with no point and no exponent, and not negative.
-        if (last.is(TokenType.NUMBER) && INTEGER.matcher(last.text()).matches() && last.numeric() <= Integer.MAX_VALUE) {
+        if (last.is(TokenType.NUMBER)
+                && INTEGER.matcher(last.text()).matches()
+                && last.numeric() <= Integer.MAX_VALUE) {
             return Optional.of(new FontFeatures.Setting(tag, (int) last.numeric()));
         }
         return Optional.empty();

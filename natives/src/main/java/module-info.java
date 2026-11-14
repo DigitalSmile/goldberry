@@ -111,6 +111,13 @@ module dev.goldberry.natives {
     exports dev.goldberry.natives.desktop.macos to
             dev.goldberry.core;
 
+    // The system's secret store: the Secret Service over D-Bus, the macOS
+    // Keychain and the Windows Credential Manager, bound at run time. To
+    // `:core`, whose `Keychain` is what an application sees. The D-Bus binding
+    // under it, `desktop.dbus`, is not exported at all.
+    exports dev.goldberry.natives.desktop.keychain to
+            dev.goldberry.core;
+
     /// What this build of the platform layer can actually do.
     ///
     /// Qualified to `:core`, like Yoga's and Blend2D's wrappers and for the same

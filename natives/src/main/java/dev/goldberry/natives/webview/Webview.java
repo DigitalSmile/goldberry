@@ -184,7 +184,8 @@ public final class Webview implements AutoCloseable {
     private static final Map<Long, CompletableFuture<Integer>> COOKIE_CHANGES = new ConcurrentHashMap<>();
 
     private static final class DoneStubHolder {
-        private static final MemorySegment STUB = stub("answerDone", DONE_DESCRIPTOR, void.class, long.class, int.class);
+        private static final MemorySegment STUB =
+                stub("answerDone", DONE_DESCRIPTOR, void.class, long.class, int.class);
     }
 
     /// Every page's navigation hook, by the number the engine hands back.

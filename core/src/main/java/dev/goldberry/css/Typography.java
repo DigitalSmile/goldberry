@@ -73,16 +73,8 @@ public record Typography(
     /// window with no stylesheet at all should read as the design system, because
     /// the alternative is a toolkit whose out-of-the-box text is a size nobody
     /// chose.
-    public static final Typography INITIAL =
-            new Typography(
-                    "Inter",
-                    15,
-                    REGULAR,
-                    BundledFont.Style.UPRIGHT,
-                    20,
-                    Lettering.NONE,
-                    FontVariation.NONE,
-                    FontFeatures.NONE);
+    public static final Typography INITIAL = new Typography(
+            "Inter", 15, REGULAR, BundledFont.Style.UPRIGHT, 20, Lettering.NONE, FontVariation.NONE, FontFeatures.NONE);
 
     /// Written out so that the parameters taking null for a default can say so.
     ///

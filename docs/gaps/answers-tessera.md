@@ -21,15 +21,15 @@ nothing.
 | G-06 | Encoders | **Declined**: bring your own | declined, ADR-0689 |
 | G-07 | Video tile from pushed frames | Works today through `PictureRenderer`; `PictureView` over a `PictureSource` | answered; on master, not yet in a snapshot |
 | G-08 | Web view JS bridge | Init script, `eval`, `postMessage` | on master, not yet in a snapshot |
-| G-09 | Secure credential storage | `Keychain` over the three OS stores | planned |
+| G-09 | Secure credential storage | `Keychain` over the three OS stores | on master, not yet in a snapshot |
 | G-10 | Deep links, single instance | macOS URL delivery and `SingleInstance`; registration stays packaging | on master, not yet in a snapshot |
 | G-12 | Gestures, `Path.contains`, tile cache | Pinch, `Path.contains`; the tile cache is Tessera's | on master, not yet in a snapshot |
 | G-13 | `font-feature-settings` | Built | on master, not yet in a snapshot |
 | G-15 | `backdrop-filter` | Built on CPU frames | planned |
-| G-16 | Layout animation | Opt-in layout animation | planned |
+| G-16 | Layout animation | `view-transition-name` | on master, not yet in a snapshot |
 | G-17 | Screen-reader bridge | Still on hold | on hold |
 | G-18 | Text scaling | `Host.textScale` | on master, not yet in a snapshot |
-| G-19 | Windows notifications | Click and badge | planned |
+| G-19 | Windows notifications | Click and badge | on master, not yet in a snapshot |
 | G-20 | Drag out to the OS | All four platforms | planned |
 | G-22 | SVG | `goldberry-vector` on ThorVG | planned |
 | G-23 | PDF | Still parked | parked, ADR-0690 |
@@ -228,7 +228,7 @@ These are system libraries only, with no new native dependency. Then
 `CredentialStore` gets a second implementation, and `CredentialFile` stays
 the fallback where no Secret Service runs.
 
-**Landed.** —
+**Landed.** Built on Goldberry's master (not yet in a snapshot), ADR-0700. `dev.goldberry.keychain.Keychain.system()` with `store(service, account, bytes or text)`, `load`/`loadText` and `delete`. Call it off the UI thread: a locked keyring prompts, and the call waits up to two minutes for the answer. A `KeychainException` says why it refused. On `Reason.UNAVAILABLE` (no Secret Service, e.g. a minimal window manager or a container), fall back to `CredentialFile`. On `DENIED`, the user said no. On Linux the item has the attributes `service` and `username`, so `secret-tool lookup service tessera username …` shows it. On Windows a secret is at most 2560 bytes. `Keychain.inMemory()` replaces it in Tessera's tests. The Linux store is tested against a fake Secret Service. The macOS and Windows stores are unverified on those systems.
 
 ## G-10. Deep links and single instance
 
@@ -314,7 +314,7 @@ over a call's video tiles stays opaque.
 one, it animates from its old box to its new one. A tile that moves to
 another parent in the call grid keeps its identity through its key.
 
-**Landed.** —
+**Landed.** Built on Goldberry's master (not yet in a snapshot), ADR-0702. The opt-in is CSS's `view-transition-name`, not a widget key: `call-tile { view-transition-name: tile-<id>; transition: transform 250ms ease-out }`, with one name per tile, set from a class or an id the grid writes. A tile that layout moves or resizes is drawn where it was and travels to its new place. That includes a move into another parent, because the name is the identity. It is timed by the tile's `transform` transition, or 250 ms `ease` without one, and is instant under reduced motion. Hit testing follows the tile while it moves. A tile that changes size is stretched while it travels; a tile whose video is a GPU layer has not been checked under a stretch yet. For Board's zoom-to-fit, name the board's content box. Tessera's hand-rolled tile transforms can go.
 
 ## G-17. Screen-reader bridge
 
@@ -337,7 +337,7 @@ Linux and macOS. The badge becomes an overlay icon on the taskbar button.
 Both are written against Windows' documentation, and will be marked
 unverified until Goldberry's Windows lane drives them.
 
-**Landed.** —
+**Landed.** Built on Goldberry's master (not yet in a snapshot), ADR-0701. `host.notify(Notification.of(…).onActivate(…))` now runs the action when the balloon (shown as a toast) is clicked. Only the latest notification's action can run, since one balloon shows at a time. `host.badge(n)` puts a red disc with the count over the window's taskbar button (up to three characters, `99+` past 99), and `host.badge(0)` takes it away. The unread count can leave the tray tooltip. Unverified on Windows until Goldberry's Windows lane drives it.
 
 ## G-20. Drag out to the OS
 

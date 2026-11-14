@@ -28,8 +28,9 @@ import org.jspecify.annotations.Nullable;
 ///                   application's own. Linux only; macOS and Windows show the
 ///                   application's icon whatever this says
 /// @param onActivate what runs, on the UI thread, when the user clicks it, or
-///                   null for a notification that only informs. Linux and macOS
-///                   only; Windows does not report the click
+///                   null for a notification that only informs. On Windows only
+///                   the latest one can be clicked, since one balloon shows at a
+///                   time
 public record Notification(
         String title,
         String body,

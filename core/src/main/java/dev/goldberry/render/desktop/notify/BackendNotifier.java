@@ -40,7 +40,8 @@ public interface BackendNotifier extends AutoCloseable {
     /// away for null or empty.
     ///
     /// macOS shows any short text; a Linux launcher shows a number, so there
-    /// the label must be one; Windows has no badge this sets.
+    /// the label must be one; Windows shows up to three characters over the
+    /// window's taskbar button, and a number past 99 as `99+`.
     ///
     /// @return whether the desktop was told
     boolean badge(@Nullable String label);

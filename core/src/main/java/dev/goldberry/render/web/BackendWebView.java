@@ -180,8 +180,7 @@ public interface BackendWebView extends AutoCloseable {
     /// @return how many were deleted; failed as [#cookies] fails
     default CompletionStage<Integer> deleteCookies(URI url, @Nullable String name) {
         Objects.requireNonNull(url, "url");
-        return CompletableFuture.failedFuture(
-                new UnsupportedOperationException("this page cannot delete its cookies"));
+        return CompletableFuture.failedFuture(new UnsupportedOperationException("this page cannot delete its cookies"));
     }
 
     /// Deletes every cookie in the engine's jar, for every site.

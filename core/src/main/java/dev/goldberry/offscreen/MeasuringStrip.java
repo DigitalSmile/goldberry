@@ -100,8 +100,7 @@ public final class MeasuringStrip implements AutoCloseable {
         sequence.captureRegions(frame);
         surface.placed(frame);
 
-        ring.stages(
-                stages.buildNanos(), stages.styleNanos(), stages.layoutNanos(), rasterizedAt - stages.laidOutAt());
+        ring.stages(stages.buildNanos(), stages.styleNanos(), stages.layoutNanos(), rasterizedAt - stages.laidOutAt());
         ring.record(beganAt, rasterizedAt);
         ring.presented(PresentTimings.NONE);
         return new MeasuredFrame(ring.newest().copy(), damage);

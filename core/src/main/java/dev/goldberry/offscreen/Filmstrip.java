@@ -380,7 +380,6 @@ public final class Filmstrip implements AutoCloseable {
         }
     }
 
-
     @Override
     public String toString() {
         return "Filmstrip[" + surface.size() + " at " + surface.scale().factor() + "x, " + frames + " frame(s), "

@@ -11,6 +11,7 @@ import org.jspecify.annotations.Nullable;
 import dev.goldberry.css.value.Affine;
 import dev.goldberry.css.value.TransformBox;
 import dev.goldberry.layout.Overflow;
+import dev.goldberry.motion.layout.LayoutTracks;
 import dev.goldberry.natives.yoga.YogaConfig;
 import dev.goldberry.paint.Box;
 import dev.goldberry.paint.BoxEdges;
@@ -74,6 +75,9 @@ public final class RenderTree implements AutoCloseable {
     /// The boxes Yoga lays out one line short, collected by each reconcile and
     /// pinned after the layout pass that follows it.
     private final ShrinkToFit shrink = new ShrinkToFit();
+
+    /// Layout animation: where each named box was, and its move.
+    private final LayoutMotion motion = new LayoutMotion();
     private final Thread owner = Thread.currentThread();
 
     private @Nullable RenderObject root;
@@ -100,10 +104,21 @@ public final class RenderTree implements AutoCloseable {
     ///
     /// Call once per frame, before [#paint] or [#forEachPlacedBox].
     public void update(Frame frame, Box box) {
+        update(frame, box, LayoutTracks.NO_CLOCK);
+    }
+
+    /// [#update(Frame, Box)] at `nowMillis` on the frame clock, which is what
+    /// moves a box with a `view-transition-name` from where it was to where
+    /// layout put it. Without a clock such a box is drawn straight where it is.
+    ///
+    /// @param nowMillis the frame's time, the renderer's clock's; or
+    ///                  [LayoutTracks#NO_CLOCK]
+    public void update(Frame frame, Box box, double nowMillis) {
         Objects.requireNonNull(frame, "frame");
         Objects.requireNonNull(box, "box");
         requireUsable();
 
+        motion.beginReconcile();
         var root = reconcile(box, frame.scale().factor());
 
         var size = frame.size();
@@ -120,6 +135,20 @@ public final class RenderTree implements AutoCloseable {
         // static frame it enters nothing, and only the first overrun of each
         // shape is ever said out loud.
         root.settle();
+        // After the layout it reads and before anything is painted or hit.
+        // A box that moved changes the ink of every node above it, and only
+        // those are measured again: the rest held their rectangles.
+        if (motion.step(root, nowMillis)) {
+            root.settle();
+        }
+    }
+
+    /// Whether a box with a `view-transition-name` is still travelling from
+    /// where it was to where layout put it, as of the last [#update]: a frame
+    /// loop that stops asking for frames while one is would leave it stopped
+    /// halfway.
+    public boolean isMoving() {
+        return motion.isMoving();
     }
 
     /// Every box in the tree laid out past the box it is in, as of the last
@@ -182,7 +211,7 @@ public final class RenderTree implements AutoCloseable {
         // No parent: the root's containing block is the window, which has no
         // padding to be placed inside of, and Yoga does not lay a root out as an
         // absolute child.
-        root.update(box, null, config, shrink);
+        root.update(box, null, config, shrink, motion);
         return root;
     }
 
@@ -447,7 +476,7 @@ public final class RenderTree implements AutoCloseable {
         var layout = object.layout();
         var left = parentLeft + layout.left();
         var top = parentTop + layout.top();
-        var transform = compose(parentTransform, box, left, top, layout.width(), layout.height());
+        var transform = compose(parentTransform, object, left, top);
 
         // **Nothing under here can land inside the clip**, so none of it is
         // drawn and none of it is walked. The test is against the
@@ -806,7 +835,7 @@ public final class RenderTree implements AutoCloseable {
 
         var box = object.appliedBox();
         var layout = object.layout();
-        var matrix = root ? transform : compose(transform, box, left, top, layout.width(), layout.height());
+        var matrix = root ? transform : compose(transform, object, left, top);
 
         // Outward by the ring's offset and width, which is where `outline` is
         // drawn, and by the shadow's reach, which is where `box-shadow` is --
@@ -897,7 +926,7 @@ public final class RenderTree implements AutoCloseable {
         var left = parentLeft + layout.left();
         var top = parentTop + layout.top();
         var alpha = parentAlpha * box.opacity();
-        var transform = compose(parentTransform, box, left, top, layout.width(), layout.height());
+        var transform = compose(parentTransform, object, left, top);
 
         var computed = LogicalRect.of((float) left, (float) top, layout.width(), layout.height());
         visitor.accept(new BoxPainter.Placed(box.fade(alpha), computed, transform, parentClip));
@@ -957,19 +986,40 @@ public final class RenderTree implements AutoCloseable {
     /// Returns the parent's matrix unchanged when this box has no transform,
     /// which is the path every box in an ordinary frame takes and which allocates
     /// nothing.
-    static Affine compose(Affine parent, Box box, double left, double top, double width, double height) {
+    static Affine compose(Affine parent, RenderObject object, double left, double top) {
+        var layout = object.layout();
+        return compose(parent, object.appliedBox(), left, top, layout.width(), layout.height(), object.flip());
+    }
+
+    /// [#compose(Affine, RenderObject, double, double)] for a box of `width` ×
+    /// `height` at `left`, `top`, with `flip` after its own transform: the
+    /// move layout animation draws it with ([LayoutMotion]), in the box's own
+    /// coordinates.
+    static Affine compose(Affine parent, Box box, double left, double top, double width, double height, Affine flip) {
         var own = box.transform();
-        if (own.isNone()) {
+        if (own.isNone() && flip.isIdentity()) {
             return parent;
         }
-        // `transform-box: content-box` measures inside the border and the
-        // padding.
-        var content = own.box() == TransformBox.CONTENT_BOX ? BoxEdges.content(box, width, height) : null;
-        var local = content != null
-                ? own.matrix(
-                        width, height, (float) content.top(), (float) content.right(), (float) content.bottom(), (float)
-                                content.left())
-                : own.matrix(width, height);
+        Affine local;
+        if (own.isNone()) {
+            local = flip;
+        } else {
+            // `transform-box: content-box` measures inside the border and the
+            // padding.
+            var content = own.box() == TransformBox.CONTENT_BOX ? BoxEdges.content(box, width, height) : null;
+            local = content != null
+                    ? own.matrix(
+                            width,
+                            height,
+                            (float) content.top(),
+                            (float) content.right(),
+                            (float) content.bottom(),
+                            (float) content.left())
+                    : own.matrix(width, height);
+            if (!flip.isIdentity()) {
+                local = local.then(flip);
+            }
+        }
         if (local.isIdentity()) {
             return parent;
         }
@@ -1063,11 +1113,10 @@ public final class RenderTree implements AutoCloseable {
             java.util.List<DamageRect> into,
             boolean[] everything) {
 
-        var box = object.appliedBox();
         var layout = object.layout();
         var left = parentLeft + layout.left();
         var top = parentTop + layout.top();
-        var transform = compose(parentTransform, box, left, top, layout.width(), layout.height());
+        var transform = compose(parentTransform, object, left, top);
 
         // **Through `transform`**, which is this node's own matrix and its
         // ancestors'. Measured with `Affine.IDENTITY` -- which is what the

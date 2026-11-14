@@ -166,6 +166,10 @@ module dev.goldberry.core {
     // Java, that hand a second launch's command line to the first.
     exports dev.goldberry.instance;
 
+    // Secrets in the system's own store: the Secret Service, the macOS
+    // Keychain, the Windows Credential Manager, over libraries the system has.
+    exports dev.goldberry.keychain;
+
     // Pointer input: hit testing against the painted frame, and the dispatch
     // that turns it into events, pseudo-classes and focus.
     exports dev.goldberry.input;

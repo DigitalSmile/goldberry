@@ -39,6 +39,7 @@ import dev.goldberry.css.value.IndividualTransform;
 import dev.goldberry.css.value.Shadow;
 import dev.goldberry.css.value.Transform;
 import dev.goldberry.css.value.TransformBox;
+import dev.goldberry.css.value.ViewTransition;
 import dev.goldberry.css.value.calc.Maths;
 import dev.goldberry.css.value.calc.Quantity;
 import dev.goldberry.css.value.colour.CurrentColour;
@@ -1459,6 +1460,21 @@ public record ComputedStyle(
                 Optional.ofNullable(single(value, TransformBox::named))
                         .map(v -> transform(transform.box(v)))
                         .orElseGet(() -> dropped(property, value));
+
+            // A box's identity across frames, so layout moving it animates it
+            // from where it was. A custom ident or `none`; `auto` and
+            // `match-element` would take the identity from the element rather
+            // than the sheet, and are refused rather than guessed at. Carried
+            // on the transform, because what moves the box is one. Not
+            // inherited.
+            case "view-transition-name" -> {
+                var ident = singleIdent(value).orElse(null);
+                if (ident == null || RESERVED_VIEW_TRANSITION_NAMES.contains(ident.toLowerCase(Locale.ROOT))) {
+                    yield dropped(property, value);
+                }
+                yield transform(
+                        transform.viewTransition("none".equalsIgnoreCase(ident) ? null : ViewTransition.named(ident)));
+            }
 
             // Resolved here and read by neither engine: the cursor is carried
             // through the cascade to the box tree, where hit testing picks it
@@ -4523,6 +4539,11 @@ public record ComputedStyle(
                 ? Optional.of(tokens.getFirst().text())
                 : Optional.empty();
     }
+
+    /// The idents `view-transition-name` cannot be: CSS's `default`, and the two
+    /// keywords that take the name from the element, which this cascade does
+    /// not do.
+    private static final Set<String> RESERVED_VIEW_TRANSITION_NAMES = Set.of("auto", "match-element", "default");
 
     /// A math function that folds to a plain number, or null.
     private static @Nullable Double mathNumber(List<Token> part) {

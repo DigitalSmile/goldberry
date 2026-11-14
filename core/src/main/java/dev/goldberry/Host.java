@@ -906,7 +906,9 @@ public interface Host {
     ///
     /// macOS shows any short text. A Linux dock shows a number — Ubuntu's,
     /// Dash to Dock, Plank, KDE's — and finds the application by its desktop
-    /// entry, which `-Dgoldberry.desktop.id` names. Windows has none.
+    /// entry, which `-Dgoldberry.desktop.id` names. Windows shows up to three
+    /// characters on a red disc over the window's taskbar button, and a number
+    /// past 99 as `99+`.
     ///
     /// Read more: [Notifications](https://goldberry.dev/docs/guide/windows.html#the-badge).
     ///

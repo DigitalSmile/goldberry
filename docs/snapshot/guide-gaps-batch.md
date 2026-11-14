@@ -93,6 +93,38 @@ Registering the scheme is the installer's: a `.desktop` file with
 `MimeType=x-scheme-handler/chat;`, `CFBundleURLTypes` in `Info.plist`, or a
 registry key under `HKCU\Software\Classes`.
 
+## `book/src/guide/windows.md`, a new section `## Secrets`, after `## Opening links and one running copy`
+
+A token that keeps the user signed in belongs in the system's own store, not
+in a file. `Keychain.system()` keeps one secret per service and account in
+the Secret Service on Linux (gnome-keyring, KWallet, KeePassXC), the login
+Keychain on macOS and the Credential Manager on Windows:
+
+```java
+var keychain = Keychain.system();
+Thread.startVirtualThread(() -> {
+    keychain.store("chat", account, refreshToken);
+    var token = keychain.loadText("chat", account);
+});
+```
+
+Every call waits for the store, and a locked store asks the user to unlock it
+first, so never call one on the UI thread. A refusal is a `KeychainException`
+whose `reason()` says which: `UNAVAILABLE` where there is no store (a
+container, a desktop without a keyring daemon), `DENIED` when the user
+dismissed the prompt, `FAILED` otherwise. The Credential Manager holds at most
+2560 bytes per secret. In a test, `Keychain.inMemory()` stands in for the
+system's store.
+
+## `book/src/guide/windows.md`, `## Notifications`, the table's Windows row
+
+| Windows | The notification area's balloon, shown as a toast | Reported, for the latest notification | Nothing |
+
+## `book/src/guide/windows.md`, `### The badge`, replacing the last sentence ("Windows has no badge here, and `badge` answers false.")
+
+On Windows the badge sits over the window's taskbar button: up to three
+characters, white on a red disc, and a number past 99 as `99+`.
+
 ## `book/src/components/content.md`, `## \`web-view\``, after the paragraph on callbacks
 
 A page can be given scripts that run before its own, on every navigation,
@@ -315,3 +347,23 @@ is null), and `clearCookies()` empties the jar. Both complete on the UI thread.
 On Linux and macOS every page shares one jar. `WebViewSpec.userAgent(agent)`
 sets the user agent the page sends from its first request, and the
 controller's `userAgent(agent)` changes it later.
+
+## `book/src/guide/styling.md`, `### Transition and animation`, a new last part
+
+A box with a `view-transition-name` that layout moves or resizes is drawn
+where it was, and travels to where it is now:
+
+```css
+call-tile { view-transition-name: tile-7; transition: transform 300ms ease-out }
+```
+
+The name is the box's identity, so a tile moved into another column still
+travels from where it was; give each box its own. The move takes the box's
+`transition` for `transform` when it has one, and 250 ms `ease` otherwise.
+Under reduced motion the box moves at once. A box that changes size is
+stretched while it travels, and whatever is inside it moves with it.
+
+Unlike a browser, which animates only inside `startViewTransition()`, every
+layout change moves a named box this way. `auto` and `match-element` are not
+read.
+

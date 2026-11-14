@@ -17,6 +17,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import dev.goldberry.natives.NativePlatform;
+import dev.goldberry.natives.desktop.dbus.Dbus;
 
 /// A notification goes out as the freedesktop specification says, and the
 /// click comes back.
@@ -64,8 +65,11 @@ class FreedesktopNotifierTest {
         assertEquals("", arguments.get(2), "no icon");
         assertEquals("Gate waiting", arguments.get(3));
         assertEquals("prod-eu needs an approval", arguments.get(4));
-        assertEquals(new Dbus.Skipped('a'), arguments.get(5), "the actions array");
-        assertEquals(new Dbus.Skipped('a'), arguments.get(6), "the hints dictionary");
+        assertEquals(List.of("default", "Open"), arguments.get(5), "the actions array");
+        assertEquals(
+                List.of(new Dbus.Entry("desktop-entry", new Dbus.Variant("deploy-orc"))),
+                arguments.get(6),
+                "the hints dictionary");
         assertEquals(-1, arguments.get(7), "the daemon's own timeout");
     }
 

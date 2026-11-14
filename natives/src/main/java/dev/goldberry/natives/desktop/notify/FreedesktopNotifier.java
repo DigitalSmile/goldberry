@@ -6,6 +6,8 @@ import java.util.Optional;
 
 import org.jspecify.annotations.Nullable;
 
+import dev.goldberry.natives.desktop.dbus.Dbus;
+
 /// Desktop notifications and a launcher badge on Linux, over D-Bus.
 ///
 /// ```java
@@ -117,7 +119,7 @@ public final class FreedesktopNotifier implements AutoCloseable {
                         arguments.int32(-1);
                     },
                     TIMEOUT_MILLIS,
-                    reply -> id[0] = reply.firstUint32());
+                    reply -> id[0] = firstUint32(reply));
             return answered && id[0] > 0 ? id[0] : 0;
         } catch (RuntimeException e) {
             return 0;
@@ -186,5 +188,10 @@ public final class FreedesktopNotifier implements AutoCloseable {
     @Override
     public void close() {
         bus.close();
+    }
+
+    /// The first value, as a `uint32`, or -1 when it is not one.
+    private static long firstUint32(List<Object> values) {
+        return !values.isEmpty() && values.getFirst() instanceof Integer value ? Integer.toUnsignedLong(value) : -1;
     }
 }

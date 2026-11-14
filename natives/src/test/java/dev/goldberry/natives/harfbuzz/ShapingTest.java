@@ -100,7 +100,10 @@ class ShapingTest {
             buffer.guessSegmentProperties();
             var featured = buffer.shape(
                     font,
-                    List.of(new ShapingFeature("tnum", 1), new ShapingFeature("liga", 0), new ShapingFeature("salt", 3)));
+                    List.of(
+                            new ShapingFeature("tnum", 1),
+                            new ShapingFeature("liga", 0),
+                            new ShapingFeature("salt", 3)));
 
             assertEquals(plain.length(), featured.length());
             assertEquals(plain.cluster(plain.length() - 1), featured.cluster(featured.length() - 1));

@@ -15,6 +15,7 @@ import dev.goldberry.natives.desktop.macos.MacNotifier;
 import dev.goldberry.natives.desktop.macos.ObjC;
 import dev.goldberry.natives.desktop.notify.FreedesktopNotifier;
 import dev.goldberry.natives.desktop.notify.WindowsNotifier;
+import dev.goldberry.natives.desktop.notify.WindowsTaskbar;
 
 /// [BackendNotifier] on the desktop the process is running on.
 ///
@@ -22,7 +23,8 @@ import dev.goldberry.natives.desktop.notify.WindowsNotifier;
 /// |---|---|---|---|
 /// | Linux | `org.freedesktop.Notifications` over D-Bus | Unity `LauncherEntry`, a number | yes, by [#poll()] |
 /// | macOS | `UNUserNotificationCenter`, in an app bundle only | the dock tile, any text | yes |
-/// | Windows | the notification area's balloon, shown as a toast | none | no |
+/// | Windows | the notification area's balloon, shown as a toast | an overlay on the taskbar button, drawn here | yes,
+/// by [#poll()] |
 ///
 /// A Linux launcher finds the application's icon by its desktop entry id,
 /// which only the application knows: [#DESKTOP_ID_PROPERTY], or the
@@ -46,6 +48,9 @@ public final class PlatformNotifier implements BackendNotifier {
     private @Nullable FreedesktopNotifier linux;
     private boolean linuxTried;
     private @Nullable WindowsNotifier windows;
+    private boolean windowsTried;
+    private @Nullable WindowsTaskbar taskbar;
+    private boolean taskbarTried;
     private boolean saidNoBundle;
 
     /// What to run for each Linux notification that can still be clicked, by
@@ -53,6 +58,9 @@ public final class PlatformNotifier implements BackendNotifier {
     private final Map<Long, Runnable> linuxPending = new HashMap<>();
 
     private final Map<String, Runnable> macPending = new HashMap<>();
+
+    /// The same on Windows, by the balloon's id.
+    private final Map<Long, Runnable> windowsPending = new HashMap<>();
 
     /// Which desktop this is. A parameter of the constructor so that a test can
     /// ask about the others.
@@ -83,8 +91,8 @@ public final class PlatformNotifier implements BackendNotifier {
         }
     }
 
-    /// @param window the `HWND` a Windows notification-area icon belongs to,
-    ///        asked when the first notification is posted; 0 for none
+    /// @param window the `HWND` whose taskbar button a Windows badge sits on,
+    ///        asked each time the badge is set; 0 for none
     public PlatformNotifier(LongSupplier window) {
         this(Platform.current(), window);
     }
@@ -121,15 +129,24 @@ public final class PlatformNotifier implements BackendNotifier {
         return switch (platform) {
             case LINUX -> badgeLinux(label);
             case MACOS -> MacNotifier.get().map(mac -> mac.badge(label)).orElse(false);
-            case WINDOWS, OTHER -> false;
+            case WINDOWS -> badgeWindows(label);
+            case OTHER -> false;
         };
     }
 
     @Override
     public boolean poll() {
-        if (platform != Platform.LINUX || linux == null) {
-            // macOS delivers a click through the delegate, from SDL's own pump; and
-            // Windows does not deliver one. Nothing to ask either.
+        return switch (platform) {
+            case LINUX -> pollLinux();
+            case WINDOWS -> pollWindows();
+            // macOS delivers a click through the delegate, from SDL's own pump:
+            // nothing to ask.
+            case MACOS, OTHER -> false;
+        };
+    }
+
+    private boolean pollLinux() {
+        if (linux == null) {
             return false;
         }
         for (var event : linux.poll()) {
@@ -139,6 +156,21 @@ public final class PlatformNotifier implements BackendNotifier {
             }
         }
         return !linuxPending.isEmpty();
+    }
+
+    /// A click on a balloon reaches the notifier's own window while SDL pumps
+    /// the UI thread's messages; this hands it on from there.
+    private boolean pollWindows() {
+        if (windows == null) {
+            return false;
+        }
+        for (var event : windows.poll()) {
+            var action = windowsPending.remove(event.id());
+            if (action != null && event.activated()) {
+                run(action);
+            }
+        }
+        return !windowsPending.isEmpty();
     }
 
     @Override
@@ -151,8 +183,13 @@ public final class PlatformNotifier implements BackendNotifier {
             windows.close();
             windows = null;
         }
+        if (taskbar != null) {
+            taskbar.close();
+            taskbar = null;
+        }
         linuxPending.clear();
         macPending.clear();
+        windowsPending.clear();
     }
 
     private boolean postLinux(String application, Notification notification) {
@@ -228,10 +265,47 @@ public final class PlatformNotifier implements BackendNotifier {
     }
 
     private boolean postWindows(String application, Notification notification) {
-        if (windows == null) {
-            windows = WindowsNotifier.forWindow(window.getAsLong()).orElse(null);
+        if (!windowsTried) {
+            windowsTried = true;
+            windows = WindowsNotifier.open().orElse(null);
         }
-        return windows != null && windows.notify(application, notification.title(), notification.body());
+        if (windows == null) {
+            return false;
+        }
+        var id = windows.notify(application, notification.title(), notification.body());
+        if (id == 0) {
+            return false;
+        }
+        // One balloon shows at a time, so an older one's action can no longer
+        // be clicked.
+        windowsPending.clear();
+        if (notification.onActivate() != null) {
+            windowsPending.put(id, notification.onActivate());
+        }
+        return true;
+    }
+
+    /// The badge as an overlay on the first window's taskbar button, drawn by
+    /// [BadgeIcon].
+    private boolean badgeWindows(@Nullable String label) {
+        var handle = window.getAsLong();
+        if (handle == 0) {
+            LOG.debug("no badge: a Windows badge sits on a window's taskbar button, and there is no window yet");
+            return false;
+        }
+        if (!taskbarTried) {
+            taskbarTried = true;
+            taskbar = WindowsTaskbar.open().orElse(null);
+        }
+        if (taskbar == null) {
+            return false;
+        }
+        var text = BadgeIcon.text(label);
+        if (text.isEmpty()) {
+            return taskbar.clear(handle);
+        }
+        var picture = BadgeIcon.render(text);
+        return taskbar.overlay(handle, picture.width(), picture.height(), picture.argb(), text);
     }
 
     private @Nullable FreedesktopNotifier linux() {

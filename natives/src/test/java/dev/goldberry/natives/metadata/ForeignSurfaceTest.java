@@ -105,13 +105,13 @@ class ForeignSurfaceTest {
     }
 
     @Test
-    @DisplayName("declares the fifteen upcall shapes, Yoga's struct return among them")
+    @DisplayName("declares the sixteen upcall shapes, Yoga's struct return among them")
     void upcalls() {
         var upcalls = ForeignSurface.upcalls();
         assertAll(
                 // The fifteenth is a web view's cookie change answered: a request
-                // number and a count.
-                () -> assertEquals(15, upcalls.size(), upcalls.toString()),
+                // number and a count. The sixteenth is a Windows window procedure.
+                () -> assertEquals(16, upcalls.size(), upcalls.toString()),
                 () -> assertTrue(
                         upcalls.stream()
                                 .anyMatch(d -> d.returnLayout()
@@ -153,7 +153,12 @@ class ForeignSurfaceTest {
                         "a notification delegate method"),
                 () -> assertTrue(
                         upcalls.contains(FunctionDescriptor.ofVoid(ADDRESS, JAVA_BYTE, ADDRESS)),
-                        "the notification permission block"));
+                        "the notification permission block"),
+                // The Windows notification icon's window procedure: a window, a
+                // message, and its two parameters, answered with an LRESULT.
+                () -> assertTrue(
+                        upcalls.contains(FunctionDescriptor.of(JAVA_LONG, ADDRESS, JAVA_INT, JAVA_LONG, JAVA_LONG)),
+                        "a window procedure"));
     }
 
     /// Every owner's stub is made over a method looked up by name, and the

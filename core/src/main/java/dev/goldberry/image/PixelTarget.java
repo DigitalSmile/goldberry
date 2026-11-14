@@ -48,8 +48,8 @@ public record PixelTarget(ByteBuffer pixels, int stride) {
     /// Requires room for an image of `size`, before anything is written.
     void requireRoomFor(PhysicalSize size) {
         if (stride < 4L * size.width()) {
-            throw new IllegalArgumentException("a stride of " + stride + " bytes cannot hold a row of "
-                    + size.width() + " pixels, which needs " + 4L * size.width());
+            throw new IllegalArgumentException("a stride of " + stride + " bytes cannot hold a row of " + size.width()
+                    + " pixels, which needs " + 4L * size.width());
         }
         var needed = bytesFor(size);
         if (pixels.remaining() < needed) {

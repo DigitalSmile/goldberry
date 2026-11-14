@@ -178,7 +178,11 @@ class WebViewSpecTest {
         assertEquals("Probe/1", spec.userAgent());
         assertEquals(
                 "Probe/1",
-                spec.title("t").debug(true).sized(10, 10, WebSize.FIXED).initScript("x();").userAgent());
+                spec.title("t")
+                        .debug(true)
+                        .sized(10, 10, WebSize.FIXED)
+                        .initScript("x();")
+                        .userAgent());
         assertNull(WebViewSpec.blank().userAgent(), "the engine's own by default");
         assertNull(spec.userAgent(null).userAgent());
     }

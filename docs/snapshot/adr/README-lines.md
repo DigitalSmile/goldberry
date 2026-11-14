@@ -140,3 +140,6 @@ Appended to the index when the records move in, in this order.
 - [ADR-0697 A rich-text run is pressed, revealed and selected](0697-a-rich-text-run-is-pressed-revealed-and-selected.md)
 - [ADR-0698 A view shows pictures an application pushes](0698-a-view-shows-pictures-an-application-pushes.md)
 - [ADR-0699 A page signs out, and names its user agent](0699-a-page-signs-out-and-names-its-user-agent.md)
+- [ADR-0700 Secrets go to the system's own store](0700-secrets-go-to-the-systems-own-store.md)
+- [ADR-0701 A Windows notification is clicked, and the taskbar button badged](0701-a-windows-notification-is-clicked-and-the-taskbar-button-badged.md)
+- [ADR-0702 A named box travels when layout moves it](0702-a-named-box-travels-when-layout-moves-it.md)

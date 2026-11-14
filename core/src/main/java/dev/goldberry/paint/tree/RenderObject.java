@@ -192,6 +192,9 @@ public final class RenderObject implements AutoCloseable {
     /// says so in as many words.
     private LogicalRect placed = LogicalRect.of(0, 0, 0, 0);
 
+    /// See [#flip()].
+    private Affine flip = Affine.IDENTITY;
+
     /// What this subtree draws, in **this node's own coordinates** — its border
     /// box's top-left corner is the origin, and its own transform is not applied.
     ///
@@ -274,7 +277,35 @@ public final class RenderObject implements AutoCloseable {
             return shifted;
         }
         return shifted.mappedBy(RenderTree.compose(
-                Affine.IDENTITY, applied, layout.left(), layout.top(), layout.width(), layout.height()));
+                Affine.IDENTITY, applied, layout.left(), layout.top(), layout.width(), layout.height(), flip));
+    }
+
+    /// The move layout animation draws this box with, in its own coordinates:
+    /// identity unless it has a `view-transition-name` and is travelling. See
+    /// [LayoutMotion].
+    Affine flip() {
+        return flip;
+    }
+
+    /// Sets [#flip()]. A new one moves what is drawn without changing what
+    /// this node's own raster holds, as a `transform` does, so it is a change
+    /// for damage and for an ancestor's raster and not for this node's.
+    ///
+    /// @return whether it changed
+    boolean flip(Affine next) {
+        if (next.equals(flip)) {
+            return false;
+        }
+        flip = next;
+        changed = true;
+        return true;
+    }
+
+    /// Something under this node moved by [#flip(Affine)]: the ink it reports
+    /// is out of date, and a raster that bakes the descendant in is too.
+    void descendantMoved() {
+        changed = true;
+        contentChanged = true;
     }
 
     /// Puts `box` on the Yoga node, touching only what changed.
@@ -502,7 +533,7 @@ public final class RenderObject implements AutoCloseable {
         return sorted;
     }
 
-    boolean reconcileChildren(List<Box> next, Box parent, YogaConfig config, ShrinkToFit shrink) {
+    boolean reconcileChildren(List<Box> next, Box parent, YogaConfig config, ShrinkToFit shrink, LayoutMotion motion) {
         var changed = false;
 
         for (var i = 0; i < next.size(); i++) {
@@ -512,7 +543,7 @@ public final class RenderObject implements AutoCloseable {
                 // OR-ed in, not discarded: a promoted ancestor's raster is only
                 // reusable if *nothing* under it changed, and a child three
                 // levels down is under it.
-                changed |= existing.update(box, parent, config, shrink);
+                changed |= existing.update(box, parent, config, shrink, motion);
                 continue;
             }
             if (existing != null) {
@@ -522,7 +553,7 @@ public final class RenderObject implements AutoCloseable {
                 existing.close();
             }
             var built = new RenderObject(config, box.text() != null);
-            built.update(box, parent, config, shrink);
+            built.update(box, parent, config, shrink, motion);
             if (existing != null) {
                 children.set(i, built);
             } else {
@@ -738,9 +769,10 @@ public final class RenderObject implements AutoCloseable {
     ///               and its direction decides [ShrinkToFit]
     /// @param shrink told of every box [ShrinkToFit] applies to that this pass
     ///               lays out again
+    /// @param motion told of every box with a `view-transition-name`
     /// @return whether anything in this subtree changed, which is what a promoted
     ///         ancestor needs to know to decide its raster is still good
-    boolean update(Box box, @Nullable Box parent, YogaConfig config, ShrinkToFit shrink) {
+    boolean update(Box box, @Nullable Box parent, YogaConfig config, ShrinkToFit shrink, LayoutMotion motion) {
         // Compared before `apply` overwrites it. Everything that affects what is
         // drawn, not only what Yoga reads: a background that changed needs a
         // repaint even though the layout is untouched.
@@ -786,11 +818,14 @@ public final class RenderObject implements AutoCloseable {
         selfChanged = previous == null || pictureArrived || !sameAppearance(previous, box);
         contentChanged = previous == null || pictureArrived || !sameRaster(previous, box);
         changed = selfChanged;
+        if (box.transform().viewTransition() != null) {
+            motion.named();
+        }
         apply(box, inset);
         if (!box.children().isEmpty() || !children.isEmpty()) {
             // This box's own padding box is the containing block for every
             // absolutely positioned child of it.
-            var childrenChanged = reconcileChildren(inOrder(box.children()), box, config, shrink);
+            var childrenChanged = reconcileChildren(inOrder(box.children()), box, config, shrink, motion);
             changed |= childrenChanged;
             // A descendant's own opacity and transform *are* baked into this
             // node's raster, so a child changing anything invalidates it.

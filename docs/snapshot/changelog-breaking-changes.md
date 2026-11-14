@@ -27,6 +27,9 @@ Everything below is measured against 2026.2 (tag commit d3eacfdc).
 - `Typography` has an eighth component, `features` (a `FontFeatures`); the
   seven-argument constructor stays and means none. A record pattern over
   `Typography` names eight components. <!-- ADR-0695 -->
+- `Transform` (the CSS one, `dev.goldberry.css.value`) has a fifth component,
+  `viewTransition`; the four-argument constructor stays and means none. A
+  record pattern over `Transform` names five components. <!-- ADR-0702 -->
 - `ListView` has a thirteenth component, `sections`; the twelve-argument
   constructor stays and means none. A record pattern over `ListView` names
   thirteen components. <!-- ADR-0696 -->

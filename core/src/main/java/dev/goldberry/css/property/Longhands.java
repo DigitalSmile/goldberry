@@ -261,12 +261,12 @@ final class Longhands {
                         into.variation().settings(from.variation().settings()))));
         all.add(typography(
                 "font-feature-settings",
-                (from, into) -> into.features(
-                        into.features().settings(from.features().settings()))));
+                (from, into) ->
+                        into.features(into.features().settings(from.features().settings()))));
         all.add(typography(
                 "font-variant-numeric",
-                (from, into) -> into.features(
-                        into.features().numeric(from.features().numeric()))));
+                (from, into) ->
+                        into.features(into.features().numeric(from.features().numeric()))));
         all.add(typography(
                 "text-justify",
                 (from, into) ->
@@ -324,6 +324,10 @@ final class Longhands {
                 "transform-origin",
                 (from, into) ->
                         into.transform(into.transform().origin(from.transform().origin()))));
+        all.add(own(
+                "view-transition-name",
+                (from, into) -> into.transform(
+                        into.transform().viewTransition(from.transform().viewTransition()))));
         all.add(own("cursor", (from, into) -> into.cursor(from.cursor())));
     }
 

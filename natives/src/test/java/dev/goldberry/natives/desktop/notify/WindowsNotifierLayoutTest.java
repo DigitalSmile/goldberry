@@ -43,8 +43,33 @@ class WindowsNotifierLayoutTest {
             MemoryLayout.sequenceLayout(16, JAVA_BYTE).withName("guidItem"),
             ADDRESS.withName("hBalloonIcon"));
 
+    /// `WNDCLASSEXW`, from `winuser.h`.
+    private static final StructLayout WNDCLASSEXW = MemoryLayout.structLayout(
+            JAVA_INT.withName("cbSize"),
+            JAVA_INT.withName("style"),
+            ADDRESS.withName("lpfnWndProc"),
+            JAVA_INT.withName("cbClsExtra"),
+            JAVA_INT.withName("cbWndExtra"),
+            ADDRESS.withName("hInstance"),
+            ADDRESS.withName("hIcon"),
+            ADDRESS.withName("hCursor"),
+            ADDRESS.withName("hbrBackground"),
+            ADDRESS.withName("lpszMenuName"),
+            ADDRESS.withName("lpszClassName"),
+            ADDRESS.withName("hIconSm"));
+
     private static long offset(String field) {
         return NOTIFYICONDATAW.byteOffset(PathElement.groupElement(field));
+    }
+
+    @Test
+    @DisplayName("registers its window class at the SDK's offsets")
+    void windowClass() {
+        assertEquals(WindowsNotifier.CLASS_SIZE, WNDCLASSEXW.byteSize());
+        assertEquals(WindowsNotifier.CLASS_PROCEDURE, WNDCLASSEXW.byteOffset(PathElement.groupElement("lpfnWndProc")));
+        assertEquals(WindowsNotifier.CLASS_INSTANCE, WNDCLASSEXW.byteOffset(PathElement.groupElement("hInstance")));
+        assertEquals(
+                WindowsNotifier.CLASS_NAME_OFFSET, WNDCLASSEXW.byteOffset(PathElement.groupElement("lpszClassName")));
     }
 
     @Test
@@ -52,6 +77,7 @@ class WindowsNotifierLayoutTest {
     void offsets() {
         assertEquals(WindowsNotifier.SIZE, NOTIFYICONDATAW.byteSize());
         assertEquals(WindowsNotifier.HWND, offset("hWnd"));
+        assertEquals(WindowsNotifier.CALLBACK_MESSAGE, offset("uCallbackMessage"));
         assertEquals(WindowsNotifier.HICON, offset("hIcon"));
         assertEquals(WindowsNotifier.TIP, offset("szTip"));
         assertEquals(WindowsNotifier.INFO, offset("szInfo"));
@@ -63,7 +89,8 @@ class WindowsNotifierLayoutTest {
     @DisplayName("is not offered off Windows")
     void onlyOnWindows() {
         if (!System.getProperty("os.name", "").toLowerCase(Locale.ROOT).contains("win")) {
-            assertTrue(WindowsNotifier.forWindow(1).isEmpty());
+            assertTrue(WindowsNotifier.open().isEmpty());
+            assertTrue(WindowsTaskbar.open().isEmpty());
         }
     }
 }

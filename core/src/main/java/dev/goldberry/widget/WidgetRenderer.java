@@ -14,6 +14,7 @@ import dev.goldberry.css.ComputedStyle;
 import dev.goldberry.css.Stylesheet;
 import dev.goldberry.css.Typography;
 import dev.goldberry.css.cascade.StyleResolver;
+import dev.goldberry.css.cascade.Transitions;
 import dev.goldberry.css.container.ContainerQuery;
 import dev.goldberry.css.media.MediaContext;
 import dev.goldberry.css.select.Selector.PseudoClass;
@@ -298,6 +299,9 @@ public final class WidgetRenderer {
     /// [Paints.Context#nowMillis()].
     private double frameNow;
 
+    /// See [#frameMillis()].
+    private double frameMillis;
+
     /// The element whose box is being built, for [Paints.Context#color] — the
     /// one question on that interface whose answer is per node rather than per
     /// frame.
@@ -496,6 +500,20 @@ public final class WidgetRenderer {
         return animating;
     }
 
+    /// The clock's time the last [#render] read, which is the time the render
+    /// tree moves named boxes at: one time for the whole frame, the cascade's
+    /// and the layout's alike.
+    public double frameMillis() {
+        return frameMillis;
+    }
+
+    /// Says something laid out from the last [#render] is still moving, which
+    /// [#isAnimating()] answers until the next render: a box with a
+    /// `view-transition-name` that layout moved, travelling to where it was put.
+    public void moving() {
+        animating = true;
+    }
+
     /// Renders a whole tree. A tree that describes nothing that paints — a root
     /// that builds to `Widget.nothing()`, or composition with no primitive
     /// under it — renders as one empty box, so the frame shows only its
@@ -507,6 +525,7 @@ public final class WidgetRenderer {
         // and its track -- would arrive microseconds apart and drift.
         var now = clock.nowMillis();
         frameNow = now;
+        frameMillis = now;
         animating = false;
         // So a node whose state changes between frames can ask what the sheets
         // say without having resolved a style of its own.
@@ -639,6 +658,23 @@ public final class WidgetRenderer {
 
     /// `style` as a user who asked for less movement gets it: every transition
     /// instant and every keyframe animation gone.
+    /// `style` with its `view-transition-name` timed, for the render tree that
+    /// moves the box: by the box's own `transition` for `transform`, since what
+    /// moves it is a transform, by View Transitions' default otherwise, and
+    /// instantly when motion is reduced. The same style when the box is not
+    /// named, which is every box but a few.
+    private ComputedStyle timedViewTransition(ComputedStyle style, ComputedStyle declared) {
+        var named = style.transform().viewTransition();
+        if (named == null) {
+            return style;
+        }
+        var timing = reducedMotion
+                ? Transitions.Timing.INSTANT
+                : declared.transitions().byProperty().get(Transitions.Animatable.TRANSFORM);
+        var timed = timing == null ? named : named.timed(timing.durationMillis(), timing.easing());
+        return timed.equals(named) ? style : style.transform(style.transform().viewTransition(timed));
+    }
+
     private static ComputedStyle reduced(ComputedStyle style) {
         return style.transitions(style.transitions().reduced())
                 .animations(style.animations().reduced());
@@ -881,7 +917,9 @@ public final class WidgetRenderer {
         // Tagged with the element that produced it, which is how a pointer
         // event gets from a rectangle on screen back to a node.
         var boxBegan = trace == null ? 0L : System.nanoTime();
-        var style = Objects.requireNonNull(painted, "a node that paints resolved a style of its own above");
+        var style = timedViewTransition(
+                Objects.requireNonNull(painted, "a node that paints resolved a style of its own above"),
+                Objects.requireNonNull(self, "and that style is the target's"));
         // Set for the duration of the call and cleared after, so a context that
         // outlived the render -- a painter closing over it, which is exactly what
         // `canvas` does -- cannot read a stale node's tokens.

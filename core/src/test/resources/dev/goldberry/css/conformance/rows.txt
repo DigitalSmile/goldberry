@@ -302,6 +302,8 @@ decl | transform: translate3d(1px, 2px, 3px) | DROPPED | by-design
 decl | perspective: 100px | UNKNOWN | by-design
 decl | translate: 4px 4px | APPLIED | -
 decl | transform-box: fill-box | APPLIED | -
+decl | view-transition-name: tile | APPLIED | -
+decl | view-transition-name: match-element | DROPPED | by-design
 decl | will-change: transform | UNKNOWN | by-design
 
 # --- 8. Motion ---------------------------------------------------------------------

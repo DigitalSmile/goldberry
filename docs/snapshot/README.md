@@ -193,6 +193,9 @@ page for a change to `site/` alone (ADR-0590), and GB-034, written 2026-10-10
 | `adr/0697-…` | `book/src/adr/` | A rich-text run is pressed, revealed and selected: `Run.onPress`, `Run.spoiler`, `RichText.selectable`, `rich-text-selection`, `SpanPaint.background`. Relates to 0577 (GB-021) |
 | `adr/0698-…` | `book/src/adr/` | A view shows pictures an application pushes: `PictureSource`, `PushedPictures`, `PictureView`; `MediaPlayer` is a source. Relates to 0577 (GB-019) |
 | `adr/0699-…` | `book/src/adr/` | A page signs out, and names its user agent: `deleteCookies`, `clearCookies`, `userAgent` on `Webview`/`BackendWebView`/`WebViewController`, `WebViewSpec.userAgent`; web view ABI stays 9. Relates to 0544, 0684 |
+| `adr/0700-…` | `book/src/adr/` | Secrets go to the system's own store: `dev.goldberry.keychain.Keychain` over the Secret Service (D-Bus), the macOS Keychain and the Windows Credential Manager; the D-Bus binding moves to `natives.desktop.dbus`. Reopens 0291's keychain half: add a line to 0291's status naming 0700 |
+| `adr/0701-…` | `book/src/adr/` | A Windows notification is clicked, and the taskbar button badged: the icon's own message-only window and `NIN_BALLOONUSERCLICK`, `ITaskbarList3::SetOverlayIcon` through a `Com` helper, `BadgeIcon` drawn by the toolkit; a sixteenth upcall shape. Relates to 0700 |
+| `adr/0702-…` | `book/src/adr/` | A named box travels when layout moves it: `view-transition-name` on `Transform` (`ViewTransition`), timed by the box's own `transform` transition or 250 ms `ease`, instant under reduced motion; `LayoutMotion`/`LayoutTracks` after layout, a flip matrix in `RenderTree.compose`, `RenderTree.update(frame, box, now)`. Relates to 0600 |
 | `guide-gaps-batch.md` | the pages each piece names | Guide pieces for the batch, each with its destination |
 
 ## Doc comments that point at the guide

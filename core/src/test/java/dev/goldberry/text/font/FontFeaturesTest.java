@@ -46,8 +46,7 @@ class FontFeaturesTest {
     @DisplayName("tabular figures are all one width, where Inter's own are not")
     void tabular() {
         var proportional = fonts.of(inter());
-        assertNotEquals(
-                proportional.widthOf("1111"), proportional.widthOf("0000"), "Inter's figures are proportional");
+        assertNotEquals(proportional.widthOf("1111"), proportional.widthOf("0000"), "Inter's figures are proportional");
 
         var tabular = fonts.of(inter().features(TABULAR));
         assertEquals(tabular.widthOf("1111"), tabular.widthOf("0000"), 1e-9);
@@ -75,7 +74,9 @@ class FontFeaturesTest {
     void identity() {
         assertNotSame(fonts.of(inter()), fonts.of(inter().features(TABULAR)));
         assertSame(fonts.of(inter().features(TABULAR)), fonts.of(inter().features(TABULAR)));
-        assertEquals(List.of(new Setting("tnum", 1)), fonts.of(inter().features(TABULAR)).features());
+        assertEquals(
+                List.of(new Setting("tnum", 1)),
+                fonts.of(inter().features(TABULAR)).features());
         assertEquals(List.of(), fonts.of(inter()).features());
     }
 
@@ -83,7 +84,8 @@ class FontFeaturesTest {
     @DisplayName("a feature the face lacks changes nothing")
     void unknown() {
         var unknown = inter().features(FontFeatures.NONE.settings(List.of(new Setting("XXXX", 1))));
-        assertEquals(fonts.of(inter()).widthOf("Wide wolves 1209"), fonts.of(unknown).widthOf("Wide wolves 1209"));
+        assertEquals(
+                fonts.of(inter()).widthOf("Wide wolves 1209"), fonts.of(unknown).widthOf("Wide wolves 1209"));
     }
 
     @Test

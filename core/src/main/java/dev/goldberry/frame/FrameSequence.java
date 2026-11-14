@@ -119,12 +119,17 @@ public final class FrameSequence {
         var boxes = withGhost(renderer.render(tree));
         var styledAt = System.nanoTime();
 
-        render.update(frame, boxes);
+        // At the time the cascade ran at, so a box layout moved travels on the
+        // same clock its transitions do.
+        render.update(frame, boxes, renderer.frameMillis());
         // `@container`: a container laid out at a size its descendants were not
         // styled for restyles them, and the frame is laid out once more. Never
         // a third time.
         if (renderer.settleContainers(render)) {
-            render.update(frame, withGhost(renderer.render(tree)));
+            render.update(frame, withGhost(renderer.render(tree)), renderer.frameMillis());
+        }
+        if (render.isMoving()) {
+            renderer.moving();
         }
         var laidOutAt = System.nanoTime();
         laidOut = true;

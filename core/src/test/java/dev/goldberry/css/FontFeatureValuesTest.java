@@ -56,7 +56,8 @@ class FontFeatureValuesTest {
     void settings() {
         assertEquals(
                 List.of(new Setting("tnum", 1), new Setting("liga", 0), new Setting("calt", 1), new Setting("salt", 3)),
-                features("font-feature-settings: \"tnum\", \"liga\" off, \"calt\" on, \"salt\" 3").settings());
+                features("font-feature-settings: \"tnum\", \"liga\" off, \"calt\" on, \"salt\" 3")
+                        .settings());
     }
 
     @Test
@@ -64,13 +65,15 @@ class FontFeatureValuesTest {
     void lastWins() {
         assertEquals(
                 List.of(new Setting("liga", 1), new Setting("tnum", 0)),
-                features("font-feature-settings: \"tnum\", \"liga\", \"tnum\" 0").settings());
+                features("font-feature-settings: \"tnum\", \"liga\", \"tnum\" 0")
+                        .settings());
     }
 
     @Test
     @DisplayName("normal asks for nothing")
     void normal() {
-        assertTrue(features("font-feature-settings: normal; font-variant-numeric: normal", PARENT).isNone());
+        assertTrue(features("font-feature-settings: normal; font-variant-numeric: normal", PARENT)
+                .isNone());
         assertTrue(FontFeatures.NONE.isNone());
     }
 

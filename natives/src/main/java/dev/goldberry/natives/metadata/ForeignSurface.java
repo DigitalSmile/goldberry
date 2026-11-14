@@ -21,6 +21,7 @@ import dev.goldberry.natives.Downcalls;
 import dev.goldberry.natives.Upcalls;
 import dev.goldberry.natives.desktop.macos.MacMenuBar;
 import dev.goldberry.natives.desktop.macos.MacNotifier;
+import dev.goldberry.natives.desktop.notify.WindowsNotifier;
 import dev.goldberry.natives.glib.GlibLog;
 import dev.goldberry.natives.sdl.SdlEventWatch;
 import dev.goldberry.natives.sdl.SdlFileDialogs;
@@ -73,16 +74,23 @@ public final class ForeignSurface {
             // The macOS menu bar's one action and the notification center's
             // delegate: classes of this process's own whose methods are stubs.
             MacMenuBar.class,
-            MacNotifier.class);
+            MacNotifier.class,
+            // The window procedure of the Windows notification icon's own
+            // message-only window, which hears a click on the balloon.
+            WindowsNotifier.class);
 
     /// The classes that bind a system library outside a `…calls` package —
-    /// libdbus, libobjc, shell32, libX11 — and declare every shape they send as a
+    /// libdbus, libobjc, shell32, ole32, advapi32, Security, libX11 — and declare every shape they send as a
     /// constant, so that initialising them records the shapes wherever the
     /// library is missing. Their libraries are opened by nested holders, which
     /// this does not touch.
     static final List<String> SYSTEM_LIBRARY_SHAPES = List.of(
-            "dev.goldberry.natives.desktop.notify.Dbus",
+            "dev.goldberry.natives.desktop.dbus.Dbus",
             "dev.goldberry.natives.desktop.notify.WindowsNotifier",
+            "dev.goldberry.natives.desktop.notify.WindowsTaskbar",
+            "dev.goldberry.natives.desktop.windows.Com",
+            "dev.goldberry.natives.desktop.keychain.MacKeychain",
+            "dev.goldberry.natives.desktop.keychain.WindowsCredentials",
             "dev.goldberry.natives.desktop.macos.ObjC",
             "dev.goldberry.natives.x11.XlibVisuals",
             "dev.goldberry.natives.x11.XlibCompositing");

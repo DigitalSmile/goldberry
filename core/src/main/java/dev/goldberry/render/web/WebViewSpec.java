@@ -266,7 +266,8 @@ public record WebViewSpec(
 
     /// The same page at a different window size.
     public WebViewSpec sized(int value, int height, WebSize mode) {
-        return new WebViewSpec(url, html, title, value, height, mode, debug, callbacks, onNavigate, initScripts, userAgent);
+        return new WebViewSpec(
+                url, html, title, value, height, mode, debug, callbacks, onNavigate, initScripts, userAgent);
     }
 
     /// The same page, sending `agent` as its user agent from its first request:
@@ -280,6 +281,7 @@ public record WebViewSpec(
 
     /// The same page with the engine's inspector on.
     public WebViewSpec debug(boolean value) {
-        return new WebViewSpec(url, html, title, width, height, size, value, callbacks, onNavigate, initScripts, userAgent);
+        return new WebViewSpec(
+                url, html, title, width, height, size, value, callbacks, onNavigate, initScripts, userAgent);
     }
 }

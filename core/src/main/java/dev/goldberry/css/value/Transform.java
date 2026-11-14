@@ -62,7 +62,15 @@ import dev.goldberry.css.value.calc.Quantity;
 /// @param individual the `translate`, `rotate` and `scale` properties, applied
 ///                   before the functions
 /// @param box        what the origin and the percentages are measured against
-public record Transform(List<Function> functions, Origin origin, IndividualTransform individual, TransformBox box) {
+/// @param viewTransition `view-transition-name` and its timing, or null: how
+///                   the box moves when layout moves it, which is not a matrix of
+///                   its own and leaves [#isNone()] alone
+public record Transform(
+        List<Function> functions,
+        Origin origin,
+        IndividualTransform individual,
+        TransformBox box,
+        @Nullable ViewTransition viewTransition) {
 
     /// No transform. The value every box starts at and almost every box keeps.
     public static final Transform NONE =
@@ -75,6 +83,11 @@ public record Transform(List<Function> functions, Origin origin, IndividualTrans
         Objects.requireNonNull(box, "box");
     }
 
+    /// A transform no layout move animates.
+    public Transform(List<Function> functions, Origin origin, IndividualTransform individual, TransformBox box) {
+        this(functions, origin, individual, box, null);
+    }
+
     /// `functions` about `origin`, with none of the individual properties.
     public Transform(List<Function> functions, Origin origin) {
         this(functions, origin, IndividualTransform.NONE, TransformBox.BORDER_BOX);
@@ -82,17 +95,23 @@ public record Transform(List<Function> functions, Origin origin, IndividualTrans
 
     /// This transform with other functions, its origin and the rest kept.
     public Transform functions(List<Function> value) {
-        return new Transform(value, origin, individual, box);
+        return new Transform(value, origin, individual, box, viewTransition);
     }
 
     /// This transform with other individual properties.
     public Transform individual(IndividualTransform value) {
-        return new Transform(functions, origin, value, box);
+        return new Transform(functions, origin, value, box, viewTransition);
+    }
+
+    /// This transform with `view-transition-name` and its timing, or without
+    /// for null.
+    public Transform viewTransition(@Nullable ViewTransition value) {
+        return new Transform(functions, origin, individual, box, value);
     }
 
     /// This transform measured against another box.
     public Transform box(TransformBox value) {
-        return new Transform(functions, origin, individual, value);
+        return new Transform(functions, origin, individual, value, viewTransition);
     }
 
     /// A transform with the default origin.
@@ -102,7 +121,7 @@ public record Transform(List<Function> functions, Origin origin, IndividualTrans
 
     /// This transform applied about a different point.
     public Transform origin(Origin value) {
-        return new Transform(functions, value, individual, box);
+        return new Transform(functions, value, individual, box, viewTransition);
     }
 
     /// Whether this transform would move anything.
@@ -188,7 +207,12 @@ public record Transform(List<Function> functions, Origin origin, IndividualTrans
             }
             mixed.add(from.mix(target, t));
         }
-        return new Transform(mixed, origin.mix(to.origin, t), individual.mix(to.individual, t), t < 0.5 ? box : to.box);
+        return new Transform(
+                mixed,
+                origin.mix(to.origin, t),
+                individual.mix(to.individual, t),
+                t < 0.5 ? box : to.box,
+                t < 0.5 ? viewTransition : to.viewTransition);
     }
 
     @Override

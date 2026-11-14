@@ -80,7 +80,7 @@ class PropertiesTest {
             animation-fill-mode: forwards; animation-play-state: paused;
             transition-property: opacity, color; transition-duration: 1s; transition-timing-function: linear;
             transition-delay: 2ms; transform: rotate(10deg); transform-origin: 0 0; cursor: pointer;
-            translate: 3px 4px; rotate: 30deg; scale: 2; transform-box: content-box
+            translate: 3px 4px; rotate: 30deg; scale: 2; transform-box: content-box; view-transition-name: tile
             """;
 
     /// One declaration per shorthand and alias, each changing everything it

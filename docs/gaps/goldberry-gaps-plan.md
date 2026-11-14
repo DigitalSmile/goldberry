@@ -272,15 +272,15 @@ log in the same commit as the work.
 | T-06 | — | declined (D9) | 0689 | |
 | T-07 | W2.7 | done | 0698 | |
 | T-08 | W1.11 | done | 0684 | |
-| T-09 | W2.11 | todo | | |
+| T-09 | W2.11 | done (macOS and Windows unverified) | 0700 | |
 | T-10 | W1.10 | done | 0683 | |
 | T-12 | W2.9 | done: `Path.contains` and pinch; the tile cache stays Tessera's | 0687, 0692 | |
 | T-13 | W2.4 | done | 0695 | |
 | T-15 | W3.2 | todo | | |
-| T-16 | W2.10 | todo | | |
+| T-16 | W2.10 | done (`view-transition-name`; the opt-in is the implementer's choice, see the ADR) | 0702 | |
 | T-17 | — | parked (ADR-0440) | | |
 | T-18 | W1.7 | done | 0678 | |
-| T-19 | W2.12 | todo | | |
+| T-19 | W2.12 | done (Win32 half unverified) | 0701 | |
 | T-20 | W3.9 | todo | | |
 | T-22 | W3.6 | todo | | |
 | T-23 | — | parked (D11) | 0690 | |
@@ -391,3 +391,38 @@ log in the same commit as the work.
 - **2026-11-14, evening.** W2.2–W2.8 committed to master with their ADRs
   (0693–0699), the plan and both answers files. `done` in §8 still means on
   master; nothing is pushed or in a snapshot yet.
+- **2026-11-14, night.** W2.11 (ADR-0700): `dev.goldberry.keychain.Keychain`,
+  over a `SecretStore` per platform in `natives.desktop.keychain`. The Secret
+  Service is spoken directly over D-Bus with a `plain` session, and a locked
+  keyring is unlocked through its prompt. The macOS Keychain goes through
+  `SecItem`, and the Windows Credential Manager through `Cred*`; those two are
+  UNVERIFIED. The D-Bus binding moved to `natives.desktop.dbus` (not
+  exported). It learned object paths, byte arrays, structs, variants, error
+  replies, waiting for a signal and serving, so the fake notification daemon
+  uses it now instead of raw handles. `SecretServiceTest` runs against a fake
+  Secret Service on a private `dbus-daemon`, prompts included. Next ADR 0701.
+- **2026-11-14, night, later.** W2.12 (ADR-0701): the Windows balloon's
+  click and a taskbar badge. The notification icon belongs to a message-only
+  window of its own, whose window procedure (the sixteenth upcall shape) queues
+  `NIN_BALLOONUSERCLICK`. `PlatformNotifier` polls it on the Linux click's
+  timer. The badge is `ITaskbarList3::SetOverlayIcon` through a new `Com`
+  helper (`natives.desktop.windows`, not exported), over a picture
+  `BadgeIcon` draws with the toolkit's painter. The Win32 half is UNVERIFIED;
+  structure offsets, vtable slots, GUID bytes and the message handling are
+  tested on Linux. Guide corrections parked. Next ADR 0702.
+- **2026-11-14, night, last.** W2.10 (ADR-0702): FLIP layout animation. The
+  opt-in was put to the owner and not answered, so the recommended one was
+  taken: `view-transition-name`, timed by the box's own `transform`
+  transition or View Transitions' 250 ms `ease`, instant under reduced
+  motion. The name rides on `Transform` (a fifth component,
+  `ViewTransition`), so nothing new crosses `ComputedStyle` or `Box`.
+  `LayoutMotion` runs after layout over `LayoutTracks` (a new internal
+  package, `motion.layout`). Its flip matrix goes through `RenderTree.compose`,
+  so painting, hit testing, damage and culling agree, and only the moved
+  paths settle again. `FrameSequence` hands the renderer's clock to
+  `RenderTree.update` and keeps the loop awake while a box travels. A tree
+  with no names skips the pass. Wave 2 is closed. Next ADR 0703.
+  Verified together: `:natives`, `:core` and `:widgets` green (711, 5824 and
+  3228 tests, one natives skip), javadoc clean, and the showcase runs on the
+  module path with the dummy driver. `spotlessApply` also rewrapped twelve
+  files from c93b6537 that had missed the formatter. Nothing is committed.
