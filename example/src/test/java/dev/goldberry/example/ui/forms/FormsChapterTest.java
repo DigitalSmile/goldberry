@@ -86,7 +86,8 @@ class FormsChapterTest {
                                     "code-card",
                                     "date-card",
                                     "forms-time",
-                                    "paint-card")
+                                    "paint-card",
+                                    "composer-card")
                             .sorted()
                             .toList(),
                     ids);

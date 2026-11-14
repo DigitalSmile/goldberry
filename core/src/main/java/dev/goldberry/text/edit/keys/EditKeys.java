@@ -6,6 +6,7 @@ import org.jspecify.annotations.Nullable;
 
 import dev.goldberry.input.event.KeyEvent;
 import dev.goldberry.input.key.PrimaryModifier;
+import dev.goldberry.text.mark.MarkKind.Style;
 
 /// The editing key map: what a key asks an editor to do.
 ///
@@ -106,6 +107,41 @@ public final class EditKeys {
             // where a newline comes from, and a form's default button cannot have
             // one.
             case ENTER -> surface.takesNewlines() ? new EditCommand.Type("\n") : null;
+            default -> null;
+        };
+    }
+
+    /// What `event` asks of a rich editor's formatting, or null for a key that
+    /// is not a formatting key.
+    ///
+    /// `Ctrl+B` bold, `Ctrl+I` italic, `Ctrl+U` underline, `Ctrl+Shift+X`
+    /// strike-through, `Ctrl+Shift+M` code, `Ctrl+Shift+P` spoiler, `Ctrl+K` a
+    /// link and `Ctrl+Shift+N` clear formatting, on the desktop's own modifier
+    /// (`Cmd` on macOS). A messenger's set, and separate from [#of] so that a
+    /// plain field leaves every one of these keys to the application.
+    public static @Nullable FormatCommand format(KeyEvent event) {
+        Objects.requireNonNull(event, "event");
+        if (event.kind() != KeyEvent.Kind.PRESSED) {
+            return null;
+        }
+        var modifiers = event.modifiers();
+        if (!modifiers.has(PrimaryModifier.current()) || modifiers.alt()) {
+            return null;
+        }
+        if (modifiers.shift()) {
+            return switch (event.key()) {
+                case X -> new FormatCommand.Toggle(Style.STRIKE);
+                case M -> new FormatCommand.Toggle(Style.CODE);
+                case P -> new FormatCommand.Toggle(Style.SPOILER);
+                case N -> FormatCommand.Simple.CLEAR;
+                default -> null;
+            };
+        }
+        return switch (event.key()) {
+            case B -> new FormatCommand.Toggle(Style.BOLD);
+            case I -> new FormatCommand.Toggle(Style.ITALIC);
+            case U -> new FormatCommand.Toggle(Style.UNDERLINE);
+            case K -> FormatCommand.Simple.LINK;
             default -> null;
         };
     }

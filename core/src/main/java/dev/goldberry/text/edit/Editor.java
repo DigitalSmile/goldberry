@@ -1,7 +1,9 @@
 package dev.goldberry.text.edit;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 
 import org.jspecify.annotations.Nullable;
 
@@ -12,14 +14,25 @@ import dev.goldberry.render.clipboard.Clipboard;
 import dev.goldberry.render.clipboard.PrimarySelection;
 import dev.goldberry.render.model.LogicalRect;
 import dev.goldberry.text.Paragraph;
+import dev.goldberry.text.ParagraphCache;
+import dev.goldberry.text.SpanPaint;
 import dev.goldberry.text.document.DocumentLines;
 import dev.goldberry.text.document.TextDocument;
 import dev.goldberry.text.edit.keys.EditCommand;
 import dev.goldberry.text.edit.keys.EditKeys;
 import dev.goldberry.text.edit.keys.EditSurface;
+import dev.goldberry.text.edit.keys.FormatCommand;
 import dev.goldberry.text.flow.TextAlign;
 import dev.goldberry.text.flow.TextFlow;
 import dev.goldberry.text.font.Font;
+import dev.goldberry.text.mark.Mark;
+import dev.goldberry.text.mark.MarkKind;
+import dev.goldberry.text.mark.MarkRun;
+import dev.goldberry.text.mark.MarkStyle;
+import dev.goldberry.text.mark.MarkStyles;
+import dev.goldberry.text.mark.MarkedClipboard;
+import dev.goldberry.text.mark.MarkedEdit;
+import dev.goldberry.text.mark.MarkedText;
 
 /// A text editor an application drives itself — on a `canvas`, at any transform,
 /// over text no widget owns.
@@ -43,8 +56,9 @@ import dev.goldberry.text.font.Font;
 /// board, a label on a shape, a cell in a drawing: things that are not widgets,
 /// because they are drawn into an application's own canvas at its own transform.
 ///
-/// It holds three things: a [TextEdit] (the string, the caret and the anchor), an
-/// [EditHistory] (undo, with a typing run folded into one step), and a
+/// It holds three things: a [MarkedEdit] (the string, its marks, the caret and
+/// the anchor), an [EditHistory] (undo, with a typing run folded into one step),
+/// and a
 /// [TextDocument] — the text shaped one hard line at a time, so a keystroke
 /// re-shapes the line it landed on and not the whole text. The key map is
 /// [EditKeys], the one `text-input` and `text-area` read. Everything visual —
@@ -72,6 +86,17 @@ import dev.goldberry.text.font.Font;
 /// converting a pointer adds the scroll back: `pointerAt(px - x, py - top +
 /// editor.scrollTop(), …)`. An editor told no height is never scrolled.
 ///
+/// ## Formatting, once it knows what marks look like
+///
+/// The text may carry marks: bold, a link, a mention ([MarkedText]). Hand the
+/// editor [#markStyles(MarkStyles)] and it shapes marked words in their own
+/// fonts, draws their colours, rules and fills, and takes the formatting keys
+/// ([EditKeys#format]): `Ctrl+B` and the rest toggle a style, and `Ctrl+K` is
+/// left to the caller, who asks for an address and calls [#mark(MarkKind)].
+/// Every line stays the editor's own font's height ([Paragraph#joinOnGrid]), so
+/// the caret, a click and the scroll count rows as they always have. Without
+/// styles the marks are kept, copied and undone, and drawn as plain text.
+///
 /// Used on the UI thread, like everything else that touches input. Nothing here
 /// is closed: the [Font] is the caller's, and a shaped paragraph holds no native
 /// memory.
@@ -81,9 +106,18 @@ public final class Editor {
 
     private final Font font;
 
-    private TextEdit edit = TextEdit.EMPTY;
+    private MarkedEdit edit = MarkedEdit.EMPTY;
 
-    private final EditHistory history = new EditHistory();
+    private final EditHistory<MarkedEdit> history = new EditHistory<>();
+
+    /// How marked words look, or null to draw them as plain text and leave the
+    /// formatting keys alone: [#markStyles(MarkStyles)].
+    private @Nullable MarkStyles markStyles;
+
+    /// Shapings of marked words in fonts other than [#font], kept for as long as
+    /// the editor lives so a line shaped again re-uses the words that did not
+    /// change. Made on first use: a plain editor never needs one.
+    private @Nullable ParagraphCache marked;
 
     private double wrapWidth = Paragraph.UNCONSTRAINED;
 
@@ -138,7 +172,7 @@ public final class Editor {
     /// The edit and the composition [#scrollTop] last followed the caret for, so
     /// that a caret that has not moved since leaves a scroll the caller made
     /// alone.
-    private @Nullable TextEdit followed;
+    private @Nullable MarkedEdit followed;
 
     private String followedPreedit = "";
 
@@ -371,9 +405,30 @@ public final class Editor {
         return edit.text();
     }
 
-    /// The whole state — the text, the caret and the anchor.
+    /// The whole state — the text, the caret and the anchor — without the marks.
     public TextEdit edit() {
+        return edit.plain();
+    }
+
+    /// The whole state with the marks: the text, its marks, the caret, the
+    /// anchor, and what the next typed letter takes.
+    public MarkedEdit marked() {
         return edit;
+    }
+
+    /// The text and its marks.
+    public MarkedText value() {
+        return edit.value();
+    }
+
+    /// Replaces the text and its marks, the caret at the end, and forgets the
+    /// undo history: [#text(String)] for a text with formatting.
+    public Editor value(MarkedText replacement) {
+        Objects.requireNonNull(replacement, "replacement");
+        edit = MarkedEdit.of(replacement);
+        history.clear();
+        invalidate();
+        return this;
     }
 
     /// Replaces the text, putting the caret at the end and **clearing the undo
@@ -384,7 +439,7 @@ public final class Editor {
     /// document they had moved on from.
     public Editor text(String replacement) {
         Objects.requireNonNull(replacement, "replacement");
-        edit = TextEdit.of(replacement);
+        edit = MarkedEdit.of(MarkedText.of(replacement));
         history.clear();
         invalidate();
         return this;
@@ -504,6 +559,83 @@ public final class Editor {
         return new StringBuilder(edit.text()).insert(edit.caret(), preedit).toString();
     }
 
+    /// The text as it is drawn, with its marks: [#displayText()]'s, the
+    /// composition taking the marks a typed letter would.
+    private MarkedText displayValue() {
+        if (preedit.isEmpty()) {
+            return edit.value();
+        }
+        return edit.value().replace(edit.caret(), edit.caret(), MarkedText.of(preedit), edit.typingKinds());
+    }
+
+    /// One hard line and its marks: the plain shaping when nothing on it
+    /// changes the font, and otherwise a piece per font, joined on the editor's
+    /// own rows.
+    private Paragraph shapeMarked(String line, List<Mark> marks) {
+        var styles = markStyles;
+        if (styles == null || marks.isEmpty()) {
+            return shaper.shape(line);
+        }
+        var pieces = new ArrayList<Paragraph>();
+        Font current = font;
+        var from = 0;
+        for (var run : MarkRun.of(line.length(), marks)) {
+            var runFont = run.isPlain() ? font : styles.of(run.kinds()).font();
+            if (runFont != current && run.start() > from) {
+                pieces.add(piece(current, line.substring(from, run.start())));
+                from = run.start();
+            }
+            current = runFont;
+        }
+        if (pieces.isEmpty() && current == font) {
+            return shaper.shape(line);
+        }
+        pieces.add(piece(current, line.substring(from)));
+        if (pieces.getFirst().font() != font) {
+            // The rows are this editor's font's, so the join is measured in it.
+            pieces.addFirst(piece(font, ""));
+        }
+        return Paragraph.joinOnGrid(pieces);
+    }
+
+    private Paragraph piece(Font in, String words) {
+        if (in == font) {
+            return shaper.shape(words);
+        }
+        var cache = marked;
+        if (cache == null) {
+            cache = ParagraphCache.create();
+            marked = cache;
+        }
+        return cache.paragraph(in, words);
+    }
+
+    /// What line `k` of `shaped` is drawn with beyond its own colour: a span
+    /// per run of marks whose style paints.
+    private List<SpanPaint> spansOf(TextDocument shaped, int k, int ink) {
+        var styles = markStyles;
+        if (styles == null) {
+            return List.of();
+        }
+        var marks = shaped.marksOf(k);
+        if (marks.isEmpty()) {
+            return List.of();
+        }
+        var spans = new ArrayList<SpanPaint>();
+        var length = shaped.endOf(k) - shaped.startOf(k);
+        for (var run : MarkRun.of(length, marks)) {
+            if (run.isPlain()) {
+                continue;
+            }
+            var style = styles.of(run.kinds());
+            if (style.paints()) {
+                var argb = style.argb() == MarkStyle.TEXT_COLOUR ? ink : style.argb();
+                spans.add(new SpanPaint(run.start(), run.end(), argb, style.decorations(), style.background()));
+            }
+        }
+        return spans;
+    }
+
     /// Drops any composition. Returns whether there was one.
     private boolean clearPreedit() {
         if (preedit.isEmpty()) {
@@ -550,6 +682,12 @@ public final class Editor {
     ///         single-line editor still submits.
     public boolean onKey(KeyEvent event) {
         Objects.requireNonNull(event, "event");
+        if (markStyles != null) {
+            var format = EditKeys.format(event);
+            if (format != null) {
+                return format(format);
+            }
+        }
         var command = EditKeys.of(event, multiline ? EditSurface.DOCUMENT : EditSurface.WRAPPED);
         if (command == null) {
             return false;
@@ -561,6 +699,16 @@ public final class Editor {
             publishSelection();
         }
         return handled;
+    }
+
+    /// A formatting key. `Ctrl+K` is not taken: an address is the caller's to
+    /// ask for.
+    private boolean format(FormatCommand command) {
+        return switch (command) {
+            case FormatCommand.Toggle(var style) -> toggle(style);
+            case FormatCommand.Simple.CLEAR -> clearFormatting();
+            case FormatCommand.Simple.LINK -> false;
+        };
     }
 
     /// Whether `command` makes a selection rather than moving past one:
@@ -683,14 +831,15 @@ public final class Editor {
         return selection.text(edit.selectedText());
     }
 
-    /// Copies the selection. `false` when there is nothing selected or no
+    /// Copies the selection, with its marks when it has any
+    /// ([MarkedClipboard]). `false` when there is nothing selected or no
     /// clipboard, so the key is not consumed by a copy that did not happen.
     public boolean copy() {
         var board = clipboard;
         if (board == null || !edit.hasSelection()) {
             return false;
         }
-        return board.text(edit.selectedText());
+        return MarkedClipboard.copy(board, edit.selected());
     }
 
     /// Copies the selection and removes it. `false` when nothing was copied or
@@ -706,17 +855,103 @@ public final class Editor {
     /// there is no clipboard, it holds no text, or the editor is read-only.
     public boolean paste() {
         var board = clipboard;
-        if (readOnly || board == null || !board.hasText()) {
+        if (readOnly || board == null) {
             return false;
         }
-        var text = board.text();
-        if (text.isEmpty()) {
+        var pasted = MarkedClipboard.paste(board);
+        if (pasted.isEmpty()) {
             return false;
         }
-        // A pasted newline in a single-line editor becomes a space rather than
-        // being dropped: the text arrived from somewhere the user chose, and
-        // silently losing half of it is worse than flattening it.
-        return apply(edit.insert(multiline ? text : text.replaceAll("\\R", " ")), EditHistory.Kind.OTHER);
+        var value = pasted.get();
+        if (value.isPlain()) {
+            // A pasted newline in a single-line editor becomes a space rather
+            // than being dropped: the text arrived from somewhere the user chose,
+            // and silently losing half of it is worse than flattening it.
+            // A paste takes nothing from the words beside it.
+            var text = value.text();
+            return apply(
+                    edit.insert(MarkedText.of(multiline ? text : text.replaceAll("\\R", " "))), EditHistory.Kind.OTHER);
+        }
+        // With marks, one char for one so that every mark still lands on its
+        // words.
+        var flat = multiline
+                ? value
+                : new MarkedText(value.text().replace('\n', ' ').replace('\r', ' '), value.marks());
+        return apply(edit.insert(flat), EditHistory.Kind.OTHER);
+    }
+
+    // --- formatting ------------------------------------------------------------
+
+    /// How marked words look. Setting it also turns on the formatting keys
+    /// ([EditKeys#format]); without it the marks are kept and drawn as plain
+    /// text. Everything is shaped again.
+    public Editor markStyles(MarkStyles value) {
+        this.markStyles = Objects.requireNonNull(value, "value");
+        this.document = null;
+        invalidate();
+        return this;
+    }
+
+    /// The kinds that are on: over all of the selection, or for what is typed
+    /// next. What a formatting bar shows as pressed.
+    public Set<MarkKind> activeKinds() {
+        return edit.activeKinds();
+    }
+
+    /// Turns `kind` on over the selection, or off when all of it has it; with
+    /// nothing selected, for what is typed next. One undo step.
+    ///
+    /// @return whether anything changed. False in a read-only editor
+    public boolean toggle(MarkKind kind) {
+        Objects.requireNonNull(kind, "kind");
+        if (readOnly || kind.isAtomic()) {
+            return false;
+        }
+        return format(edit.toggle(kind));
+    }
+
+    /// `kind` over the selection, replacing a conflicting kind: a link with a
+    /// new address. False with nothing selected.
+    public boolean mark(MarkKind kind) {
+        Objects.requireNonNull(kind, "kind");
+        return !readOnly && format(edit.mark(kind));
+    }
+
+    /// `kind` off the selection. False with nothing selected.
+    public boolean unmark(MarkKind kind) {
+        Objects.requireNonNull(kind, "kind");
+        return !readOnly && format(edit.unmark(kind));
+    }
+
+    /// Every kind but the atoms off the selection; with nothing selected,
+    /// plain typing from here.
+    public boolean clearFormatting() {
+        return !readOnly && format(edit.clearFormatting());
+    }
+
+    /// `[start, end)` replaced by `with`, the caret after it: how a mention
+    /// goes in where its query was typed. One undo step.
+    public boolean replace(int start, int end, MarkedText with) {
+        Objects.requireNonNull(with, "with");
+        if (readOnly) {
+            return false;
+        }
+        clearPreedit();
+        return apply(edit.replace(start, end, with), EditHistory.Kind.OTHER);
+    }
+
+    /// A change of formatting: one undo step when it changed the text's marks,
+    /// and no step at all when it only changed what is typed next.
+    private boolean format(MarkedEdit next) {
+        if (next.equals(edit)) {
+            return false;
+        }
+        if (next.value().equals(edit.value())) {
+            edit = next;
+            invalidate();
+            return true;
+        }
+        return apply(next, EditHistory.Kind.FORMATTING);
     }
 
     // --- geometry and painting -----------------------------------------------
@@ -735,7 +970,9 @@ public final class Editor {
             //
             // The old document goes in as well as coming out: it is what makes a
             // keystroke re-shape one hard line rather than the whole text.
-            current = TextDocument.of(font, displayText(), current, shaper);
+            current = markStyles == null
+                    ? TextDocument.of(font, displayText(), current, shaper)
+                    : TextDocument.of(font, displayValue(), current, this::shapeMarked);
             document = current;
             stale = false;
         }
@@ -960,7 +1197,7 @@ public final class Editor {
             if (top + nextRow * lineHeight <= visibleTop) {
                 continue;
             }
-            shaped.paragraphOf(k).paint(frame, x, lineTop, wrapWidth, argb, flow);
+            shaped.paragraphOf(k).paint(frame, x, lineTop, wrapWidth, argb, flow, spansOf(shaped, k, argb));
         }
     }
 
@@ -968,7 +1205,7 @@ public final class Editor {
 
     /// `Home` and `End` on the **visual** line, which is what a reader means by
     /// them and is not [TextEdit]'s hard-line start.
-    private TextEdit toLineEdge(boolean start, boolean extend) {
+    private MarkedEdit toLineEdge(boolean start, boolean extend) {
         var rows = lines();
         var line = rows.get(rows.indexOf(edit.caret()));
         return edit.caretTo(start ? line.start() : line.end(), extend);
@@ -1017,7 +1254,7 @@ public final class Editor {
         return Math.max(1, (int) Math.floor(viewportHeight / lineHeight));
     }
 
-    private boolean move(TextEdit moved) {
+    private boolean move(MarkedEdit moved) {
         if (moved.equals(edit)) {
             return false;
         }
@@ -1030,11 +1267,11 @@ public final class Editor {
         return true;
     }
 
-    private boolean select(TextEdit selected) {
+    private boolean select(MarkedEdit selected) {
         return move(selected);
     }
 
-    private boolean apply(TextEdit next, EditHistory.Kind kind) {
+    private boolean apply(MarkedEdit next, EditHistory.Kind kind) {
         if (next.equals(edit)) {
             return false;
         }
@@ -1051,7 +1288,7 @@ public final class Editor {
         return EditHistory.Kind.DELETING;
     }
 
-    private boolean applied(TextEdit before) {
+    private boolean applied(MarkedEdit before) {
         if (edit.equals(before)) {
             return false;
         }

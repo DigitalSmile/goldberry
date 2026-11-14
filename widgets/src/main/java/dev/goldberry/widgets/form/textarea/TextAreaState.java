@@ -58,7 +58,7 @@ final class TextAreaState extends State<TextArea> implements AreaEditor, TextCom
     private static final Duration BLINK = Duration.ofMillis(530);
 
     private TextEdit edit = TextEdit.EMPTY;
-    private final EditHistory history = new EditHistory();
+    private final EditHistory<TextEdit> history = new EditHistory<>();
 
     private @Nullable Host host;
 

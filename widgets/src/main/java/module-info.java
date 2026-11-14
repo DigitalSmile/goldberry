@@ -141,6 +141,10 @@ module dev.goldberry.widgets {
     exports dev.goldberry.widgets.form.timepicker;
     exports dev.goldberry.widgets.form.textarea;
 
+    /// `rich-input`: a field that takes formatting, over `:core`'s marked text
+    /// and its canvas editor.
+    exports dev.goldberry.widgets.form.richinput;
+
     /// `…form.parts` is deliberately **not** exported. `text-input` and
     /// `text-area` draw the same `text-caret`, `text-selection` and `text-value`,
     /// and a part is styleable and not constructible — which has always meant

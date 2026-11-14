@@ -189,7 +189,8 @@ public final class Paragraph {
                 bidi,
                 spaced(shapeSegments(font, text, bidi), text, letterSpacing, wordSpacing),
                 null,
-                null);
+                null,
+                false);
     }
 
     /// `segments` with `letterSpacing` added after every character and
@@ -242,7 +243,8 @@ public final class Paragraph {
             @Nullable BidiLevels bidi,
             Segment[] segments,
             int @Nullable [] spanStarts,
-            Font @Nullable [] spanFonts) {
+            Font @Nullable [] spanFonts,
+            boolean grid) {
         this.font = font;
         this.text = text;
         this.directionality = directionality;
@@ -263,8 +265,11 @@ public final class Paragraph {
             var ascents = new double[spanFonts.length];
             var belows = new double[spanFonts.length];
             for (var k = 0; k < spanFonts.length; k++) {
-                ascents[k] = spanFonts[k].ascent();
-                belows[k] = spanFonts[k].lineHeight() - ascents[k];
+                // On a grid every line is the first font's, whatever it holds:
+                // [#joinOnGrid].
+                var measured = grid ? font : spanFonts[k];
+                ascents[k] = measured.ascent();
+                belows[k] = measured.lineHeight() - ascents[k];
             }
             this.spanAscents = ascents;
             this.spanBelows = belows;
@@ -643,6 +648,33 @@ public final class Paragraph {
     /// @throws IllegalArgumentException if `spans` is empty: there is no font to
     ///         measure nothing in
     public static Paragraph join(List<Paragraph> spans) {
+        return join(spans, false);
+    }
+
+    /// `spans` joined as [#join] joins them, with **every line measured in the
+    /// first span's font**: as tall as that font's line, its baseline where that
+    /// font puts it, whatever the line holds.
+    ///
+    /// ```java
+    /// var line = Paragraph.joinOnGrid(List.of(
+    ///         Paragraph.of(regular, "Call "),
+    ///         Paragraph.of(monospace, "fetch()"),
+    ///         Paragraph.of(regular, " first.")));
+    /// ```
+    ///
+    /// What a text field's lines are: rows one line height apart, so that the
+    /// caret, a click and the scroll can count rows without asking what is on
+    /// them. A word in a face with a taller line sits on the same baseline and
+    /// may reach above or below its row; a field that styles a word larger than
+    /// its own text gets its glyphs larger and its rows unchanged. A label that
+    /// wants a large word to push its lines apart uses [#join].
+    ///
+    /// @throws IllegalArgumentException if `spans` is empty
+    public static Paragraph joinOnGrid(List<Paragraph> spans) {
+        return join(spans, true);
+    }
+
+    private static Paragraph join(List<Paragraph> spans, boolean grid) {
         Objects.requireNonNull(spans, "spans");
         if (spans.isEmpty()) {
             throw new IllegalArgumentException("a paragraph joins one span or more; an empty one is"
@@ -688,7 +720,8 @@ public final class Paragraph {
                 levels.isLeftToRight() ? null : levels,
                 segments.toArray(Segment[]::new),
                 starts.stream().mapToInt(Integer::intValue).toArray(),
-                fonts.toArray(Font[]::new));
+                fonts.toArray(Font[]::new),
+                grid);
     }
 
     /// How many pieces this paragraph was joined from: 1 for one that was not.

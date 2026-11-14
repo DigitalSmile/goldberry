@@ -33,7 +33,43 @@ public enum ToolkitLabel {
     /// A media player's control bar, as a screen reader names it.
     MEDIA_CONTROLS("goldberry.mediaControls", "Media controls"),
     /// A video's picture, as a screen reader names it.
-    VIDEO("goldberry.video", "Video");
+    VIDEO("goldberry.video", "Video"),
+
+    /// A rich field's bold: the formatting bar's button and the Format menu's row.
+    BOLD("goldberry.bold", "Bold"),
+
+    /// A rich field's italic.
+    ITALIC("goldberry.italic", "Italic"),
+
+    /// A rich field's underline.
+    UNDERLINE("goldberry.underline", "Underline"),
+
+    /// A rich field's strike-through.
+    STRIKE("goldberry.strike", "Strike-through"),
+
+    /// A rich field's code.
+    CODE("goldberry.code", "Code"),
+
+    /// A rich field's spoiler.
+    SPOILER("goldberry.spoiler", "Spoiler"),
+
+    /// A rich field's link.
+    LINK("goldberry.link", "Link"),
+
+    /// A rich field's clear formatting.
+    CLEAR_FORMATTING("goldberry.clearFormatting", "Clear formatting"),
+
+    /// The text menu's submenu of a rich field's formatting.
+    FORMAT("goldberry.format", "Format"),
+
+    /// The link editor's address field, read out and shown while empty.
+    LINK_ADDRESS("goldberry.linkAddress", "Address"),
+
+    /// The link editor's button that puts the link on the words.
+    APPLY("goldberry.apply", "Apply"),
+
+    /// The link editor's button that takes a link off.
+    REMOVE_LINK("goldberry.removeLink", "Remove link");
 
     private final String key;
     private final String english;

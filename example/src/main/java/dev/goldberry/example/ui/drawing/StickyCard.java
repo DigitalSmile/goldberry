@@ -1,5 +1,10 @@
 package dev.goldberry.example.ui.drawing;
 
+import java.util.EnumSet;
+import java.util.List;
+import java.util.Objects;
+import java.util.Set;
+
 import org.jspecify.annotations.Nullable;
 
 import dev.goldberry.Host;
@@ -15,7 +20,10 @@ import dev.goldberry.paint.Path;
 import dev.goldberry.paint.stroke.Stroke;
 import dev.goldberry.render.model.LogicalSize;
 import dev.goldberry.text.edit.Editor;
+import dev.goldberry.text.flow.TextDecoration;
 import dev.goldberry.text.font.Font;
+import dev.goldberry.text.mark.MarkKind;
+import dev.goldberry.text.mark.MarkStyle;
 import dev.goldberry.widget.BuildContext;
 import dev.goldberry.widget.State;
 import dev.goldberry.widget.Widget;
@@ -30,6 +38,9 @@ import dev.goldberry.widgets.core.canvas.Input;
 /// glyph was drawn. What the card owns is the paper and the wiring, and the one
 /// line of the wiring that matters most is [Input#wantsText()]: the platform
 /// produces no characters until something says it is being typed into.
+///
+/// The note takes formatting too: `Ctrl+B`, `Ctrl+I`, `Ctrl+U` and the rest, in
+/// the faces [StickyState#styleOf] picks for each set of marks.
 ///
 /// Read more: [Input](https://goldberry.dev/docs/components/drawing.html#input).
 record StickyCard() implements Widget.Stateful {
@@ -53,6 +64,16 @@ record StickyCard() implements Widget.Stateful {
         /// The editor's font, which this state opened and so closes.
         private @Nullable Font font;
 
+        /// The faces marked words are shaped in, opened with [#font]: bold,
+        /// italic, both, and code.
+        private @Nullable Font strong;
+
+        private @Nullable Font italic;
+
+        private @Nullable Font strongItalic;
+
+        private @Nullable Font code;
+
         /// The text, its caret and its undo history. On the state because a widget
         /// is rebuilt every frame and a caret is not. Built on first use, because
         /// a font needs the rasterizer and the shape-only tests have none.
@@ -75,8 +96,13 @@ record StickyCard() implements Widget.Stateful {
             if (current == null) {
                 var opened = Font.bundled(BundledFont.UI, 13);
                 font = opened;
+                strong = Font.bundled(BundledFont.UI_STRONG, 13);
+                italic = Font.bundled(BundledFont.UI_ITALIC, 13);
+                strongItalic = Font.bundled(BundledFont.UI_STRONG_ITALIC, 13);
+                code = Font.bundled(BundledFont.CODE, 13);
                 current = new Editor(opened)
                         .multiline(true)
+                        .markStyles(this::styleOf)
                         .wrapWidth(WIDTH - 2 * PADDING)
                         .text("Type here. The caret, the selection, Ctrl+Z and the word jumps are the"
                                 + " toolkit's: this card holds an Editor and draws what it says.");
@@ -90,11 +116,44 @@ record StickyCard() implements Widget.Stateful {
             return current;
         }
 
+        /// How words under `kinds` look on the note: a face per weight and
+        /// slant, the rules for underline and strike-through, the accent for a
+        /// link and a wash behind a spoiler.
+        private MarkStyle styleOf(Set<MarkKind> kinds) {
+            var bold = kinds.contains(MarkKind.Style.BOLD);
+            var slanted = kinds.contains(MarkKind.Style.ITALIC);
+            var face = kinds.contains(MarkKind.Style.CODE)
+                    ? code
+                    : bold && slanted ? strongItalic : bold ? strong : slanted ? italic : font;
+            var rules = EnumSet.noneOf(TextDecoration.class);
+            if (kinds.contains(MarkKind.Style.UNDERLINE)) {
+                rules.add(TextDecoration.UNDERLINE);
+            }
+            if (kinds.contains(MarkKind.Style.STRIKE)) {
+                rules.add(TextDecoration.LINE_THROUGH);
+            }
+            var link = kinds.stream().anyMatch(MarkKind.Link.class::isInstance);
+            var spoiler = kinds.contains(MarkKind.Style.SPOILER);
+            return new MarkStyle(
+                    Objects.requireNonNull(face, "face"),
+                    link ? Ink.ACCENT : MarkStyle.TEXT_COLOUR,
+                    rules,
+                    spoiler ? CssColor.fade(Ink.LINE, 0.3) : 0);
+        }
+
         @Override
         protected void dispose() {
             if (font != null) {
-                font.close();
+                for (var opened : List.of(font, strong, italic, strongItalic, code)) {
+                    if (opened != null) {
+                        opened.close();
+                    }
+                }
                 font = null;
+                strong = null;
+                italic = null;
+                strongItalic = null;
+                code = null;
                 editor = null;
             }
         }

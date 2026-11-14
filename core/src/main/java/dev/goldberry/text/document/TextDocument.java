@@ -1,5 +1,6 @@
 package dev.goldberry.text.document;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
@@ -13,6 +14,8 @@ import dev.goldberry.text.TextLine;
 import dev.goldberry.text.flow.TextAlign;
 import dev.goldberry.text.flow.TextFlow;
 import dev.goldberry.text.font.Font;
+import dev.goldberry.text.mark.Mark;
+import dev.goldberry.text.mark.MarkedText;
 
 /// A text shaped one hard line at a time, and re-shaped one hard line at a time
 /// when it changes.
@@ -65,6 +68,20 @@ public final class TextDocument {
         Paragraph shape(String line);
     }
 
+    /// Where a hard line of a marked text gets its glyphs: its words and the
+    /// marks on them.
+    ///
+    /// A line is its text **and** its marks, so a word made bold re-shapes the
+    /// line it is on even though no letter changed, and a line whose marks did
+    /// not change keeps its shaping.
+    @FunctionalInterface
+    public interface MarkedShaper {
+
+        /// The shaping of one hard line with the marks that reach into it, cut
+        /// to the line and counted from its start. Usually none.
+        Paragraph shape(String line, List<Mark> marks);
+    }
+
     private final Font font;
     private final String text;
 
@@ -85,9 +102,14 @@ public final class TextDocument {
 
     private @Nullable DocumentLines lines;
 
-    private TextDocument(Font font, String text, String[] hard, Paragraph[] shaped, int[] starts) {
+    /// The marks over the whole text, in a marked text's normal form, and
+    /// usually none.
+    private final List<Mark> marks;
+
+    private TextDocument(Font font, String text, List<Mark> marks, String[] hard, Paragraph[] shaped, int[] starts) {
         this.font = font;
         this.text = text;
+        this.marks = marks;
         this.hard = hard;
         this.shaped = shaped;
         this.starts = starts;
@@ -108,33 +130,82 @@ public final class TextDocument {
         Objects.requireNonNull(font, "font");
         Objects.requireNonNull(text, "text");
         Objects.requireNonNull(shaper, "shaper");
+        return of(font, text, List.of(), previous, (line, _) -> shaper.shape(line));
+    }
+
+    /// `text` and its marks shaped with `font`, re-using whatever `previous`
+    /// already shaped: [#of(Font, String, TextDocument, Shaper)] for a text
+    /// with formatting.
+    ///
+    /// A hard line is shaped again when its words changed **or** the marks on
+    /// it did; every other line keeps its paragraph.
+    ///
+    /// @param font     the face and size the lines are measured in
+    /// @param text     the whole document and its marks
+    /// @param previous last frame's document, or null
+    /// @param shaper   what turns one hard line and its marks into glyphs
+    public static TextDocument of(Font font, MarkedText text, @Nullable TextDocument previous, MarkedShaper shaper) {
+        Objects.requireNonNull(font, "font");
+        Objects.requireNonNull(text, "text");
+        Objects.requireNonNull(shaper, "shaper");
+        return of(font, text.text(), text.marks(), previous, shaper);
+    }
+
+    private static TextDocument of(
+            Font font, String text, List<Mark> marks, @Nullable TextDocument previous, MarkedShaper shaper) {
         if (previous != null && previous.font == font) {
-            if (previous.text.equals(text)) {
+            if (previous.text.equals(text) && previous.marks.equals(marks)) {
                 // The same document, and usually the same instance — a frame in
                 // which nothing was typed. Everything, wrap memo included, is
                 // still valid.
                 return previous;
             }
-            return previous.after(text, shaper);
+            if (previous.text.equals(text)) {
+                // The same words with other marks: only the lines whose marks
+                // changed are shaped again.
+                return previous.remarked(marks, shaper);
+            }
+            return previous.after(text, marks, shaper);
         }
-        return whole(font, text, shaper);
+        return whole(font, text, marks, shaper);
     }
 
     /// Every hard line shaped from scratch — a document opened, or a theme
     /// change that produced a different [Font].
-    private static TextDocument whole(Font font, String text, Shaper shaper) {
+    private static TextDocument whole(Font font, String text, List<Mark> marks, MarkedShaper shaper) {
         var starts = lineStarts(text);
         var hard = new String[starts.length];
         var shaped = new Paragraph[starts.length];
         for (var k = 0; k < starts.length; k++) {
-            hard[k] = text.substring(starts[k], endOf(text, starts, k));
-            shaped[k] = shaper.shape(hard[k]);
+            var end = endOf(text, starts, k);
+            hard[k] = text.substring(starts[k], end);
+            shaped[k] = shaper.shape(hard[k], marksIn(marks, starts[k], end));
         }
-        return new TextDocument(font, text, hard, shaped, starts);
+        return new TextDocument(font, text, marks, hard, shaped, starts);
     }
 
-    /// This document, after the text became `next`.
-    private TextDocument after(String next, Shaper shaper) {
+    /// The marks reaching into `[from, to)`, cut to it and counted from `from`.
+    /// Empty without a scan when there are none, which is a plain document's
+    /// every line.
+    private static List<Mark> marksIn(List<Mark> marks, int from, int to) {
+        if (marks.isEmpty()) {
+            return List.of();
+        }
+        var inside = new ArrayList<Mark>();
+        for (var mark : marks) {
+            if (mark.start() >= to) {
+                // Sorted by start: nothing later reaches back into the line.
+                break;
+            }
+            if (mark.overlaps(from, to)) {
+                inside.add(new Mark(Math.max(mark.start(), from) - from, Math.min(mark.end(), to) - from, mark.kind()));
+            }
+        }
+        return List.copyOf(inside);
+    }
+
+    /// This document, after the text became `next` with `nextMarks` on it.
+    private TextDocument after(String next, List<Mark> nextMarks, MarkedShaper shaper) {
         var old = text;
         var shortest = Math.min(old.length(), next.length());
         var prefix = 0;
@@ -172,7 +243,7 @@ public final class TextDocument {
             var end = i + 1 < replaced.length ? replaced[i + 1] - 1 : regionEnd;
             nextStarts[first + i] = start;
             nextHard[first + i] = next.substring(start, end);
-            nextShaped[first + i] = shaper.shape(nextHard[first + i]);
+            nextShaped[first + i] = shaper.shape(nextHard[first + i], marksIn(nextMarks, start, end));
         }
 
         // Everything after it keeps its paragraph and moves by the edit's length.
@@ -183,7 +254,44 @@ public final class TextDocument {
         for (var i = 0; i < tail; i++) {
             nextStarts[into + i] = starts[last + 1 + i] + delta;
         }
-        return new TextDocument(font, next, nextHard, nextShaped, nextStarts);
+
+        // A line whose words did not change keeps its shaping only if its marks
+        // did not either: a word made bold changed no letter.
+        if (!marks.isEmpty() || !nextMarks.isEmpty()) {
+            for (var k = 0; k < first; k++) {
+                reshapeIfRemarked(k, k, nextStarts, nextHard, nextShaped, nextMarks, shaper);
+            }
+            for (var i = 0; i < tail; i++) {
+                reshapeIfRemarked(last + 1 + i, into + i, nextStarts, nextHard, nextShaped, nextMarks, shaper);
+            }
+        }
+        return new TextDocument(font, next, nextMarks, nextHard, nextShaped, nextStarts);
+    }
+
+    /// This document with the same text and `nextMarks` on it.
+    private TextDocument remarked(List<Mark> nextMarks, MarkedShaper shaper) {
+        var nextShaped = shaped.clone();
+        for (var k = 0; k < hard.length; k++) {
+            reshapeIfRemarked(k, k, starts, hard, nextShaped, nextMarks, shaper);
+        }
+        return new TextDocument(font, text, nextMarks, hard, nextShaped, starts);
+    }
+
+    /// Shapes kept line `at` again if the marks on it are not the ones old line
+    /// `was` had.
+    private void reshapeIfRemarked(
+            int was,
+            int at,
+            int[] nextStarts,
+            String[] nextHard,
+            Paragraph[] nextShaped,
+            List<Mark> nextMarks,
+            MarkedShaper shaper) {
+        var before = marksIn(marks, starts[was], starts[was] + hard[was].length());
+        var now = marksIn(nextMarks, nextStarts[at], nextStarts[at] + nextHard[at].length());
+        if (!before.equals(now)) {
+            nextShaped[at] = shaper.shape(nextHard[at], now);
+        }
     }
 
     /// Where every hard line of `text` starts.
@@ -228,6 +336,17 @@ public final class TextDocument {
     /// The font every hard line was shaped with.
     public Font font() {
         return font;
+    }
+
+    /// The marks over the whole text, and usually none.
+    public List<Mark> marks() {
+        return marks;
+    }
+
+    /// The marks reaching into hard line `k`, cut to it and counted from its
+    /// start: what its words are drawn with.
+    public List<Mark> marksOf(int k) {
+        return marksIn(marks, starts[k], endOf(k));
     }
 
     /// How many lines somebody typed — the newlines, plus one.

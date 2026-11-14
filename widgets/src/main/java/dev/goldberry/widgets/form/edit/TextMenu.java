@@ -1,7 +1,10 @@
 package dev.goldberry.widgets.form.edit;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 import java.util.function.BooleanSupplier;
+import java.util.function.Supplier;
 
 import org.jspecify.annotations.Nullable;
 
@@ -12,6 +15,7 @@ import dev.goldberry.i18n.ToolkitLabel;
 import dev.goldberry.input.key.Key;
 import dev.goldberry.input.key.Shortcut;
 import dev.goldberry.render.model.LogicalRect;
+import dev.goldberry.widget.Widget;
 import dev.goldberry.widgets.menu.Item;
 import dev.goldberry.widgets.menu.Menu;
 import dev.goldberry.widgets.menu.Menus;
@@ -37,14 +41,27 @@ public final class TextMenu {
     private final Host host;
     private final TextCommands commands;
 
+    /// The rows a field adds after the stock ones, asked for each time the menu
+    /// is drawn, so a row that shows a state shows the current one.
+    private final Supplier<List<Widget>> more;
+
     private @Nullable ShownMenu shown;
     private @Nullable Subscription watching;
 
     /// @param host     the window the menu opens on
     /// @param commands the field the menu acts on
     public TextMenu(Host host, TextCommands commands) {
+        this(host, commands, List::of);
+    }
+
+    /// A menu with rows of the field's own after the stock ones, under a
+    /// separator: a rich field's Format submenu.
+    ///
+    /// @param more the rows, asked for each time the menu is drawn
+    public TextMenu(Host host, TextCommands commands, Supplier<List<Widget>> more) {
         this.host = Objects.requireNonNull(host, "host");
         this.commands = Objects.requireNonNull(commands, "commands");
+        this.more = Objects.requireNonNull(more, "more");
     }
 
     /// Opens the menu at `anchor`, closing one this field already had open.
@@ -53,7 +70,7 @@ public final class TextMenu {
     public boolean open(LogicalRect anchor) {
         Objects.requireNonNull(anchor, "anchor");
         close();
-        var opened = Menus.show(host, anchor, menu(commands));
+        var opened = Menus.show(host, anchor, menu(commands, more.get()));
         if (opened.isEmpty()) {
             return false;
         }
@@ -81,7 +98,7 @@ public final class TextMenu {
             shown = null;
             return;
         }
-        current.update(menu(commands));
+        current.update(menu(commands, more.get()));
     }
 
     private void stopWatching() {
@@ -95,7 +112,20 @@ public final class TextMenu {
     /// The rows, as `commands` stands now. Each disabled row is one whose `can…`
     /// said false.
     public static Menu menu(TextCommands commands) {
+        return menu(commands, List.of());
+    }
+
+    /// The rows, as `commands` stands now, and `more` after them under a
+    /// separator when there are any.
+    public static Menu menu(TextCommands commands, List<Widget> more) {
         Objects.requireNonNull(commands, "commands");
+        Objects.requireNonNull(more, "more");
+        if (!more.isEmpty()) {
+            var rows = new ArrayList<Widget>(menu(commands).children());
+            rows.add(new Separator());
+            rows.addAll(more);
+            return new Menu(rows, null);
+        }
         return new Menu(
                 row(Labels.text(ToolkitLabel.CUT), Key.X, commands.canCut(), commands::cut),
                 row(Labels.text(ToolkitLabel.COPY), Key.C, commands.canCopy(), commands::copy),

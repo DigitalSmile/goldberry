@@ -148,11 +148,11 @@ class ListSectionsTest {
         Harness(Mode mode) {
             target = TestFrames.of(200, VIEWPORT_HEIGHT, 1.0f, 0);
             renderer = new WidgetRenderer(
-                    List.of(
-                            Controls.baseStylesheet(),
-                            Theme.NORD_DARK.load(),
-                            Stylesheet.parse(CascadeLayer.APPLICATION, SCENE)),
-                    TestFont.get())
+                            List.of(
+                                    Controls.baseStylesheet(),
+                                    Theme.NORD_DARK.load(),
+                                    Stylesheet.parse(CascadeLayer.APPLICATION, SCENE)),
+                            TestFont.get())
                     .clock(clock);
             tree = new ElementTree(new Timeline(mode, controller), host);
             render = RenderTree.create();
@@ -221,8 +221,12 @@ class ListSectionsTest {
             return out;
         }
 
-        @Nullable ListSectionHeader pinned() {
-            return headers().stream().filter(ListSectionHeader::pinned).findFirst().orElse(null);
+        @Nullable
+        ListSectionHeader pinned() {
+            return headers().stream()
+                    .filter(ListSectionHeader::pinned)
+                    .findFirst()
+                    .orElse(null);
         }
 
         double listHeight() {
@@ -328,7 +332,8 @@ class ListSectionsTest {
             assertEquals("Day 1", harness.pinned().section(), "and the next one takes over");
             assertEquals(
                     0,
-                    harness.drawn("list-section-header", ListSectionHeader.PINNED).getFirst()[0],
+                    harness.drawn("list-section-header", ListSectionHeader.PINNED)
+                            .getFirst()[0],
                     STILL);
         }
 

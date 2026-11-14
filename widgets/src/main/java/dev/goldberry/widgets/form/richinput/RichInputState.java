@@ -1,0 +1,893 @@
+package dev.goldberry.widgets.form.richinput;
+
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.time.Duration;
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+import org.jspecify.annotations.Nullable;
+
+import dev.goldberry.Host;
+import dev.goldberry.bind.Subscription;
+import dev.goldberry.css.ComputedStyle;
+import dev.goldberry.i18n.Labels;
+import dev.goldberry.i18n.ToolkitLabel;
+import dev.goldberry.input.event.KeyEvent;
+import dev.goldberry.input.event.PointerEvent;
+import dev.goldberry.input.event.PreeditEvent;
+import dev.goldberry.input.event.TextEvent;
+import dev.goldberry.input.hit.Extent;
+import dev.goldberry.input.key.Key;
+import dev.goldberry.input.key.Mod;
+import dev.goldberry.input.key.Shortcut;
+import dev.goldberry.paint.Box;
+import dev.goldberry.render.clipboard.Clipboard;
+import dev.goldberry.render.event.EventLoop;
+import dev.goldberry.render.model.LogicalRect;
+import dev.goldberry.text.Paragraph;
+import dev.goldberry.text.edit.Editor;
+import dev.goldberry.text.edit.keys.EditKeys;
+import dev.goldberry.text.edit.keys.FormatCommand;
+import dev.goldberry.text.font.Font;
+import dev.goldberry.text.mark.MarkKind;
+import dev.goldberry.text.mark.MarkRun;
+import dev.goldberry.text.mark.MarkStyle;
+import dev.goldberry.text.mark.MarkedClipboard;
+import dev.goldberry.text.mark.MarkedText;
+import dev.goldberry.widget.BuildContext;
+import dev.goldberry.widget.State;
+import dev.goldberry.widget.Widget;
+import dev.goldberry.widgets.form.edit.TextCommands;
+import dev.goldberry.widgets.form.edit.TextMenu;
+import dev.goldberry.widgets.menu.Item;
+
+/// What a [RichInput] holds: an [Editor] over its marked text, and what the
+/// field needs around it.
+///
+/// The editor is made on the first frame, because it shapes in the font the
+/// cascade resolves and nothing earlier knows it. A theme that changes the font
+/// gets a new editor with the same text and caret; its undo history starts
+/// again, as a field given a new font has a new document.
+///
+/// The width the text wraps at is last frame's border box less the padding,
+/// from [RichInputBox#measured]. A change asks for one more frame, so a field
+/// takes two frames to settle when it mounts and one per resize, and none
+/// after: what the width decides (the rows, and so the height) cannot change
+/// the width.
+///
+/// ## Around the selection
+///
+/// A selection that is not being dragged opens the formatting bar over its
+/// first line, in a panel that never takes the keyboard ([FormatPopups]). The
+/// bar follows the selection and goes when it collapses, when a composition
+/// starts, or when the field loses the focus. `Ctrl+K` and the bar's Link open
+/// the link editor, which does take the keyboard and gives it back when it
+/// applies.
+final class RichInputState extends State<RichInput> implements RichInputBox.Input, TextCommands {
+
+    /// How many lines a notch of the wheel scrolls.
+    static final int WHEEL_LINES = 3;
+
+    private @Nullable Editor editor;
+
+    /// The font [#editor] shapes in; another one makes another editor.
+    private @Nullable Font font;
+
+    /// The text before there is an editor to hold it.
+    private MarkedText pending = MarkedText.EMPTY;
+
+    /// What [RichInput#onChange] last heard, or what was last loaded: the
+    /// value an edit is compared against to decide whether to report one.
+    private MarkedText published = MarkedText.EMPTY;
+
+    private Map<Set<String>, MarkStyle> looks = Map.of();
+
+    /// Whether [#editor] has been handed [#looks] yet: a new editor has not.
+    private boolean styled;
+
+    private Edges edges = Edges.NONE;
+
+    private Extent bounds = Extent.NONE;
+
+    private boolean focused;
+
+    /// A count of changes the painter is compared by.
+    private long revision;
+
+    /// Whether the press began with the middle button: a paste, so the drag
+    /// after it selects nothing.
+    private boolean pasting;
+
+    private @Nullable Subscription following;
+
+    private @Nullable Host host;
+
+    /// Each half of the caret's blink, `text-area`'s interval.
+    static final Duration BLINK = Duration.ofMillis(530);
+
+    private boolean caretShown = true;
+
+    private EventLoop.@Nullable Timer blink;
+
+    /// Whether a button is down over the text: a selection being dragged is not
+    /// settled, and gets no bar until it is let go.
+    private boolean pointerDown;
+
+    /// Where the last frame drew the field, in the window, or null before it
+    /// was drawn.
+    private @Nullable LogicalRect located;
+
+    private final FormatPopups popups = new FormatPopups();
+
+    /// What the link editor's address field holds while it is open.
+    private String linkDraft = "";
+
+    private @Nullable TextMenu menu;
+
+    /// The id the field goes by when the application gave it none, so the link
+    /// editor can hand the keyboard back to it.
+    private final String ownId = "rich-input-" + Integer.toHexString(System.identityHashCode(this));
+
+    @Override
+    protected void initState() {
+        pending = initialValue();
+        published = pending;
+        follow();
+    }
+
+    @Override
+    protected void didUpdateWidget(RichInput previous) {
+        if (widget().source() != previous.source()) {
+            unfollow();
+            follow();
+            load(initialValue());
+        } else if (widget().source() == null && !widget().value().equals(previous.value())) {
+            load(widget().value());
+        }
+        var current = editor;
+        if (current != null) {
+            current.readOnly(widget().readOnly() || widget().disabled());
+        }
+    }
+
+    @Override
+    protected void dispose() {
+        unfollow();
+        stopBlinking();
+        popups.close();
+        var open = menu;
+        if (open != null) {
+            open.close();
+        }
+    }
+
+    private MarkedText initialValue() {
+        var source = widget().source();
+        return source == null ? widget().value() : convert(source.get());
+    }
+
+    private static MarkedText convert(@Nullable Object value) {
+        return switch (value) {
+            case null -> MarkedText.EMPTY;
+            case MarkedText marked -> marked;
+            case String text -> MarkedText.of(text);
+            default -> MarkedText.of(value.toString());
+        };
+    }
+
+    private void follow() {
+        var source = widget().source();
+        if (source != null) {
+            following = source.subscribe(next -> {
+                var value = convert(next);
+                // The echo of this field's own change, through the model, is
+                // not a new value to load: loading it would forget the caret
+                // and the undo history on every keystroke.
+                if (!value.equals(published)) {
+                    setState(() -> load(value));
+                }
+            });
+        }
+    }
+
+    private void unfollow() {
+        var subscription = following;
+        following = null;
+        if (subscription != null) {
+            subscription.close();
+        }
+    }
+
+    /// A value to hold rather than an edit: the history starts again.
+    private void load(MarkedText value) {
+        published = value;
+        var current = editor;
+        if (current == null) {
+            pending = value;
+        } else if (!current.value().equals(value)) {
+            current.value(value);
+        }
+        revision++;
+    }
+
+    /// The text, its marks and its caret, for a test or an application that
+    /// holds the state.
+    MarkedText value() {
+        var current = editor;
+        return current == null ? pending : current.value();
+    }
+
+    /// The editor, once a frame has made one.
+    Optional<Editor> editor() {
+        return Optional.ofNullable(editor);
+    }
+
+    @Override
+    public Widget build(BuildContext context) {
+        host = context.host().orElse(null);
+        var input = widget();
+        var value = value();
+        var label = input.placeholder().isEmpty() ? value.text() : input.placeholder();
+        var attributes = input.attributes().id() == null ? input.attributes().id(ownId) : input.attributes();
+        return new RichInputBox(
+                markSets(),
+                input.placeholder(),
+                label,
+                !input.disabled(),
+                !input.disabled() && !input.readOnly(),
+                this,
+                attributes);
+    }
+
+    /// The class sets of every set of kinds in the text, and of what is typed
+    /// next, each once, in the order they first occur.
+    private List<Set<String>> markSets() {
+        var value = value();
+        var sets = new LinkedHashSet<Set<String>>();
+        for (var run : MarkRun.of(value.length(), value.marks())) {
+            if (!run.isPlain()) {
+                sets.add(classesOf(run.kinds()));
+            }
+        }
+        var current = editor;
+        if (current != null) {
+            var typing = current.marked().typingKinds();
+            if (!typing.isEmpty()) {
+                sets.add(classesOf(typing));
+            }
+        }
+        return new ArrayList<>(sets);
+    }
+
+    private static Set<String> classesOf(Set<MarkKind> kinds) {
+        return kinds.stream().map(MarkKind::className).collect(Collectors.toUnmodifiableSet());
+    }
+
+    // --- the frame --------------------------------------------------------------
+
+    @Override
+    public Box laidOut(
+            Font font,
+            Map<Set<String>, MarkStyle> looks,
+            RichInputBox.Colours colours,
+            @Nullable Paragraph placeholder,
+            ComputedStyle style) {
+        var input = widget();
+        edges = Edges.of(style);
+        var current = editorIn(font);
+        if (!styled || !looks.equals(this.looks)) {
+            this.looks = looks;
+            styled = true;
+            current.markStyles(kinds -> looks.getOrDefault(classesOf(kinds), MarkStyle.plain(font)));
+        }
+        var width = bounds.width() - edges.horizontal();
+        current.wrapWidth(width > 0 ? width : Paragraph.UNCONSTRAINED);
+        var shown = Math.clamp(current.lines().size(), input.rows(), input.maxRows());
+        current.viewportHeight(shown * font.lineHeight());
+        var painter = new RichInputPainter(
+                current,
+                revision,
+                new Editor.Ink(colours.text(), colours.selection(), colours.text()),
+                focused && caretShown && !input.disabled() && !input.readOnly(),
+                placeholder,
+                colours.placeholder());
+        return Box.of()
+                .style(style)
+                .size(style.width(), RichInputBox.heightOf(shown, font, edges))
+                .painting(painter);
+    }
+
+    /// The editor that shapes in `font`: this one, or a new one holding its
+    /// text and caret.
+    private Editor editorIn(Font font) {
+        var current = editor;
+        if (current != null && this.font == font) {
+            return current;
+        }
+        var made = new Editor(font).multiline(true).readOnly(widget().readOnly() || widget().disabled());
+        if (current == null) {
+            made.value(pending);
+        } else {
+            made.value(current.value());
+            made.caretTo(current.edit().caret(), false);
+        }
+        var window = host;
+        if (window != null) {
+            made.clipboard(window.clipboard());
+            window.primarySelection().ifPresent(made::primarySelection);
+        }
+        this.font = font;
+        styled = false;
+        editor = made;
+        return made;
+    }
+
+    // --- input -------------------------------------------------------------------
+
+    @Override
+    public void pointer(PointerEvent event) {
+        var current = editor;
+        if (current == null || widget().disabled()) {
+            return;
+        }
+        var at = event.content();
+        var x = at.x();
+        var y = at.y() + current.scrollTop();
+        switch (event.kind()) {
+            case PRESSED -> {
+                pointerDown = true;
+                pasting = event.button() == PointerEvent.Button.MIDDLE;
+                if (pasting) {
+                    current.pastePrimaryAt(x, y);
+                } else {
+                    current.pointerAt(x, y, event.modifiers().shift(), event.clickCount());
+                }
+                changed();
+            }
+            case MOVED -> {
+                if (!pasting && !Float.isNaN(event.pressX())) {
+                    current.pointerAt(x, y, true, 1);
+                    changed();
+                }
+            }
+            case RELEASED -> {
+                pointerDown = false;
+                if (!pasting) {
+                    current.pointerReleased();
+                }
+                // The selection has settled: the bar's moment.
+                refreshBar();
+            }
+            case WHEEL -> {
+                // Only when there is somewhere to go, so a field at its end
+                // leaves the wheel to the page around it.
+                if (current.scrollBy(
+                        event.deltaY() * WHEEL_LINES * current.document().font().lineHeight())) {
+                    changed();
+                    event.consume();
+                }
+                return;
+            }
+            default -> {
+                return;
+            }
+        }
+        event.consume();
+    }
+
+    @Override
+    public void key(KeyEvent event) {
+        var current = editor;
+        if (current == null || widget().disabled()) {
+            return;
+        }
+        if (submits(event)) {
+            submit();
+            event.consume();
+            return;
+        }
+        if (EditKeys.format(event) == FormatCommand.Simple.LINK && !widget().readOnly()) {
+            if (openLinkEditor()) {
+                event.consume();
+            }
+            return;
+        }
+        if (event.kind() == KeyEvent.Kind.PRESSED && event.is(Key.ESCAPE) && popups.barShown()) {
+            popups.hideBar();
+            event.consume();
+            return;
+        }
+        if (current.onKey(event)) {
+            event.consume();
+            changed();
+        }
+    }
+
+    /// Whether `event` is the `Enter` that sends: a plain one, with somewhere to
+    /// send to and no composition open, which an `Enter` is choosing a
+    /// candidate for.
+    private boolean submits(KeyEvent event) {
+        var current = editor;
+        return widget().onSubmit() != null
+                && current != null
+                && event.kind() == KeyEvent.Kind.PRESSED
+                && event.is(Key.ENTER)
+                && !event.modifiers().shift()
+                && !current.isComposing();
+    }
+
+    private void submit() {
+        var listener = widget().onSubmit();
+        var current = editor;
+        if (listener != null && current != null) {
+            listener.accept(current.value());
+        }
+    }
+
+    @Override
+    public void text(TextEvent event) {
+        var current = editor;
+        if (current == null || widget().disabled()) {
+            return;
+        }
+        if (current.onText(event.text())) {
+            event.consume();
+            changed();
+        }
+    }
+
+    @Override
+    public void preedit(PreeditEvent event) {
+        var current = editor;
+        if (current == null || widget().disabled()) {
+            return;
+        }
+        if (current.onPreedit(event)) {
+            event.consume();
+            changed();
+        }
+    }
+
+    @Override
+    public void focus(boolean focused) {
+        setState(() -> {
+            this.focused = focused;
+            caretShown = true;
+            revision++;
+        });
+        if (focused) {
+            schedule();
+        } else {
+            stopBlinking();
+        }
+        refreshBar();
+    }
+
+    @Override
+    public void located(LogicalRect self) {
+        if (self.equals(located)) {
+            return;
+        }
+        located = self;
+        // The bar follows the field, and a field that arrived where the bar
+        // has to go has nothing else to ask for another look.
+        refreshBar();
+    }
+
+    @Override
+    public void measured(Extent bounds) {
+        var changed = Math.abs(bounds.width() - this.bounds.width()) > 0.5f;
+        this.bounds = bounds;
+        if (changed && isMounted()) {
+            setState(() -> revision++);
+        }
+    }
+
+    /// The caret's line, in the content box: where a candidate window goes.
+    @Override
+    public Optional<LogicalRect> caretArea() {
+        var current = editor;
+        if (current == null || !focused || widget().disabled() || widget().readOnly()) {
+            return Optional.empty();
+        }
+        var line = current.caretLine();
+        return Optional.of(
+                LogicalRect.of(line.left(), (float) (line.top() - current.scrollTop()), line.width(), line.height()));
+    }
+
+    @Override
+    public double caretOffset() {
+        var current = editor;
+        return current == null ? 0 : current.caret().x();
+    }
+
+    // --- what the application can ask of it ---------------------------------------
+
+    /// Turns `kind` on or off over the selection, or for what is typed next: a
+    /// formatting bar's button.
+    boolean toggle(MarkKind kind) {
+        var current = editor;
+        if (current == null || widget().disabled() || !current.toggle(kind)) {
+            return false;
+        }
+        changed();
+        return true;
+    }
+
+    /// Something the user did changed the editor: draw it, report the value if
+    /// it is a new one, keep the caret solid while it moves, and put the bar
+    /// where the selection now is.
+    private void changed() {
+        setState(() -> {
+            revision++;
+            caretShown = true;
+        });
+        schedule();
+        refreshBar();
+        var current = editor;
+        if (current == null) {
+            return;
+        }
+        var now = current.value();
+        if (!now.equals(published)) {
+            published = now;
+            var listener = widget().onChange();
+            if (listener != null) {
+                listener.accept(now);
+            }
+        }
+    }
+
+    // --- the formatting bar -----------------------------------------------------
+
+    /// Opens, moves, brings up to date or puts away the bar, so that it is out
+    /// exactly while a settled selection in an editable, focused field has one
+    /// to offer.
+    private void refreshBar() {
+        var input = widget();
+        var current = editor;
+        var window = host;
+        var field = located;
+        if (current == null
+                || window == null
+                || field == null
+                || !isMounted()
+                || input.formatting().isEmpty()
+                || input.disabled()
+                || input.readOnly()
+                || !focused
+                || pointerDown
+                || current.isComposing()
+                || !current.edit().hasSelection()
+                || popups.linkShown()) {
+            popups.hideBar();
+            return;
+        }
+        var anchor = selectionAnchor(current, field);
+        if (anchor == null) {
+            popups.hideBar();
+            return;
+        }
+        popups.showBar(window, context(), anchor, input.formatting(), activeCommands(current), this::format);
+    }
+
+    /// The selection's first line, in the window.
+    private @Nullable LogicalRect selectionAnchor(Editor current, LogicalRect field) {
+        var rects = current.selectionRects();
+        if (rects.isEmpty()) {
+            return null;
+        }
+        var first = rects.getFirst();
+        return LogicalRect.of(
+                (float) (field.left() + edges.left() + first.left()),
+                (float) (field.top() + edges.top() + first.top() - current.scrollTop()),
+                Math.max(1, first.width()),
+                first.height());
+    }
+
+    /// The commands that are on for the selection: what the bar lights.
+    private static Set<FormatCommand> activeCommands(Editor current) {
+        var kinds = current.activeKinds();
+        var on = new LinkedHashSet<FormatCommand>();
+        for (var kind : kinds) {
+            switch (kind) {
+                case MarkKind.Style style -> on.add(new FormatCommand.Toggle(style));
+                case MarkKind.Link _ -> on.add(FormatCommand.Simple.LINK);
+                default -> {}
+            }
+        }
+        return Set.copyOf(on);
+    }
+
+    /// A formatting command from the bar or the menu.
+    boolean format(FormatCommand command) {
+        var current = editor;
+        if (current == null || widget().disabled() || widget().readOnly()) {
+            return false;
+        }
+        var done = switch (command) {
+            case FormatCommand.Toggle(var style) -> current.toggle(style);
+            case FormatCommand.Simple.CLEAR -> current.clearFormatting();
+            case FormatCommand.Simple.LINK -> openLinkEditor();
+        };
+        if (done && command != FormatCommand.Simple.LINK) {
+            changed();
+        }
+        return done;
+    }
+
+    // --- the link editor --------------------------------------------------------
+
+    /// Opens the link editor over the selection, or over the link the caret is
+    /// in, which it selects first. Nothing happens with nothing selected and no
+    /// link to edit.
+    boolean openLinkEditor() {
+        var current = editor;
+        var window = host;
+        var field = located;
+        if (current == null || window == null || field == null || widget().readOnly() || widget().disabled()) {
+            return false;
+        }
+        var value = current.value();
+        if (!current.edit().hasSelection()) {
+            var caret = current.edit().caret();
+            var around = value.marks().stream()
+                    .filter(mark ->
+                            mark.kind() instanceof MarkKind.Link && mark.start() <= caret && caret <= mark.end())
+                    .findFirst();
+            if (around.isEmpty()) {
+                return false;
+            }
+            current.caretTo(around.get().start(), false);
+            current.caretTo(around.get().end(), true);
+        }
+        var existing = linksOver(current).stream().findFirst();
+        linkDraft = existing.map(link -> link.uri().toString()).orElse("");
+        var anchor = selectionAnchor(current, field);
+        if (anchor == null) {
+            return false;
+        }
+        var editor = new LinkEditor(
+                linkDraft, existing.isPresent(), draft -> linkDraft = draft, this::applyLink, this::removeLink);
+        popups.showLink(window, context(), anchor, editor);
+        // A repaint for the link it may have selected, and not [#changed]: the
+        // bar stays away while the editor is out.
+        setState(() -> revision++);
+        return true;
+    }
+
+    /// The links over any of the selection.
+    private static List<MarkKind.Link> linksOver(Editor current) {
+        var edit = current.edit();
+        var links = new ArrayList<MarkKind.Link>();
+        for (var mark : current.value().marks()) {
+            if (mark.kind() instanceof MarkKind.Link link && mark.overlaps(edit.start(), edit.end())) {
+                links.add(link);
+            }
+        }
+        return links;
+    }
+
+    /// The address typed, on the selected words. An empty one takes the link
+    /// off; one that is not an address changes nothing and leaves the editor
+    /// open.
+    void applyLink() {
+        var current = editor;
+        if (current == null) {
+            return;
+        }
+        var trimmed = linkDraft.strip();
+        if (trimmed.isEmpty()) {
+            removeLink();
+            return;
+        }
+        var uri = addressOf(trimmed);
+        if (uri == null) {
+            return;
+        }
+        current.mark(new MarkKind.Link(uri));
+        closeLinkEditor();
+    }
+
+    /// Every link off the selected words.
+    void removeLink() {
+        var current = editor;
+        if (current == null) {
+            return;
+        }
+        for (var link : linksOver(current)) {
+            current.unmark(link);
+        }
+        closeLinkEditor();
+    }
+
+    private void closeLinkEditor() {
+        popups.hideLink();
+        var window = host;
+        if (window != null) {
+            var id = widget().attributes().id();
+            window.focus(id == null ? ownId : id, true);
+        }
+        changed();
+    }
+
+    /// `typed` as an address: as written when it has a scheme, and as `https`
+    /// when it has none, which is how a person types one. Null when it is not
+    /// an address at all.
+    static @Nullable URI addressOf(String typed) {
+        var written = typed.contains(":") ? typed : "https://" + typed;
+        try {
+            var uri = new URI(written);
+            return uri.getScheme() == null ? null : uri;
+        } catch (URISyntaxException notAnAddress) {
+            return null;
+        }
+    }
+
+    /// What the link editor's field holds: for a test.
+    String linkDraft() {
+        return linkDraft;
+    }
+
+    // --- the text menu ----------------------------------------------------------
+
+    @Override
+    public boolean openContextMenu(LogicalRect anchor) {
+        var window = host;
+        if (window == null || widget().disabled()) {
+            return false;
+        }
+        var open = menu;
+        if (open == null) {
+            open = new TextMenu(window, this, this::formatRows);
+            menu = open;
+        }
+        return open.open(anchor);
+    }
+
+    /// The Format submenu: every formatting command, ticked where it is on.
+    List<Widget> formatRows() {
+        var current = editor;
+        if (current == null || widget().readOnly()) {
+            return List.of();
+        }
+        var on = activeCommands(current);
+        var rows = new ArrayList<Widget>();
+        for (var button : FormatButton.defaults()) {
+            var command = button.command();
+            var row = new Item(button.label(), () -> format(command));
+            var keys = acceleratorOf(command);
+            if (keys != null) {
+                row = row.accelerator(keys);
+            }
+            if (command instanceof FormatCommand.Toggle) {
+                row = row.checked(on.contains(command));
+            }
+            rows.add(row);
+        }
+        return List.of(new Item(Labels.text(ToolkitLabel.FORMAT)).submenu(rows.toArray(Widget[]::new)));
+    }
+
+    /// The keys that do what `command` does, as [EditKeys#format] reads them.
+    private static @Nullable String acceleratorOf(FormatCommand command) {
+        var shortcut = switch (command) {
+            case FormatCommand.Toggle(var style) ->
+                switch (style) {
+                    case BOLD -> Shortcut.primary(Key.B);
+                    case ITALIC -> Shortcut.primary(Key.I);
+                    case UNDERLINE -> Shortcut.primary(Key.U);
+                    case STRIKE -> Shortcut.primary(Key.X, Mod.SHIFT);
+                    case CODE -> Shortcut.primary(Key.M, Mod.SHIFT);
+                    case SPOILER -> Shortcut.primary(Key.P, Mod.SHIFT);
+                };
+            case FormatCommand.Simple.LINK -> Shortcut.primary(Key.K);
+            case FormatCommand.Simple.CLEAR -> Shortcut.primary(Key.N, Mod.SHIFT);
+        };
+        return shortcut.toString();
+    }
+
+    @Override
+    public boolean canCut() {
+        return canCopy() && !widget().readOnly();
+    }
+
+    @Override
+    public boolean canCopy() {
+        var current = editor;
+        return current != null && current.edit().hasSelection();
+    }
+
+    @Override
+    public boolean canPaste() {
+        var window = host;
+        if (window == null || widget().readOnly()) {
+            return false;
+        }
+        Clipboard board = window.clipboard();
+        return board.hasText() || board.has(MarkedClipboard.MIME);
+    }
+
+    @Override
+    public boolean canSelectAll() {
+        var current = editor;
+        return current != null && !current.text().isEmpty();
+    }
+
+    @Override
+    public boolean cut() {
+        var current = editor;
+        if (current == null || widget().readOnly() || !current.cut()) {
+            return false;
+        }
+        changed();
+        return true;
+    }
+
+    @Override
+    public boolean copy() {
+        var current = editor;
+        return current != null && current.copy();
+    }
+
+    @Override
+    public boolean paste() {
+        var current = editor;
+        if (current == null || widget().readOnly() || !current.paste()) {
+            return false;
+        }
+        changed();
+        return true;
+    }
+
+    @Override
+    public boolean selectAll() {
+        var current = editor;
+        if (current == null || current.text().isEmpty()) {
+            return false;
+        }
+        current.caretTo(0, false);
+        current.caretTo(current.text().length(), true);
+        changed();
+        return true;
+    }
+
+    // --- the blink --------------------------------------------------------------
+
+    private void schedule() {
+        stopBlinking();
+        var window = host;
+        if (window == null || !focused || widget().readOnly() || widget().disabled()) {
+            return;
+        }
+        blink = window.after(BLINK, () -> {
+            blink = null;
+            if (!focused || !isMounted()) {
+                return;
+            }
+            setState(() -> {
+                caretShown = !caretShown;
+                revision++;
+            });
+            schedule();
+        });
+    }
+
+    private void stopBlinking() {
+        var running = blink;
+        blink = null;
+        if (running != null) {
+            running.cancel();
+        }
+    }
+
+    /// For a test: the panels.
+    FormatPopups popups() {
+        return popups;
+    }
+}

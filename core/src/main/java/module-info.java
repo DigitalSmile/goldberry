@@ -268,6 +268,13 @@ module dev.goldberry.core {
     // and separate from the editor because it touches no text.
     exports dev.goldberry.text.edit.keys;
 
+    // Text with marks on it (bold, a link, a mention) and how the marks move
+    // when the text is edited. Its own package because a mark is a fact about a
+    // value, not about an editor: a message is stored as one and shown as one
+    // without ever being edited. Exported because the value is what an
+    // application stores and sends.
+    exports dev.goldberry.text.mark;
+
     // A long text shaped one hard line at a time. Its own package beside the
     // paragraph it is built out of, because it answers a different question: a
     // paragraph is a label, and this is a document somebody is typing into.

@@ -178,7 +178,8 @@ final class ListState<T> extends State<ListView<T>> {
                 }
                 current = key;
                 rows.clear();
-                rows.add(new Affix(ListSectionHeader.inFlow(key, sections.header().apply(key), _ -> {})));
+                rows.add(new Affix(
+                        ListSectionHeader.inFlow(key, sections.header().apply(key), _ -> {})));
             }
             rows.add(row(list, item, list.identity().apply(item), selectable, typeahead, 0));
         }
@@ -241,8 +242,8 @@ final class ListState<T> extends State<ListView<T>> {
                 var id = window.id(index);
                 if (sections != null && window.leads(index)) {
                     var key = window.sectionOf(index);
-                    children.add(ListSectionHeader.inFlow(
-                            key, sections.header().apply(key), height -> leadOf(id, height)));
+                    children.add(
+                            ListSectionHeader.inFlow(key, sections.header().apply(key), height -> leadOf(id, height)));
                 }
                 children.add(new MeasuredRow(
                         row(list, items.get(index), id, selectable, typeahead, 0), height -> heightOf(id, height)));

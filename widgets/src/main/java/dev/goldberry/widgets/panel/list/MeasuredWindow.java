@@ -111,8 +111,7 @@ final class MeasuredWindow {
 
     /// [#sync(List, Function, double)] for a list in sections: `sectionOf` gives
     /// each item's section key, or is null for none.
-    <T> void sync(
-            List<T> model, Function<T, String> identity, double guess, @Nullable Function<T, String> sectionOf) {
+    <T> void sync(List<T> model, Function<T, String> identity, double guess, @Nullable Function<T, String> sectionOf) {
         if (model == items && guess == estimate && (sectionOf == null) == (sections == null)) {
             return;
         }

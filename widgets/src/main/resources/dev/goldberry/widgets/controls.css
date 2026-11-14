@@ -2497,6 +2497,123 @@ text-area {
   --gb-gutter-gap: 8px;
 }
 
+/* ---------------------------------------------------------- rich-input --
+ *
+ * A field that takes formatting. `text-area`'s surface, because a composer and a
+ * note are the same kind of box, and the height is the widget's for the same
+ * reason: it grows from `rows` to `max-rows` with the text.
+ *
+ * Each set of marks in the text is a `mark` node under the field, with a class
+ * per kind, styled here and drawn by the field: its font, `color`,
+ * `text-decoration` and `background` are read, and nothing else. The lines stay
+ * the field's height, so a larger mark font draws larger glyphs on the same rows.
+ */
+rich-input {
+  padding: 6px 8px;
+  border-radius: 4px;
+  border: 1px solid var(--gb-border);
+  background: var(--gb-surface-sunken);
+  color: var(--gb-text);
+  font-size: var(--gb-font-body);
+  line-height: var(--gb-line-body);
+  flex-shrink: 0;
+}
+
+rich-input:hover {
+  border-color: var(--gb-text-muted);
+}
+
+rich-input:focus-visible {
+  outline: 2px solid var(--gb-focus);
+  outline-offset: 2px;
+}
+
+rich-input:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+rich-input > mark.bold {
+  font-weight: 600;
+}
+
+rich-input > mark.italic {
+  font-style: italic;
+}
+
+rich-input > mark.underline {
+  text-decoration: underline;
+}
+
+rich-input > mark.strike {
+  text-decoration: line-through;
+}
+
+rich-input > mark.underline.strike {
+  text-decoration: underline line-through;
+}
+
+/* Code in the monospace face on a step of surface, as a message shows it. */
+rich-input > mark.code {
+  font-family: "JetBrains Mono";
+  background: var(--gb-surface);
+}
+
+/* A link and a mention take the link's ink, as `rich-text`'s pressable runs do. */
+rich-input > mark.link {
+  color: var(--gb-button-link-text);
+  text-decoration: underline;
+}
+
+rich-input > mark.mention {
+  color: var(--gb-button-link-text);
+}
+
+/* The writer sees what they hid: a wash behind the words, not the reader's cover. */
+rich-input > mark.spoiler {
+  background: var(--gb-selection);
+}
+
+/* The panel over a selection: a row of icon buttons, the `popover`'s surface.
+   A button whose style covers the whole selection is `.on`, and reads as
+   pressed: the selection's wash behind its icon. */
+format-bar {
+  flex-direction: row;
+  padding: 4px;
+  gap: 2px;
+  background: var(--gb-surface);
+  color: var(--gb-text);
+  border: 1px solid var(--gb-border);
+  border-radius: 8px;
+  box-shadow: var(--gb-elevation-2);
+}
+
+format-bar > button {
+  padding: 4px;
+  min-width: 28px;
+}
+
+format-bar > button.on {
+  background: var(--gb-selection);
+}
+
+/* The address and its two buttons, in a row on the popover's surface. */
+link-editor {
+  flex-direction: row;
+  align-items: center;
+  padding: 6px;
+  gap: 6px;
+  background: var(--gb-surface);
+  color: var(--gb-text);
+  border: 1px solid var(--gb-border);
+  border-radius: 8px;
+  box-shadow: var(--gb-elevation-2);
+}
+
+link-editor > text-input {
+  width: 240px;
+}
+
 /* ---------------------------------------------------------- color-picker --
  *
  * The form group's colour field, and its metrics row: swatch 24, radius 4; plane 200x160;

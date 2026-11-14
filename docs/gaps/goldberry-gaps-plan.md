@@ -265,7 +265,7 @@ log in the same commit as the work.
 | L-11 | W1.4 | done | 0677 | |
 | L-12 | — | declined (D14) | 0688 | |
 | T-01 | W1.8 | done | 0685 | |
-| T-02 | W3.1 | todo (plan document first) | | |
+| T-02 | W3.1 | doing: phases 1–4 done (marks, `Editor` with marks, `rich-input`, the formatting bar and link editor); mentions and Markdown/HTML open (`docs/rich-text-input.md` §5) | 0703, 0704, 0705 | |
 | T-03 | W2.6 | done | 0697 | |
 | T-04 | W2.5 | done | 0696 | |
 | T-05 | W3.4 | todo | | |
@@ -426,3 +426,27 @@ log in the same commit as the work.
   3228 tests, one natives skip), javadoc clean, and the showcase runs on the
   module path with the dummy driver. `spotlessApply` also rewrapped twelve
   files from c93b6537 that had missed the formatter. Nothing is committed.
+- **2026-11-14, night, after Wave 2.** W3.1 started with its plan,
+  [`docs/rich-text-input.md`](../rich-text-input.md), written against
+  `6741de31`. What it found: `TextEdit` and `EditHistory` are values over one
+  string, so marks can ride in the state; `TextDocument.Shaper` sees only a
+  line's text; `Paragraph.join` and `ParagraphCache` already shape mixed
+  faces; `Paragraph` has no inline objects, so a mention is an atom of text;
+  `:widgets` cannot see `:html`'s Markdown model. It proposes flat marks over
+  a string (D1), a fixed set of kinds plus custom ones (D2), looks from the
+  cascade (D3), `Editor` with marks under a new `rich-input` (D4), a generic
+  `EditHistory<S>` (D5), a clipboard type of the toolkit's own (D6), mentions
+  reported for the application to suggest (D7), a stock formatting bar (D8),
+  and no input rules yet (D9). Seven phases. No code until the owner answers.
+- **2026-11-14, night, rich text.** The owner took D1–D9 of
+  `docs/rich-text-input.md` as recommended. Phases 1–3 built, uncommitted:
+  `text.mark` (marked text and its edit rules, ADR-0703), the canvas
+  `Editor` with marks, formatting keys and a clipboard type of its own
+  (ADR-0703), and `rich-input` styled by `mark` nodes in the cascade
+  (ADR-0704). `EditHistory` is generic now (a breaking-changes note). The
+  formatting bar, mentions, Markdown and HTML, and the showcase composer are
+  phases 4–7. Next ADR 0705.
+- **2026-11-14, night, rich text phase 4.** The formatting bar over a settled
+  selection, the link editor (`Ctrl+K`), the text menu's Format submenu,
+  `RichInput.onSubmit` and a blinking caret (ADR-0705), and a composer card
+  on the showcase's Forms screen. Uncommitted. Next ADR 0706.

@@ -218,8 +218,9 @@ class RichTextInputTest {
                 var covered = session.frame().argb((int) on[0], (int) top);
                 session.click(on[0], on[1]);
                 var shown = session.frame().argb((int) on[0], (int) top);
-                assertTrue(covered != shown, () -> "covered " + Integer.toHexString(covered) + ", shown "
-                        + Integer.toHexString(shown));
+                assertTrue(
+                        covered != shown,
+                        () -> "covered " + Integer.toHexString(covered) + ", shown " + Integer.toHexString(shown));
 
                 assertEquals(Set.of(Run.SPOILER, Run.REVEALED), run(session, 3).classes());
                 assertEquals(0, RichTextInputTest.this.pressed.get());

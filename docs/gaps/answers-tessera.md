@@ -14,7 +14,7 @@ nothing.
 | # | Gap | Answer | Status |
 |---|-----|--------|--------|
 | G-01 | Weaver not published | Weaver jar and a `dev.goldberry.weave` Gradle plugin | on master, not yet in a snapshot |
-| G-02 | Rich-text input | Built in Goldberry; a design document first | planned |
+| G-02 | Rich-text input | `rich-input` over marked text, with the formatting bar and links; mentions and Markdown next | partly on master |
 | G-03 | Rich-text display with entities | Hit-testing, run clicks, selection, spoilers on `RichText` | on master, not yet in a snapshot |
 | G-04 | Sticky section headers | Sections in `ListView` | on master, not yet in a snapshot |
 | G-05 | Camera and microphone | `goldberry-camera` and `goldberry-mic` | planned |
@@ -73,7 +73,41 @@ whole question:
 The widget is a new `rich-input` over `Editor`, not more arguments on
 `text-area`.
 
-**Landed.** —
+**Proposed (2026-11-14), not yet decided.** The value is a string and a
+sorted list of marks, each `(start, end, kind)` in UTF-16 offsets. That is
+your entities' shape, so the conversion is a loop on each side. The kinds are
+bold, italic, underline, strike, code, spoiler, link, mention, and custom kinds
+of your own. A mention is an atom: the caret steps over it, Backspace removes
+it whole, and an IME composition cannot start inside it. The field reports a
+query typed after a trigger (`@`, `#`, `/`), and your own suggestion list
+answers it. Undo keeps formatting, the clipboard carries marks between rich
+inputs, and a formatting bar opens over a selection. Toggle keys follow
+Telegram Desktop's set. Phase 6 converts to and from Markdown and HTML.
+
+**Landed** (on master once committed, not yet in a snapshot): ADR-0703 and
+ADR-0704.
+
+- `dev.goldberry.text.mark.MarkedText` is the value: `text()` and `marks()`,
+  each `Mark(start, end, kind)` in UTF-16 offsets. Your entities convert
+  with one loop each way: `MarkKind.Style.BOLD`, `ITALIC`, `UNDERLINE`,
+  `STRIKE`, `CODE`, `SPOILER`, `MarkKind.Link(uri)`, `MarkKind.Mention(id)`,
+  and `MarkKind.Custom(name, value, behaviour)` for a hashtag or a command.
+- `new RichInput(draft, onChange).placeholder("Message").maxRows(8)`, or
+  `rich-input bind="…"` holding a `MarkedText`. It grows from `rows` to
+  `max-rows` and scrolls after that. `.onSubmit(send)` makes `Enter` send
+  and `Shift+Enter` break the line.
+- The formatting keys are Telegram Desktop's set, `Ctrl+K` included: it opens
+  a small editor for the address under the selection (ADR-0705).
+- Selecting words opens a formatting bar above them: bold, italic, underline,
+  strike-through, code, spoiler, link, clear. `.formatting(List.of(…))` gives
+  your own buttons (`FormatButton`: an icon, a name, a `FormatCommand`), or
+  none. The text menu has the same commands under Format.
+- `rich-input > mark.bold`, `mark.code`, `mark.mention` and the rest are
+  styled by your stylesheet, combinations included (`mark.bold.italic`).
+- Mentions are in the model: a `MarkKind.Mention` is an atom the caret steps
+  over and Backspace removes whole, and a value you load or bind may carry
+  them. Inserting one from the field (the query reported after `@`, and your
+  suggestions answering it) is the next phase but one.
 
 ## G-03. Rich-text display with entities
 

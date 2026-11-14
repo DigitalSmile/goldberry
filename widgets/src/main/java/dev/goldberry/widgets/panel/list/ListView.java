@@ -434,7 +434,19 @@ public record ListView<T>(
     /// [#virtualized(RowHeights)] instead.
     public ListView<T> virtualized() {
         return new ListView<>(
-                items, identity, factory, text, itemMenu, selected, onSelect, selection, 0, true, null, sections, attributes);
+                items,
+                identity,
+                factory,
+                text,
+                itemMenu,
+                selected,
+                onSelect,
+                selection,
+                0,
+                true,
+                null,
+                sections,
+                attributes);
     }
 
     /// This list virtualized over rows that are **not all one height** — a chat
@@ -469,7 +481,19 @@ public record ListView<T>(
     public ListView<T> virtualized(RowHeights heights) {
         Objects.requireNonNull(heights, "heights");
         return new ListView<>(
-                items, identity, factory, text, itemMenu, selected, onSelect, selection, 0, false, heights, sections, attributes);
+                items,
+                identity,
+                factory,
+                text,
+                itemMenu,
+                selected,
+                onSelect,
+                selection,
+                0,
+                false,
+                heights,
+                sections,
+                attributes);
     }
 
     /// This list in sections, each headed by a widget that stays pinned at the

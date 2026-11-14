@@ -9,7 +9,7 @@ import org.jspecify.annotations.Nullable;
 /// The undo and redo stacks of one edited text.
 ///
 /// ```java
-/// var history = new EditHistory();
+/// var history = new EditHistory<TextEdit>();
 ///
 /// var next = edit.insert(typed);
 /// history.record(edit, next, EditHistory.Kind.TYPING);   // after the edit, with both ends
@@ -18,9 +18,12 @@ import org.jspecify.annotations.Nullable;
 /// edit = history.undo(edit);                             // the state before the last run
 /// ```
 ///
-/// It is a stack of [TextEdit] values rather than a log of inverse operations:
-/// undoing hands back a state that already existed, so nothing has to know how
-/// to reverse a word delete.
+/// It is a stack of states rather than a log of inverse operations: undoing
+/// hands back a state that already existed, so nothing has to know how to
+/// reverse a word delete. A state is whatever the editor holds: a [TextEdit] for
+/// a plain field, a `MarkedEdit` for one with formatting, which is how an undo
+/// brings the bold back with the word. It must be a value, compared by
+/// `equals`.
 ///
 /// Consecutive changes of the same [Kind] fold into one undo entry, so a user who
 /// types "Goldberry" and presses `Ctrl+Z` gets the word back and not one letter.
@@ -32,13 +35,16 @@ import org.jspecify.annotations.Nullable;
 /// no longer matches. No timer is involved, so a long typed run is one undo
 /// however long it took. A paste, a cut and a replaced selection are
 /// [Kind#OTHER] and never fold: each is one deliberate act, and one `Ctrl+Z`.
+/// So is a change of formatting, [Kind#FORMATTING].
 ///
 /// The stack holds [#DEPTH] entries and drops the oldest, so a field that lives
 /// as long as its window cannot grow without bound. Confined to the UI thread,
 /// like the state that holds it.
 ///
 /// Read more: [Selection and editing](https://goldberry.dev/docs/guide/text.html#selection-and-editing).
-public final class EditHistory {
+///
+/// @param <S> the state an edit moves between
+public final class EditHistory<S> {
 
     /// How many undo steps are kept.
     ///
@@ -60,16 +66,20 @@ public final class EditHistory {
 
         /// Everything else: a paste, a cut, a replaced selection, a value set
         /// from outside. Never folds — one deliberate act, one `Ctrl+Z`.
-        OTHER
+        OTHER,
+
+        /// Formatting turned on or off: bold, a link. Never folds, so each toggle
+        /// is one `Ctrl+Z`, and typing after it starts a run of its own.
+        FORMATTING
     }
 
-    private final Deque<TextEdit> past = new ArrayDeque<>();
-    private final Deque<TextEdit> future = new ArrayDeque<>();
+    private final Deque<S> past = new ArrayDeque<>();
+    private final Deque<S> future = new ArrayDeque<>();
 
     /// The state the last recorded change ended at, or null if nothing has been
     /// recorded. Compared against the next change's starting state to decide
     /// whether the two are one run.
-    private @Nullable TextEdit lastAfter;
+    private @Nullable S lastAfter;
     private Kind lastKind = Kind.OTHER;
 
     /// An empty history, for a field that has just been mounted.
@@ -83,7 +93,7 @@ public final class EditHistory {
     /// at the start of a field does not silently consume the next `Ctrl+Z`.
     /// Recording anything clears the redo stack: once something new is typed,
     /// the future that was undone is no longer reachable.
-    public void record(TextEdit before, TextEdit after, Kind kind) {
+    public void record(S before, S after, Kind kind) {
         Objects.requireNonNull(before, "before");
         Objects.requireNonNull(after, "after");
         Objects.requireNonNull(kind, "kind");
@@ -105,8 +115,12 @@ public final class EditHistory {
         lastAfter = after;
     }
 
-    private boolean foldsInto(TextEdit before, Kind kind) {
-        return kind != Kind.OTHER && kind == lastKind && !past.isEmpty() && before.equals(lastAfter);
+    private boolean foldsInto(S before, Kind kind) {
+        return kind != Kind.OTHER
+                && kind != Kind.FORMATTING
+                && kind == lastKind
+                && !past.isEmpty()
+                && before.equals(lastAfter);
     }
 
     /// Whether there is anything to undo.
@@ -124,7 +138,7 @@ public final class EditHistory {
     /// @return the state to restore, or `current` unchanged when there is nothing
     ///         to undo — so a caller can assign the result unconditionally rather
     ///         than unwrap an `Optional` it has already tested for
-    public TextEdit undo(TextEdit current) {
+    public S undo(S current) {
         Objects.requireNonNull(current, "current");
         if (past.isEmpty()) {
             return current;
@@ -142,7 +156,7 @@ public final class EditHistory {
     /// undo stack.
     ///
     /// @return the state to restore, or `current` when there is nothing to redo
-    public TextEdit redo(TextEdit current) {
+    public S redo(S current) {
         Objects.requireNonNull(current, "current");
         if (future.isEmpty()) {
             return current;

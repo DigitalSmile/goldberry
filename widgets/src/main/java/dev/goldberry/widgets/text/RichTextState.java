@@ -272,7 +272,8 @@ final class RichTextState extends State<RichText> implements RichTextBox.Input {
     }
 
     /// For a test: the paragraph the last frame laid out, or null before one.
-    @Nullable Paragraph paragraph() {
+    @Nullable
+    Paragraph paragraph() {
         return paragraph;
     }
 

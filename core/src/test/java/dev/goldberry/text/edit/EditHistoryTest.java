@@ -21,7 +21,7 @@ class EditHistoryTest {
     /// Types `text` one character at a time, recording each keystroke, and
     /// returns where it ended up. What a user does, at the granularity the widget
     /// will call [EditHistory#record] at.
-    private static TextEdit type(EditHistory history, TextEdit from, String text) {
+    private static TextEdit type(EditHistory<TextEdit> history, TextEdit from, String text) {
         var edit = from;
         for (var i = 0; i < text.length(); i++) {
             var before = edit;
@@ -38,7 +38,7 @@ class EditHistoryTest {
         @Test
         @DisplayName("a fresh history has nothing to undo")
         void startsEmpty() {
-            var history = new EditHistory();
+            var history = new EditHistory<TextEdit>();
             var edit = TextEdit.of("Goldberry");
 
             assertFalse(history.canUndo());
@@ -49,7 +49,7 @@ class EditHistoryTest {
         @Test
         @DisplayName("a typed run comes back as one word, not one letter")
         void coalescesTyping() {
-            var history = new EditHistory();
+            var history = new EditHistory<TextEdit>();
 
             var typed = type(history, TextEdit.EMPTY, "Goldberry");
 
@@ -61,7 +61,7 @@ class EditHistoryTest {
         @Test
         @DisplayName("a paste is its own step however long it is")
         void pasteIsOneStep() {
-            var history = new EditHistory();
+            var history = new EditHistory<TextEdit>();
 
             var before = TextEdit.EMPTY;
             var after = before.insert("pasted from somewhere else");
@@ -74,7 +74,7 @@ class EditHistoryTest {
         @Test
         @DisplayName("two pastes never fold together")
         void pastesDoNotFold() {
-            var history = new EditHistory();
+            var history = new EditHistory<TextEdit>();
 
             var one = TextEdit.EMPTY.insert("first");
             history.record(TextEdit.EMPTY, one, Kind.OTHER);
@@ -89,7 +89,7 @@ class EditHistoryTest {
         @Test
         @DisplayName("a change that changed nothing is not a step")
         void ignoresNoOps() {
-            var history = new EditHistory();
+            var history = new EditHistory<TextEdit>();
             var edit = TextEdit.of("abc").caretTo(0, false);
 
             // Backspace at the start of a field. Recording it would make the next
@@ -107,7 +107,7 @@ class EditHistoryTest {
         @Test
         @DisplayName("moving the caret, without anything being written down about carets")
         void caretMoveBreaksTheRun() {
-            var history = new EditHistory();
+            var history = new EditHistory<TextEdit>();
 
             var typed = type(history, TextEdit.EMPTY, "Gold");
             var moved = typed.caretTo(0, false);
@@ -122,7 +122,7 @@ class EditHistoryTest {
         @Test
         @DisplayName("deleting after typing")
         void kindChangeBreaksTheRun() {
-            var history = new EditHistory();
+            var history = new EditHistory<TextEdit>();
 
             var typed = type(history, TextEdit.EMPTY, "Gold");
             var deleted = typed.backspace();
@@ -135,7 +135,7 @@ class EditHistoryTest {
         @Test
         @DisplayName("typing after deleting")
         void typingAfterDeleting() {
-            var history = new EditHistory();
+            var history = new EditHistory<TextEdit>();
 
             var start = TextEdit.of("Goldberry");
             var deleted = start.backspace();
@@ -149,7 +149,7 @@ class EditHistoryTest {
         @Test
         @DisplayName("a run explicitly ended, for the boundaries the rule cannot see")
         void endRunBreaksIt() {
-            var history = new EditHistory();
+            var history = new EditHistory<TextEdit>();
 
             var typed = type(history, TextEdit.EMPTY, "Gold");
             history.endRun();
@@ -164,7 +164,7 @@ class EditHistoryTest {
         @Test
         @DisplayName("a run of deletes folds like a run of keystrokes")
         void deletesFold() {
-            var history = new EditHistory();
+            var history = new EditHistory<TextEdit>();
 
             var edit = TextEdit.of("Goldberry");
             for (var i = 0; i < 5; i++) {
@@ -177,6 +177,19 @@ class EditHistoryTest {
             assertEquals(1, history.depth());
             assertEquals("Goldberry", history.undo(edit).text());
         }
+
+        @Test
+        @DisplayName("formatting never folds, not even into formatting")
+        void formattingIsAlwaysItsOwnStep() {
+            var history = new EditHistory<String>();
+
+            history.record("plain", "bold", Kind.FORMATTING);
+            history.record("bold", "bold italic", Kind.FORMATTING);
+            history.record("bold italic", "bold italic!", Kind.TYPING);
+
+            assertEquals(3, history.depth());
+            assertEquals("bold italic", history.undo("bold italic!"));
+        }
     }
 
     @Nested
@@ -186,7 +199,7 @@ class EditHistoryTest {
         @Test
         @DisplayName("takes back what undo gave up")
         void roundTrips() {
-            var history = new EditHistory();
+            var history = new EditHistory<TextEdit>();
             var typed = type(history, TextEdit.EMPTY, "Goldberry");
 
             var undone = history.undo(typed);
@@ -202,7 +215,7 @@ class EditHistoryTest {
         @Test
         @DisplayName("walks a whole stack in both directions")
         void walksTheStack() {
-            var history = new EditHistory();
+            var history = new EditHistory<TextEdit>();
 
             var one = type(history, TextEdit.EMPTY, "Yoga");
             history.endRun();
@@ -229,7 +242,7 @@ class EditHistoryTest {
         @Test
         @DisplayName("typing something new abandons the future")
         void newEditClearsRedo() {
-            var history = new EditHistory();
+            var history = new EditHistory<TextEdit>();
             var typed = type(history, TextEdit.EMPTY, "Goldberry");
 
             var undone = history.undo(typed);
@@ -242,7 +255,7 @@ class EditHistoryTest {
         @Test
         @DisplayName("a redone state is not folded into by the next keystroke")
         void redoEndsTheRun() {
-            var history = new EditHistory();
+            var history = new EditHistory<TextEdit>();
             var typed = type(history, TextEdit.EMPTY, "Gold");
 
             var undone = history.undo(typed);
@@ -263,7 +276,7 @@ class EditHistoryTest {
         @Test
         @DisplayName("keeps at most DEPTH steps, dropping the oldest")
         void isBounded() {
-            var history = new EditHistory();
+            var history = new EditHistory<TextEdit>();
 
             var edit = TextEdit.EMPTY;
             for (var i = 0; i < EditHistory.DEPTH + 50; i++) {
@@ -287,7 +300,7 @@ class EditHistoryTest {
         @Test
         @DisplayName("clearing forgets both directions")
         void clears() {
-            var history = new EditHistory();
+            var history = new EditHistory<TextEdit>();
             var typed = type(history, TextEdit.EMPTY, "Goldberry");
             history.undo(typed);
 

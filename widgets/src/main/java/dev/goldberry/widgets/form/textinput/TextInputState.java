@@ -63,7 +63,7 @@ final class TextInputState extends State<TextInput> implements TextEditor, TextC
     private static final Duration BLINK = Duration.ofMillis(530);
 
     private TextEdit edit = TextEdit.EMPTY;
-    private final EditHistory history = new EditHistory();
+    private final EditHistory<TextEdit> history = new EditHistory<>();
 
     /// The stock menu, made the first time it is asked for; see [#openContextMenu].
     private @Nullable TextMenu menu;

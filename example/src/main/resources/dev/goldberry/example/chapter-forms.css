@@ -22,3 +22,41 @@
   gap: 8px;
   align-items: center;
 }
+
+/* The composer's sent messages above it, each a `rich-text` whose runs carry the
+   classes of the marks they were typed with. */
+#composer-column {
+  gap: 8px;
+}
+
+rich-text.composer-sent {
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: var(--gb-surface-raised);
+}
+
+rich-text.composer-sent > run.bold {
+  font-weight: 600;
+}
+
+rich-text.composer-sent > run.italic {
+  font-style: italic;
+}
+
+rich-text.composer-sent > run.underline {
+  text-decoration: underline;
+}
+
+rich-text.composer-sent > run.strike {
+  text-decoration: line-through;
+}
+
+rich-text.composer-sent > run.code {
+  font-family: "JetBrains Mono";
+}
+
+rich-text.composer-sent > run.link,
+rich-text.composer-sent > run.mention {
+  color: var(--gb-button-link-text);
+}
+

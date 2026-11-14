@@ -16,7 +16,9 @@ import dev.goldberry.example.ShowcaseScene;
 import dev.goldberry.input.event.KeyEvent;
 import dev.goldberry.input.event.TextEvent;
 import dev.goldberry.input.key.Key;
+import dev.goldberry.input.key.Mod;
 import dev.goldberry.input.key.Modifiers;
+import dev.goldberry.input.key.PrimaryModifier;
 import dev.goldberry.offscreen.Offscreen;
 import dev.goldberry.widget.Element;
 import dev.goldberry.widget.ElementTree;
@@ -103,5 +105,15 @@ class StickyCardTest {
         var tab = new KeyEvent(KeyEvent.Kind.PRESSED, Key.TAB, Modifiers.NONE, false, null);
         sticky.onKey(tab);
         assertFalse(tab.isConsumed(), "Tab still moves focus out of a sticky being edited");
+    }
+
+    @Test
+    @DisplayName("Ctrl+B over a selection is taken: the note formats")
+    void formats() {
+        var selectWord = new KeyEvent(KeyEvent.Kind.PRESSED, Key.LEFT, Modifiers.of(Mod.CTRL, Mod.SHIFT), false, null);
+        sticky.onKey(selectWord);
+        var bold = new KeyEvent(KeyEvent.Kind.PRESSED, Key.B, Modifiers.of(PrimaryModifier.current()), false, null);
+        sticky.onKey(bold);
+        assertTrue(bold.isConsumed(), "the note has mark styles, so Ctrl+B is a formatting key");
     }
 }

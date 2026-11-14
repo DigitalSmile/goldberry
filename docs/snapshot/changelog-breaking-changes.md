@@ -40,6 +40,12 @@ Everything below is measured against 2026.2 (tag commit d3eacfdc).
   <!-- ADR-0697 -->
 - `WebViewSpec` has an eleventh component, `userAgent`; the ten-argument
   constructor stays. <!-- ADR-0699 -->
+- `EditHistory` is generic, `EditHistory<S>` over the state its editor holds
+  (`EditHistory<TextEdit>` for a plain field). Code that names the raw type
+  still compiles, with a raw-type warning, and fails a build that turns
+  warnings into errors. `EditHistory.Kind` has a fourth constant,
+  `FORMATTING`, which an exhaustive `switch` over it has to answer.
+  <!-- ADR-0703 -->
 #### goldberry-media: FFmpeg left the module
 
 - The natives classifiers are `natives-<target>`, not `ffmpeg-<target>`:
