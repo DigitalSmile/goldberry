@@ -317,14 +317,19 @@ class WheelAndCaptureTest {
         }
 
         @Test
-        @DisplayName("only the primary button clicks")
+        @DisplayName("only the primary button clicks; the others aux-click")
         void secondaryDoesNotClick() {
             // A right-click opens a context menu; it is not an activation, and a
             // button that fired on one would be a menu that also pressed itself.
+            // So it is a kind of its own, which no control acting on CLICKED
+            // hears by accident.
             router.pointerPressed(30, 30, PointerEvent.Button.SECONDARY, 1);
             router.pointerReleased(30, 30, PointerEvent.Button.SECONDARY, 1);
 
-            assertTrue(log.stream().noneMatch(entry -> entry.contains("CLICKED")), () -> "log was " + log);
+            assertTrue(log.stream().noneMatch(entry -> entry.contains(":CLICKED")), () -> "log was " + log);
+            var aux =
+                    log.stream().filter(entry -> entry.contains("AUX_CLICKED")).toList();
+            assertEquals(List.of("inner:AUX_CLICKED at 30.0,30.0", "outer:AUX_CLICKED at 30.0,30.0"), aux);
         }
 
         @Test

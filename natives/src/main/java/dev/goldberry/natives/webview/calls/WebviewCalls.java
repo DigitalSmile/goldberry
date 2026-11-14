@@ -41,7 +41,8 @@ public record WebviewCalls(
         HasFocus hasFocus,
         Blur blur,
         Cookies cookies,
-        OnNavigate onNavigate) {
+        OnNavigate onNavigate,
+        Init init) {
 
     /// Binds **only** the ABI probe.
     ///
@@ -87,7 +88,8 @@ public record WebviewCalls(
                 new HasFocus(lookup),
                 new Blur(lookup),
                 new Cookies(lookup),
-                new OnNavigate(lookup));
+                new OnNavigate(lookup),
+                new Init(lookup));
     }
 
     /// Creates a page and its window.
@@ -253,6 +255,30 @@ public record WebviewCalls(
                 return (int) FD_goldberry_webview_eval.invokeExact(address, webview, script);
             } catch (Throwable t) {
                 throw Downcalls.failure("goldberry_webview_eval", t);
+            }
+        }
+    }
+
+    /// Runs a script before each document's own, on every navigation from the
+    /// next one on.
+    ///
+    /// `int goldberry_webview_init(void *w, const char *js)`
+    public static final class Init {
+
+        private static final MethodHandle FD_goldberry_webview_init =
+                Downcalls.link(FunctionDescriptor.of(JAVA_INT, ADDRESS, ADDRESS));
+
+        private final MemorySegment address;
+
+        Init(SymbolLookup lookup) {
+            this.address = Downcalls.symbol(lookup, "goldberry_webview_init");
+        }
+
+        public int call(MemorySegment webview, MemorySegment script) {
+            try {
+                return (int) FD_goldberry_webview_init.invokeExact(address, webview, script);
+            } catch (Throwable t) {
+                throw Downcalls.failure("goldberry_webview_init", t);
             }
         }
     }

@@ -188,6 +188,21 @@ class OffscreenTest {
         }
 
         @Test
+        @DisplayName("a tree that builds to nothing renders as its background")
+        void rendersNothing() {
+            var image = Offscreen.of(8, 8).background(BLUE).render(Widget.nothing());
+
+            // An overlay with nothing open: its empty state rendered on its own.
+            assertEquals(new PhysicalSize(8, 8), image.size());
+            assertEquals(BLUE, image.argb(0, 0));
+            assertEquals(BLUE, image.argb(7, 7));
+
+            try (var strip = Offscreen.of(8, 8).background(BLUE).strip(Widget.nothing())) {
+                assertEquals(BLUE, strip.frame().argb(4, 4), "a strip's frame too");
+            }
+        }
+
+        @Test
         @DisplayName("a self-measuring widget is told what it came out as")
         void feedsTheRegionsBack() {
             // The subtle half of the sequence. `Measured` is delivered by the

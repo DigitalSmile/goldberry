@@ -4,6 +4,8 @@ import java.util.List;
 import java.util.Set;
 
 import dev.goldberry.css.ComputedStyle;
+import dev.goldberry.i18n.Labels;
+import dev.goldberry.i18n.ToolkitLabel;
 import dev.goldberry.input.event.KeyEvent;
 import dev.goldberry.input.event.PointerEvent;
 import dev.goldberry.input.handler.Handles;
@@ -88,6 +90,6 @@ record MessageDismiss(Runnable onDismiss) implements Widget.Leaf, Styled, Paints
 
     @Override
     public String accessibleName() {
-        return "Dismiss";
+        return Labels.text(ToolkitLabel.DISMISS);
     }
 }

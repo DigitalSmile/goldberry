@@ -7,6 +7,8 @@ import java.util.function.Consumer;
 import org.jspecify.annotations.Nullable;
 
 import dev.goldberry.css.ComputedStyle;
+import dev.goldberry.i18n.Labels;
+import dev.goldberry.i18n.ToolkitLabel;
 import dev.goldberry.input.event.KeyEvent;
 import dev.goldberry.input.event.PointerEvent;
 import dev.goldberry.input.handler.Handles;
@@ -94,6 +96,6 @@ record MediaPlayerBox(
 
     @Override
     public String accessibleName() {
-        return "Media player";
+        return Labels.text(ToolkitLabel.MEDIA_PLAYER);
     }
 }

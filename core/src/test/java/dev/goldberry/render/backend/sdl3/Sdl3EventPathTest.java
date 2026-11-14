@@ -56,6 +56,39 @@ class Sdl3EventPathTest {
     }
 
     @Test
+    @DisplayName("a pinch reaches the sink in its three phases, from the pinch's own window field")
+    void pinchReachesTheSink() {
+        withBackend((backend, window) -> {
+            var events = pump(backend, sink -> {
+                push(buffer -> buffer.writePinch(SdlEventType.PINCH_BEGIN, id(window), 0f));
+                push(buffer -> buffer.writePinch(SdlEventType.PINCH_UPDATE, id(window), 1.25f));
+                push(buffer -> buffer.writePinch(SdlEventType.PINCH_UPDATE, id(window), Float.NaN));
+                push(buffer -> buffer.writePinch(SdlEventType.PINCH_END, id(window), 0.5f));
+                // Under no window of ours: dropped, as any stranger's event is.
+                push(buffer -> buffer.writePinch(SdlEventType.PINCH_UPDATE, id(window) + 1000, 2f));
+            });
+
+            var pinches = events.stream()
+                    .filter(BackendEvent.PointerPinch.class::isInstance)
+                    .map(BackendEvent.PointerPinch.class::cast)
+                    .toList();
+            assertEquals(4, pinches.size(), () -> "the stranger's pinch was dropped: " + names(events));
+            pinches.forEach(pinch -> assertSame(window, pinch.window()));
+            assertEquals(
+                    List.of(
+                            dev.goldberry.input.event.PointerEvent.PinchPhase.BEGAN,
+                            dev.goldberry.input.event.PointerEvent.PinchPhase.CHANGED,
+                            dev.goldberry.input.event.PointerEvent.PinchPhase.CHANGED,
+                            dev.goldberry.input.event.PointerEvent.PinchPhase.ENDED),
+                    pinches.stream().map(BackendEvent.PointerPinch::phase).toList());
+            assertEquals(
+                    List.of(1f, 1.25f, 1f, 1f),
+                    pinches.stream().map(BackendEvent.PointerPinch::scale).toList(),
+                    "a start, an end and a scale that is no number are no zoom");
+        });
+    }
+
+    @Test
     @DisplayName("a wheel event reaches the sink with the toolkit's sign, not SDL's")
     void wheelReachesTheSink() {
         withBackend((backend, window) -> {

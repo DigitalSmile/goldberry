@@ -54,6 +54,11 @@ final class NativeWebView implements BackendWebView {
     }
 
     @Override
+    public void init(String script) {
+        webview.init(script);
+    }
+
+    @Override
     public CompletionStage<List<HttpCookie>> cookies(URI url) {
         Objects.requireNonNull(url, "url");
         if (isClosed()) {

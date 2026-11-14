@@ -99,7 +99,7 @@ class FoldingTest {
                 "calc(1px + 1s)",
                 "calc(2px * 3px)",
                 "calc(4px / 0)",
-                "calc(4px / 2px)",
+                "calc(2 / 4px)",
                 "calc(4 / (1 - 1))",
                 "min(100px, 50%)",
                 "max(1px, 2)",

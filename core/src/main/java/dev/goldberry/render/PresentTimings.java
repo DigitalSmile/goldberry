@@ -16,9 +16,16 @@ package dev.goldberry.render;
 /// @param submitNanos  recording the composite and submitting it
 /// @param uploadBytes  how many bytes of the frame went up
 /// @param composited   whether the frame went through the GPU at all
+/// @param layerNanos   rendering the GPU layers that asked to be drawn again:
+///                     a `canvas3d`'s renderer, a video's next picture
 public record PresentTimings(
-        long uploadNanos, long acquireNanos, long submitNanos, long uploadBytes, boolean composited) {
+        long uploadNanos, long acquireNanos, long submitNanos, long uploadBytes, boolean composited, long layerNanos) {
 
     /// Not presented through the GPU.
-    public static final PresentTimings NONE = new PresentTimings(0, 0, 0, 0, false);
+    public static final PresentTimings NONE = new PresentTimings(0, 0, 0, 0, false, 0);
+
+    /// A present that rendered no layer, or did not time them apart.
+    public PresentTimings(long uploadNanos, long acquireNanos, long submitNanos, long uploadBytes, boolean composited) {
+        this(uploadNanos, acquireNanos, submitNanos, uploadBytes, composited, 0);
+    }
 }

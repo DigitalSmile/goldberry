@@ -8,6 +8,7 @@ import java.util.Objects;
 import dev.goldberry.css.Corners;
 import dev.goldberry.css.value.Affine;
 import dev.goldberry.natives.blend2d.BlendPath;
+import dev.goldberry.paint.geom.PathHitTest;
 import dev.goldberry.paint.geom.Transformer;
 import dev.goldberry.render.model.LogicalPoint;
 
@@ -310,6 +311,20 @@ public final class Path {
     /// Segments, not vertices: a cubic is one of these and three of those.
     public int segmentCount() {
         return verbs.length;
+    }
+
+    /// Whether `(x, y)` is inside this path's fill, under the `nonzero` rule a
+    /// fill uses unless told otherwise: what a canvas's hit test asks of a
+    /// shape it drew, a sticky note or a connector on a board.
+    public boolean contains(double x, double y) {
+        return contains(x, y, false);
+    }
+
+    /// Whether `(x, y)` is inside this path's fill, under `evenodd` when
+    /// `evenOdd` and `nonzero` otherwise. Curves are flattened to within a
+    /// hundredth of a unit, and every sub-path counts as closed, as a fill does.
+    public boolean contains(double x, double y, boolean evenOdd) {
+        return PathHitTest.contains(this, x, y, evenOdd);
     }
 
     /// This path as a list of segments — the readable view.

@@ -98,6 +98,7 @@ final class SdlCompositedWindow implements CompositedWindow {
         }
         // Layers may have changed with no damage at all -- a video's next
         // picture -- so with any on screen the window is composited again.
+        var beforeLayers = System.nanoTime();
         var drawn = layerTextures.renderAll(api, layers);
         lastDrawn = drawn;
         var layered = System.nanoTime();
@@ -134,8 +135,16 @@ final class SdlCompositedWindow implements CompositedWindow {
             }
             commands.submit();
             var submitted = System.nanoTime();
+            // The layers' rendering is a stage of its own: a `canvas3d`'s
+            // renderer recording its passes is the application's time, not the
+            // compositor's.
             last = new PresentTimings(
-                    uploaded - layered, acquired - uploaded, (submitted - acquired) + (layered - started), bytes, true);
+                    uploaded - layered,
+                    acquired - uploaded,
+                    (submitted - acquired) + (beforeLayers - started),
+                    bytes,
+                    true,
+                    layered - beforeLayers);
         } finally {
             if (!commands.isFinished()) {
                 // Something above threw with the buffer still recording. SDL

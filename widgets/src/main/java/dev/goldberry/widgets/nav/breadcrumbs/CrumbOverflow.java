@@ -5,6 +5,8 @@ import java.util.Set;
 import java.util.function.BiConsumer;
 
 import dev.goldberry.css.ComputedStyle;
+import dev.goldberry.i18n.Labels;
+import dev.goldberry.i18n.ToolkitLabel;
 import dev.goldberry.input.event.KeyEvent;
 import dev.goldberry.input.event.PointerEvent;
 import dev.goldberry.input.handler.Handles;
@@ -121,6 +123,6 @@ record CrumbOverflow(Runnable onOpen, BiConsumer<LogicalRect, LogicalRect> locat
     /// dots" is not a place you can go.
     @Override
     public String accessibleName() {
-        return "Show the rest of the path";
+        return Labels.text(ToolkitLabel.SHOW_REST_OF_PATH);
     }
 }

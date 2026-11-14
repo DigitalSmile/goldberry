@@ -65,6 +65,39 @@ public final class WebViewController {
         return current.cookies(url);
     }
 
+    /// Runs `script` in the page: what the application says to a page that
+    /// listens. Nothing comes back; an answer reaches the application through
+    /// a callback the page calls (`WebPage.on`).
+    ///
+    /// @return false while no page is open, and nothing was run
+    public boolean eval(String script) {
+        Objects.requireNonNull(script, "script");
+        var current = page;
+        if (current == null || current.isClosed()) {
+            return false;
+        }
+        current.eval(script);
+        return true;
+    }
+
+    /// Hands `json` to the page as a `message` event on its `window`, as a
+    /// browser's `postMessage` does: a page listens with
+    /// `window.addEventListener("message", e => …)` and reads `e.data`.
+    ///
+    /// @param json a JSON value — an object, an array, a string in quotes, a
+    ///        number — which becomes the event's `data` as it is, with no
+    ///        second encoding
+    /// @return false while no page is open, and nothing was sent
+    public boolean postMessage(String json) {
+        Objects.requireNonNull(json, "json");
+        return eval(dispatch(json));
+    }
+
+    /// The script that dispatches `json` as a message event.
+    static String dispatch(String json) {
+        return "window.dispatchEvent(new MessageEvent(\"message\", { data: " + json + " }));";
+    }
+
     /// Called by the widget's state when its page opens.
     void attach(BackendWebView opened) {
         page = Objects.requireNonNull(opened, "opened");

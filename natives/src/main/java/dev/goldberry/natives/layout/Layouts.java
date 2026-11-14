@@ -243,6 +243,26 @@ public final class Layouts {
                     MemoryLayout.paddingLayout(4)));
 
     /// ```c
+    /// typedef struct SDL_PinchFingerEvent {
+    ///     SDL_EventType type; Uint32 reserved; Uint64 timestamp;
+    ///     float scale; SDL_WindowID windowID;
+    /// } SDL_PinchFingerEvent;
+    /// ```
+    ///
+    /// The one input arm whose `windowID` is not at the common offset: SDL put
+    /// the scale first, so the window is four bytes later than in every other
+    /// arm, and reading it from the window arm's offset would read the scale's
+    /// bits as a window id.
+    public static final NativeStructLayout SDL_PINCH_FINGER_EVENT = new NativeStructLayout(
+            "SDL_PinchFingerEvent",
+            MemoryLayout.structLayout(
+                    ValueLayout.JAVA_INT.withName("type"),
+                    MemoryLayout.paddingLayout(4),
+                    ValueLayout.JAVA_LONG.withName("timestamp"),
+                    ValueLayout.JAVA_FLOAT.withName("scale"),
+                    ValueLayout.JAVA_INT.withName("windowID")));
+
+    /// ```c
     /// typedef struct SDL_KeyboardEvent {
     ///     SDL_EventType type; Uint32 reserved; Uint64 timestamp;
     ///     SDL_WindowID windowID; SDL_KeyboardID which;
@@ -1484,6 +1504,7 @@ public final class Layouts {
                 SDL_MOUSE_MOTION_EVENT,
                 SDL_MOUSE_BUTTON_EVENT,
                 SDL_MOUSE_WHEEL_EVENT,
+                SDL_PINCH_FINGER_EVENT,
                 SDL_KEYBOARD_EVENT,
                 SDL_TEXT_INPUT_EVENT,
                 SDL_TEXT_EDITING_EVENT,

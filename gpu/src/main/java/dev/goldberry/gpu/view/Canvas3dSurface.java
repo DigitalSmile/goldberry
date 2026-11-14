@@ -23,9 +23,17 @@ import dev.goldberry.widget.style.Styled;
 ///
 /// What it paints is a [Canvas3dPainter], a record, because the render tree
 /// compares painters by equality to decide what was damaged: the painter is
-/// equal from frame to frame while the canvas has nothing new to show, so its
-/// box is not repainted, and differs when it has -- every frame while it is
-/// continuous, and at a new revision or render scale otherwise.
+/// equal from frame to frame while the CPU frame has nothing new to show, so
+/// its box is not repainted, and differs when it has -- at a new revision or
+/// render scale, and every frame while it is continuous **and its pixels are
+/// read back into the CPU frame**.
+///
+/// A composited canvas that draws every frame does not damage the box: the
+/// compositor draws the layer from its own texture on every present and
+/// re-renders it while it asks to be ([GpuLayer#needsRender]), so repainting
+/// the box would only rasterise and upload the UI over it again, every frame,
+/// at the size of the canvas. The frame's time reaches the layer as the tree
+/// is built rather than through the painter for that reason.
 record Canvas3dSurface(
         Canvas3dLayer layer,
         boolean continuous,
@@ -78,22 +86,37 @@ record Canvas3dSurface(
 
     @Override
     public Box render(ComputedStyle style, List<Box> children, Context context) {
-        var now = context.nowMillis();
-        var nanos = owner.nanos(now, continuous, revision);
-        // Continuous: the frame's own time, which differs every frame. On
-        // demand: the revision, which differs only when a redraw is wanted.
-        var stamp = continuous ? Double.doubleToLongBits(now) : revision;
         return Box.of()
                 .style(style)
-                .painting(new Canvas3dPainter(
+                .painting(painter(
                         layer,
-                        stamp,
-                        nanos,
+                        context.nowMillis(),
                         continuous,
                         revision,
                         renderScale,
                         context.color(UNAVAILABLE_TOKEN, DEFAULT_UNAVAILABLE),
                         owner));
+    }
+
+    /// This frame's painter, with the frame's time handed to the layer.
+    ///
+    /// The stamp is what makes two painters differ: the frame's own time while
+    /// the canvas is continuous and its last paint was read back into the CPU
+    /// frame, which then has to be repainted to show the new picture; and the
+    /// revision otherwise, which differs only when a redraw is wanted. A
+    /// composited canvas learns which it is from its first paint, and is
+    /// repainted every frame until then.
+    static Canvas3dPainter painter(
+            Canvas3dLayer layer,
+            double nowMillis,
+            boolean continuous,
+            long revision,
+            RenderScale renderScale,
+            int fallback,
+            Owner owner) {
+        layer.frame(owner.nanos(nowMillis, continuous, revision), continuous);
+        var stamp = continuous && !layer.composited() ? Double.doubleToLongBits(nowMillis) : revision;
+        return new Canvas3dPainter(layer, stamp, continuous, revision, renderScale, fallback, owner);
     }
 
     @Override
@@ -116,7 +139,6 @@ record Canvas3dSurface(
     record Canvas3dPainter(
             Canvas3dLayer layer,
             long stamp,
-            long nanos,
             boolean continuous,
             long revision,
             RenderScale renderScale,
@@ -126,8 +148,8 @@ record Canvas3dSurface(
 
         @Override
         public void paint(Frame frame, LogicalSize size) {
-            layer.frame(nanos, continuous);
             layer.scale(renderScale);
+            layer.composited(frame.composesGpuLayers());
             var drawn = frame.gpuLayer(layer, 0, 0, size.width(), size.height());
             if (!drawn) {
                 frame.fillRect(0, 0, size.width(), size.height(), fallback);

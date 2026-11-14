@@ -1,5 +1,6 @@
 package dev.goldberry.stats;
 
+import java.util.Arrays;
 import java.util.Objects;
 
 import dev.goldberry.Window;
@@ -80,7 +81,31 @@ public final class FrameRing implements FrameStats {
     private final long[] acquired = new long[CAPACITY];
     private final long[] submitted = new long[CAPACITY];
     private final long[] uploadedBytes = new long[CAPACITY];
+    private final long[] layered = new long[CAPACITY];
     private final boolean[] composited = new boolean[CAPACITY];
+
+    /// Where [#percentile] sorts a copy of one column: allocated once, so a
+    /// percentile asked inside a frame allocates nothing either.
+    private final long[] scratch = new long[CAPACITY];
+
+    /// What a frame listener is handed every frame; see [#newest()].
+    private final NewestFrame newest = new NewestFrame(this);
+
+    /// One column of the ring, for the frame listener's view.
+    enum Column {
+        FINISHED,
+        PAINT,
+        BUILD,
+        STYLE,
+        LAYOUT,
+        RASTER,
+        LATE,
+        UPLOAD,
+        ACQUIRE,
+        SUBMIT,
+        LAYERS,
+        UPLOAD_BYTES
+    }
 
     /// What the frame just recorded cost to present through the GPU.
     ///
@@ -98,6 +123,7 @@ public final class FrameRing implements FrameStats {
         acquired[slot] = Math.max(0L, timings.acquireNanos());
         submitted[slot] = Math.max(0L, timings.submitNanos());
         uploadedBytes[slot] = Math.max(0L, timings.uploadBytes());
+        layered[slot] = Math.max(0L, timings.layerNanos());
         composited[slot] = timings.composited();
         if (timings.composited()) {
             compositedTotal++;
@@ -233,6 +259,7 @@ public final class FrameRing implements FrameStats {
         acquired[next] = 0;
         submitted[next] = 0;
         uploadedBytes[next] = 0;
+        layered[next] = 0;
         composited[next] = false;
         pendingLate = 0;
         pendingBuilt = 0;
@@ -364,6 +391,11 @@ public final class FrameRing implements FrameStats {
     }
 
     @Override
+    public Span layers() {
+        return compositedSpanOf(layered);
+    }
+
+    @Override
     public double uploadBytes() {
         var frames = 0;
         var total = 0L;
@@ -445,6 +477,107 @@ public final class FrameRing implements FrameStats {
         }
         return new FrameSummary(
                 count, lateTotal, paintedTotal / 1_000_000.0 / count, paintedWorst / 1_000_000.0, displayHertz);
+    }
+
+    /// The frame recorded last, as a view a frame listener is handed: the same
+    /// object every time, reading whatever [#record] and [#presented] wrote
+    /// last. [FrameSample#copy] keeps one.
+    public FrameSample newest() {
+        return newest;
+    }
+
+    /// The newest frame's value in `column`, or 0 before any frame.
+    long newest(Column column) {
+        if (size == 0) {
+            return 0;
+        }
+        var slot = (next - 1 + CAPACITY) % CAPACITY;
+        return switch (column) {
+            case FINISHED -> finished[slot];
+            case PAINT -> painted[slot];
+            case BUILD -> built[slot];
+            case STYLE -> styled[slot];
+            case LAYOUT -> laid[slot];
+            case RASTER -> rastered[slot];
+            case LATE -> late[slot];
+            case UPLOAD -> uploaded[slot];
+            case ACQUIRE -> acquired[slot];
+            case SUBMIT -> submitted[slot];
+            case LAYERS -> layered[slot];
+            case UPLOAD_BYTES -> uploadedBytes[slot];
+        };
+    }
+
+    /// From the frame before the newest to the newest, or 0 with fewer than two.
+    long newestInterval() {
+        if (size < 2) {
+            return 0;
+        }
+        var slot = (next - 1 + CAPACITY) % CAPACITY;
+        var before = (next - 2 + CAPACITY) % CAPACITY;
+        return Math.max(0L, finished[slot] - finished[before]);
+    }
+
+    /// Whether the newest frame went through the GPU.
+    boolean newestComposited() {
+        return size > 0 && composited[(next - 1 + CAPACITY) % CAPACITY];
+    }
+
+    /// The nearest-rank percentile: the smallest retained value with at least
+    /// `percent` of the values at or below it. `percentile(PAINT, 50)` is the
+    /// median paint, `percentile(INTERVAL, 99)` the hitch a 1-in-100 frame
+    /// shows, and `percentile(PAINT, 100)` the dearest.
+    ///
+    /// Sorts at most sixty `long`s in an array kept for it, so it allocates
+    /// nothing and is safe to ask inside a frame.
+    @Override
+    public double percentile(FrameStage stage, double percent) {
+        Objects.requireNonNull(stage, "stage");
+        if (!(percent >= 0 && percent <= 100)) {
+            throw new IllegalArgumentException("a percentile is 0 to 100: " + percent);
+        }
+        var values = gather(stage);
+        if (values == 0) {
+            return 0;
+        }
+        Arrays.sort(scratch, 0, values);
+        var rank = (int) Math.ceil(percent / 100 * values);
+        return scratch[Math.clamp(rank - 1, 0, values - 1)] / 1_000_000.0;
+    }
+
+    /// Copies `stage`'s retained values into [#scratch], oldest first, and
+    /// answers how many there are.
+    private int gather(FrameStage stage) {
+        if (stage == FrameStage.INTERVAL) {
+            var intervals = 0;
+            for (var i = size - 1; i > 0; i--) {
+                var later = (next - i + CAPACITY) % CAPACITY;
+                var earlier = (next - i - 1 + CAPACITY) % CAPACITY;
+                scratch[intervals++] = Math.max(0L, finished[later] - finished[earlier]);
+            }
+            return intervals;
+        }
+        var ring = switch (stage) {
+            case PAINT -> painted;
+            case BUILD -> built;
+            case STYLE -> styled;
+            case LAYOUT -> laid;
+            case RASTER -> rastered;
+            case UPLOAD -> uploaded;
+            case ACQUIRE -> acquired;
+            case SUBMIT -> submitted;
+            case LAYERS -> layered;
+            case INTERVAL -> throw new AssertionError("answered above");
+        };
+        var values = 0;
+        for (var i = size; i > 0; i--) {
+            var slot = (next - i + CAPACITY) % CAPACITY;
+            if (stage.composited() && !composited[slot]) {
+                continue;
+            }
+            scratch[values++] = ring[slot];
+        }
+        return values;
     }
 
     @Override

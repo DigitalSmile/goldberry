@@ -17,6 +17,7 @@ import dev.goldberry.bind.Subscription;
 import dev.goldberry.image.Image;
 import dev.goldberry.input.drop.FileDrop;
 import dev.goldberry.input.drop.TextDrop;
+import dev.goldberry.input.event.PointerEvent;
 import dev.goldberry.input.key.Modifiers;
 import dev.goldberry.input.tap.ModifierTaps;
 import dev.goldberry.log.Logs;
@@ -45,6 +46,7 @@ import dev.goldberry.render.window.PresentMode;
 import dev.goldberry.render.window.Presentation;
 import dev.goldberry.render.window.WindowSpec;
 import dev.goldberry.stats.FrameRing;
+import dev.goldberry.stats.FrameSample;
 import dev.goldberry.stats.FrameStats;
 import dev.goldberry.stats.PresentationTally;
 
@@ -115,6 +117,12 @@ public final class Window implements AutoCloseable {
     /// Everything listening for dropped text, a list for [#dropListeners]'
     /// reason.
     private final List<Consumer<TextDrop>> textDropListeners = new ArrayList<>();
+
+    /// Everything listening for each presented frame. Replaced whole on every
+    /// subscription and cancellation, so the frame path walks an immutable
+    /// list by index and allocates nothing, and a listener may unsubscribe
+    /// itself from inside its own call.
+    private List<Consumer<FrameSample>> frameListeners = List.of();
 
     /// The paths of the gesture currently in progress, in the order they
     /// arrived. Cleared at the end of every gesture, whether or not anything was
@@ -438,6 +446,7 @@ public final class Window implements AutoCloseable {
             case dev.goldberry.render.event.BackendEvent.PointerMoved _,
                     dev.goldberry.render.event.BackendEvent.PointerReleased _,
                     dev.goldberry.render.event.BackendEvent.PointerWheel _,
+                    dev.goldberry.render.event.BackendEvent.PointerPinch _,
                     dev.goldberry.render.event.BackendEvent.KeyPressed _,
                     dev.goldberry.render.event.BackendEvent.KeyReleased _,
                     dev.goldberry.render.event.BackendEvent.TextInput _,
@@ -931,6 +940,54 @@ public final class Window implements AutoCloseable {
         return frames;
     }
 
+    /// Calls `listener` once per frame this window presents, after the present,
+    /// with that frame's timings: what a game's own frame report or a hitch
+    /// logger records, where [#frames] has only the last second's spread.
+    ///
+    /// ```java
+    /// window.onFrame(frame -> {
+    ///     if (frame.intervalNanos() > 25_000_000) {
+    ///         log.warn("hitch: {}", frame.copy());
+    ///     }
+    /// });
+    /// ```
+    ///
+    /// The listener is handed **the same [FrameSample] every frame**, a view
+    /// over the window's ring, so listening allocates nothing; it reads the
+    /// frame just presented while the listener runs, and [FrameSample#copy]
+    /// keeps one. A frame the platform refused, during a resize, is not
+    /// presented and is not heard; the next frame's [FrameSample#lateRefreshes]
+    /// counts it.
+    ///
+    /// On the UI thread, inside the frame loop: a listener that blocks holds up
+    /// the next frame.
+    ///
+    /// Read more: [Measuring](https://goldberry.dev/docs/performance/measuring.html#per-frame-timings-at-trace).
+    public Subscription onFrame(Consumer<FrameSample> listener) {
+        Objects.requireNonNull(listener, "listener");
+        var added = new ArrayList<>(frameListeners);
+        added.add(listener);
+        frameListeners = List.copyOf(added);
+        return () -> {
+            var kept = new ArrayList<>(frameListeners);
+            if (kept.remove(listener)) {
+                frameListeners = List.copyOf(kept);
+            }
+        };
+    }
+
+    /// Tells every frame listener about the frame just presented.
+    private void framePresented() {
+        var listeners = frameListeners;
+        if (listeners.isEmpty()) {
+            return;
+        }
+        var newest = frames.newest();
+        for (var i = 0; i < listeners.size(); i++) {
+            listeners.get(i).accept(newest);
+        }
+    }
+
     /// The last frame this window presented, as the screen shows it: GPU
     /// layers and all, whether the window is composited or reads them back.
     /// What a test compares with a reference, and what `--capture=` writes.
@@ -1096,6 +1153,7 @@ public final class Window implements AutoCloseable {
             // surface.
             frames.presented(window.lastPresent());
             presentedThrough(window.presentation());
+            framePresented();
             damage = null;
             if (!everPresented) {
                 everPresented = true;
@@ -1338,6 +1396,15 @@ public final class Window implements AutoCloseable {
         modifierTaps.interrupted();
         if (router != null) {
             router.pointerWheel(x, y, deltaX, deltaY, ticksX, ticksY, Modifiers.fromSdl(modifiers));
+        }
+    }
+
+    void handlePointerPinch(PointerEvent.PinchPhase phase, float scale, int modifiers) {
+        // A pinch spoils a modifier tap as a wheel does: the key was held for
+        // the gesture, not tapped.
+        modifierTaps.interrupted();
+        if (router != null) {
+            router.pointerPinch(phase, scale, Modifiers.fromSdl(modifiers));
         }
     }
 

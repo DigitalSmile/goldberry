@@ -2,6 +2,7 @@ package dev.goldberry.render.event;
 
 import java.util.Objects;
 
+import dev.goldberry.input.event.PointerEvent;
 import dev.goldberry.render.desktop.SystemTheme;
 import dev.goldberry.render.model.DisplayScale;
 import dev.goldberry.render.model.LogicalPoint;
@@ -181,6 +182,23 @@ public sealed interface BackendEvent {
         }
     }
 
+    /// Two fingers pinched over the window.
+    ///
+    /// No position: the platform reports none, so the window aims it where the
+    /// pointer last was, which on a touchpad is where the user is looking.
+    ///
+    /// @param scale     the factor since the last [PointerEvent.PinchPhase#CHANGED];
+    ///                  1 for the gesture's start and end
+    /// @param modifiers the platform's modifier bitmask, as on every pointer event
+    record PointerPinch(BackendWindow window, PointerEvent.PinchPhase phase, float scale, int modifiers)
+            implements BackendEvent {
+
+        public PointerPinch {
+            Objects.requireNonNull(window, "window");
+            Objects.requireNonNull(phase, "phase");
+        }
+    }
+
     /// The pointer left the window.
     ///
     /// Separate from a move, because there is no position to report and `:hover`
@@ -327,6 +345,22 @@ public sealed interface BackendEvent {
     record FileDropCompleted(BackendWindow window, float x, float y) implements BackendEvent {
         public FileDropCompleted {
             Objects.requireNonNull(window, "window");
+        }
+    }
+
+    /// The system asked the application to open something: a URL of a scheme
+    /// the application registered, or a document opened from the desktop. On
+    /// macOS, SDL delivers both as a drop that names no window.
+    ///
+    /// Aimed at the application, not a window: `window` is whichever of the
+    /// application's windows was open, because every event names one, and
+    /// nothing should read it.
+    ///
+    /// @param target the URL, or the file's path, as the system gave it
+    record OpenUrl(BackendWindow window, String target) implements BackendEvent {
+        public OpenUrl {
+            Objects.requireNonNull(window, "window");
+            Objects.requireNonNull(target, "target");
         }
     }
 }

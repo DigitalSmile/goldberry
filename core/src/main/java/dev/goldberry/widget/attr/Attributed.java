@@ -5,6 +5,7 @@ import java.util.function.Predicate;
 
 import dev.goldberry.input.drop.Drop;
 import dev.goldberry.input.drop.DropTarget;
+import dev.goldberry.input.event.PointerEvent;
 import dev.goldberry.widget.Widget;
 
 /// A widget that carries [Attributes] and can hand back a copy carrying
@@ -92,6 +93,12 @@ public interface Attributed<W extends Widget> extends Widget {
     /// unmounted under the pointer.
     default W onPointerExit(Runnable action) {
         return withAttributes(attributes().onPointerExit(action));
+    }
+
+    /// This widget told when it is clicked with any button; see
+    /// [Attributes#onClick], including why it is not a keyboard control.
+    default W onClick(Consumer<PointerEvent> action) {
+        return withAttributes(attributes().onClick(action));
     }
 
     /// This widget able to be dragged onto a drop target elsewhere in the

@@ -45,9 +45,32 @@ public final class PointerEvent {
         /// pressed — but it was not a click, and the user cancelling a click by
         /// dragging off is a gesture people rely on.
         CLICKED,
+        /// The same for the **secondary or middle** button: a press and its
+        /// release both on this node, [#button()] saying which. Synthetic.
+        ///
+        /// A kind of its own rather than a [#CLICKED] with another button, as
+        /// the DOM's `auxclick` is beside `click`: every control that acts on a
+        /// click means the primary button, and would act on a right click too
+        /// if both arrived as one kind. A secondary press on a node that names
+        /// a context menu opens the menu instead, and is no click.
+        AUX_CLICKED,
         /// The wheel turned, or a touchpad scrolled — see [#deltaX] and
         /// [#deltaY].
-        WHEEL
+        WHEEL,
+        /// Two fingers pinched on a touchpad or a touchscreen — see [#scale]
+        /// and [#pinchPhase]. Aimed at what is under the pointer, as a wheel
+        /// is, and like a wheel it passes a disabled control by.
+        PINCH
+    }
+
+    /// Where a pinch is, for [Kind#PINCH].
+    public enum PinchPhase {
+        /// The fingers touched down; [#scale()] is 1.
+        BEGAN,
+        /// The fingers moved; [#scale()] is the factor since the last change.
+        CHANGED,
+        /// The fingers lifted; [#scale()] is 1.
+        ENDED
     }
 
     /// Which button, for [Kind#PRESSED] and [Kind#RELEASED].
@@ -73,6 +96,8 @@ public final class PointerEvent {
     private Extent part = Extent.NONE;
     private final float pressX;
     private final float pressY;
+    private float scale = 1;
+    private @Nullable PinchPhase pinchPhase;
     private static final org.slf4j.Logger LOG = Logs.of(PointerEvent.class);
 
     private final Element target;
@@ -224,6 +249,32 @@ public final class PointerEvent {
             Modifiers modifiers,
             Element target) {
         this(kind, x, y, button, clickCount, 0, 0, pressX, pressY, modifiers, target);
+    }
+
+    /// A pinch at `(x, y)`, the pointer's position, with the scale change since
+    /// the last [PinchPhase#CHANGED]: above 1 spreads, below 1 closes.
+    public static PointerEvent pinch(
+            float x, float y, PinchPhase phase, float scale, Modifiers modifiers, Element target) {
+        Objects.requireNonNull(phase, "phase");
+        if (!(scale > 0) || !Float.isFinite(scale)) {
+            throw new IllegalArgumentException("a pinch's scale is a positive factor: " + scale);
+        }
+        var event = new PointerEvent(Kind.PINCH, x, y, null, 0, 0, 0, Float.NaN, Float.NaN, modifiers, target);
+        event.pinchPhase = phase;
+        event.scale = phase == PinchPhase.CHANGED ? scale : 1;
+        return event;
+    }
+
+    /// For a [Kind#PINCH], how much the fingers spread since the last change:
+    /// 1.1 is ten percent larger. Multiply a zoom by it. 1 for every other kind,
+    /// and for a pinch's [PinchPhase#BEGAN] and [PinchPhase#ENDED].
+    public float scale() {
+        return scale;
+    }
+
+    /// Where a [Kind#PINCH] is in its gesture, or null for every other kind.
+    public @Nullable PinchPhase pinchPhase() {
+        return pinchPhase;
     }
 
     /// A wheel event, which is the only kind that carries a delta.

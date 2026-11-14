@@ -125,10 +125,15 @@ public interface BackendWebView extends AutoCloseable {
 
     /// Runs `script` in the page.
     ///
-    /// Nothing comes back: the engine's call is asynchronous and its result
-    /// reaches a host through a binding rather than a return value. No binding is
-    /// exposed yet, because nothing has asked for one.
+    /// Nothing comes back: the engine's call is asynchronous, and a result
+    /// reaches the application through a callback the page calls
+    /// ([WebViewSpec#on]).
     void eval(String script);
+
+    /// Runs `script` before each document's own scripts, on every navigation
+    /// from the next one on. [WebViewSpec#initScript] is the usual way, which
+    /// adds it before the first navigation.
+    void init(String script);
 
     /// The cookies the engine would send to `url`, **HttpOnly ones included**.
     ///

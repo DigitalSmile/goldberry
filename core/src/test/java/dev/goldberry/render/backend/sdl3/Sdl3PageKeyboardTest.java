@@ -120,6 +120,9 @@ class Sdl3PageKeyboardTest {
         public void eval(String script) {}
 
         @Override
+        public void init(String script) {}
+
+        @Override
         public boolean isClosed() {
             return closed;
         }

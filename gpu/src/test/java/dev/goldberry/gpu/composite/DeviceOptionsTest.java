@@ -9,9 +9,10 @@ import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import dev.goldberry.gpu.GpuPower;
 import dev.goldberry.natives.sdl.gpu.SdlGpuDevice;
 
-/// How the compositor asks for its device: D2's defaults, and the two
+/// How the compositor asks for its device: D2's defaults, and the three
 /// properties that change them.
 @DisplayName("the compositor's device options")
 class DeviceOptionsTest {
@@ -34,5 +35,38 @@ class DeviceOptionsTest {
         assertEquals(Optional.of("vulkan"), options.driver());
         assertTrue(options.debugMode());
         assertFalse(DeviceOptions.of(null, "yes").debugMode(), "only true is true");
+    }
+
+    @Test
+    @DisplayName("prefer the discrete GPU for high, and the integrated one for low or anything else")
+    void power() {
+        assertFalse(DeviceOptions.of(null, null, "high").preferLowPower());
+        assertFalse(DeviceOptions.of(null, null, " HIGH ").preferLowPower(), "in any case");
+        assertTrue(DeviceOptions.of(null, null, "low").preferLowPower());
+        assertTrue(DeviceOptions.of(null, null, "fast").preferLowPower(), "a typo is the default");
+        assertTrue(DeviceOptions.of(null, null, null).preferLowPower());
+        var both = DeviceOptions.of("vulkan", "true", "high");
+        assertEquals(Optional.of("vulkan"), both.driver(), "power keeps the driver");
+        assertTrue(both.debugMode(), "and the validation");
+    }
+
+    @Test
+    @DisplayName("let a caller's preference win over the property")
+    void override() {
+        var previous = System.getProperty(DeviceOptions.POWER_PROPERTY);
+        System.setProperty(DeviceOptions.POWER_PROPERTY, "low");
+        try {
+            assertFalse(DeviceOptions.fromProperties(GpuPower.HIGH).preferLowPower());
+            assertTrue(DeviceOptions.fromProperties(null).preferLowPower(), "null follows the property");
+            System.setProperty(DeviceOptions.POWER_PROPERTY, "high");
+            assertFalse(DeviceOptions.fromProperties(null).preferLowPower());
+            assertTrue(DeviceOptions.fromProperties(GpuPower.LOW).preferLowPower());
+        } finally {
+            if (previous == null) {
+                System.clearProperty(DeviceOptions.POWER_PROPERTY);
+            } else {
+                System.setProperty(DeviceOptions.POWER_PROPERTY, previous);
+            }
+        }
     }
 }

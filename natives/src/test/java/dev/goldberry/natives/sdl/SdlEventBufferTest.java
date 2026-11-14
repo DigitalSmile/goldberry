@@ -117,4 +117,27 @@ class SdlEventBufferTest {
                 "SDL's layout puts the wheel's vertical delta exactly where motion"
                         + " puts its x, which is the confusion this accessor avoids");
     }
+
+    @Test
+    @DisplayName("a pinch keeps its scale where other arms keep their window, and its window four bytes later")
+    void pinch() {
+        assertEquals(16, Layouts.SDL_PINCH_FINGER_EVENT.offsetOf("scale"));
+        assertEquals(20, Layouts.SDL_PINCH_FINGER_EVENT.offsetOf("windowID"));
+        assertEquals(24, Layouts.SDL_PINCH_FINGER_EVENT.layout().byteSize());
+        assertEquals(
+                Layouts.SDL_WINDOW_EVENT.offsetOf("windowID"),
+                Layouts.SDL_PINCH_FINGER_EVENT.offsetOf("scale"),
+                "read through the common accessor, a pinch's window id would be its scale's bits");
+
+        try (var buffer = new SdlEventBuffer()) {
+            buffer.writePinch(SdlEventType.PINCH_UPDATE, 7, 1.25f);
+            assertEquals(SdlEventType.PINCH_UPDATE.value(), buffer.type());
+            assertEquals(1.25f, buffer.pinchScale());
+            assertEquals(7, buffer.pinchWindowId());
+            assertEquals(Float.floatToRawIntBits(1.25f), buffer.windowId(), "the confusion the accessor avoids");
+        }
+        assertEquals(0x710, SdlEventType.PINCH_BEGIN.value());
+        assertEquals(0x711, SdlEventType.PINCH_UPDATE.value());
+        assertEquals(0x712, SdlEventType.PINCH_END.value());
+    }
 }

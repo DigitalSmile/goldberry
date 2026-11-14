@@ -1,11 +1,15 @@
 package dev.goldberry.gpu.offscreen;
 
 import java.util.EnumSet;
+import java.util.Objects;
 
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 
+import dev.goldberry.gpu.GpuAdapter;
 import dev.goldberry.gpu.GpuDevice;
+import dev.goldberry.gpu.GpuException;
+import dev.goldberry.gpu.GpuPower;
 import dev.goldberry.gpu.composite.SdlCompositor;
 import dev.goldberry.log.Logs;
 import dev.goldberry.natives.sdl.Sdl;
@@ -57,13 +61,29 @@ public final class OffscreenGpu implements AutoCloseable {
         this.ownsVideo = ownsVideo;
     }
 
-    /// Makes the device, initialising SDL's video first where nothing has.
+    /// Makes the device, initialising SDL's video first where nothing has. It
+    /// prefers the GPU `goldberry.gpu.power` names, the low-power one unless it
+    /// says `high`.
     ///
     /// @throws IllegalStateException when no device can be made: the message
     ///                               says what the driver said
     public static OffscreenGpu open() {
+        return make(null);
+    }
+
+    /// Makes the device preferring `power`'s GPU, whatever `goldberry.gpu.power`
+    /// says: what a benchmark that must run on the integrated GPU of a laptop
+    /// with two asks for. [#adapter()] says which one the driver gave.
+    ///
+    /// @throws IllegalStateException when no device can be made: the message
+    ///                               says what the driver said
+    public static OffscreenGpu open(GpuPower power) {
+        return make(Objects.requireNonNull(power, "power"));
+    }
+
+    private static OffscreenGpu make(@Nullable GpuPower power) {
         var ownsVideo = initialiseVideo();
-        var compositor = new SdlCompositor();
+        var compositor = new SdlCompositor(power);
         var device = compositor.api();
         if (device.isEmpty()) {
             var reason = compositor.unavailable().orElse("no GPU device");
@@ -167,8 +187,28 @@ public final class OffscreenGpu implements AutoCloseable {
         }
     }
 
+    /// What the driver says the device is, the GPU's name among it: what a
+    /// benchmark prints to prove which GPU it measured.
+    ///
+    /// @throws IllegalStateException once closed
+    public GpuAdapter adapter() {
+        requireOpen();
+        return device.adapter();
+    }
+
+    /// The driver and, while open, the adapter's name: `OffscreenGpu[vulkan,
+    /// AMD Radeon 780M]`.
     @Override
     public String toString() {
-        return "OffscreenGpu[" + device.driver() + (closed ? ", closed]" : "]");
+        if (closed) {
+            return "OffscreenGpu[" + device.driver() + ", closed]";
+        }
+        String name;
+        try {
+            name = device.adapter().name();
+        } catch (GpuException e) {
+            name = "";
+        }
+        return "OffscreenGpu[" + device.driver() + (name.isEmpty() ? "]" : ", " + name + "]");
     }
 }

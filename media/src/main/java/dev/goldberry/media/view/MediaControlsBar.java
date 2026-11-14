@@ -7,6 +7,8 @@ import java.util.function.Consumer;
 import org.jspecify.annotations.Nullable;
 
 import dev.goldberry.css.ComputedStyle;
+import dev.goldberry.i18n.Labels;
+import dev.goldberry.i18n.ToolkitLabel;
 import dev.goldberry.input.event.KeyEvent;
 import dev.goldberry.input.handler.Handles;
 import dev.goldberry.layout.FlexDirection;
@@ -75,6 +77,6 @@ record MediaControlsBar(List<Widget> controls, @Nullable String id, Set<String> 
 
     @Override
     public String accessibleName() {
-        return "Media controls";
+        return Labels.text(ToolkitLabel.MEDIA_CONTROLS);
     }
 }

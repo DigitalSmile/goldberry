@@ -6,6 +6,8 @@ import java.util.Set;
 import org.jspecify.annotations.Nullable;
 
 import dev.goldberry.css.ComputedStyle;
+import dev.goldberry.i18n.Labels;
+import dev.goldberry.i18n.ToolkitLabel;
 import dev.goldberry.image.Image;
 import dev.goldberry.input.event.PointerEvent;
 import dev.goldberry.input.handler.Handles;
@@ -138,6 +140,6 @@ record VideoSurface(
 
     @Override
     public String accessibleName() {
-        return "Video";
+        return Labels.text(ToolkitLabel.VIDEO);
     }
 }

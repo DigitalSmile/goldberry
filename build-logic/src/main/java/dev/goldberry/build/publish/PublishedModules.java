@@ -1,6 +1,7 @@
 package dev.goldberry.build.publish;
 
 import dev.goldberry.build.publish.PublishedModule.Bom;
+import dev.goldberry.build.publish.PublishedModule.GradlePlugin;
 import dev.goldberry.build.publish.PublishedModule.Inclusion;
 import dev.goldberry.build.publish.PublishedModule.Library;
 import dev.goldberry.build.publish.PublishedModule.Umbrella;
@@ -25,9 +26,12 @@ public final class PublishedModules {
     public static final String GROUP = "dev.goldberry";
 
     /**
-     * Everything, in dependency order. {@code :assets} and {@code :weaver} are
-     * build-time tools and {@code :example} is the showcase, which ships as a
-     * native image on a GitHub Release instead.
+     * Everything, in dependency order. {@code :assets} is a build-time tool of
+     * this repository's own and {@code :example} is the showcase, which ships as
+     * a native image on a GitHub Release instead. {@code :weaver} is a build-time
+     * tool too, but an application's: its widgets need a catalog, and a native
+     * image needs its models woven, so it ships, with the Gradle plugin that runs
+     * it.
      */
     public static final List<PublishedModule> ALL = List.of(
             new Library("common", Inclusion.REQUIRED),
@@ -41,6 +45,10 @@ public final class PublishedModules {
             // operating system's. The natives ride as `natives-<target>` classifiers,
             // as libgoldberry rides `goldberry-natives`.
             new Library("media", Inclusion.OPTIONAL),
+            // What an application's build runs over its compiled classes, and the
+            // plugin that runs it: in the BOM, and in no application's run time.
+            new Library("weaver", Inclusion.TOOL),
+            new GradlePlugin("gradle-plugin", "dev.goldberry.weave"),
             new Bom(),
             new Umbrella());
 
@@ -105,6 +113,7 @@ public final class PublishedModules {
     public static String displayName(PublishedModule module) {
         return switch (module) {
             case Library(var project, var _) -> "Goldberry " + project;
+            case GradlePlugin _ -> "Goldberry Gradle plugin";
             case Bom _ -> "Goldberry BOM";
             case Umbrella _ -> "Goldberry";
         };

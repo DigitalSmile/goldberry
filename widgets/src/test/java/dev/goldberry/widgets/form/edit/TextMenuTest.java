@@ -6,10 +6,13 @@ import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.ListResourceBundle;
 
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import dev.goldberry.i18n.Labels;
 import dev.goldberry.input.key.Key;
 import dev.goldberry.input.key.Shortcut;
 import dev.goldberry.widgets.menu.Item;
@@ -66,6 +69,11 @@ class TextMenuTest {
         public boolean selectAll() {
             return ran.add("select all");
         }
+    }
+
+    @AfterEach
+    void english() {
+        Labels.reset();
     }
 
     private static List<Item> items(Field field) {
@@ -133,5 +141,25 @@ class TextMenuTest {
         field.paste = true;
 
         assertEquals(false, items(field).get(2).disabled(), "a copy elsewhere enables Paste");
+    }
+
+    @Test
+    @DisplayName("speaks the application's language once it is given the toolkit's words")
+    void translated() {
+        Labels.use(new ListResourceBundle() {
+            @Override
+            protected Object[][] getContents() {
+                return new Object[][] {
+                    {"goldberry.cut", "Вырезать"},
+                    {"goldberry.copy", "Копировать"},
+                    {"goldberry.paste", "Вставить"},
+                    {"goldberry.selectAll", "Выделить всё"}
+                };
+            }
+        });
+
+        assertEquals(
+                List.of("Вырезать", "Копировать", "Вставить", "Выделить всё"),
+                items(new Field()).stream().map(Item::label).toList());
     }
 }

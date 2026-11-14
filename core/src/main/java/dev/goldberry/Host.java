@@ -1,5 +1,6 @@
 package dev.goldberry;
 
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -92,6 +93,19 @@ public interface Host {
     /// Asking for a restyle also asks for a repaint; there is no reason to want
     /// one without the other.
     void restyle();
+
+    /// The text scale every window of the application draws at, 1 for the
+    /// stylesheets' own sizes. Starts at [Application#textScale()].
+    double textScale();
+
+    /// Draws every window's text at `factor` times the stylesheets' sizes,
+    /// from the next frame: what a text-size row in a settings screen calls.
+    /// Clamped to 0.9 to 1.5, what the design system allows. Only text is
+    /// scaled: a box sized by its content grows with it, and a box given a
+    /// fixed size does not.
+    ///
+    /// @throws IllegalArgumentException if `factor` is not finite
+    void textScale(double factor);
 
     /// Sets the window's title.
     void title(String title);
@@ -809,6 +823,16 @@ public interface Host {
     /// something belongs on [Host] instead — but a toolkit that made the window
     /// unreachable would be one an application has to fork to extend.
     Window window();
+
+    /// Writes what this window shows now, GPU layers included, to `path` as a
+    /// PNG: a picture of the composed window as the user sees it, for a bug
+    /// report or a manual check. The directories on the way are made.
+    ///
+    /// @return false when the window has no frame yet, and nothing was written
+    /// @throws java.io.UncheckedIOException when the file cannot be written
+    default boolean capture(Path path) {
+        return Captures.write(window(), path);
+    }
 
     /// The displays connected now, the primary one first.
     ///

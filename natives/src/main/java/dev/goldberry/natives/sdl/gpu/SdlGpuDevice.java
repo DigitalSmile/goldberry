@@ -94,6 +94,12 @@ public final class SdlGpuDevice implements AutoCloseable {
         public Options withDriver(String name) {
             return new Options(shaderFormats, debugMode, preferLowPower, Optional.of(name));
         }
+
+        /// These options preferring the integrated GPU (`true`) or the discrete
+        /// one (`false`) where a machine has both.
+        public Options withPreferLowPower(boolean lowPower) {
+            return new Options(shaderFormats, debugMode, lowPower, driver);
+        }
     }
 
     private static final String DEBUG_MODE = "SDL.gpu.device.create.debugmode";

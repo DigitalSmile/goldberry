@@ -1085,12 +1085,14 @@ public final class PointerRouter {
         // "On the same node" means the release landed on the pressed element or
         // inside it -- releasing on a button's own label is a click on the
         // button.
-        if (button == PointerEvent.Button.PRIMARY
-                && !dragged
-                && wasPressed != null
-                && chain(under).contains(wasPressed)) {
-            dispatch(new PointerEvent(
-                    PointerEvent.Kind.CLICKED, x, y, button, clickCount, originX, originY, modifiers, wasPressed));
+        //
+        // The secondary and middle buttons click by the same rule, as a kind of
+        // their own, so a control that acts on CLICKED never acts on a right
+        // click it did not ask for.
+        if (button != null && !dragged && wasPressed != null && chain(under).contains(wasPressed)) {
+            var kind =
+                    button == PointerEvent.Button.PRIMARY ? PointerEvent.Kind.CLICKED : PointerEvent.Kind.AUX_CLICKED;
+            dispatch(new PointerEvent(kind, x, y, button, clickCount, originX, originY, modifiers, wasPressed));
         }
         endGesture();
         runLanded(landed);
@@ -1153,6 +1155,28 @@ public final class PointerRouter {
             return false;
         }
         var event = PointerEvent.wheel(x, y, deltaX, deltaY, ticksX, ticksY, modifiers, target);
+        dispatch(event);
+        return event.isConsumed();
+    }
+
+    /// Two fingers pinched: a [PointerEvent.Kind#PINCH] for what is under the
+    /// pointer, or for the captor while a button is held. The backend's entry
+    /// point; the platform gives a pinch no position of its own, so it lands
+    /// where the pointer last was.
+    ///
+    /// Returns whether anything consumed it, as [#pointerWheel] does, so a
+    /// caller can zoom something else.
+    public boolean pointerPinch(PointerEvent.PinchPhase phase, float scale, Modifiers modifiers) {
+        Objects.requireNonNull(phase, "phase");
+        if (Float.isNaN(pointerX)) {
+            // The pointer has never been over this window: nothing to aim at.
+            return false;
+        }
+        var target = captured != null ? captured : elementAt(pointerX, pointerY);
+        if (target == null) {
+            return false;
+        }
+        var event = PointerEvent.pinch(pointerX, pointerY, phase, scale, modifiers, target);
         dispatch(event);
         return event.isConsumed();
     }
@@ -2698,7 +2722,7 @@ public final class PointerRouter {
     /// explaining *why* it is unavailable would need.
     private static boolean isInput(PointerEvent.Kind kind) {
         return switch (kind) {
-            case PRESSED, RELEASED, CLICKED, WHEEL -> true;
+            case PRESSED, RELEASED, CLICKED, AUX_CLICKED, WHEEL, PINCH -> true;
             case MOVED, ENTERED, EXITED -> false;
         };
     }
@@ -2873,7 +2897,8 @@ public final class PointerRouter {
             // is aimed at whatever scrolls -- so a disabled knob in a list that
             // stopped the list dead under the pointer is the cut being wrong
             // rather than being enforced.
-            if (event.kind() != PointerEvent.Kind.WHEEL) {
+            // A pinch is the same: it is aimed at whatever zooms.
+            if (event.kind() != PointerEvent.Kind.WHEEL && event.kind() != PointerEvent.Kind.PINCH) {
                 return;
             }
             // The disabled elements are a **prefix** of the chain, which is
@@ -2924,7 +2949,35 @@ public final class PointerRouter {
                     consumer = element;
                 }
             }
+            // An application's `onClick` runs after the node's own handler,
+            // whether or not that consumed the click: both are this node's.
+            if (clicked(element, event)) {
+                consumer = element;
+            }
         }
+    }
+
+    /// Runs the `onClick` an [Attributes] on `element` carries, when `event` is
+    /// a click of any button, with the position local to `element`'s box; and
+    /// consumes it, so no ancestor hears the click too.
+    ///
+    /// @return whether there was one to run
+    private boolean clicked(Element element, PointerEvent event) {
+        if (event.kind() != PointerEvent.Kind.CLICKED && event.kind() != PointerEvent.Kind.AUX_CLICKED) {
+            return false;
+        }
+        if (!(element.widget() instanceof Attributed<?> attributed)) {
+            return false;
+        }
+        var action = attributed.attributes().onClick();
+        if (action == null) {
+            return false;
+        }
+        event.localTo(localTo(element, event));
+        event.contentTo(contentOf(element, event));
+        action.accept(event);
+        event.consume();
+        return true;
     }
 
     /// Who consumed the event [#dispatch] last sent, or null when nothing did:

@@ -6,6 +6,7 @@ import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 
 import dev.goldberry.gpu.GpuDevice;
+import dev.goldberry.gpu.GpuPower;
 import dev.goldberry.gpu.render.StagingBuffer;
 import dev.goldberry.log.Logs;
 import dev.goldberry.log.Startup;
@@ -44,10 +45,20 @@ public final class SdlCompositor implements Compositor {
     private @Nullable StagingBuffer staging;
     private @Nullable UiComposite composite;
     private @Nullable String unavailable;
+    private final @Nullable GpuPower power;
     private boolean closed;
 
     /// For `ServiceLoader`. Makes nothing: the device comes with the first claim.
-    public SdlCompositor() {}
+    public SdlCompositor() {
+        this(null);
+    }
+
+    /// A compositor whose device prefers `power`'s GPU over what
+    /// `goldberry.gpu.power` says, or follows the property when null: the
+    /// offscreen GPU's, which is made before any window has a device.
+    public SdlCompositor(@Nullable GpuPower power) {
+        this.power = power;
+    }
 
     @Override
     public Claim claim(SdlWindowHandle window) {
@@ -104,7 +115,7 @@ public final class SdlCompositor implements Compositor {
         if (closed || unavailable != null) {
             return false;
         }
-        var options = DeviceOptions.fromProperties();
+        var options = DeviceOptions.fromProperties(power);
         SdlGpuDevice made = null;
         var started = System.nanoTime();
         try {
@@ -115,9 +126,11 @@ public final class SdlCompositor implements Compositor {
             api = ApiAccess.device(made);
             device = made;
             LOG.info(
-                    "[GPU] device ready in {} ms: {}{}, taking {}; windows and GPU layers use it",
+                    "[GPU] device ready in {} ms: {} on {}{}{}, taking {}; windows and GPU layers use it",
                     (System.nanoTime() - started) / 1_000_000,
                     made.driver(),
+                    adapterName(made),
+                    options.preferLowPower() ? "" : " (the high-performance GPU preferred)",
                     options.debugMode() ? " with validation" : "",
                     made.shaderFormats());
             return true;
@@ -134,6 +147,17 @@ public final class SdlCompositor implements Compositor {
             composite = null;
             api = null;
             return false;
+        }
+    }
+
+    /// The adapter's name for the log, or "an unnamed adapter" where SDL has
+    /// none to give: a log line must not cost the window its device.
+    private static String adapterName(SdlGpuDevice device) {
+        try {
+            var name = device.adapter().name();
+            return name.isEmpty() ? "an unnamed adapter" : name;
+        } catch (SdlException e) {
+            return "an unnamed adapter";
         }
     }
 

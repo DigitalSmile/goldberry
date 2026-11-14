@@ -169,6 +169,24 @@ page for a change to `site/` alone (ADR-0590), and GB-034, written 2026-10-10
 | `components-gpu.md`, `## Ray tracing`: the two tiers, `**Asking first.**`, `**The lighting into textures.**`, `**What it costs.**` and `**Where it runs.**` | `book/src/components/gpu.md`, in `## Ray tracing`, replacing the paragraphs of the same names | ADR-0674's guide pieces; its Java samples keep each call on one line, for `BookTest`'s bracket rule |
 | `adr/0675-…` | `book/src/adr/` | The type scale steps up two pixels: body 15/20, every rank +2 in size and line, `Typography.INITIAL`, the Nord tokens, the canvas fallback 16, the showcase's Small. Contiguous with 0674 |
 | `guide-design-system-type-scale.md` | `book/src/guide/design-system.md`, the type-scale table under the `kdl` sample | ADR-0675: replaces the table whole |
+| `adr/0676-…` | `book/src/adr/` | The GPU a device prefers can be asked for (`GpuPower`, `goldberry.gpu.power`, `OffscreenGpu.open(GpuPower)`), and an offscreen GPU names its adapter. Contiguous with 0675; relates to 0479, 0669 |
+| `adr/0677-…` | `book/src/adr/` | A tree that paints nothing renders as its background; amends 0227 |
+| `adr/0678-…` | `book/src/adr/` | The text scale is the application's: `Application.textScale()`, `Host.textScale(double)`, `Offscreen.textScale(double)`. Relates to 0626 |
+| `adr/0679-…` | `book/src/adr/` | A length divided by a length is a number: typed division in `calc()`, so `scale: min(100vw / 2560px, 100vh / 1440px)` is a declaration. Relates to 0600–0622 |
+| `adr/0680-…` | `book/src/adr/` | Every button clicks (`PointerEvent.Kind.AUX_CLICKED`), and any node takes a click (`Attributes.onClick`) |
+| `adr/0681-…` | `book/src/adr/` | A composited canvas that draws every frame damages nothing: the frame time reaches the layer as the tree is built; `Frame.composesGpuLayers()`. Relates to 0479, 0671 |
+| `adr/0682-…` | `book/src/adr/` | A window is captured while it runs: `--capture-at=N`, `Host.capture(Path)` |
+| `adr/0683-…` | `book/src/adr/` | An opened URL reaches the application (`Application.onOpenUrl`, `BackendEvent.OpenUrl`), and a second launch hands over (`dev.goldberry.instance.SingleInstance`, `Application.singleInstance()`). Partly supersedes 0291: add a line to 0291's status naming 0683 |
+| `adr/0684-…` | `book/src/adr/` | A page runs the application's script first (`initScript`, `goldberry_webview_init`, web view ABI 9) and hears from it (`WebViewController.eval`, `postMessage`). Relates to 0441 |
+| `adr/0685-…` | `book/src/adr/` | The weaver is published (`goldberry-weaver`, `Inclusion.TOOL`), with a Gradle plugin that runs it (`goldberry-gradle-plugin`, id `dev.goldberry.weave`, `:gradle-plugin`). Relates to 0125, 0495 |
+| `adr/0686-…` | `book/src/adr/` | Words in the user's language are the toolkit's too: `dev.goldberry.i18n` (`PluralRules` over CLDR 49, `IcuMessage`, `Labels`/`ToolkitLabel`), `tools/i18n/extract_plurals.py` |
+| `adr/0687-…` | `book/src/adr/` | A path knows what its fill contains: `Path.contains`, `PathHitTest`; `clip-path: path()` hit-tests by the path. Relates to 0618 |
+| `adr/0688-…` | `book/src/adr/` | Text is measured with the library that lays it out: Lantern's G-12 declined. Relates to 0291 |
+| `adr/0689-…` | `book/src/adr/` | Media plays and does not encode: Tessera's G-06 declined. Relates to 0651–0658 |
+| `adr/0690-…` | `book/src/adr/` | PDF stays parked until PDFium's provenance is decided: Tessera's G-23. Relates to 0030 |
+| `adr/0691-…` | `book/src/adr/` | A frame is heard whole, and its spread is percentiles: `Window.onFrame`, `FrameSample`/`FrameRecord`, `FrameStats.percentile(FrameStage, p)`, `FrameStats.layers()`, the `layers` hud reading. Relates to 0681 |
+| `adr/0692-…` | `book/src/adr/` | A pinch is a pointer event with a scale: `PointerEvent.Kind.PINCH`, `PinchPhase`, `BackendEvent.PointerPinch`, `Layouts.SDL_PINCH_FINGER_EVENT`; native ABI stays 26. Relates to 0680, 0687 |
+| `guide-gaps-batch.md` | the pages each piece names | Guide pieces for the batch, each with its destination |
 
 ## Doc comments that point at the guide
 

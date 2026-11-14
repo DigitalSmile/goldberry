@@ -319,6 +319,18 @@ public class TestHost implements Host {
     @Override
     public void restyle() {}
 
+    private double textScale = 1;
+
+    @Override
+    public double textScale() {
+        return textScale;
+    }
+
+    @Override
+    public void textScale(double factor) {
+        textScale = factor;
+    }
+
     @Override
     public void title(String title) {}
 
@@ -821,6 +833,11 @@ public class TestHost implements Host {
         @Override
         public void eval(String script) {
             calls.add("eval(" + script + ")");
+        }
+
+        @Override
+        public void init(String script) {
+            calls.add("init(" + script + ")");
         }
 
         /// The cookies [#cookies] answers with.

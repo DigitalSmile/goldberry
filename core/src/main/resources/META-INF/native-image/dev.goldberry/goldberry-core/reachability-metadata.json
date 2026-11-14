@@ -23,6 +23,7 @@
     { "module": "dev.goldberry.core", "glob": "dev/goldberry/assets/fonts/*.ttf" },
     { "module": "dev.goldberry.core", "glob": "dev/goldberry/assets/icons/*.txt" },
     { "module": "dev.goldberry.core", "glob": "dev/goldberry/css/*.css" },
-    { "module": "dev.goldberry.core", "glob": "dev/goldberry/build-info.properties" }
+    { "module": "dev.goldberry.core", "glob": "dev/goldberry/build-info.properties" },
+    { "module": "dev.goldberry.core", "glob": "dev/goldberry/i18n/plurals.txt" }
   ]
 }

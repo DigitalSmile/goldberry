@@ -1,0 +1,65 @@
+plugins {
+    id 'java-gradle-plugin'
+    // Published as `goldberry-gradle-plugin`, with the marker
+    // `dev.goldberry.weave.gradle.plugin` that `plugins { id 'dev.goldberry.weave' }`
+    // resolves from Maven Central.
+    id 'goldberry.publish'
+}
+
+description = 'Goldberry Gradle plugin: runs the weaver over the compiled classes of an application'
+
+def catalog = extensions.getByType(org.gradle.api.artifacts.VersionCatalogsExtension).named('libs')
+def javaVersion = catalog.findVersion('java').get().requiredVersion as int
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(javaVersion)
+    }
+}
+
+// Compiled for 17, not for the toolkit's own floor. The plugin runs inside the
+// APPLICATION's Gradle daemon, which runs on whatever JVM the application's
+// Gradle was started with -- 17 is the oldest Gradle 9 accepts. The weaver
+// itself runs on the application's toolchain, in a JVM of its own.
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+    options.release = 17
+    options.compilerArgs << '-Xlint:all,-serial' << '-Werror'
+}
+
+gradlePlugin {
+    plugins {
+        weave {
+            id = 'dev.goldberry.weave'
+            implementationClass = 'dev.goldberry.gradle.weave.WeavePlugin'
+            displayName = 'Goldberry weave'
+            description = 'Declares a module\'s @Markup widgets, and weaves its @Model classes for a native image'
+        }
+    }
+}
+
+// The weaver the plugin adds by default is the one released with it: the
+// version is written into the jar rather than asked of the application.
+def versionResource = tasks.register('pluginVersion') {
+    def out = layout.buildDirectory.dir('generated/plugin-version')
+    def text = project.version.toString()
+    inputs.property('version', text)
+    outputs.dir(out)
+    doLast {
+        def file = out.get().file('dev/goldberry/gradle/weave/version.txt').asFile
+        file.parentFile.mkdirs()
+        file.text = text
+    }
+}
+sourceSets.main.resources.srcDir(versionResource)
+
+dependencies {
+    testImplementation platform(catalog.findLibrary('junit-bom').get())
+    testImplementation catalog.findLibrary('junit-jupiter').get()
+    testRuntimeOnly catalog.findLibrary('junit-platform-launcher').get()
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
+    testLogging { exceptionFormat = 'full' }
+}

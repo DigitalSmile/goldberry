@@ -6,6 +6,7 @@ import java.util.Optional;
 
 import org.jspecify.annotations.Nullable;
 
+import dev.goldberry.input.event.PointerEvent;
 import dev.goldberry.render.BackendException;
 import dev.goldberry.render.Cursor;
 import dev.goldberry.render.DamageRect;
@@ -750,6 +751,14 @@ public sealed class HeadlessWindow implements BackendWindow permits HeadlessPopu
         backend.requireUiThread();
         requireOpen();
         backend.post(new BackendEvent.PointerWheel(this, x, y, deltaX, deltaY, ticksX, ticksY, modifiers));
+    }
+
+    /// Queues a pinch, as a touchpad would: a test of a zooming canvas needs
+    /// the gesture without the hardware.
+    public void pinchPointer(PointerEvent.PinchPhase phase, float scale, int modifiers) {
+        backend.requireUiThread();
+        requireOpen();
+        backend.post(new BackendEvent.PointerPinch(this, phase, scale, modifiers));
     }
 
     /// Queues the pointer leaving the window.

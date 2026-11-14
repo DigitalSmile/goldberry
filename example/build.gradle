@@ -248,7 +248,7 @@ tasks.named('run') {
     ['goldberry.paint.threads', 'goldberry.backend.vsync', 'goldberry.frame.rate',
      'goldberry.backend.videoDriver', 'goldberry.trace.frames',
      'goldberry.trace.input', 'goldberry.gpu', 'goldberry.gpu.composite',
-     'goldberry.gpu.driver', 'goldberry.gpu.debug'].each { name ->
+     'goldberry.gpu.driver', 'goldberry.gpu.debug', 'goldberry.gpu.power'].each { name ->
         var value = providers.systemProperty(name).orElse(providers.gradleProperty(name))
         if (value.present) {
             systemProperty name, value.get()

@@ -9,6 +9,8 @@ import org.jspecify.annotations.Nullable;
 
 import dev.goldberry.css.ComputedStyle;
 import dev.goldberry.css.value.Transform;
+import dev.goldberry.i18n.Labels;
+import dev.goldberry.i18n.ToolkitLabel;
 import dev.goldberry.input.event.KeyEvent;
 import dev.goldberry.input.event.PointerEvent;
 import dev.goldberry.input.handler.Handles;
@@ -286,7 +288,7 @@ record DialogPanel(
 
         @Override
         public String accessibleName() {
-            return "Close";
+            return Labels.text(ToolkitLabel.CLOSE);
         }
     }
 

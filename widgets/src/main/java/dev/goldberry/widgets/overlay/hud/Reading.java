@@ -373,6 +373,31 @@ public enum Reading {
         double budgetMillis(FrameStats stats) {
             return frameBudget(stats) / 16;
         }
+    },
+
+    /// A composited frame's GPU layers rendered again:
+    /// `layers 0.40 / 0.55 / 1.20 ms`.
+    ///
+    /// The application's own GPU work, a `canvas3d`'s renderer recording its
+    /// passes or a video's next picture, measured apart from the compositor's
+    /// so a scene that grew heavier is not read as the toolkit getting slower.
+    /// Dashes on a window with no layer on screen or no GPU compositor.
+    LAYERS("layers") {
+        @Override
+        String text(FrameStats stats) {
+            return span("layers", stats.layers(), 2);
+        }
+
+        @Override
+        double value(FrameStats stats) {
+            return stats.layers().mean();
+        }
+
+        /// A quarter of a display frame: as much as raster gets.
+        @Override
+        double budgetMillis(FrameStats stats) {
+            return frameBudget(stats) / 4;
+        }
     };
 
     /// How a reading is doing against its budget — see [#level].
@@ -428,7 +453,8 @@ public enum Reading {
             }
         }
         throw new IllegalArgumentException("\"" + text + "\" is not a hud reading. Use one of:"
-                + " fps, refresh, pacing, late, paint, build, style, layout, raster, upload, acquire, submit");
+                + " fps, refresh, pacing, late, paint, build, style, layout, raster, upload, acquire, submit,"
+                + " layers");
     }
 
     /// This reading of `stats`, assuming there is something to read.
@@ -488,7 +514,7 @@ public enum Reading {
     /// Whether this reading is one of a composited window's present, which
     /// has nothing to read on a window presenting through its surface.
     boolean isPresent() {
-        return this == UPLOAD || this == ACQUIRE || this == SUBMIT;
+        return this == UPLOAD || this == ACQUIRE || this == SUBMIT || this == LAYERS;
     }
 
     /// A byte count the way a person reads one: `512 B`, `12.5 KiB`, `31.6 MiB`.
@@ -543,6 +569,7 @@ public enum Reading {
                 case UPLOAD -> "upload —";
                 case ACQUIRE -> "acquire —";
                 case SUBMIT -> "submit —";
+                case LAYERS -> "layers —";
             };
         }
         return text(stats);

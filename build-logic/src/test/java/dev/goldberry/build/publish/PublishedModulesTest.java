@@ -1,6 +1,7 @@
 package dev.goldberry.build.publish;
 
 import dev.goldberry.build.publish.PublishedModule.Bom;
+import dev.goldberry.build.publish.PublishedModule.GradlePlugin;
 import dev.goldberry.build.publish.PublishedModule.Inclusion;
 import dev.goldberry.build.publish.PublishedModule.Library;
 import dev.goldberry.build.publish.PublishedModule.Umbrella;
@@ -66,7 +67,7 @@ class PublishedModulesTest {
     }
 
     @Test
-    @DisplayName("prefixes a library's artifact id, and refuses a tool")
+    @DisplayName("prefixes a library's artifact id, publishes the weaver and its plugin, and refuses this build's own tools")
     void artifactIds() {
         assertAll(
                 () -> assertEquals("goldberry-core", PublishedModules.artifactId("core")),
@@ -74,7 +75,8 @@ class PublishedModulesTest {
                 () -> assertEquals("goldberry-bom", PublishedModules.artifactId("bom")),
                 () -> assertEquals("goldberry", PublishedModules.artifactId("toolkit")),
                 () -> assertFalse(PublishedModules.isPublished("assets")),
-                () -> assertThrows(IllegalArgumentException.class, () -> PublishedModules.artifactId("weaver")),
+                () -> assertEquals("goldberry-weaver", PublishedModules.artifactId("weaver")),
+                () -> assertEquals("goldberry-gradle-plugin", PublishedModules.artifactId("gradle-plugin")),
                 () -> assertThrows(IllegalArgumentException.class, () -> PublishedModules.require("example")));
     }
 
@@ -116,11 +118,27 @@ class PublishedModulesTest {
         }
 
         @Test
-        @DisplayName("every library is either required or optional -- the BOM pins both")
+        @DisplayName("every library is required, optional or a tool -- the BOM pins all three")
         void librariesPartition() {
             assertEquals(PublishedModules.libraries().size(),
                     PublishedModules.libraries(Inclusion.REQUIRED).size()
-                            + PublishedModules.libraries(Inclusion.OPTIONAL).size());
+                            + PublishedModules.libraries(Inclusion.OPTIONAL).size()
+                            + PublishedModules.libraries(Inclusion.TOOL).size());
+        }
+
+        @Test
+        @DisplayName("leaves the weaver out: a build tool reaches no application's run time")
+        void leavesTheToolsOut() {
+            assertEquals(List.of("weaver"),
+                    PublishedModules.libraries(Inclusion.TOOL).stream().map(Library::project).toList());
+        }
+
+        @Test
+        @DisplayName("finds the Gradle plugin by its project, with the id a build applies")
+        void findsThePlugin() {
+            var plugin = assertInstanceOf(GradlePlugin.class, PublishedModules.require("gradle-plugin"));
+            assertEquals("dev.goldberry.weave", plugin.pluginId());
+            assertEquals("Goldberry Gradle plugin", PublishedModules.displayName(plugin));
         }
     }
 }

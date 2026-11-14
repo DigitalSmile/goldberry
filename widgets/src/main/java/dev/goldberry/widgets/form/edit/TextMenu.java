@@ -7,6 +7,8 @@ import org.jspecify.annotations.Nullable;
 
 import dev.goldberry.Host;
 import dev.goldberry.bind.Subscription;
+import dev.goldberry.i18n.Labels;
+import dev.goldberry.i18n.ToolkitLabel;
 import dev.goldberry.input.key.Key;
 import dev.goldberry.input.key.Shortcut;
 import dev.goldberry.render.model.LogicalRect;
@@ -95,11 +97,11 @@ public final class TextMenu {
     public static Menu menu(TextCommands commands) {
         Objects.requireNonNull(commands, "commands");
         return new Menu(
-                row("Cut", Key.X, commands.canCut(), commands::cut),
-                row("Copy", Key.C, commands.canCopy(), commands::copy),
-                row("Paste", Key.V, commands.canPaste(), commands::paste),
+                row(Labels.text(ToolkitLabel.CUT), Key.X, commands.canCut(), commands::cut),
+                row(Labels.text(ToolkitLabel.COPY), Key.C, commands.canCopy(), commands::copy),
+                row(Labels.text(ToolkitLabel.PASTE), Key.V, commands.canPaste(), commands::paste),
                 new Separator(),
-                row("Select all", Key.A, commands.canSelectAll(), commands::selectAll));
+                row(Labels.text(ToolkitLabel.SELECT_ALL), Key.A, commands.canSelectAll(), commands::selectAll));
     }
 
     /// One row. The command's answer is dropped: the field redraws itself, and

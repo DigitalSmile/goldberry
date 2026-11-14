@@ -142,4 +142,16 @@ class CompositingPaintTest {
             assertTrue(!box.contains(3, 3), "a corner the circle leaves out");
         }
     }
+
+    @Test
+    @DisplayName("the pointer finds a box clipped to a path inside the path's fill, holes left out")
+    void hitTestPath() {
+        var root = scene("background: red; clip-path: path(evenodd, 'M0 0 H80 V80 H0 Z M20 20 H60 V60 H20 Z')");
+        try (var tree = RenderTree.create()) {
+            tree.update(target.frame(), root);
+            var box = HitTest.capture(tree).get(1);
+            assertTrue(box.contains(10, 10), "the ring");
+            assertTrue(!box.contains(40, 40), "the hole the evenodd rule leaves");
+        }
+    }
 }

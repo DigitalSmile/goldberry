@@ -1,8 +1,10 @@
 package dev.goldberry.render.web;
 
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Predicate;
@@ -40,6 +42,8 @@ import org.jspecify.annotations.Nullable;
 /// @param callbacks  the functions the page's script may call, by name
 /// @param onNavigate asked before the page goes anywhere, or null to let it go
 ///        everywhere — see [#onNavigate(Predicate)]
+/// @param initScripts script run before each document's own, in order — see
+///        [#initScript(String)]
 public record WebViewSpec(
         @Nullable String url,
         @Nullable String html,
@@ -49,7 +53,8 @@ public record WebViewSpec(
         WebSize size,
         boolean debug,
         Map<String, WebCallback> callbacks,
-        @Nullable Predicate<URI> onNavigate) {
+        @Nullable Predicate<URI> onNavigate,
+        List<String> initScripts) {
 
     /// The size a page opens at when nothing says otherwise.
     ///
@@ -71,7 +76,8 @@ public record WebViewSpec(
             WebSize size,
             boolean debug,
             @Nullable Map<String, WebCallback> callbacks,
-            @Nullable Predicate<URI> onNavigate) {
+            @Nullable Predicate<URI> onNavigate,
+            @Nullable List<String> initScripts) {
         Objects.requireNonNull(title, "title");
         Objects.requireNonNull(size, "size");
         // Copied and ordered, so the names are bound in the order they were
@@ -95,6 +101,23 @@ public record WebViewSpec(
         this.debug = debug;
         this.callbacks = callbacks;
         this.onNavigate = onNavigate;
+        this.initScripts = initScripts == null ? List.of() : List.copyOf(initScripts);
+    }
+
+    /// A page with no script of the application's run before its own — the
+    /// shape this record had before one could be, kept so that adding that
+    /// changed nothing that already worked.
+    public WebViewSpec(
+            @Nullable String url,
+            @Nullable String html,
+            String title,
+            int width,
+            int height,
+            WebSize size,
+            boolean debug,
+            @Nullable Map<String, WebCallback> callbacks,
+            @Nullable Predicate<URI> onNavigate) {
+        this(url, html, title, width, height, size, debug, callbacks, onNavigate, null);
     }
 
     /// A page that is not asked about its navigations — the shape this record
@@ -135,7 +158,7 @@ public record WebViewSpec(
         Objects.requireNonNull(handler, "handler");
         var next = new LinkedHashMap<>(callbacks);
         next.put(name, handler);
-        return new WebViewSpec(url, html, title, width, height, size, debug, next, onNavigate);
+        return new WebViewSpec(url, html, title, width, height, size, debug, next, onNavigate, initScripts);
     }
 
     /// The same page, asking `decide` before it goes anywhere.
@@ -165,10 +188,28 @@ public record WebViewSpec(
     ///
     /// @param decide what to ask, or null to stop asking
     public WebViewSpec onNavigate(@Nullable Predicate<URI> decide) {
-        return new WebViewSpec(url, html, title, width, height, size, debug, callbacks, decide);
+        return new WebViewSpec(url, html, title, width, height, size, debug, callbacks, decide, initScripts);
     }
 
     /// A page that opens at `url`, at the default size.
+    /// This page, running `script` before each document's own scripts, on
+    /// every navigation: where an embedding application defines the API its
+    /// pages call, as a messenger's mini apps expect `window.Telegram.WebApp`
+    /// to be there when their first line runs. Scripts run in the order they
+    /// were added.
+    ///
+    /// ```java
+    /// WebViewSpec.of(app.url())
+    ///         .initScript("window.Host = { send: (m) => window.hostSend(JSON.stringify(m)) };")
+    ///         .on("hostSend", arguments -> handle(arguments))
+    /// ```
+    public WebViewSpec initScript(String script) {
+        Objects.requireNonNull(script, "script");
+        var next = new ArrayList<>(initScripts);
+        next.add(script);
+        return new WebViewSpec(url, html, title, width, height, size, debug, callbacks, onNavigate, next);
+    }
+
     public static WebViewSpec of(String url) {
         Objects.requireNonNull(url, "url");
         return new WebViewSpec(url, null, "", DEFAULT_WIDTH, DEFAULT_HEIGHT, WebSize.INITIAL, false);
@@ -188,16 +229,25 @@ public record WebViewSpec(
     /// The same page with a window title.
     public WebViewSpec title(String value) {
         return new WebViewSpec(
-                url, html, Objects.requireNonNull(value, "title"), width, height, size, debug, callbacks, onNavigate);
+                url,
+                html,
+                Objects.requireNonNull(value, "title"),
+                width,
+                height,
+                size,
+                debug,
+                callbacks,
+                onNavigate,
+                initScripts);
     }
 
     /// The same page at a different window size.
     public WebViewSpec sized(int value, int height, WebSize mode) {
-        return new WebViewSpec(url, html, title, value, height, mode, debug, callbacks, onNavigate);
+        return new WebViewSpec(url, html, title, value, height, mode, debug, callbacks, onNavigate, initScripts);
     }
 
     /// The same page with the engine's inspector on.
     public WebViewSpec debug(boolean value) {
-        return new WebViewSpec(url, html, title, width, height, size, value, callbacks, onNavigate);
+        return new WebViewSpec(url, html, title, width, height, size, value, callbacks, onNavigate, initScripts);
     }
 }

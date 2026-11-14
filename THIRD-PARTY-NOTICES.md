@@ -143,6 +143,7 @@ category, from two tables compiled at build time (`PrepareCatalogs`):
 |---|---|---|---|
 | Lucide icon metadata | ISC | <https://lucide.dev> | Each icon's categories, from the same pinned archive as the icons ([licence](licenses/lucide.txt)) |
 | [Unicode emoji data](licenses/unicode.txt) | Unicode License v3 | <https://unicode.org/Public/18.0.0/emoji/emoji-test.txt> | Each emoji's group, compiled from `emoji-test.txt` 18.0 |
+| [Unicode CLDR plural rules](licenses/unicode.txt) | Unicode License v3 | <https://github.com/unicode-org/cldr-json/tree/49.0.0> | Every locale's cardinal and ordinal plural rules, extracted from CLDR 49 `plurals.json` and `ordinals.json` into `dev/goldberry/i18n/plurals.txt` by `tools/i18n/extract_plurals.py` |
 
 ## Not distributed
 

@@ -79,7 +79,7 @@
 // The contract Webview.java binds. Bump on any change to the shape of what is
 // exported below; Java refuses a library that disagrees rather than calling into
 // it, because a mismatched shim is undefined behaviour and not a missing feature.
-#define GOLDBERRY_WEBVIEW_ABI 8
+#define GOLDBERRY_WEBVIEW_ABI 9
 
 // SizeHint.java carries these four numbers. Checked here rather than trusted
 // there, which is the same move the layout table makes for every other binding:
@@ -1504,6 +1504,13 @@ GOLDBERRY_WEBVIEW_EXPORT int goldberry_webview_set_size(void *w, int width, int 
 
 GOLDBERRY_WEBVIEW_EXPORT int goldberry_webview_eval(void *w, const char *js) {
     return static_cast<int>(webview_eval(w, js));
+}
+
+/// Runs `js` before each document's own scripts, on every navigation from the
+/// next one on: where an embedding application defines the API its pages call.
+/// Call it before navigating, as `bind` is.
+GOLDBERRY_WEBVIEW_EXPORT int goldberry_webview_init(void *w, const char *js) {
+    return static_cast<int>(webview_init(w, js));
 }
 
 /// Gives the engine's event loop a turn, without ever taking the thread.

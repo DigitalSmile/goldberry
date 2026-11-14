@@ -23,6 +23,7 @@ import dev.goldberry.css.Theme;
 import dev.goldberry.css.cascade.CascadeLayer;
 import dev.goldberry.golden.GoldenImage;
 import dev.goldberry.golden.Tolerance;
+import dev.goldberry.gpu.GpuPower;
 import dev.goldberry.gpu.view.Canvas3d;
 import dev.goldberry.gpu.view.TestCube;
 import dev.goldberry.image.Image;
@@ -167,6 +168,22 @@ class OffscreenGpuTest {
     }
 
     @Test
+    @DisplayName("opens on either power preference and names the adapter it got")
+    void powerAndAdapter() {
+        for (var power : GpuPower.values()) {
+            try (var gpu = OffscreenGpu.open(power)) {
+                var adapter = gpu.adapter();
+                assertEquals(gpu.device().adapter(), adapter, "the device's own adapter");
+                assertTrue(
+                        gpu.toString().startsWith("OffscreenGpu[" + gpu.device().driver()), gpu.toString());
+                if (!adapter.name().isEmpty()) {
+                    assertTrue(gpu.toString().contains(adapter.name()), "the name is in " + gpu);
+                }
+            }
+        }
+    }
+
+    @Test
     @DisplayName("closes once, and refuses its surface and device after")
     void closes() {
         var gpu = OffscreenGpu.open();
@@ -177,5 +194,7 @@ class OffscreenGpuTest {
         assertTrue(device.isClosed(), "the device went with it");
         assertThrows(IllegalStateException.class, gpu::surface);
         assertThrows(IllegalStateException.class, gpu::device);
+        assertThrows(IllegalStateException.class, gpu::adapter);
+        assertTrue(gpu.toString().endsWith(", closed]"), gpu.toString());
     }
 }

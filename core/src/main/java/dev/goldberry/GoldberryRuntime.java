@@ -2,6 +2,7 @@ package dev.goldberry;
 
 import java.util.IdentityHashMap;
 import java.util.Objects;
+import java.util.function.Consumer;
 
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
@@ -53,6 +54,16 @@ final class GoldberryRuntime {
     /// application's windows to another is a lost and a gained. Only something
     /// that can see every window can tell that from leaving, and that is the
     /// launcher.
+    /// Told what the system asked the application to open: a URL or a file's
+    /// path, from a [BackendEvent.OpenUrl].
+    private @Nullable Consumer<String> openUrlWatcher;
+
+    /// Sets what hears [BackendEvent.OpenUrl]: the launcher, which hands it to
+    /// the application. One, for [#onFocusChange]'s reason.
+    void onOpenUrl(Consumer<String> watcher) {
+        this.openUrlWatcher = watcher;
+    }
+
     void onFocusChange(Runnable watcher) {
         this.focusWatcher = watcher;
     }
@@ -172,6 +183,15 @@ final class GoldberryRuntime {
     /// and keyboard events arrive, this stops compiling until it says what it
     /// does with them.
     private void dispatch(BackendEvent event) {
+        // The application's, not a window's: heard before the window lookup,
+        // which an event naming a window that has closed would not get past.
+        if (event instanceof BackendEvent.OpenUrl open) {
+            var watcher = openUrlWatcher;
+            if (watcher != null) {
+                watcher.accept(open.target());
+            }
+            return;
+        }
         var window = windows.get(event.window());
         if (window == null) {
             // An event for a window already closed on the Java side. The backend
@@ -206,6 +226,8 @@ final class GoldberryRuntime {
                         wheel.ticksX(),
                         wheel.ticksY(),
                         wheel.modifiers());
+            case BackendEvent.PointerPinch pinch ->
+                window.handlePointerPinch(pinch.phase(), pinch.scale(), pinch.modifiers());
             case BackendEvent.PointerExited _ -> window.handlePointerExited();
             case BackendEvent.FocusChanged focus -> {
                 window.handleFocusChanged(focus.focused());
@@ -227,6 +249,9 @@ final class GoldberryRuntime {
             case BackendEvent.FileDropped dropped -> window.handleFileDropped(dropped.path(), dropped.x(), dropped.y());
             case BackendEvent.TextDropped dropped -> window.handleTextDropped(dropped.text(), dropped.x(), dropped.y());
             case BackendEvent.FileDropCompleted done -> window.handleDropCompleted(done.x(), done.y());
+            case BackendEvent.OpenUrl _ -> {
+                // Handled above, before the window was looked up.
+            }
         }
     }
 

@@ -4,14 +4,16 @@ package dev.goldberry.build.publish;
  * One thing Goldberry publishes to Maven Central, and the Gradle project it is
  * built from.
  *
- * <p>Three kinds, because they are published three different ways: a
+ * <p>Four kinds, because they are published four different ways: a
  * {@link Library} is a {@code java-library} with code in it; the {@link Bom} is a
  * {@code java-platform} that pins every other artifact's version; the
  * {@link Umbrella} is the one dependency an application starts from, carrying the
- * required libraries and naming the optional ones.
+ * required libraries and naming the optional ones; a {@link GradlePlugin} is a
+ * {@code java-gradle-plugin}, published with the marker artifact that lets a
+ * build apply it by id.
  */
 public sealed interface PublishedModule
-        permits PublishedModule.Library, PublishedModule.Bom, PublishedModule.Umbrella {
+        permits PublishedModule.Library, PublishedModule.Bom, PublishedModule.Umbrella, PublishedModule.GradlePlugin {
 
     /** What every artifact id but the umbrella's starts with. */
     String ARTIFACT_PREFIX = "goldberry-";
@@ -31,7 +33,13 @@ public sealed interface PublishedModule
          * by the BOM, and added by an application that wants it -- the content
          * modules, {@code :media} and {@code :gpu}.
          */
-        OPTIONAL
+        OPTIONAL,
+        /**
+         * A build-time tool: versioned by the BOM, and no dependency of
+         * {@code goldberry} at all, because it never reaches an application's
+         * run time -- the weaver.
+         */
+        TOOL
     }
 
     /** A module with code in it, published as {@code goldberry-<project>}. */
@@ -65,6 +73,18 @@ public sealed interface PublishedModule
         @Override
         public String artifactId() {
             return "goldberry";
+        }
+    }
+
+    /**
+     * A Gradle plugin, published as {@code goldberry-<project>} with the marker
+     * {@code <pluginId>.gradle.plugin} beside it, so a build applies it with
+     * {@code plugins { id '<pluginId>' }}.
+     */
+    record GradlePlugin(String project, String pluginId) implements PublishedModule {
+        @Override
+        public String artifactId() {
+            return ARTIFACT_PREFIX + project;
         }
     }
 }

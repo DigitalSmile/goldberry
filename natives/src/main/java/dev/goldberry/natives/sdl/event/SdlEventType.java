@@ -86,6 +86,16 @@ public enum SdlEventType {
     /// The wheel turned, or a touchpad scrolled. `SDL_MouseWheelEvent`.
     MOUSE_WHEEL(0x403),
 
+    /// Two fingers began to pinch on a touchpad or a touchscreen.
+    /// `SDL_PinchFingerEvent`.
+    PINCH_BEGIN(0x710),
+
+    /// The pinch changed its scale, by the factor since the last update.
+    PINCH_UPDATE(0x711),
+
+    /// The fingers lifted.
+    PINCH_END(0x712),
+
     /// A key went down. `SDL_KeyboardEvent`.
     KEY_DOWN(0x300),
 

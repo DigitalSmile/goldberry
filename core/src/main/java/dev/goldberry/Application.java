@@ -1,5 +1,6 @@
 package dev.goldberry;
 
+import java.net.URI;
 import java.util.List;
 import java.util.Optional;
 
@@ -154,6 +155,18 @@ public interface Application {
         return List.of();
     }
 
+    /// The text scale windows open at: 1 draws text at the sizes the
+    /// stylesheets give, 1.25 a quarter larger. A user's text-size setting,
+    /// read back from where the application keeps it, is what goes here;
+    /// [Host#textScale(double)] changes it while the application runs.
+    ///
+    /// Clamped to what the design system allows, 0.9 to 1.5, rather than
+    /// refused: a value read from a settings file must not stop a window
+    /// opening. 1 by default.
+    default double textScale() {
+        return 1;
+    }
+
     /// The window's icon — the picture the taskbar, the dock and the window
     /// switcher show — as several sizes of one image.
     ///
@@ -303,4 +316,34 @@ public interface Application {
     /// launcher opened, and nothing else: it cannot know that an `Icon` in a
     /// field is still referenced by a widget that has not been collected.
     default void stop() {}
+
+    /// An id that makes the application **one running copy**, or empty (the
+    /// default) for as many as are launched.
+    ///
+    /// With one, a second launch opens no window: it hands its command line to
+    /// the copy already running and exits, and the running copy hears each
+    /// argument that is a URL or a file through [#onOpenUrl]. That is how a
+    /// link of a scheme the application registered reaches the window the user
+    /// already has on Windows and Linux, where the system starts a new process
+    /// for it. See [dev.goldberry.instance.SingleInstance].
+    ///
+    /// The id names a directory: letters, digits, dots, dashes and underscores,
+    /// usually the application's reverse domain name.
+    default Optional<String> singleInstance() {
+        return Optional.empty();
+    }
+
+    /// The system asked this application to open `target`: a URL of a scheme
+    /// it registered, or a file opened from the desktop. Called on the UI
+    /// thread, after [#start].
+    ///
+    /// It arrives here on macOS, where the system hands it to the running
+    /// application, and from a second launch on every platform for an
+    /// application with a [#singleInstance()] id. A first launch's own command
+    /// line is the application's to read. Registering a scheme is packaging: a
+    /// `.desktop` file's `MimeType=x-scheme-handler/…`, `CFBundleURLTypes`, or
+    /// a registry key an installer writes.
+    ///
+    /// A file arrives as a `file:` URI. Nothing by default.
+    default void onOpenUrl(URI target) {}
 }

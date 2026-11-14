@@ -1178,6 +1178,14 @@ public final class Frame {
         return gpu != null;
     }
 
+    /// Whether a GPU layer placed here is composited over the frame, by a
+    /// window presenting through the GPU, rather than read back into it. A
+    /// layer that changes with nothing else needs no repaint of the frame in
+    /// the first case, and does in the second, where the frame is the picture.
+    public boolean composesGpuLayers() {
+        return gpu instanceof GpuSurface.Composited;
+    }
+
     /// How many times a painter has asked this frame for a GPU layer, whether
     /// or not one was placed.
     ///

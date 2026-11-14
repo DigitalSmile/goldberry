@@ -17,7 +17,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-/// Collects a module's `@Markup` widgets into one generated [WidgetCatalog].
+/// Collects a module's `@Markup` widgets into one generated `WidgetCatalog`.
 ///
 /// The registration half of the weaver. Where [ModelWeaver] *transforms* a class
 /// the author wrote, this **writes a new one** — there is nothing to transform,

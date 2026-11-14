@@ -127,6 +127,8 @@ public final class Offscreen {
 
     private DisplayScale scale = DisplayScale.ONE;
 
+    private double textScale = 1;
+
     private List<Stylesheet> stylesheets = List.of();
 
     /// The book, or the one font, or neither — at most one of these is set, and
@@ -203,6 +205,18 @@ public final class Offscreen {
     /// [#scale(DisplayScale)] from a factor.
     public Offscreen scale(float factor) {
         return scale(new DisplayScale(factor));
+    }
+
+    /// The text scale the tree is drawn at, as a window's user setting would
+    /// set it: 1 by default, clamped to 0.9 to 1.5.
+    ///
+    /// @throws IllegalArgumentException if `factor` is not finite
+    public Offscreen textScale(double factor) {
+        if (!Double.isFinite(factor)) {
+            throw new IllegalArgumentException("a text scale must be a finite factor, not " + factor);
+        }
+        this.textScale = factor;
+        return this;
     }
 
     /// The stylesheets the tree is cascaded against — `Controls.stylesheets(theme)`
@@ -434,16 +448,18 @@ public final class Offscreen {
         // is confined to one thread and its renders are therefore sequential.
         var studios = kept;
         if (studios != null) {
-            return studios.clock(clock);
+            return studios.clock(clock).textScale(textScale);
         }
         if (ownFonts != null) {
-            return new WidgetRenderer(stylesheets, ownFonts).clock(clock);
+            return new WidgetRenderer(stylesheets, ownFonts).clock(clock).textScale(textScale);
         }
         var book = fonts;
         if (book != null) {
-            return new WidgetRenderer(stylesheets, book).clock(clock);
+            return new WidgetRenderer(stylesheets, book).clock(clock).textScale(textScale);
         }
-        return new WidgetRenderer(stylesheets, Objects.requireNonNull(font, "font")).clock(clock);
+        return new WidgetRenderer(stylesheets, Objects.requireNonNull(font, "font"))
+                .clock(clock)
+                .textScale(textScale);
     }
 
     /// One pass that lays the tree out and tells it what it came out as, without
@@ -512,7 +528,9 @@ public final class Offscreen {
             // still picture taken from that studio beside it. The book is shared --
             // that is the expensive part -- and the cascade index is rebuilt, which
             // is what a strip costs a studio ([Studio]).
-            var renderer = new WidgetRenderer(stylesheets, bookFor(ownFonts)).clock(clock);
+            var renderer = new WidgetRenderer(stylesheets, bookFor(ownFonts))
+                    .clock(clock)
+                    .textScale(textScale);
             return new Filmstrip(surface(), ownFonts, renderer, clock, root);
         } catch (RuntimeException e) {
             if (ownFonts != null) {
@@ -544,7 +562,7 @@ public final class Offscreen {
             var clock = Clock.virtual();
             // Never the studio's renderer, for the strip's reason.
             var book = bookFor(ownFonts);
-            var renderer = new WidgetRenderer(stylesheets, book).clock(clock);
+            var renderer = new WidgetRenderer(stylesheets, book).clock(clock).textScale(textScale);
             return new Session(surface(), ownFonts, book, renderer, clock, root);
         } catch (RuntimeException e) {
             if (ownFonts != null) {

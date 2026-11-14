@@ -155,7 +155,8 @@ class Canvas3dTest {
                 var first = painter(layer, false, 0, 1000);
                 assertEquals(first, painter(layer, false, 0, 1016), "a later frame, the same revision");
                 assertNotEquals(first, painter(layer, false, 1, 1033), "a new revision");
-                assertEquals(33_000_000L, painter(layer, false, 1, 1050).nanos(), "the time the revision came");
+                painter(layer, false, 1, 1050);
+                assertEquals(33_000_000L, layer.nanos(), "the time the revision came");
             }
         }
 
@@ -172,14 +173,29 @@ class Canvas3dTest {
         }
 
         @Test
-        @DisplayName("a continuous canvas's painter differs every frame, with the frame's time since its first")
-        void continuous() {
+        @DisplayName("a continuous canvas read back into the CPU frame has a painter that differs every frame")
+        void continuousReadBack() {
             try (var layer = new Canvas3dLayer(new Idle(), null)) {
                 var first = painter(layer, true, 0, 1000);
+                assertEquals(0, layer.nanos(), "the layer has the frame's time before any paint");
                 var next = painter(layer, true, 0, 1016);
-                assertNotEquals(first, next);
-                assertEquals(0, first.nanos());
-                assertEquals(16_000_000L, next.nanos());
+                assertNotEquals(first, next, "the frame is the picture, so its box is repainted");
+                assertEquals(16_000_000L, layer.nanos());
+            }
+        }
+
+        @Test
+        @DisplayName("a continuous composited canvas has an equal painter, so the UI over it is not uploaded again")
+        void continuousComposited() {
+            try (var layer = new Canvas3dLayer(new Idle(), null)) {
+                painter(layer, true, 0, 1000);
+                layer.composited(true);
+                var first = painter(layer, true, 0, 1016);
+                var next = painter(layer, true, 0, 1033);
+                assertEquals(first, next, "no damage while only the layer changes");
+                assertEquals(33_000_000L, layer.nanos(), "and the renderer still gets each frame's time");
+                assertTrue(layer.needsRender(), "the compositor draws it again every frame");
+                assertNotEquals(first, painter(layer, true, 1, 1050), "a new revision still damages the box");
             }
         }
 
@@ -190,9 +206,7 @@ class Canvas3dTest {
 
         private Canvas3dSurface.Canvas3dPainter painter(
                 Canvas3dLayer layer, boolean continuous, long revision, double now, RenderScale scale) {
-            var nanos = state.nanos(now, continuous, revision);
-            var stamp = continuous ? Double.doubleToLongBits(now) : revision;
-            return new Canvas3dSurface.Canvas3dPainter(layer, stamp, nanos, continuous, revision, scale, 0, state);
+            return Canvas3dSurface.painter(layer, now, continuous, revision, scale, 0, state);
         }
     }
 

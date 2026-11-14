@@ -1,8 +1,6 @@
 package dev.goldberry;
 
-import java.io.IOException;
 import java.io.UncheckedIOException;
-import java.nio.file.Files;
 import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.time.Duration;
@@ -23,6 +21,7 @@ import dev.goldberry.css.lint.StyleLint;
 import dev.goldberry.drive.FrameBudgetException;
 import dev.goldberry.drive.ResizeWalk;
 import dev.goldberry.input.cursor.CursorImage;
+import dev.goldberry.instance.SingleInstance;
 import dev.goldberry.motion.Clock;
 import dev.goldberry.render.desktop.notify.NotificationCenter;
 import dev.goldberry.render.model.LogicalSize;
@@ -51,6 +50,7 @@ final class Launcher {
     private static final Logger LOG = LoggerFactory.getLogger(Launcher.class);
 
     private final Application application;
+    private double textScale;
     private final Options options;
 
     // Built by [#run] rather than here, in the order the window needs them, and
@@ -130,29 +130,49 @@ final class Launcher {
     /// @param capture    where the last frame of a `--frames=N` run is written
     ///                   as a PNG, as the screen showed it, or null for no
     ///                   picture — what a reference capture is taken with
+    /// @param captureAt  the frame `capture` is written at, after which the
+    ///                   application keeps running, or 0 for the last frame of
+    ///                   a `--frames=N` run
+    /// @param arguments  the whole command line, flags included: what a second
+    ///                   launch of a single-instance application hands over
     record Options(
             int frames,
             @Nullable LogicalSize size,
             @Nullable LogicalSize resize,
             long lateBudget,
-            @Nullable Path capture) {
+            @Nullable Path capture,
+            int captureAt,
+            List<String> arguments) {
 
-        static final Options NONE = new Options(0, null, null, -1, null);
+        static final Options NONE = new Options(0, null, null, -1, null, 0, List.of());
 
         /// The two flags there were before the walk and the budget.
         Options(int frames, @Nullable LogicalSize size) {
-            this(frames, size, null, -1, null);
+            this(frames, size, null, -1, null, 0, List.of());
         }
 
-        /// Reads `--frames=N`, `--size=WxH`, `--resize=WxH`, `--late-budget=N`
-        /// and `--capture=PATH`, ignoring everything else — an application's
-        /// own arguments are its business. Null reads as no arguments.
+        /// Checks a frame to capture at has a file to write to.
+        Options {
+            arguments = List.copyOf(arguments);
+            if (captureAt < 0) {
+                throw new IllegalArgumentException("--capture-at= is a frame number, not " + captureAt);
+            }
+            if (captureAt > 0 && capture == null) {
+                throw new IllegalArgumentException("--capture-at= needs --capture=PATH to say where");
+            }
+        }
+
+        /// Reads `--frames=N`, `--size=WxH`, `--resize=WxH`, `--late-budget=N`,
+        /// `--capture=PATH` and `--capture-at=N`, ignoring everything else — an
+        /// application's own arguments are its business. Null reads as no
+        /// arguments.
         static Options of(String @Nullable [] args) {
             var frames = 0;
             LogicalSize size = null;
             LogicalSize resize = null;
             var lateBudget = -1L;
             Path capture = null;
+            var captureAt = 0;
             for (var arg : args == null ? new String[0] : args) {
                 if (arg.startsWith("--frames=")) {
                     frames = whole(arg, arg.substring("--frames=".length()), "frames");
@@ -164,9 +184,12 @@ final class Launcher {
                     lateBudget = whole(arg, arg.substring("--late-budget=".length()), "late frames");
                 } else if (arg.startsWith("--capture=")) {
                     capture = path(arg, arg.substring("--capture=".length()));
+                } else if (arg.startsWith("--capture-at=")) {
+                    captureAt = whole(arg, arg.substring("--capture-at=".length()), "frames");
                 }
             }
-            return new Options(frames, size, resize, lateBudget, capture);
+            return new Options(
+                    frames, size, resize, lateBudget, capture, captureAt, args == null ? List.of() : List.of(args));
         }
 
         /// `--capture=PATH`'s `PATH`, or a refusal that names the flag.
@@ -218,6 +241,7 @@ final class Launcher {
     Launcher(Application application, Options options) {
         this.application = Objects.requireNonNull(application, "application");
         this.options = Objects.requireNonNull(options, "options");
+        this.textScale = TextScales.clamp(application.textScale());
     }
 
     /// [Application#minimumSize], unless the window is opening smaller than it.
@@ -251,6 +275,18 @@ final class Launcher {
                 "Goldberry {} — starting {}",
                 Goldberry.version(),
                 application.getClass().getSimpleName());
+
+        // Before any window: a second copy of a single-instance application
+        // hands its command line over and opens nothing.
+        var id = application.singleInstance();
+        if (id.isPresent()) {
+            var claim = SingleInstance.acquire(id.get(), options.arguments());
+            if (claim.isEmpty()) {
+                LOG.info("{} is already running; its arguments were handed to it", id.get());
+                return;
+            }
+            instance = claim.get();
+        }
 
         var size = options.size() == null ? application.size() : options.size();
         // `--size=` un-maximizes as well as resizing, because an explicit size on
@@ -298,6 +334,14 @@ final class Launcher {
         modelSubscriptions.add(StyleImages.onArrival(this::repaintAll));
 
         main.mount(application.root());
+
+        // What the system asks the application to open: a macOS URL or file
+        // arriving as a drop on no window, and a second launch's arguments.
+        GoldberryRuntime.get().onOpenUrl(this::open);
+        var claimed = instance;
+        if (claimed != null) {
+            claimed.onArguments(Goldberry.ui(), arguments -> arguments.forEach(this::open));
+        }
 
         // A popup goes away when the *application* does, which no platform
         // reports: it reports each window's focus, and moving between two of
@@ -371,11 +415,16 @@ final class Launcher {
             });
         }
         var painted = main.painted();
+        // `--capture-at=N`: the picture of frame N, and the application goes on.
+        if (options.captureAt() > 0 && !capturedAt && painted >= options.captureAt()) {
+            capturedAt = true;
+            capture(window, Objects.requireNonNull(options.capture(), "checked by Options"));
+        }
         if (options.frames() > 0 && !stopping) {
             if (painted >= options.frames()) {
                 stopping = true;
                 var capture = options.capture();
-                if (capture != null) {
+                if (capture != null && options.captureAt() == 0) {
                     capture(window, capture);
                 }
                 LOG.info("painted {} frame(s); exiting", painted);
@@ -386,24 +435,17 @@ final class Launcher {
         }
     }
 
+    /// Whether `--capture-at=N` has written its picture.
+    private boolean capturedAt;
+
     /// Writes the window's last frame to `path` as a PNG: `--capture=`.
     ///
     /// @throws UncheckedIOException when the file cannot be written
     private static void capture(Window window, Path path) {
-        var picture = window.capture();
-        if (picture.isEmpty()) {
+        if (Captures.write(window, path)) {
+            LOG.info("captured the frame to {}", path.toAbsolutePath());
+        } else {
             LOG.warn("--capture={}: the window has no frame to capture", path);
-            return;
-        }
-        try {
-            var parent = path.toAbsolutePath().getParent();
-            if (parent != null) {
-                Files.createDirectories(parent);
-            }
-            Files.write(path, picture.get().encodePng());
-            LOG.info("captured the last frame to {}", path.toAbsolutePath());
-        } catch (IOException e) {
-            throw new UncheckedIOException("--capture=" + path + " could not be written", e);
         }
     }
 
@@ -411,6 +453,21 @@ final class Launcher {
 
     List<Stylesheet> stylesheets() {
         return application.stylesheets();
+    }
+
+    /// The text scale every window draws at.
+    double textScale() {
+        return textScale;
+    }
+
+    /// Changes the text scale and restyles every window, or does nothing when
+    /// it is already that.
+    void textScale(double factor) {
+        var clamped = TextScales.requireFinite(factor);
+        if (clamped != textScale) {
+            textScale = clamped;
+            restyleAll();
+        }
     }
 
     Fonts fonts() {
@@ -601,7 +658,32 @@ final class Launcher {
     /// the render trees go before the fonts, because a render object holds a Yoga
     /// measure callback that closes over a paragraph, and a paragraph over a font
     /// — closing them the other way round leaves Blend2D reading unmapped memory.
+    /// Hands `target` to the application when it is a URL or a file, and says
+    /// in the log what else a second launch passed: a flag is the
+    /// application's own business, and not something to open.
+    private void open(String target) {
+        var uri = OpenTargets.of(target);
+        if (uri.isEmpty()) {
+            LOG.debug("not a URL or a file, so not opened: {}", target);
+            return;
+        }
+        try {
+            application.onOpenUrl(uri.get());
+        } catch (RuntimeException e) {
+            LOG.warn("the application failed to open {}", uri.get(), e);
+        }
+    }
+
+    /// This copy's claim to be the only one running, or null when the
+    /// application does not ask for one.
+    private @Nullable SingleInstance instance;
+
     private void shutDown() {
+        var claimed = instance;
+        instance = null;
+        if (claimed != null) {
+            claimed.close();
+        }
         // The models are the application's and may outlive this launch, as a
         // model shared by two launches does; one still subscribed would go on
         // asking a closed window for frames.

@@ -90,6 +90,14 @@ record DialogsTestHost(HeadlessFileDialogs dialogs) implements Host {
     public void restyle() {}
 
     @Override
+    public double textScale() {
+        return 1;
+    }
+
+    @Override
+    public void textScale(double factor) {}
+
+    @Override
     public void title(String title) {}
 
     @Override

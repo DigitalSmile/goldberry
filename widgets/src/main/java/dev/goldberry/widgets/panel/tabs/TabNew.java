@@ -4,6 +4,8 @@ import java.util.List;
 import java.util.Set;
 
 import dev.goldberry.css.ComputedStyle;
+import dev.goldberry.i18n.Labels;
+import dev.goldberry.i18n.ToolkitLabel;
 import dev.goldberry.input.event.KeyEvent;
 import dev.goldberry.input.event.PointerEvent;
 import dev.goldberry.input.handler.Handles;
@@ -81,6 +83,6 @@ record TabNew(Runnable onNew) implements Widget.Leaf, Styled, Paints, Handles, S
 
     @Override
     public String accessibleName() {
-        return "New tab";
+        return Labels.text(ToolkitLabel.NEW_TAB);
     }
 }

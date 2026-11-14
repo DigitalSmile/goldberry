@@ -1,3 +1,4 @@
+import com.vanniktech.maven.publish.GradlePlugin
 import com.vanniktech.maven.publish.JavaLibrary
 import com.vanniktech.maven.publish.JavaPlatform
 import com.vanniktech.maven.publish.JavadocJar
@@ -47,6 +48,14 @@ mavenPublishing {
                 throw new GradleException(":${project.name} publishes a BOM and must apply 'java-platform' first")
             }
             configure(new JavaPlatform())
+            break
+        case PublishedModule.GradlePlugin:
+            if (!pluginManager.hasPlugin('java-gradle-plugin')) {
+                throw new GradleException(":${project.name} publishes a Gradle plugin and must apply 'java-gradle-plugin' first")
+            }
+            // The plugin's jar and its marker, `<id>.gradle.plugin`, which is what
+            // `plugins { id '…' }` resolves from Central.
+            configure(new GradlePlugin(new JavadocJar.Javadoc(), new SourcesJar.Sources()))
             break
         default:
             if (!pluginManager.hasPlugin('java-library')) {

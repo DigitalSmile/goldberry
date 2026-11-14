@@ -51,6 +51,7 @@ public final class WebViewEngine {
                 page.title(spec.title());
             }
             bind(webview, spec);
+            initialise(webview, spec);
             watch(webview, spec);
             if (spec.url() != null) {
                 page.navigate(spec.url());
@@ -84,6 +85,7 @@ public final class WebViewEngine {
                 .map(webview -> {
                     var page = new NativeWebView(webview);
                     bind(webview, spec);
+                    initialise(webview, spec);
                     watch(webview, spec);
                     if (spec.url() != null) {
                         page.navigate(spec.url());
@@ -145,6 +147,14 @@ public final class WebViewEngine {
             } catch (RuntimeException e) {
                 LOG.warn("a page could not bind window.{}(): {}", entry.getKey(), e.getMessage());
             }
+        }
+    }
+
+    /// Adds the spec's scripts, before the first navigation and in order, so
+    /// the first document already sees what they define.
+    private static void initialise(Webview webview, WebViewSpec spec) {
+        for (var script : spec.initScripts()) {
+            webview.init(script);
         }
     }
 

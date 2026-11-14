@@ -16,6 +16,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 
+import dev.goldberry.input.event.PointerEvent;
 import dev.goldberry.log.Logs;
 import dev.goldberry.log.Startup;
 import dev.goldberry.natives.desktop.DesktopAccessibility;
@@ -985,6 +986,35 @@ public final class Sdl3Backend implements Backend {
 
     private float dropY;
 
+    /// A pinch, from the window under the fingers. Its `windowID` is not at the
+    /// common offset, so it is read from the pinch's own field rather than the
+    /// one [#translate] was handed; with no window of ours under the fingers it
+    /// is dropped, as any event for a window that is not ours is.
+    ///
+    /// SDL reports pinches on macOS, Wayland and X11 (XInput2). Windows has
+    /// none, and a two-finger zoom there arrives as a `Ctrl`+wheel.
+    private void translatePinch(int type, List<BackendEvent> out) {
+        var window = windowsById.get(eventBuffer.pinchWindowId());
+        if (window == null) {
+            return;
+        }
+        PointerEvent.PinchPhase phase;
+        if (type == SdlEventType.PINCH_BEGIN.value()) {
+            phase = PointerEvent.PinchPhase.BEGAN;
+        } else if (type == SdlEventType.PINCH_UPDATE.value()) {
+            phase = PointerEvent.PinchPhase.CHANGED;
+        } else {
+            phase = PointerEvent.PinchPhase.ENDED;
+        }
+        var scale = eventBuffer.pinchScale();
+        // A platform that sends a zero or a NaN for the start or the end is not
+        // a zoom to nothing.
+        if (phase != PointerEvent.PinchPhase.CHANGED || !(scale > 0) || !Float.isFinite(scale)) {
+            scale = 1;
+        }
+        out.add(new BackendEvent.PointerPinch(window, phase, scale, Sdl.get().modifierState()));
+    }
+
     private void translate(int type, int windowId, List<BackendEvent> out) {
         if (type == SdlEventType.CLIPBOARD_UPDATE.value()) {
             // The session's, like the theme: no window, and nothing to queue.
@@ -1022,6 +1052,25 @@ public final class Sdl3Backend implements Backend {
                     out.add(new BackendEvent.CloseRequested(window));
                 }
             }
+            return;
+        }
+
+        // macOS hands an opened URL, or a document opened from Finder, to the
+        // application as a drop on no window (SDL's `handleURLEvent:` and
+        // `application:openFile:`). Before the window lookup, which would skip it.
+        if (type == SdlEventType.DROP_FILE.value() && windowId == 0) {
+            var target = eventBuffer.droppedPath();
+            var any = windowsById.values().stream().findFirst();
+            if (!target.isEmpty() && any.isPresent()) {
+                out.add(new BackendEvent.OpenUrl(any.get(), target));
+            }
+            return;
+        }
+
+        if (type == SdlEventType.PINCH_BEGIN.value()
+                || type == SdlEventType.PINCH_UPDATE.value()
+                || type == SdlEventType.PINCH_END.value()) {
+            translatePinch(type, out);
             return;
         }
 

@@ -6,8 +6,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Duration;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -104,5 +106,66 @@ class LauncherCaptureTest {
         var pixels = image.pixels();
         var pixel = pixels.pixels().getInt(100 * pixels.stride() + 160 * 4);
         assertEquals(0xFF204060, pixel, "the plate's colour, opaque");
+    }
+
+    @Test
+    @Timeout(20)
+    @DisplayName("--capture-at=N writes frame N, and the run carries on to its last frame")
+    void capturesAtAFrame(@TempDir Path directory) throws IOException {
+        var path = directory.resolve("at.png");
+        Goldberry.launch(new Plain(), new String[] {"--frames=4", "--capture-at=2", "--capture=" + path});
+
+        assertTrue(Files.isRegularFile(path));
+        var image = Image.decode(Files.readAllBytes(path));
+        assertEquals(320, image.width());
+    }
+
+    /// An application that captures its own window from a timer, as a bug
+    /// report button would, and then stops.
+    private static final class SelfCapturing implements Application {
+
+        private final Path path;
+        private final AtomicBoolean written = new AtomicBoolean();
+
+        SelfCapturing(Path path) {
+            this.path = path;
+        }
+
+        @Override
+        public Widget root() {
+            return new Plate();
+        }
+
+        @Override
+        public LogicalSize size() {
+            return LogicalSize.of(320, 200);
+        }
+
+        @Override
+        public List<Stylesheet> stylesheets() {
+            return new Plain().stylesheets();
+        }
+
+        @Override
+        public void start(Host host) {
+            host.after(Duration.ofMillis(50), () -> {
+                written.set(host.capture(path));
+                Goldberry.stop();
+            });
+        }
+    }
+
+    @Test
+    @Timeout(20)
+    @DisplayName("host.capture(path) writes what the window shows while it runs")
+    void hostCaptures(@TempDir Path directory) throws IOException {
+        var path = directory.resolve("deep").resolve("now.png");
+        var application = new SelfCapturing(path);
+        Goldberry.launch(application, new String[0]);
+
+        assertTrue(application.written.get(), "the window had a frame");
+        var image = Image.decode(Files.readAllBytes(path));
+        var pixels = image.pixels();
+        assertEquals(0xFF204060, pixels.pixels().getInt(100 * pixels.stride() + 160 * 4));
     }
 }

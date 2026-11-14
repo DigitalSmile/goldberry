@@ -9,6 +9,8 @@ import org.jspecify.annotations.Nullable;
 
 import dev.goldberry.css.ComputedStyle;
 import dev.goldberry.css.value.Transform;
+import dev.goldberry.i18n.Labels;
+import dev.goldberry.i18n.ToolkitLabel;
 import dev.goldberry.input.event.KeyEvent;
 import dev.goldberry.input.handler.Handles;
 import dev.goldberry.layout.Insets;
@@ -124,11 +126,12 @@ record TourStop(
         // in the tree -- a widget that draws nothing and exists to be measured.
         buttons.add(new Button("Skip", onSkip).withAttributes(Attributes.NONE.classes("tour-skip")));
         if (onBack != null) {
-            buttons.add(new Button("Back", onBack).withAttributes(Attributes.NONE.classes("tour-back")));
+            buttons.add(new Button(Labels.text(ToolkitLabel.BACK), onBack)
+                    .withAttributes(Attributes.NONE.classes("tour-back")));
         }
         // The last stop's forward button says so, because "Next" on the last of
         // five is a promise the tour cannot keep.
-        buttons.add(new Button(index + 1 >= count ? "Done" : "Next", onNext)
+        buttons.add(new Button(Labels.text(index + 1 >= count ? ToolkitLabel.DONE : ToolkitLabel.NEXT), onNext)
                 .withAttributes(Attributes.NONE.classes("tour-next")));
         return List.of(
                 new TourVeil(target, cameFrom, travel, window),

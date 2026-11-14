@@ -6,6 +6,8 @@ import java.util.Set;
 import org.jspecify.annotations.Nullable;
 
 import dev.goldberry.css.ComputedStyle;
+import dev.goldberry.i18n.Labels;
+import dev.goldberry.i18n.ToolkitLabel;
 import dev.goldberry.input.event.PointerEvent;
 import dev.goldberry.input.handler.Handles;
 import dev.goldberry.paint.Box;
@@ -70,6 +72,6 @@ record TabClose(@Nullable Runnable onClose) implements Widget.Leaf, Styled, Pain
 
     @Override
     public String accessibleName() {
-        return "Close";
+        return Labels.text(ToolkitLabel.CLOSE);
     }
 }

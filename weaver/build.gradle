@@ -1,5 +1,8 @@
 plugins {
-    id 'java'
+    id 'java-library'
+    // Published as `goldberry-weaver`: an application's build runs it, through
+    // the `dev.goldberry.weave` plugin or by hand.
+    id 'goldberry.publish'
     // The two binding schemes, measured against each other in one JVM. This is
     // the only module that can: it holds a raw model and can weave a copy of it
     // in memory, so both forms of one class exist side by side.
@@ -8,11 +11,14 @@ plugins {
 
 description = 'Goldberry weaver: the widget catalog, and the models a native image is built from'
 
-// Not `goldberry.java-conventions`, and not published as a module of the
-// toolkit. This is a **build-time** tool like :assets: it runs over compiled
-// classes between `compileJava` and `jar`, it never reaches an application's
-// runtime classpath, and it has no module-info because it is launched as a plain
-// classpath program.
+// Not `goldberry.java-conventions`, and no module of the toolkit's run time.
+// This is a **build-time** tool: it runs over compiled classes between
+// `compileJava` and `jar`, it never reaches an application's runtime classpath,
+// and it has no module-info because it is launched as a plain classpath
+// program. It is published all the same (`goldberry-weaver`, in the BOM and not
+// the umbrella), because an application's build needs it as much as this one
+// does: a library with `@Markup` widgets needs its catalog, and a native image
+// needs its models woven.
 //
 // Two halves, wanted at different times. `--catalog` declares a
 // module's @Markup widgets and every build needs it, because nothing finds
@@ -21,9 +27,6 @@ description = 'Goldberry weaver: the widget catalog, and the models a native ima
 // binds the same annotations reflectively, so this is a dependency of the image
 // build rather than of the toolkit.
 // https://goldberry.dev/docs/ahead-of-time-binding.html#widget-catalogues
-group = 'dev.goldberry'
-version = providers.gradleProperty('goldberryVersion').get()
-
 def catalog = extensions.getByType(org.gradle.api.artifacts.VersionCatalogsExtension).named('libs')
 def javaVersion = catalog.findVersion('java').get().requiredVersion as int
 
@@ -85,4 +88,5 @@ tasks.named('test') {
     testLogging { exceptionFormat = 'full' }
 }
 
-tasks.withType(PublishToMavenRepository).configureEach { enabled = false }
+// The published javadoc's lint is the toolkit's, and `goldberry.publish` turns
+// it on; the weaver is documented in prose the same way.

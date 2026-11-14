@@ -234,6 +234,12 @@ public record WebView(WebPage page, @Nullable WebViewController controller, Attr
         return new WebView(page.onNavigate(decide), controller, attributes);
     }
 
+    /// The same widget, running `script` before each document's own: the
+    /// page's own [WebPage#initScript], spelled where the widget is written.
+    public WebView initScript(String script) {
+        return new WebView(page.initScript(script), controller, attributes);
+    }
+
     @Override
     public State<?> createState() {
         return new WebViewState();

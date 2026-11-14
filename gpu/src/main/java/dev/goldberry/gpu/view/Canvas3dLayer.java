@@ -35,6 +35,10 @@ final class Canvas3dLayer implements GpuLayer, AutoCloseable {
 
     private boolean continuous;
     private long nanos;
+
+    /// Whether the last frame that placed this layer composited it, rather
+    /// than reading its pixels back into the CPU frame.
+    private boolean composited;
     private RenderScale scale = RenderScale.NATIVE;
 
     /// Bumped by [#redraw]; the picture is current when [#drawn] has caught up.
@@ -69,6 +73,24 @@ final class Canvas3dLayer implements GpuLayer, AutoCloseable {
     void frame(long nanos, boolean continuous) {
         this.nanos = Math.max(0, nanos);
         this.continuous = continuous;
+    }
+
+    /// The time the renderer is told, in nanoseconds since the canvas was first
+    /// drawn.
+    long nanos() {
+        return nanos;
+    }
+
+    /// Whether the frame that last placed it composites GPU layers: a window
+    /// presenting through the GPU, rather than a frame the layer's pixels are
+    /// read back into.
+    void composited(boolean value) {
+        this.composited = value;
+    }
+
+    /// What [#composited(boolean)] was last told; false before the first paint.
+    boolean composited() {
+        return composited;
     }
 
     /// The scale the frame being painted draws at: a new one has the picture

@@ -496,11 +496,10 @@ public final class WidgetRenderer {
         return animating;
     }
 
-    /// Renders a whole tree.
-    ///
-    /// @throws IllegalStateException if the tree describes nothing that paints —
-    ///         a root of pure composition with no primitive under it is almost
-    ///         certainly a mistake, and an empty window is a poor way to report it
+    /// Renders a whole tree. A tree that describes nothing that paints — a root
+    /// that builds to `Widget.nothing()`, or composition with no primitive
+    /// under it — renders as one empty box, so the frame shows only its
+    /// background.
     public Box render(ElementTree tree) {
         Objects.requireNonNull(tree, "tree");
         // Read once for the whole frame. Two nodes must not see different times,
@@ -538,7 +537,12 @@ public final class WidgetRenderer {
         // the default capacity into.
         cache.frame();
         if (boxes.isEmpty()) {
-            throw new IllegalStateException("nothing in this widget tree paints; the root described only composition");
+            // A root that describes nothing, or only composition, is a window
+            // with nothing on it: an overlay with nothing open, a dialog not
+            // showing. It renders as an empty box, so the frame is its
+            // background, rather than failing a window or a test that renders
+            // the empty state on its own.
+            return Box.of();
         }
         if (boxes.size() == 1) {
             return boxes.getFirst();

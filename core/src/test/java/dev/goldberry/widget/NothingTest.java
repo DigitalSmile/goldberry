@@ -1,8 +1,8 @@
 package dev.goldberry.widget;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
@@ -206,16 +206,19 @@ class NothingTest {
                     "a nothing cost a gap, so a dismissed banner still leaves its hole");
         }
 
-        /// A tree whose *root* describes nothing has nothing to paint at all,
-        /// which is a mistake rather than a blank window — the same answer the
-        /// renderer already gives a root that describes only composition.
+        /// A tree whose *root* describes nothing is a window with nothing on
+        /// it: an overlay with nothing open renders as an empty box, so the
+        /// frame shows its background, and filling it again renders the child.
         @Test
-        @DisplayName("a root that describes only nothing is refused")
-        void rootIsRefused() {
+        @DisplayName("a root that describes only nothing renders as one empty box")
+        void rootRendersEmpty() {
             var renderer = renderer();
             var tree = new ElementTree(new Maybe(false));
 
-            assertThrows(IllegalStateException.class, () -> renderer.render(tree));
+            var box = renderer.render(tree);
+
+            assertTrue(box.children().isEmpty(), "nothing under it");
+            assertNull(box.painting(), "and nothing painted");
         }
     }
 

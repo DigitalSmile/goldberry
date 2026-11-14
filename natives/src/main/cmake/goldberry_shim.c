@@ -407,6 +407,12 @@ static const goldberry_layout_entry_t GOLDBERRY_LAYOUTS[] = {
      * compiler pads four bytes before `source` to align it, and a layout that
      * counted by hand would read the dropped path out of the middle of a
      * pointer. */
+    GB_STRUCT(SDL_PinchFingerEvent),
+    GB_FIELD(SDL_PinchFingerEvent, type),
+    GB_FIELD(SDL_PinchFingerEvent, timestamp),
+    GB_FIELD(SDL_PinchFingerEvent, scale),
+    GB_FIELD(SDL_PinchFingerEvent, windowID),
+
     GB_STRUCT(SDL_DropEvent),
     GB_FIELD(SDL_DropEvent, type),
     GB_FIELD(SDL_DropEvent, timestamp),
@@ -862,6 +868,9 @@ static const goldberry_layout_entry_t GOLDBERRY_LAYOUTS[] = {
     GB_CONSTANT("SDL_EVENT_MOUSE_BUTTON_DOWN", SDL_EVENT_MOUSE_BUTTON_DOWN),
     GB_CONSTANT("SDL_EVENT_MOUSE_BUTTON_UP", SDL_EVENT_MOUSE_BUTTON_UP),
     GB_CONSTANT("SDL_EVENT_MOUSE_WHEEL", SDL_EVENT_MOUSE_WHEEL),
+    GB_CONSTANT("SDL_EVENT_PINCH_BEGIN", SDL_EVENT_PINCH_BEGIN),
+    GB_CONSTANT("SDL_EVENT_PINCH_UPDATE", SDL_EVENT_PINCH_UPDATE),
+    GB_CONSTANT("SDL_EVENT_PINCH_END", SDL_EVENT_PINCH_END),
     GB_CONSTANT("SDL_EVENT_WINDOW_EXPOSED", SDL_EVENT_WINDOW_EXPOSED),
     GB_CONSTANT("SDL_EVENT_WINDOW_MOVED", SDL_EVENT_WINDOW_MOVED),
     GB_CONSTANT("SDL_EVENT_WINDOW_RESIZED", SDL_EVENT_WINDOW_RESIZED),

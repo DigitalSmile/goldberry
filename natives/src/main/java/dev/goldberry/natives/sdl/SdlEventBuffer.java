@@ -52,6 +52,10 @@ public final class SdlEventBuffer implements AutoCloseable {
     /// because both structs start with the same three fields — but taken from the
     /// layout that actually applies, so the coincidence is not what holds it up.
     private static final long WHEEL_WINDOW_ID_OFFSET = Layouts.SDL_MOUSE_WHEEL_EVENT.offsetOf("windowID");
+    private static final long PINCH_SCALE_OFFSET = Layouts.SDL_PINCH_FINGER_EVENT.offsetOf("scale");
+    /// The pinch arm's own `windowID`, which is *not* at the common offset; see
+    /// [Layouts#SDL_PINCH_FINGER_EVENT].
+    private static final long PINCH_WINDOW_ID_OFFSET = Layouts.SDL_PINCH_FINGER_EVENT.offsetOf("windowID");
     private static final long KEY_SCANCODE_OFFSET = Layouts.SDL_KEYBOARD_EVENT.offsetOf("scancode");
     private static final long KEY_KEYCODE_OFFSET = Layouts.SDL_KEYBOARD_EVENT.offsetOf("key");
     private static final long KEY_MOD_OFFSET = Layouts.SDL_KEYBOARD_EVENT.offsetOf("mod");
@@ -194,6 +198,28 @@ public final class SdlEventBuffer implements AutoCloseable {
     /// Where the pointer was when the wheel turned.
     public float wheelPointerY() {
         return event.get(ValueLayout.JAVA_FLOAT, WHEEL_MOUSE_Y_OFFSET);
+    }
+
+    /// A pinch's scale change since the last update: above 1 is the fingers
+    /// spreading, which zooms in, and below 1 is them closing.
+    public float pinchScale() {
+        return event.get(ValueLayout.JAVA_FLOAT, PINCH_SCALE_OFFSET);
+    }
+
+    /// The window under the pinching fingers, or 0 for none. A pinch's own
+    /// field, because [#windowId()] reads the common offset and the pinch arm
+    /// keeps its window elsewhere.
+    public int pinchWindowId() {
+        return event.get(ValueLayout.JAVA_INT, PINCH_WINDOW_ID_OFFSET);
+    }
+
+    /// Fills this buffer with a pinch event, the way SDL fills one: what a test
+    /// of the backend's translation hands it in place of a touchpad.
+    public void writePinch(SdlEventType type, int windowId, float scale) {
+        clear();
+        event.set(ValueLayout.JAVA_INT, TYPE_OFFSET, type.value());
+        event.set(ValueLayout.JAVA_FLOAT, PINCH_SCALE_OFFSET, scale);
+        event.set(ValueLayout.JAVA_INT, PINCH_WINDOW_ID_OFFSET, windowId);
     }
 
     private float direction() {

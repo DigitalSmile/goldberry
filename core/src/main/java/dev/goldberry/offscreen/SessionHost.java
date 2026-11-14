@@ -37,7 +37,9 @@ import dev.goldberry.render.web.WebViewSpec;
 import dev.goldberry.stats.FrameStats;
 import dev.goldberry.text.font.Fonts;
 import dev.goldberry.widget.Element;
+import dev.goldberry.widget.ElementTree;
 import dev.goldberry.widget.Widget;
+import dev.goldberry.widget.WidgetRenderer;
 import dev.goldberry.widget.style.Corner;
 
 /// The window a [Session]'s tree believes it is in.
@@ -76,6 +78,12 @@ final class SessionHost implements Host {
 
     private final double scale;
 
+    private final WidgetRenderer renderer;
+
+    /// The tree the session drives, attached once it is built, which is after
+    /// this host: the tree is built with it.
+    private @Nullable ElementTree tree;
+
     /// What the last pass captured, which is what [#anchor] answers from — a
     /// window answers from the frame it painted, and so does this.
     private List<HitTest.Region> regions = List.of();
@@ -87,8 +95,10 @@ final class SessionHost implements Host {
             OverlayLayer layer,
             Fonts fonts,
             LogicalSize size,
-            double scale) {
+            double scale,
+            WidgetRenderer renderer) {
         this.router = router;
+        this.renderer = renderer;
         this.clock = clock;
         this.timers = timers;
         this.layer = layer;
@@ -115,6 +125,30 @@ final class SessionHost implements Host {
     @Override
     public void restyle() {
         // The stylesheets are the session's, fixed when it opened.
+    }
+
+    /// The tree [#textScale(double)] restyles.
+    void attach(ElementTree driven) {
+        this.tree = driven;
+    }
+
+    @Override
+    public double textScale() {
+        return renderer.textScale();
+    }
+
+    /// The session's renderer's, from the next pass: as a window's, so a test
+    /// can drive a settings screen's text-size row.
+    @Override
+    public void textScale(double factor) {
+        if (!Double.isFinite(factor)) {
+            throw new IllegalArgumentException("a text scale must be a finite factor, not " + factor);
+        }
+        renderer.textScale(factor);
+        var driven = tree;
+        if (driven != null) {
+            driven.restyle();
+        }
     }
 
     @Override

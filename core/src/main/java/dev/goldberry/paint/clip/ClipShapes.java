@@ -59,7 +59,7 @@ public final class ClipShapes {
     /// Whether the point `(x, y)`, in the box's own coordinates, is inside what
     /// `box`'s `clip-path` keeps of it. True for a box it keeps whole.
     ///
-    /// A `path()` is answered by its reference box, and an inset's rounded
+    /// A `path()` is answered by the path itself, and an inset's rounded
     /// corners by its rectangle: the pointer is a point and a corner's curve a
     /// few pixels.
     public static boolean contains(ClipPath clip, Box box, double width, double height, double x, double y) {
@@ -90,7 +90,10 @@ public final class ClipShapes {
                         yield dx * dx + dy * dy <= 1;
                     }
                     case ClipPath.Polygon polygon -> inPolygon(polygon, area, x, y);
-                    case ClipPath.PathData _ -> area.contains(x, y);
+                    case ClipPath.PathData data -> {
+                        var outline = shape(data, area);
+                        yield outline.path().contains(x, y, outline.evenOdd());
+                    }
                 };
             }
         };

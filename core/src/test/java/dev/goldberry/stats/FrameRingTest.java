@@ -348,4 +348,103 @@ class FrameRingTest {
         assertEquals(FrameStats.Span.NONE, new FrameRing().upload());
         assertEquals(0, new FrameRing().uploadBytes());
     }
+
+    @Test
+    @DisplayName("times the GPU layers apart, over the composited frames")
+    void layers() {
+        var ring = new FrameRing();
+        ring.record(0, MS);
+        ring.presented(dev.goldberry.render.PresentTimings.NONE);
+        ring.record(10 * MS, 11 * MS);
+        ring.presented(new dev.goldberry.render.PresentTimings(MS, MS, MS, 1, true, 2 * MS));
+        ring.record(20 * MS, 21 * MS);
+        ring.presented(new dev.goldberry.render.PresentTimings(MS, MS, MS, 1, true, 4 * MS));
+
+        assertEquals(2.0, ring.layers().min(), 1e-9);
+        assertEquals(3.0, ring.layers().mean(), 1e-9);
+        assertEquals(4.0, ring.layers().max(), 1e-9);
+        assertEquals(4.0, ring.percentile(FrameStage.LAYERS, 100), 1e-9);
+        assertEquals(FrameStats.Span.NONE, new FrameRing().layers());
+        assertEquals(0, new dev.goldberry.render.PresentTimings(MS, MS, MS, 1, true).layerNanos(), "not timed apart");
+    }
+
+    @Test
+    @DisplayName("answers percentiles by nearest rank, the hitch a mean hides included")
+    void percentiles() {
+        var ring = new FrameRing();
+        // Nineteen frames 10 ms apart, then one 50 ms late: paints of 1..20 ms.
+        var finished = 0L;
+        for (var frame = 1; frame <= 20; frame++) {
+            finished += frame == 20 ? 50 * MS : 10 * MS;
+            ring.record(finished - frame * MS, finished);
+        }
+
+        assertEquals(1.0, ring.percentile(FrameStage.PAINT, 0), 1e-9, "0 is the cheapest");
+        assertEquals(10.0, ring.percentile(FrameStage.PAINT, 50), 1e-9, "the median: the 10th of 20");
+        assertEquals(19.0, ring.percentile(FrameStage.PAINT, 95), 1e-9, "the 19th of 20");
+        assertEquals(20.0, ring.percentile(FrameStage.PAINT, 100), 1e-9, "100 is the dearest");
+
+        assertEquals(10.0, ring.percentile(FrameStage.INTERVAL, 50), 1e-9, "19 intervals, most of them 10 ms");
+        assertEquals(50.0, ring.percentile(FrameStage.INTERVAL, 99), 1e-9, "the hitch");
+        assertEquals(12.1, ring.frameMillis(), 0.05, "which the mean smooths away");
+
+        assertEquals(0, ring.percentile(FrameStage.UPLOAD, 50), "nothing composited, nothing measured");
+        assertEquals(0, new FrameRing().percentile(FrameStage.INTERVAL, 50), "no frames");
+        org.junit.jupiter.api.Assertions.assertThrows(
+                IllegalArgumentException.class, () -> ring.percentile(FrameStage.PAINT, 101));
+        org.junit.jupiter.api.Assertions.assertThrows(
+                IllegalArgumentException.class, () -> ring.percentile(FrameStage.PAINT, Double.NaN));
+        org.junit.jupiter.api.Assertions.assertThrows(
+                IllegalArgumentException.class, () -> FrameStats.none().percentile(FrameStage.PAINT, -1));
+        assertEquals(0, FrameStats.none().percentile(FrameStage.PAINT, 50), "a fixed source keeps no window");
+    }
+
+    @Test
+    @DisplayName("percentiles hold over a ring that has wrapped")
+    void percentilesWrapped() {
+        var ring = new FrameRing();
+        for (var frame = 0; frame < FrameRing.CAPACITY + 15; frame++) {
+            var start = frame * 10 * MS;
+            ring.record(start, start + (frame < 15 ? 9 * MS : MS));
+        }
+        assertEquals(1.0, ring.percentile(FrameStage.PAINT, 100), 1e-9, "the dear first frames aged out");
+    }
+
+    @Test
+    @DisplayName("shows its newest frame through one view, present included")
+    void newest() {
+        var ring = new FrameRing();
+        var view = ring.newest();
+        assertEquals(0, view.number(), "nothing yet");
+        assertEquals(0, view.paintNanos());
+        assertEquals(0, view.intervalNanos());
+        assertFalse(view.composited());
+
+        ring.stages(MS, 2 * MS, 3 * MS, 4 * MS);
+        ring.record(0, 10 * MS);
+        ring.late(2);
+        ring.record(16 * MS, 26 * MS);
+        ring.presented(new dev.goldberry.render.PresentTimings(MS, 5 * MS, MS / 2, 8192, true, 3 * MS));
+
+        assertTrue(view == ring.newest(), "the same object every time");
+        var kept = view.copy();
+        assertEquals(2, kept.number());
+        assertEquals(26 * MS, kept.finishedNanos());
+        assertEquals(16 * MS, kept.intervalNanos());
+        assertEquals(10 * MS, kept.paintNanos());
+        assertEquals(0, kept.buildNanos(), "the stages went to the first frame");
+        assertEquals(2, kept.lateRefreshes());
+        assertTrue(kept.composited());
+        assertEquals(MS, kept.uploadNanos());
+        assertEquals(5 * MS, kept.acquireNanos());
+        assertEquals(MS / 2, kept.submitNanos());
+        assertEquals(3 * MS, kept.layerNanos());
+        assertEquals(8192, kept.uploadBytes());
+
+        ring.stages(MS, 2 * MS, 3 * MS, 4 * MS);
+        ring.record(32 * MS, 40 * MS);
+        assertEquals(3, view.number(), "the view moved on");
+        assertEquals(4 * MS, view.rasterNanos());
+        assertEquals(2, kept.number(), "the copy did not");
+    }
 }

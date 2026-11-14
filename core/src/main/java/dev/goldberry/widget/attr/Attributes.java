@@ -9,6 +9,7 @@ import org.jspecify.annotations.Nullable;
 
 import dev.goldberry.input.drop.Drop;
 import dev.goldberry.input.drop.DropTarget;
+import dev.goldberry.input.event.PointerEvent;
 import dev.goldberry.kdl.KdlNode;
 import dev.goldberry.widget.Widget;
 import dev.goldberry.widget.style.Styled;
@@ -51,12 +52,13 @@ public record Attributes(
         @Nullable Runnable onPointerEnter,
         @Nullable Runnable onPointerExit,
         @Nullable Object draggable,
-        @Nullable DropTarget dropTarget) {
+        @Nullable DropTarget dropTarget,
+        @Nullable Consumer<PointerEvent> onClick) {
 
     /// No id, no classes, no key, no tooltip, no name — what a widget built in
     /// Java gets unless it says otherwise.
     public static final Attributes NONE =
-            new Attributes(null, Set.of(), null, null, null, null, null, null, null, null);
+            new Attributes(null, Set.of(), null, null, null, null, null, null, null, null, null);
 
     /// Written out so that the parameters taking null for a default can say so.
     public Attributes(
@@ -69,7 +71,8 @@ public record Attributes(
             @Nullable Runnable onPointerEnter,
             @Nullable Runnable onPointerExit,
             @Nullable Object draggable,
-            @Nullable DropTarget dropTarget) {
+            @Nullable DropTarget dropTarget,
+            @Nullable Consumer<PointerEvent> onClick) {
         classes = Set.copyOf(classes == null ? Set.of() : classes);
         this.id = id;
         this.classes = classes;
@@ -81,6 +84,23 @@ public record Attributes(
         this.onPointerExit = onPointerExit;
         this.draggable = draggable;
         this.dropTarget = dropTarget;
+        this.onClick = onClick;
+    }
+
+    /// The ten without a click handler, kept for the reason the three-argument
+    /// form is.
+    public Attributes(
+            @Nullable String id,
+            @Nullable Set<String> classes,
+            @Nullable Object key,
+            @Nullable String tooltip,
+            @Nullable String contextMenu,
+            @Nullable String name,
+            @Nullable Runnable onPointerEnter,
+            @Nullable Runnable onPointerExit,
+            @Nullable Object draggable,
+            @Nullable DropTarget dropTarget) {
+        this(id, classes, key, tooltip, contextMenu, name, onPointerEnter, onPointerExit, draggable, dropTarget, null);
     }
 
     /// The eight without a drag, kept for the reason the three-argument form is.
@@ -147,7 +167,8 @@ public record Attributes(
                 onPointerEnter,
                 onPointerExit,
                 draggable,
-                dropTarget);
+                dropTarget,
+                onClick);
     }
 
     /// This, with the name of the menu a right-click should open — markup's
@@ -169,7 +190,8 @@ public record Attributes(
                 onPointerEnter,
                 onPointerExit,
                 draggable,
-                dropTarget);
+                dropTarget,
+                onClick);
     }
 
     /// This, with a different `id` — **and the same id as the key**.
@@ -183,7 +205,17 @@ public record Attributes(
     /// Null clears both.
     public Attributes id(@Nullable String id) {
         return new Attributes(
-                id, classes, id, tooltip, contextMenu, name, onPointerEnter, onPointerExit, draggable, dropTarget);
+                id,
+                classes,
+                id,
+                tooltip,
+                contextMenu,
+                name,
+                onPointerEnter,
+                onPointerExit,
+                draggable,
+                dropTarget,
+                onClick);
     }
 
     /// This, with a different set of classes.
@@ -198,14 +230,25 @@ public record Attributes(
                 onPointerEnter,
                 onPointerExit,
                 draggable,
-                dropTarget);
+                dropTarget,
+                onClick);
     }
 
     /// This, with a key that is not the id — for a list item whose identity is a
     /// row of a model rather than a name in a document.
     public Attributes key(Object key) {
         return new Attributes(
-                id, classes, key, tooltip, contextMenu, name, onPointerEnter, onPointerExit, draggable, dropTarget);
+                id,
+                classes,
+                key,
+                tooltip,
+                contextMenu,
+                name,
+                onPointerEnter,
+                onPointerExit,
+                draggable,
+                dropTarget,
+                onClick);
     }
 
     /// This, with the text a reader should announce it as — markup's `name="…"`,
@@ -237,7 +280,8 @@ public record Attributes(
                 onPointerEnter,
                 onPointerExit,
                 draggable,
-                dropTarget);
+                dropTarget,
+                onClick);
     }
 
     /// This, with something to run when the pointer **enters** this node's
@@ -272,7 +316,7 @@ public record Attributes(
     /// @param action what to run, or null to carry none
     public Attributes onPointerEnter(@Nullable Runnable action) {
         return new Attributes(
-                id, classes, key, tooltip, contextMenu, name, action, onPointerExit, draggable, dropTarget);
+                id, classes, key, tooltip, contextMenu, name, action, onPointerExit, draggable, dropTarget, onClick);
     }
 
     /// This, with something to run when the pointer **leaves** this node's
@@ -289,7 +333,41 @@ public record Attributes(
     /// cancels it on dispose as well, which is what a `tooltip` already does.
     public Attributes onPointerExit(@Nullable Runnable action) {
         return new Attributes(
-                id, classes, key, tooltip, contextMenu, name, onPointerEnter, action, draggable, dropTarget);
+                id, classes, key, tooltip, contextMenu, name, onPointerEnter, action, draggable, dropTarget, onClick);
+    }
+
+    /// This, with something to run when the node is **clicked**: a press and a
+    /// release of any button on this node or inside it, the same rule a
+    /// control's own click follows. The event's `button()` says which button,
+    /// and its `local()` where in this node's box, as fractions of it.
+    ///
+    /// ```java
+    /// new Panel(row).onClick(event -> select(row, event.button()))
+    /// ```
+    ///
+    /// The box that is styled is the box that is clicked, with no widget around
+    /// it. It runs as the click bubbles, after the node's own handler, and
+    /// consumes the click, so an ancestor's handler does not hear it too; a
+    /// control inside the node that takes the click first keeps it.
+    ///
+    /// **Not a keyboard control.** A node with only this is not a Tab stop and
+    /// has no role: a control a keyboard must reach is a `pressable` or a
+    /// `button`.
+    ///
+    /// @param action what to run, or null to carry none
+    public Attributes onClick(@Nullable Consumer<PointerEvent> action) {
+        return new Attributes(
+                id,
+                classes,
+                key,
+                tooltip,
+                contextMenu,
+                name,
+                onPointerEnter,
+                onPointerExit,
+                draggable,
+                dropTarget,
+                action);
     }
 
     /// This, able to be picked up and dragged onto a [#dropTarget] elsewhere in
@@ -315,7 +393,17 @@ public record Attributes(
     /// @param payload what a target is handed, or null to make the node not draggable
     public Attributes draggable(@Nullable Object payload) {
         return new Attributes(
-                id, classes, key, tooltip, contextMenu, name, onPointerEnter, onPointerExit, payload, dropTarget);
+                id,
+                classes,
+                key,
+                tooltip,
+                contextMenu,
+                name,
+                onPointerEnter,
+                onPointerExit,
+                payload,
+                dropTarget,
+                onClick);
     }
 
     /// This, taking what is dragged onto it when `accepts` says yes, and doing
@@ -335,7 +423,17 @@ public record Attributes(
     /// @param target what to accept and what to do, or null to take nothing
     public Attributes dropTarget(@Nullable DropTarget target) {
         return new Attributes(
-                id, classes, key, tooltip, contextMenu, name, onPointerEnter, onPointerExit, draggable, target);
+                id,
+                classes,
+                key,
+                tooltip,
+                contextMenu,
+                name,
+                onPointerEnter,
+                onPointerExit,
+                draggable,
+                target,
+                onClick);
     }
 
     /// Parses `id` and `class` off a KDL node, `class` being space-separated as

@@ -510,4 +510,21 @@ class HudTest {
         assertEquals("31.5 MiB", Reading.bytes(33_000_000));
         assertEquals("512 B", Reading.bytes(512));
     }
+
+    @Test
+    @DisplayName("`layers` shows the GPU layers' own time, judged against a quarter of a frame")
+    void layerReading() {
+        var ring = new dev.goldberry.stats.FrameRing();
+        ring.displayHertz(60);
+        ring.record(0, 2_000_000);
+        ring.presented(new dev.goldberry.render.PresentTimings(100_000, 7_900_000, 150_000, 12_800, true, 5_000_000));
+        var box = renderer(ring).render(new ElementTree(new Hud(Reading.LAYERS)));
+        assertEquals(List.of("layers 5.00 / 5.00 / 5.00 ms"), readings(box));
+        assertEquals(Reading.Level.OVER, Reading.LAYERS.level(ring), "over 4.17 ms at 60 Hz");
+        assertEquals(Reading.LAYERS, Reading.parse("layers"));
+
+        var surface = renderer(FrameStats.of(60, 16.7, 2.1, 500, 0, 0, 0, 0, 60))
+                .render(new ElementTree(new Hud(Reading.LAYERS)));
+        assertEquals(List.of("layers —"), readings(surface));
+    }
 }

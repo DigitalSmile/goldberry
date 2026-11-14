@@ -1,6 +1,8 @@
 package dev.goldberry.widgets.shell.web;
 
 import java.net.URI;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 import java.util.function.Predicate;
 
@@ -51,6 +53,8 @@ import dev.goldberry.render.web.WebViewSpec;
 ///               a fixed size
 /// @param debug  whether the engine's inspector is available in the page
 /// @param callbacks  the functions the page's script may call, by name
+/// @param initScripts script run before each document's own, in order — see
+///        [#initScript(String)]
 /// @param onNavigate asked before the page goes anywhere, or null — see
 ///               [#onNavigate(Predicate)]
 public record WebPage(
@@ -62,7 +66,8 @@ public record WebPage(
         WebSize size,
         boolean debug,
         java.util.Map<String, WebCallback> callbacks,
-        @Nullable Predicate<URI> onNavigate) {
+        @Nullable Predicate<URI> onNavigate,
+        List<String> initScripts) {
 
     /// Written out so that the parameters taking null for a default can say so.
     public WebPage(
@@ -74,7 +79,8 @@ public record WebPage(
             WebSize size,
             boolean debug,
             java.util.@Nullable Map<String, WebCallback> callbacks,
-            @Nullable Predicate<URI> onNavigate) {
+            @Nullable Predicate<URI> onNavigate,
+            @Nullable List<String> initScripts) {
         Objects.requireNonNull(title, "title");
         Objects.requireNonNull(size, "size");
         callbacks = callbacks == null
@@ -83,7 +89,7 @@ public record WebPage(
         // Delegated rather than repeated: the spec is what the backend is handed,
         // and two copies of "a page starts one way" would be two chances to
         // disagree.
-        new WebViewSpec(url, html, title, width, height, size, debug, callbacks, onNavigate);
+        new WebViewSpec(url, html, title, width, height, size, debug, callbacks, onNavigate, initScripts);
         this.url = url;
         this.html = html;
         this.title = title;
@@ -93,6 +99,21 @@ public record WebPage(
         this.debug = debug;
         this.callbacks = callbacks;
         this.onNavigate = onNavigate;
+        this.initScripts = initScripts == null ? List.of() : List.copyOf(initScripts);
+    }
+
+    /// A page with no script of the application's run before its own.
+    public WebPage(
+            @Nullable String url,
+            @Nullable String html,
+            String title,
+            int width,
+            int height,
+            WebSize size,
+            boolean debug,
+            java.util.@Nullable Map<String, WebCallback> callbacks,
+            @Nullable Predicate<URI> onNavigate) {
+        this(url, html, title, width, height, size, debug, callbacks, onNavigate, null);
     }
 
     /// A page that is not asked about its navigations.
@@ -147,7 +168,7 @@ public record WebPage(
         Objects.requireNonNull(handler, "handler");
         var next = new java.util.LinkedHashMap<>(callbacks);
         next.put(name, handler);
-        return new WebPage(url, html, title, width, height, size, debug, next, onNavigate);
+        return new WebPage(url, html, title, width, height, size, debug, next, onNavigate, initScripts);
     }
 
     /// The same page, asking `decide` before it goes anywhere: false cancels
@@ -175,7 +196,7 @@ public record WebPage(
     ///
     /// @param decide what to ask, or null to stop asking
     public WebPage onNavigate(@Nullable Predicate<URI> decide) {
-        return new WebPage(url, html, title, width, height, size, debug, callbacks, decide);
+        return new WebPage(url, html, title, width, height, size, debug, callbacks, decide, initScripts);
     }
 
     /// Whether this page and `other` show the **same content**.
@@ -221,18 +242,36 @@ public record WebPage(
     /// The same page, with a window title.
     public WebPage title(String value) {
         return new WebPage(
-                url, html, Objects.requireNonNull(value, "title"), width, height, size, debug, callbacks, onNavigate);
+                url,
+                html,
+                Objects.requireNonNull(value, "title"),
+                width,
+                height,
+                size,
+                debug,
+                callbacks,
+                onNavigate,
+                initScripts);
     }
 
     /// The same page, opening at a given size the user may then change.
     public WebPage sized(int value, int height) {
-        return new WebPage(url, html, title, value, height, WebSize.INITIAL, debug, callbacks, onNavigate);
+        return new WebPage(url, html, title, value, height, WebSize.INITIAL, debug, callbacks, onNavigate, initScripts);
     }
 
     /// The same page, at a size that means what `mode` says.
     public WebPage sized(int value, int height, WebSize mode) {
         return new WebPage(
-                url, html, title, value, height, Objects.requireNonNull(mode, "mode"), debug, callbacks, onNavigate);
+                url,
+                html,
+                title,
+                value,
+                height,
+                Objects.requireNonNull(mode, "mode"),
+                debug,
+                callbacks,
+                onNavigate,
+                initScripts);
     }
 
     /// The same page, with the engine's own inspector reachable in it.
@@ -241,11 +280,22 @@ public record WebPage(
     /// rather than a system property, because an application may legitimately
     /// ship it on — a page that *is* a developer tool wants it.
     public WebPage debug(boolean value) {
-        return new WebPage(url, html, title, width, height, size, value, callbacks, onNavigate);
+        return new WebPage(url, html, title, width, height, size, value, callbacks, onNavigate, initScripts);
+    }
+
+    /// The same page, running `script` before each document's own scripts, on
+    /// every navigation: where an embedding application defines the API its
+    /// pages call. See `WebViewSpec.initScript`. Like the callbacks, not part of
+    /// what [#showsSameAs] compares.
+    public WebPage initScript(String script) {
+        Objects.requireNonNull(script, "script");
+        var next = new ArrayList<>(initScripts);
+        next.add(script);
+        return new WebPage(url, html, title, width, height, size, debug, callbacks, onNavigate, next);
     }
 
     /// This page as the backend's own word for it.
     public WebViewSpec spec() {
-        return new WebViewSpec(url, html, title, width, height, size, debug, callbacks, onNavigate);
+        return new WebViewSpec(url, html, title, width, height, size, debug, callbacks, onNavigate, initScripts);
     }
 }

@@ -46,7 +46,7 @@ import java.util.regex.Pattern;
 ///
 /// this does four things to `Settings.class`:
 ///
-/// 1. adds `implements BoundModel`, and a lazily created [FieldListeners] field;
+/// 1. adds `implements BoundModel`, and a lazily created `FieldListeners` field;
 /// 2. synthesises `goldberry$set$gain(int)` — store, compare, notify;
 /// 3. rewrites every `putfield gain` **in this class** into a call to it, which
 ///    is a one-for-one instruction swap because `putfield` and an instance call

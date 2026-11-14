@@ -258,6 +258,30 @@ public interface FrameStats {
         return Span.NONE;
     }
 
+    /// The time spent rendering the GPU layers that asked to be drawn again on
+    /// a composited frame: a `canvas3d`'s renderer recording its passes, a
+    /// video's next picture. The application's own GPU work, apart from the
+    /// compositor's. [Span#NONE] when [#compositedFrames] is zero.
+    default Span layers() {
+        return Span.NONE;
+    }
+
+    /// The `percent`th percentile of `stage` over the retained frames, in
+    /// milliseconds: `percentile(INTERVAL, 99)` is the hitch a mean hides.
+    /// Nearest rank, so the answer is always a frame that happened.
+    ///
+    /// Zero on a source that keeps no window, and when nothing of the stage
+    /// was measured.
+    ///
+    /// @param percent from 0 (the cheapest) to 100 (the dearest)
+    /// @throws IllegalArgumentException if `percent` is outside 0 to 100
+    default double percentile(FrameStage stage, double percent) {
+        if (!(percent >= 0 && percent <= 100)) {
+            throw new IllegalArgumentException("a percentile is 0 to 100: " + percent);
+        }
+        return 0;
+    }
+
     /// The mean number of bytes a composited frame uploaded: the damage, at four
     /// bytes a pixel. This says whether damage tracking is paying for itself on
     /// the GPU path, where every damaged pixel crosses to the GPU.

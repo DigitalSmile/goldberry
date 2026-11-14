@@ -118,8 +118,10 @@ public final class Session implements AutoCloseable {
                 layer,
                 book,
                 surface.scale().toLogical(surface.size()),
-                surface.scale().factor());
+                surface.scale().factor(),
+                renderer);
         var tree = new ElementTree(new WindowRoot(root, layer.overlays()), host);
+        host.attach(tree);
         router.focusRoot(tree.root());
         this.strip = new Filmstrip(surface, ownFonts, renderer, clock, router, tree);
         try {

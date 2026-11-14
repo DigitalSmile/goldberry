@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.net.URI;
+import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Predicate;
 
@@ -143,6 +144,9 @@ class WebViewSpecTest {
             public void eval(String script) {}
 
             @Override
+            public void init(String script) {}
+
+            @Override
             public boolean isClosed() {
                 return false;
             }
@@ -156,5 +160,17 @@ class WebViewSpecTest {
         assertTrue(answer.isCompletedExceptionally());
         var failure = assertThrows(ExecutionException.class, answer::get);
         assertTrue(failure.getCause() instanceof UnsupportedOperationException, failure.toString());
+    }
+
+    @Test
+    @DisplayName("keeps its init scripts in the order they were added, and every other change keeps them")
+    void initScripts() {
+        var spec =
+                WebViewSpec.of("https://app.example.org/").initScript("one();").initScript("two();");
+        assertEquals(List.of("one();", "two();"), spec.initScripts());
+        assertEquals(
+                spec.initScripts(),
+                spec.title("t").debug(true).sized(10, 10, WebSize.FIXED).initScripts());
+        assertEquals(List.of(), WebViewSpec.blank().initScripts(), "none by default");
     }
 }

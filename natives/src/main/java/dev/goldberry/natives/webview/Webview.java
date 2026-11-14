@@ -55,7 +55,7 @@ public final class Webview implements AutoCloseable {
     /// Bumped whenever the shim's exported functions change shape. A library
     /// found on a path the build did not choose — a distribution package, a `-D`
     /// override — is checked against this before anything is called through it.
-    public static final int ABI = 8;
+    public static final int ABI = 9;
 
     private static final Logger LOG = Logs.of(Webview.class);
 
@@ -447,6 +447,13 @@ public final class Webview implements AutoCloseable {
     public void eval(String script) {
         Objects.requireNonNull(script, "script");
         withText(script, text -> calls.eval().call(handle, text), "evaluate " + script.length() + " characters");
+    }
+
+    /// Runs `script` before each document's own scripts, on every navigation
+    /// from the next one on. Call it before navigating, as [#bind] is.
+    public void init(String script) {
+        Objects.requireNonNull(script, "script");
+        withText(script, text -> calls.init().call(handle, text), "add a script of " + script.length() + " characters");
     }
 
     /// Makes `name` a global JavaScript function this page can call.

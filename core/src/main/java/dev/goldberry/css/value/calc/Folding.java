@@ -38,8 +38,10 @@ import dev.goldberry.css.value.calc.CalcNode.Sum;
 /// A tree does not fold, and the declaration is dropped, when:
 ///
 /// - two terms of a sum are of different kinds (`1px + 2`, `1px + 1s`);
-/// - a product multiplies two quantities that are not numbers (`2px * 3px`);
-/// - something is divided by zero, or by anything but a number;
+/// - a product leaves more than one quantity that is not a number
+///   (`2px * 3px`), or one in the divisor (`2 / 1px`): a length divided by a
+///   length is a number (`100vw / 2560px`), as CSS's typed arithmetic says;
+/// - something is divided by zero, or a percentage divides or is divided;
 /// - a `mod()`, `rem()` or `round()` step is zero;
 /// - the result is not finite.
 ///
@@ -117,25 +119,71 @@ public final class Folding {
         return total;
     }
 
-    /// The factors multiplied: numbers scale, and at most one may be anything
-    /// else.
+    /// The factors multiplied, with CSS Values 4's typed arithmetic: numbers
+    /// scale, a divisor may be a length, an angle or a time, and a dimension
+    /// divided by one of the same kind cancels into a number. So
+    /// `100vw / 2560px` is a number, which is what lets `scale` follow the
+    /// window: `scale: min(100vw / 2560px, 100vh / 1440px)`.
+    ///
+    /// What is left after cancelling must be a number or one dimension in the
+    /// numerator: a length times a length, or a number over a length, has no
+    /// kind here and does not fold. A percentage cannot be divided, or divide,
+    /// because its pixels are not known until the box it lands on is; it may
+    /// still be scaled by numbers.
     private static @Nullable Quantity product(List<CalcNode> factors, Units units) {
         var scale = 1.0;
-        Quantity dimensioned = null;
+        var numerators = new ArrayList<Quantity>(1);
+        var denominators = new ArrayList<Quantity>(1);
         for (var factor : factors) {
-            var folded = folded(factor, units);
+            var divides = factor instanceof Invert;
+            var operand = factor instanceof Invert(var inner) ? inner : factor;
+            var folded = folded(operand, units);
             if (folded == null) {
                 return null;
             }
             if (folded.kind() == Quantity.Kind.NUMBER) {
-                scale *= folded.value();
-            } else if (dimensioned == null) {
-                dimensioned = folded;
+                if (divides) {
+                    if (folded.value() == 0) {
+                        return null;
+                    }
+                    scale /= folded.value();
+                } else {
+                    scale *= folded.value();
+                }
             } else {
-                return null;
+                (divides ? denominators : numerators).add(folded);
             }
         }
-        return dimensioned == null ? Quantity.number(scale) : dimensioned.times(scale);
+        if (denominators.isEmpty()) {
+            if (numerators.size() > 1) {
+                return null;
+            }
+            return numerators.isEmpty()
+                    ? Quantity.number(scale)
+                    : numerators.getFirst().times(scale);
+        }
+        for (var denominator : denominators) {
+            if (denominator.hasPercent() || denominator.value() == 0) {
+                return null;
+            }
+            var match = -1;
+            for (var i = 0; i < numerators.size(); i++) {
+                if (numerators.get(i).kind() == denominator.kind()) {
+                    match = i;
+                    break;
+                }
+            }
+            if (match < 0 || numerators.get(match).hasPercent()) {
+                return null;
+            }
+            scale *= numerators.remove(match).value() / denominator.value();
+        }
+        if (numerators.size() > 1) {
+            return null;
+        }
+        return numerators.isEmpty()
+                ? Quantity.number(scale)
+                : numerators.getFirst().times(scale);
     }
 
     /// `min()` (sign -1) or `max()` (sign 1).

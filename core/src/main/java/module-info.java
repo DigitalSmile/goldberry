@@ -158,6 +158,14 @@ module dev.goldberry.core {
     // widget that returns a Box.
     exports dev.goldberry.layout;
 
+    // Words in the user's language: CLDR's plural rules, ICU message syntax,
+    // and the toolkit's own labels.
+    exports dev.goldberry.i18n;
+
+    // One running copy of an application: a lock and a local socket, in plain
+    // Java, that hand a second launch's command line to the first.
+    exports dev.goldberry.instance;
+
     // Pointer input: hit testing against the painted frame, and the dispatch
     // that turns it into events, pseudo-classes and focus.
     exports dev.goldberry.input;

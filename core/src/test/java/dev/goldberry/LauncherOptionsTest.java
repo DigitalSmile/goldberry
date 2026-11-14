@@ -44,6 +44,20 @@ class LauncherOptionsTest {
     }
 
     @Test
+    @DisplayName("a frame to capture at is read, and needs a path")
+    void captureAt() {
+        var options = Launcher.Options.of(new String[] {"--capture-at=30", "--capture=shot.png"});
+        assertEquals(30, options.captureAt());
+        assertEquals(0, Launcher.Options.of(new String[] {"--capture=shot.png"}).captureAt());
+        var pathless = assertThrows(
+                IllegalArgumentException.class, () -> Launcher.Options.of(new String[] {"--capture-at=3"}));
+        assertTrue(pathless.getMessage().contains("--capture=PATH"), pathless.getMessage());
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> Launcher.Options.of(new String[] {"--capture-at=-1", "--capture=a.png"}));
+    }
+
+    @Test
     @DisplayName("no arguments at all is no frames, no size, no walk and no budget")
     void nothing() {
         assertEquals(0, Launcher.Options.of(null).frames());

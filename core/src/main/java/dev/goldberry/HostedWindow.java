@@ -629,6 +629,9 @@ final class HostedWindow implements WindowHost {
             renderer = new WidgetRenderer(app.stylesheets(), app.fonts())
                     .frames(window.frames())
                     .clock(app.clock())
+                    // The application's, shared by every window, so a settings
+                    // window's text-size row reaches the main one.
+                    .textScale(app.textScale())
                     // The desktop's reduce-motion switch, obeyed rather than
                     // merely offered: the desktop is asked once and a renderer
                     // starts where it said. Empty is "animate", because a default
@@ -1204,6 +1207,17 @@ final class HostedWindow implements WindowHost {
     @Override
     public void restyle() {
         app.restyleAll();
+    }
+
+    @Override
+    public double textScale() {
+        return app.textScale();
+    }
+
+    /// Every window's, for [#restyle()]'s reason.
+    @Override
+    public void textScale(double factor) {
+        app.textScale(factor);
     }
 
     @Override
