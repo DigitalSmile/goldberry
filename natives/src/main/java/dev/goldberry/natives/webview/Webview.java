@@ -173,6 +173,20 @@ public final class Webview implements AutoCloseable {
     /// upcall stub for the process, and a number to find the question by.
     private static final Map<Long, CompletableFuture<List<HttpCookie>>> COOKIE_READS = new ConcurrentHashMap<>();
 
+    /// ```c
+    /// void (*)(long long request, int result)
+    /// ```
+    private static final FunctionDescriptor DONE_DESCRIPTOR =
+            Upcalls.describe(FunctionDescriptor.ofVoid(ValueLayout.JAVA_LONG, ValueLayout.JAVA_INT));
+
+    /// Every change to the jar still waiting for the engine to finish, by the
+    /// number handed to it, as [#COOKIE_READS] keeps the reads.
+    private static final Map<Long, CompletableFuture<Integer>> COOKIE_CHANGES = new ConcurrentHashMap<>();
+
+    private static final class DoneStubHolder {
+        private static final MemorySegment STUB = stub("answerDone", DONE_DESCRIPTOR, void.class, long.class, int.class);
+    }
+
     /// Every page's navigation hook, by the number the engine hands back.
     private static final Map<Long, Predicate<String>> NAVIGATION_HOOKS = new ConcurrentHashMap<>();
 
@@ -645,6 +659,100 @@ public final class Webview implements AutoCloseable {
         return answer;
     }
 
+    /// Deletes the cookies the engine would send to `url`: every one, or only
+    /// those named `name`. What a sign-out does, so the identity provider's
+    /// session does not outlive it.
+    ///
+    /// Asynchronous, and completed on the UI thread, as [#cookies] is; on
+    /// Windows before this returns. The jar is the engine's: on Linux and macOS
+    /// a cookie deleted here is gone for every page in the process.
+    ///
+    /// @param url  an absolute URL; its scheme, host and path choose the cookies
+    /// @param name the one cookie name to delete, or null for all of them
+    /// @return how many were deleted; failed with
+    ///         [UnsupportedOperationException] where this engine cannot change
+    ///         its jar, and [IllegalStateException] where it tried and could not
+    /// @throws IllegalStateException if the page has been closed
+    public CompletableFuture<Integer> deleteCookies(String url, @Nullable String name) {
+        Objects.requireNonNull(url, "url");
+        requireOpen();
+        var answer = new CompletableFuture<Integer>();
+        var id = NEXT_BINDING.getAndIncrement();
+        COOKIE_CHANGES.put(id, answer);
+        int result;
+        try (var arena = Arena.ofConfined()) {
+            var named = name == null ? MemorySegment.NULL : arena.allocateFrom(name);
+            result = calls.deleteCookies().call(handle, arena.allocateFrom(url), named, DoneStubHolder.STUB, id);
+        }
+        return started(result, id, answer, "this web view engine cannot delete its cookies");
+    }
+
+    /// Deletes every cookie in the engine's jar, for every site.
+    ///
+    /// @return completed once the jar is empty; failed as [#deleteCookies] is
+    /// @throws IllegalStateException if the page has been closed
+    public CompletableFuture<Void> clearCookies() {
+        requireOpen();
+        var answer = new CompletableFuture<Integer>();
+        var id = NEXT_BINDING.getAndIncrement();
+        COOKIE_CHANGES.put(id, answer);
+        var result = calls.clearCookies().call(handle, DoneStubHolder.STUB, id);
+        return started(result, id, answer, "this web view engine cannot clear its cookies")
+                .thenApply(_ -> null);
+    }
+
+    /// `answer`, failed at once when the engine said it will never answer.
+    private CompletableFuture<Integer> started(
+            int result, long id, CompletableFuture<Integer> answer, String unsupported) {
+        if (result != 0) {
+            // The engine may already have answered and taken it out (WebView2
+            // clears at once); a -1 from it means it never will.
+            if (COOKIE_CHANGES.remove(id) != null) {
+                answer.completeExceptionally(new UnsupportedOperationException(unsupported));
+            }
+            return answer;
+        }
+        if (!answer.isDone()) {
+            cookieReads.add(id);
+            answer.whenComplete((_, _) -> cookieReads.remove(id));
+        }
+        return answer;
+    }
+
+    /// Sends `agent` as the page's user agent from its next request on; null
+    /// puts the engine's own back where the engine can (not on Windows).
+    ///
+    /// @return whether the engine took it
+    /// @throws IllegalStateException if the page has been closed
+    public boolean userAgent(@Nullable String agent) {
+        requireOpen();
+        if (agent == null) {
+            return calls.userAgent().call(handle, MemorySegment.NULL) == 0;
+        }
+        try (var arena = Arena.ofConfined()) {
+            return calls.userAgent().call(handle, arena.allocateFrom(agent)) == 0;
+        }
+    }
+
+    /// The upcall every change to the jar is answered through. **Called from
+    /// C; must not throw.**
+    @SuppressWarnings("unused")
+    private static void answerDone(long request, int result) {
+        try {
+            var answer = COOKIE_CHANGES.remove(request);
+            if (answer == null) {
+                return;
+            }
+            if (result < 0) {
+                answer.completeExceptionally(new IllegalStateException("the web view engine could not change its jar"));
+            } else {
+                answer.complete(result);
+            }
+        } catch (Throwable t) {
+            LOG.warn("a cookie change could not be answered", t);
+        }
+    }
+
     /// Asks `decide` before the page goes anywhere: false cancels the
     /// navigation and the page stays where it was.
     ///
@@ -772,6 +880,11 @@ public final class Webview implements AutoCloseable {
                 if (answer != null) {
                     answer.completeExceptionally(
                             new IllegalStateException("the page closed before its cookies were read"));
+                }
+                var change = COOKIE_CHANGES.remove(id);
+                if (change != null) {
+                    change.completeExceptionally(
+                            new IllegalStateException("the page closed before its cookies were changed"));
                 }
             }
             cookieReads.clear();

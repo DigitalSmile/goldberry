@@ -101,6 +101,7 @@ with the same words draws.
 | `id` | string | none | the node's id, which is also its reconciliation key |
 | `tooltip` | string | none | text shown on hover |
 | `context-menu` | string | none | the name of a menu a right-click opens |
+| `selectable` | bool | `#false` | whether its words can be dragged across, selected and copied |
 
 A `rich-text` takes no argument. Its words are its runs, and an argument is
 refused when the document inflates.
@@ -108,8 +109,16 @@ refused when the document inflates.
 ### Styling
 
 - CSS type `rich-text`.
-- Its children are `run` nodes, styled by the cascade like any child.
-- No pseudo-classes of its own. It is not focusable and takes no hover.
+- Its children are `run` nodes, styled by the cascade like any child, and
+  one `rich-text-selection` part whose `background` is the selection's
+  highlight.
+- No pseudo-classes of its own. A selectable one is focusable.
+- A run's `background` is drawn behind its words, on every line they reach.
+- `run.pressable` is a run with a press handler, which takes the link ink and
+  the pointer cursor; the pointer over any run takes that run's `cursor`.
+- `run.spoiler` is covered until pressed: `run.spoiler:not(.revealed)` draws
+  its words in no colour on a block of the muted ink, and a press adds
+  `revealed`.
 
 The paragraph's `white-space`, `text-overflow`, `text-align`, `overflow-wrap`,
 `word-break`, padding and background are the `rich-text`'s. `color`, the font
@@ -118,8 +127,26 @@ does not set them.
 
 ### Keyboard
 
-None. A `rich-text` is not a Tab stop. Its accessible name is its runs' text end
-to end, and its role is text.
+None, unless it is selectable: then it is a Tab stop, `Ctrl+A` selects all of
+it and `Ctrl+C` copies what is selected. Losing the focus clears the
+selection. Its accessible name is its runs' text end to end, and its role is
+text.
+
+### Pressing and selecting
+
+```java
+new RichText(List.of(
+        new Run("Thanks "),
+        new Run("@frodo", Set.of("mention")).onPress(() -> openProfile("frodo")),
+        new Run(", the ending is "),
+        new Run("he leaves").spoiler(true)), Attributes.NONE)
+        .selectable(true)
+```
+
+A click on a pressed run's words, on any line they reach, runs its handler.
+A click on a covered spoiler reveals it and runs nothing. A drag across a
+selectable paragraph selects, and a drag that selected something is not a
+click. The selection belongs to one paragraph.
 
 ### `run`
 
@@ -140,11 +167,13 @@ rich-text {
 | argument | string | `""` | the words |
 | `class` | string | none | CSS classes, space-separated |
 | `id` | string | none | the node's id |
+| `spoiler` | bool | `#false` | covers the words until the run is pressed |
 
 A run decides how its own words look: `font-family`, `font-size`,
-`font-weight`, `font-style`, `color` and `text-decoration`. A run's
-`white-space`, `text-align`, padding or background are read by nothing, because
-a run has no box of its own inside the paragraph. A selector reaches it as a
+`font-weight`, `font-style`, `color`, `text-decoration` and a solid
+`background`, drawn behind its words. A run's `white-space`, `text-align` and
+padding are read by nothing, because a run has no box of its own inside the
+paragraph. A press handler is code: `Run.onPress(Runnable)` in Java. A selector reaches it as a
 child of its paragraph, `rich-text > run.keyword`, or by its classes alone.
 
 Outside a `rich-text`, a `run` draws as a `text` with the same words would.

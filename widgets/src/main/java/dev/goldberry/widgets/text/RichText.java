@@ -3,21 +3,14 @@ package dev.goldberry.widgets.text;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.Set;
 
 import org.jspecify.annotations.Nullable;
 
-import dev.goldberry.css.ComputedStyle;
 import dev.goldberry.kdl.KdlNode;
-import dev.goldberry.paint.Box;
-import dev.goldberry.text.Paragraph;
-import dev.goldberry.text.SpanPaint;
+import dev.goldberry.widget.State;
 import dev.goldberry.widget.Widget;
 import dev.goldberry.widget.attr.Attributed;
 import dev.goldberry.widget.attr.Attributes;
-import dev.goldberry.widget.semantics.Role;
-import dev.goldberry.widget.semantics.Semantics;
-import dev.goldberry.widget.style.Paints;
 import dev.goldberry.widget.style.Styled;
 import dev.goldberry.widgets.markup.Markup;
 import dev.goldberry.widgets.markup.Wiring;
@@ -55,17 +48,34 @@ import dev.goldberry.widgets.markup.Wiring;
 /// What a screen reader is told is the words: the runs' text end to end, with
 /// no trace of where one style stopped and the next began.
 ///
+/// ## Pressing, selecting, revealing
+///
+/// A run given a handler with [Run#onPress(Runnable)] is pressed where its
+/// words are drawn, on any line they reach, and the pointer over it takes the
+/// run's `cursor` (`pointer`, from the toolkit's stylesheet). A [Run#spoiler(boolean)]
+/// is covered until pressed, and stays revealed for the life of this widget.
+/// A `rich-text` made [#selectable(boolean)] is dragged across to select, `Ctrl+A`
+/// selects it all and `Ctrl+C` copies what is selected; the highlight is the
+/// `rich-text-selection` part's `background`. The selection is this
+/// paragraph's alone, and a press anywhere in it starts a new one.
+///
 /// Read more: [Text and links](https://goldberry.dev/docs/components/text.html#text).
 ///
 /// @param runs       the stretches, in reading order
+/// @param selectable whether the words can be selected and copied
 /// @param attributes the paragraph's id, classes and key
 @Markup("rich-text")
-public record RichText(List<Run> runs, Attributes attributes)
-        implements Widget.Leaf, Styled, Paints, Semantics, Attributed<RichText> {
+public record RichText(List<Run> runs, boolean selectable, Attributes attributes)
+        implements Widget.Stateful, Attributed<RichText> {
 
     public RichText {
         runs = List.copyOf(Objects.requireNonNull(runs, "runs"));
         Objects.requireNonNull(attributes, "attributes");
+    }
+
+    /// A paragraph of `runs` that cannot be selected.
+    public RichText(List<Run> runs, Attributes attributes) {
+        this(runs, false, attributes);
     }
 
     public RichText(Run... runs) {
@@ -81,30 +91,14 @@ public record RichText(List<Run> runs, Attributes attributes)
         return text.toString();
     }
 
+    /// This paragraph, selectable and copyable, or not.
+    public RichText selectable(boolean value) {
+        return new RichText(runs, value, attributes);
+    }
+
     @Override
     public RichText withAttributes(Attributes attributes) {
-        return new RichText(runs, attributes);
-    }
-
-    /// The runs, as the nodes the cascade styles.
-    @Override
-    public List<Widget> children() {
-        return List.copyOf(runs);
-    }
-
-    @Override
-    public String cssType() {
-        return "rich-text";
-    }
-
-    @Override
-    public @Nullable String id() {
-        return attributes.id();
-    }
-
-    @Override
-    public Set<String> classes() {
-        return attributes.classes();
+        return new RichText(runs, selectable, attributes);
     }
 
     @Override
@@ -113,52 +107,12 @@ public record RichText(List<Run> runs, Attributes attributes)
     }
 
     @Override
-    public Role role() {
-        return Role.TEXT;
-    }
-
-    /// The words, as [#text()] has them: a reader hears a sentence, not its
-    /// styles.
-    @Override
-    public String accessibleName() {
-        return text();
-    }
-
-    /// One measured leaf, as a `text` is.
-    ///
-    /// The runs have rendered already, each to a box holding its words shaped in
-    /// its own font and its resolved colour and rules. Those boxes are read here
-    /// and not drawn: their paragraphs are joined into one, and a run whose
-    /// colour or rules differ from the paragraph's becomes a [SpanPaint] over its
-    /// stretch. Runs that look like the paragraph add nothing, so a `rich-text`
-    /// whose runs are all unstyled draws what a `text` with the same words draws.
-    @Override
-    public Box render(ComputedStyle style, List<Box> children, Context context) {
-        var spans = new ArrayList<Paragraph>(children.size());
-        var paints = new ArrayList<SpanPaint>();
-        var decorations = style.textFlow().decorations();
-        var offset = 0;
-        for (var child : children) {
-            var run = child.text();
-            if (run == null) {
-                continue;
-            }
-            var end = offset + run.paragraph().text().length();
-            var ruled = run.flow().decorations();
-            if (run.argb() != style.color() || !ruled.equals(decorations)) {
-                paints.add(new SpanPaint(offset, end, run.argb(), ruled));
-            }
-            spans.add(run.paragraph());
-            offset = end;
-        }
-        var paragraph = spans.isEmpty() ? context.paragraph(style, "") : context.join(spans);
-        return Box.of()
-                .text(new Box.Text(paragraph, style.color(), style.textFlow(), paints))
-                .style(style);
+    public State<?> createState() {
+        return new RichTextState();
     }
 
     /// Builds a `rich-text` node from markup: its children are its runs, and
-    /// nothing else may be.
+    /// nothing else may be. `selectable=#true` makes it selectable.
     @SuppressWarnings("unused")
     public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
         if (node.argument().isPresent()) {
@@ -176,6 +130,6 @@ public record RichText(List<Run> runs, Attributes attributes)
             }
             runs.add(run);
         }
-        return new RichText(runs, Attributes.of(node));
+        return new RichText(runs, node.booleanProperty("selectable"), Attributes.of(node));
     }
 }

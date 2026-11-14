@@ -83,8 +83,8 @@ final class Shorthands {
                         "transition-timing-function",
                         "transition-delay")));
         all.add(new Shorthand("container", List.of("container-name", "container-type")));
-        // `font` resets the stretch and the variation settings, as CSS's does:
-        // it names a face from scratch.
+        // `font` resets the stretch, the variation settings and the features,
+        // as CSS's does: it names a face from scratch.
         all.add(new Shorthand(
                 "font",
                 List.of(
@@ -94,7 +94,9 @@ final class Shorthands {
                         "line-height",
                         "font-family",
                         "font-stretch",
-                        "font-variation-settings")));
+                        "font-variation-settings",
+                        "font-feature-settings",
+                        "font-variant-numeric")));
         // Every longhand, which is what CSS's `all` resets. It takes only the
         // global keywords.
         all.add(new Shorthand(

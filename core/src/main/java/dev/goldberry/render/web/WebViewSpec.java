@@ -44,6 +44,8 @@ import org.jspecify.annotations.Nullable;
 ///        everywhere — see [#onNavigate(Predicate)]
 /// @param initScripts script run before each document's own, in order — see
 ///        [#initScript(String)]
+/// @param userAgent  the user agent the page sends, or null for the engine's
+///        own — see [#userAgent(String)]
 public record WebViewSpec(
         @Nullable String url,
         @Nullable String html,
@@ -54,7 +56,8 @@ public record WebViewSpec(
         boolean debug,
         Map<String, WebCallback> callbacks,
         @Nullable Predicate<URI> onNavigate,
-        List<String> initScripts) {
+        List<String> initScripts,
+        @Nullable String userAgent) {
 
     /// The size a page opens at when nothing says otherwise.
     ///
@@ -77,7 +80,8 @@ public record WebViewSpec(
             boolean debug,
             @Nullable Map<String, WebCallback> callbacks,
             @Nullable Predicate<URI> onNavigate,
-            @Nullable List<String> initScripts) {
+            @Nullable List<String> initScripts,
+            @Nullable String userAgent) {
         Objects.requireNonNull(title, "title");
         Objects.requireNonNull(size, "size");
         // Copied and ordered, so the names are bound in the order they were
@@ -102,6 +106,24 @@ public record WebViewSpec(
         this.callbacks = callbacks;
         this.onNavigate = onNavigate;
         this.initScripts = initScripts == null ? List.of() : List.copyOf(initScripts);
+        this.userAgent = userAgent;
+    }
+
+    /// A page that sends the engine's own user agent — the shape this record
+    /// had before one could be set, kept so that adding it changed nothing that
+    /// already worked.
+    public WebViewSpec(
+            @Nullable String url,
+            @Nullable String html,
+            String title,
+            int width,
+            int height,
+            WebSize size,
+            boolean debug,
+            @Nullable Map<String, WebCallback> callbacks,
+            @Nullable Predicate<URI> onNavigate,
+            @Nullable List<String> initScripts) {
+        this(url, html, title, width, height, size, debug, callbacks, onNavigate, initScripts, null);
     }
 
     /// A page with no script of the application's run before its own — the
@@ -158,7 +180,7 @@ public record WebViewSpec(
         Objects.requireNonNull(handler, "handler");
         var next = new LinkedHashMap<>(callbacks);
         next.put(name, handler);
-        return new WebViewSpec(url, html, title, width, height, size, debug, next, onNavigate, initScripts);
+        return new WebViewSpec(url, html, title, width, height, size, debug, next, onNavigate, initScripts, userAgent);
     }
 
     /// The same page, asking `decide` before it goes anywhere.
@@ -188,7 +210,7 @@ public record WebViewSpec(
     ///
     /// @param decide what to ask, or null to stop asking
     public WebViewSpec onNavigate(@Nullable Predicate<URI> decide) {
-        return new WebViewSpec(url, html, title, width, height, size, debug, callbacks, decide, initScripts);
+        return new WebViewSpec(url, html, title, width, height, size, debug, callbacks, decide, initScripts, userAgent);
     }
 
     /// A page that opens at `url`, at the default size.
@@ -207,7 +229,7 @@ public record WebViewSpec(
         Objects.requireNonNull(script, "script");
         var next = new ArrayList<>(initScripts);
         next.add(script);
-        return new WebViewSpec(url, html, title, width, height, size, debug, callbacks, onNavigate, next);
+        return new WebViewSpec(url, html, title, width, height, size, debug, callbacks, onNavigate, next, userAgent);
     }
 
     public static WebViewSpec of(String url) {
@@ -238,16 +260,26 @@ public record WebViewSpec(
                 debug,
                 callbacks,
                 onNavigate,
-                initScripts);
+                initScripts,
+                userAgent);
     }
 
     /// The same page at a different window size.
     public WebViewSpec sized(int value, int height, WebSize mode) {
-        return new WebViewSpec(url, html, title, value, height, mode, debug, callbacks, onNavigate, initScripts);
+        return new WebViewSpec(url, html, title, value, height, mode, debug, callbacks, onNavigate, initScripts, userAgent);
+    }
+
+    /// The same page, sending `agent` as its user agent from its first request:
+    /// a service that serves an embedded client differently, or an identity
+    /// provider that refuses an agent it does not know.
+    ///
+    /// @param agent the agent, or null for the engine's own
+    public WebViewSpec userAgent(@Nullable String agent) {
+        return new WebViewSpec(url, html, title, width, height, size, debug, callbacks, onNavigate, initScripts, agent);
     }
 
     /// The same page with the engine's inspector on.
     public WebViewSpec debug(boolean value) {
-        return new WebViewSpec(url, html, title, width, height, size, value, callbacks, onNavigate, initScripts);
+        return new WebViewSpec(url, html, title, width, height, size, value, callbacks, onNavigate, initScripts, userAgent);
     }
 }

@@ -1,5 +1,6 @@
 package dev.goldberry.widgets.text;
 
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -40,21 +41,55 @@ import dev.goldberry.widgets.markup.Wiring;
 ///
 /// Outside a `rich-text` a run draws as a `text` would, which is what it is.
 ///
+/// A run may be **pressed**: [#onPress(Runnable)] gives it a handler, which a
+/// mention, a hashtag or a link in a message needs, and the class `pressable`,
+/// which the toolkit's stylesheet gives the pointer cursor. A run may be a
+/// **spoiler**: [#spoiler(boolean)] covers its words until it is pressed, and the
+/// class `spoiler` (and `revealed` once pressed) is what draws the cover. A
+/// run's `background` is drawn behind its words on every line they reach.
+///
 /// Read more: [Text and links](https://goldberry.dev/docs/components/text.html#text).
 ///
 /// @param text       the words, spaces included: runs are joined as written
+/// @param onPress    what a press on the run does, or null for nothing
+/// @param spoiler    whether the words are covered until the run is pressed
 /// @param attributes the classes the cascade styles it by, and an id
 @Markup("run")
-public record Run(String text, Attributes attributes) implements Widget.Leaf, Styled, Paints, Attributed<Run> {
+public record Run(String text, @Nullable Runnable onPress, boolean spoiler, Attributes attributes)
+        implements Widget.Leaf, Styled, Paints, Attributed<Run> {
+
+    /// The class a run with a press handler carries.
+    public static final String PRESSABLE = "pressable";
+
+    /// The class a spoiler carries.
+    public static final String SPOILER = "spoiler";
+
+    /// The class a spoiler carries once it has been revealed.
+    public static final String REVEALED = "revealed";
 
     public Run {
         Objects.requireNonNull(text, "text");
         Objects.requireNonNull(attributes, "attributes");
     }
 
+    /// Words styled by `attributes`, with no press and no cover.
+    public Run(String text, Attributes attributes) {
+        this(text, null, false, attributes);
+    }
+
     /// A run with no class: words in the paragraph's own style.
     public Run(String text) {
         this(text, Attributes.NONE);
+    }
+
+    /// This run, doing `value` when pressed; null for nothing.
+    public Run onPress(@Nullable Runnable value) {
+        return new Run(text, value, spoiler, attributes);
+    }
+
+    /// This run, covered until it is pressed, or not.
+    public Run spoiler(boolean value) {
+        return new Run(text, onPress, value, attributes);
     }
 
     /// A run styled by `classes`, which is how a document's spans map onto
@@ -66,7 +101,7 @@ public record Run(String text, Attributes attributes) implements Widget.Leaf, St
 
     @Override
     public Run withAttributes(Attributes attributes) {
-        return new Run(text, attributes);
+        return new Run(text, onPress, spoiler, attributes);
     }
 
     @Override
@@ -79,9 +114,21 @@ public record Run(String text, Attributes attributes) implements Widget.Leaf, St
         return attributes.id();
     }
 
+    /// The application's classes, with `pressable` and `spoiler` added for a run
+    /// that is either.
     @Override
     public Set<String> classes() {
-        return attributes.classes();
+        if (onPress == null && !spoiler) {
+            return attributes.classes();
+        }
+        var classes = new LinkedHashSet<>(attributes.classes());
+        if (onPress != null) {
+            classes.add(PRESSABLE);
+        }
+        if (spoiler) {
+            classes.add(SPOILER);
+        }
+        return Set.copyOf(classes);
     }
 
     @Override
@@ -97,9 +144,11 @@ public record Run(String text, Attributes attributes) implements Widget.Leaf, St
         return Box.text(context.paragraph(style, text), style.color()).style(style);
     }
 
-    /// Builds a `run` node from markup: its argument is its words.
+    /// Builds a `run` node from markup: its argument is its words, and
+    /// `spoiler=#true` covers them. A press handler is code, so a document
+    /// cannot give one.
     @SuppressWarnings("unused")
     public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
-        return new Run(Wiring.label(node), Attributes.of(node));
+        return new Run(Wiring.label(node), null, node.booleanProperty("spoiler"), Attributes.of(node));
     }
 }

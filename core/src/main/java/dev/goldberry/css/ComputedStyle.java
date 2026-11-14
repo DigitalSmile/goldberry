@@ -1263,6 +1263,21 @@ public record ComputedStyle(
                                 typography.variation(typography.variation().settings(v))))
                         .orElseGet(() -> dropped(property, value));
 
+            // Which OpenType features text is shaped with: `"tag"` pairs, and
+            // the numeric variant's keywords. The settings are applied over
+            // the variant, so a tag both name takes the settings' value.
+            case "font-feature-settings" ->
+                FontValues.featureSettings(value)
+                        .map(v -> typography(
+                                typography.features(typography.features().settings(v))))
+                        .orElseGet(() -> dropped(property, value));
+
+            case "font-variant-numeric" ->
+                FontValues.variantNumeric(value)
+                        .map(v -> typography(
+                                typography.features(typography.features().numeric(v))))
+                        .orElseGet(() -> dropped(property, value));
+
             // A bare number is a multiple of the font size -- `line-height: 1.4`
             // -- which is the form that survives a font-size change on a
             // descendant. A length is absolute. Both are CSS's.

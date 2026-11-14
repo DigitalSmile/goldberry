@@ -303,6 +303,24 @@ class ParagraphJoinTest {
         }
 
         @Test
+        @DisplayName("fills a span's background behind it, a line box tall, and nowhere else")
+        void spanHasItsBackground() {
+            var joined = sentence(regular);
+            var start = GIVE.length();
+            var end = start + BLEEDING.length();
+            var target = paint(joined, List.of(new SpanPaint(start, end, WHITE, TextDecoration.NONE, RED)));
+
+            var left = (int) Math.ceil(joined.widthBetween(0, start)) + 1;
+            var right = (int) Math.floor(joined.widthBetween(0, end)) - 1;
+            // The line box's top row, which no glyph reaches: only the fill does.
+            assertEquals(RED, target.pixel((left + right) / 2, 4), "the fill is behind the stretch");
+            assertEquals(BLACK, target.pixel(left - 4, 4), "and not before it");
+            assertEquals(BLACK, target.pixel(right + 4, 4), "or after it");
+            var below = (int) Math.ceil(4 + joined.font().lineHeight()) + 1;
+            assertEquals(BLACK, target.pixel((left + right) / 2, below), "a line box tall");
+        }
+
+        @Test
         @DisplayName("draws a plain paragraph with no spans exactly as the plain form does")
         void noSpansIsThePlainPath() {
             var plain = Paragraph.of(regular, GIVE + BLEEDING + REST);

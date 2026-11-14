@@ -25,6 +25,7 @@ import dev.goldberry.media.io.MediaIOProvider;
 import dev.goldberry.media.io.Source;
 import dev.goldberry.media.picture.Picture;
 import dev.goldberry.media.picture.PictureForm;
+import dev.goldberry.media.picture.PictureSource;
 import dev.goldberry.media.picture.PlaneStore;
 import dev.goldberry.media.picture.VideoPicture;
 import dev.goldberry.media.picture.VideoPlanes;
@@ -60,7 +61,7 @@ import dev.goldberry.media.subtitle.Subtitles;
 /// asks for planes draws what [#shownPicture()] hands out, in either form.
 ///
 /// Read more: [A player](https://goldberry.dev/docs/components/media.html#a-player).
-public final class MediaPlayer implements AutoCloseable {
+public final class MediaPlayer implements AutoCloseable, PictureSource {
 
     private static final Logger LOG = Logs.of(MediaPlayer.class);
 
@@ -151,6 +152,7 @@ public final class MediaPlayer implements AutoCloseable {
     /// is waiting. A picture already due is not counted, since the next
     /// [#currentPicture()] shows it. A view uses this to paint when the next
     /// picture falls due rather than on every frame of a 120 Hz display.
+    @Override
     public Optional<Duration> untilNextPicture() {
         return current().flatMap(playback -> {
             var nanos = playback.nanosUntilNextPicture();
@@ -205,6 +207,7 @@ public final class MediaPlayer implements AutoCloseable {
     /// Empty when nothing is open, when the source has no video, and before its
     /// first picture is decoded. Unlike [#currentPicture()], never empty for a
     /// picture's form alone.
+    @Override
     public Optional<Picture> shownPicture() {
         return current().flatMap(Playback::shownPicture);
     }

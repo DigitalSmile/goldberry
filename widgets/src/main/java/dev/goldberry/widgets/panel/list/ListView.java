@@ -85,6 +85,11 @@ import dev.goldberry.widgets.text.Text;
 /// The two spacers are absent entirely unless the list is virtualized; without
 /// them the window is every row.
 ///
+/// A list in [#sections] has a `list-section-header` above the first row of
+/// each section, and one more, classed `pinned`, over the top of the viewport.
+/// A list that builds every row puts each section's rows in a `list-section`
+/// with its header in an `affix`.
+///
 /// Stateful and unstyled for [dev.goldberry.widgets.core.scroll.Scroll]'s
 /// reason: a stateful widget that also carried the CSS type would put two `list`
 /// nodes in the cascade, one inside the other, and every rule would apply twice.
@@ -126,6 +131,8 @@ import dev.goldberry.widgets.text.Text;
 ///                    read from the cascade, rather than `rowHeight`
 /// @param rowHeights  the estimate a list of rows that vary in height
 ///                    virtualizes with, or null; see [#virtualized(RowHeights)]
+/// @param sections    how the items fall into sections and what heads each,
+///                    or null for none; see [#sections]
 /// @param attributes  `id` and `class`, exactly as on the primitives
 ///
 /// Read more: [Collections](https://goldberry.dev/docs/components/collections.html#list).
@@ -142,6 +149,7 @@ public record ListView<T>(
         double rowHeight,
         boolean rowHeightFromToken,
         @Nullable RowHeights rowHeights,
+        @Nullable ListSections<T> sections,
         Attributes attributes)
         implements Widget.Stateful, Attributed<ListView<T>> {
 
@@ -158,6 +166,7 @@ public record ListView<T>(
             double rowHeight,
             boolean rowHeightFromToken,
             @Nullable RowHeights rowHeights,
+            @Nullable ListSections<T> sections,
             @Nullable Attributes attributes) {
         items = List.copyOf(items == null ? List.of() : items);
         Objects.requireNonNull(identity, "identity");
@@ -183,7 +192,39 @@ public record ListView<T>(
         this.rowHeight = rowHeight;
         this.rowHeightFromToken = rowHeightFromToken;
         this.rowHeights = rowHeights;
+        this.sections = sections;
         this.attributes = attributes;
+    }
+
+    /// The same, with no sections: the form every caller wrote before a list
+    /// could have them.
+    public ListView(
+            @Nullable List<T> items,
+            Function<T, String> identity,
+            Function<T, Widget> factory,
+            @Nullable Function<T, String> text,
+            @Nullable Function<T, @Nullable String> itemMenu,
+            Set<String> selected,
+            @Nullable Consumer<Set<String>> onSelect,
+            @Nullable Selection selection,
+            double rowHeight,
+            boolean rowHeightFromToken,
+            @Nullable RowHeights rowHeights,
+            @Nullable Attributes attributes) {
+        this(
+                items,
+                identity,
+                factory,
+                text,
+                itemMenu,
+                selected,
+                onSelect,
+                selection,
+                rowHeight,
+                rowHeightFromToken,
+                rowHeights,
+                null,
+                attributes);
     }
 
     /// The same, for a list whose rows are all one height or are all built —
@@ -211,6 +252,7 @@ public record ListView<T>(
                 selection,
                 rowHeight,
                 rowHeightFromToken,
+                null,
                 null,
                 attributes);
     }
@@ -277,6 +319,7 @@ public record ListView<T>(
                 rowHeight,
                 rowHeightFromToken,
                 rowHeights,
+                sections,
                 attributes);
     }
 
@@ -311,6 +354,7 @@ public record ListView<T>(
                 rowHeight,
                 rowHeightFromToken,
                 rowHeights,
+                sections,
                 attributes);
     }
 
@@ -329,6 +373,7 @@ public record ListView<T>(
                 rowHeight,
                 rowHeightFromToken,
                 rowHeights,
+                sections,
                 attributes);
     }
 
@@ -366,6 +411,7 @@ public record ListView<T>(
                 height,
                 false,
                 null,
+                sections,
                 attributes);
     }
 
@@ -388,7 +434,7 @@ public record ListView<T>(
     /// [#virtualized(RowHeights)] instead.
     public ListView<T> virtualized() {
         return new ListView<>(
-                items, identity, factory, text, itemMenu, selected, onSelect, selection, 0, true, null, attributes);
+                items, identity, factory, text, itemMenu, selected, onSelect, selection, 0, true, null, sections, attributes);
     }
 
     /// This list virtualized over rows that are **not all one height** — a chat
@@ -423,7 +469,44 @@ public record ListView<T>(
     public ListView<T> virtualized(RowHeights heights) {
         Objects.requireNonNull(heights, "heights");
         return new ListView<>(
-                items, identity, factory, text, itemMenu, selected, onSelect, selection, 0, false, heights, attributes);
+                items, identity, factory, text, itemMenu, selected, onSelect, selection, 0, false, heights, sections, attributes);
+    }
+
+    /// This list in sections, each headed by a widget that stays pinned at the
+    /// top of the viewport while its rows scroll under it.
+    ///
+    /// ```java
+    /// messages.sections(Message::day, day -> new Text(day).withClass("day"))
+    /// ```
+    ///
+    /// A section is a run of items with the same key. Its header is drawn above
+    /// its first row, and while that row's section is the one at the viewport's
+    /// top edge a copy is pinned there, pushed up by the next section's header
+    /// as it arrives, as in a phone's contact list.
+    ///
+    /// **A header is not a row.** It is never focused, never selected and never
+    /// matched by the typeahead, and `Home` and `End` go to rows. It is the
+    /// `list-section-header` node, and the pinned copy carries the class
+    /// `pinned`.
+    ///
+    /// A list virtualized at one height ([#virtualized(double)]) measures its
+    /// rows once it has sections, with that height as the estimate, because a
+    /// header makes the first row of each section a different height.
+    public ListView<T> sections(Function<T, String> sectionOf, Function<String, Widget> header) {
+        return new ListView<>(
+                items,
+                identity,
+                factory,
+                text,
+                itemMenu,
+                selected,
+                onSelect,
+                selection,
+                rowHeight,
+                rowHeightFromToken,
+                rowHeights,
+                new ListSections<>(sectionOf, header),
+                attributes);
     }
 
     /// This list with a context menu per item.
@@ -449,6 +532,7 @@ public record ListView<T>(
                 rowHeight,
                 rowHeightFromToken,
                 rowHeights,
+                sections,
                 attributes);
     }
 
@@ -466,6 +550,7 @@ public record ListView<T>(
                 rowHeight,
                 rowHeightFromToken,
                 rowHeights,
+                sections,
                 value);
     }
 

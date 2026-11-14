@@ -405,9 +405,9 @@ public final class Offscreen {
                     // instead photographs every self-arranging widget one move
                     // from settled, which is what the gallery's Basic screen
                     // showed the first time this was written that way.
-                    measure(frame, renderer, sequence);
+                    measurePass(frame, renderer, sequence);
                     clock.advance(settleMillis);
-                    measure(frame, renderer, sequence);
+                    measurePass(frame, renderer, sequence);
                     draw(frame, renderer, sequence, render);
                 } finally {
                     // **The frame first, and this order is not tidiness.** A
@@ -474,7 +474,7 @@ public final class Offscreen {
     /// window's, for anchoring a menu under where a button was drawn. What this
     /// pass is after is the *side effect*: a `Measured` widget being told what it
     /// came out as.
-    private static void measure(Frame frame, WidgetRenderer renderer, FrameSequence sequence) {
+    private static void measurePass(Frame frame, WidgetRenderer renderer, FrameSequence sequence) {
         sequence.layOut(frame, renderer);
         sequence.captureRegions(frame);
     }
@@ -536,6 +536,27 @@ public final class Offscreen {
             if (ownFonts != null) {
                 ownFonts.close();
             }
+            throw e;
+        }
+    }
+
+    /// Mounts `root` and hands back a strip that measures what each frame costs.
+    ///
+    /// A [Filmstrip] that paints into one buffer and, as a window does, only
+    /// where something changed, reporting each frame's stages and damaged area:
+    /// see [MeasuringStrip]. **[#settle(int)] does not apply**, for
+    /// [#strip(Widget)]'s reason.
+    ///
+    /// The strip must be closed.
+    ///
+    /// @throws NullPointerException if `root` is null
+    /// @throws IllegalStateException if only a single font was named
+    public MeasuringStrip measure(Widget root) {
+        var strip = strip(root);
+        try {
+            return new MeasuringStrip(strip);
+        } catch (RuntimeException | OutOfMemoryError e) {
+            strip.close();
             throw e;
         }
     }

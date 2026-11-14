@@ -84,6 +84,38 @@ class ShapingTest {
     }
 
     @Test
+    @DisplayName("features cross with the run, and one a face lacks changes nothing")
+    void featuresCross() {
+        // The empty face has no GSUB or GPOS, so every feature is one it lacks:
+        // what this asserts is that an `hb_feature_t` array of several entries
+        // reaches HarfBuzz intact and the run comes back as it does without it.
+        var text = "0123456789";
+        try (var font = ShapedFont.empty();
+                var buffer = ShapingBuffer.create()) {
+            buffer.addText(text);
+            buffer.guessSegmentProperties();
+            var plain = buffer.shape(font);
+            buffer.reset();
+            buffer.addText(text);
+            buffer.guessSegmentProperties();
+            var featured = buffer.shape(
+                    font,
+                    List.of(new ShapingFeature("tnum", 1), new ShapingFeature("liga", 0), new ShapingFeature("salt", 3)));
+
+            assertEquals(plain.length(), featured.length());
+            assertEquals(plain.cluster(plain.length() - 1), featured.cluster(featured.length() - 1));
+        }
+    }
+
+    @Test
+    @DisplayName("a feature tag is packed as HB_TAG packs it, and checked")
+    void featureTags() {
+        assertEquals(0x746E756D, new ShapingFeature("tnum", 1).packedTag());
+        assertThrows(IllegalArgumentException.class, () -> new ShapingFeature("tnu", 1));
+        assertThrows(IllegalArgumentException.class, () -> new ShapingFeature("tnum", -1));
+    }
+
+    @Test
     @DisplayName("a surrogate pair is one character, not two")
     void astralCharactersAreOneGlyph() {
         // "𝄞" is U+1D11E — two UTF-16 code units, one character. Getting this

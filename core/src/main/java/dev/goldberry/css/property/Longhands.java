@@ -260,6 +260,14 @@ final class Longhands {
                 (from, into) -> into.variation(
                         into.variation().settings(from.variation().settings()))));
         all.add(typography(
+                "font-feature-settings",
+                (from, into) -> into.features(
+                        into.features().settings(from.features().settings()))));
+        all.add(typography(
+                "font-variant-numeric",
+                (from, into) -> into.features(
+                        into.features().numeric(from.features().numeric()))));
+        all.add(typography(
                 "text-justify",
                 (from, into) ->
                         into.lettering(into.lettering().justify(from.lettering().justify()))));

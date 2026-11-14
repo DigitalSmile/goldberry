@@ -7,6 +7,8 @@ import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
+import org.jspecify.annotations.Nullable;
+
 /// A web page, in a window the engine owns.
 ///
 /// ```java
@@ -163,6 +165,39 @@ public interface BackendWebView extends AutoCloseable {
     default CompletionStage<List<HttpCookie>> cookies(URI url) {
         Objects.requireNonNull(url, "url");
         return CompletableFuture.failedFuture(new UnsupportedOperationException("this page cannot read its cookies"));
+    }
+
+    /// Deletes the cookies the engine would send to `url`: every one, or only
+    /// those named `name`. What a sign-out does, so a session the page signed
+    /// in to does not outlive it.
+    ///
+    /// Asynchronous on every engine, completing on the UI thread. The jar is
+    /// the engine's: on Linux and macOS a cookie deleted through one page is
+    /// gone for every page in the process.
+    ///
+    /// @param url  an absolute URL
+    /// @param name the one cookie name to delete, or null for all of them
+    /// @return how many were deleted; failed as [#cookies] fails
+    default CompletionStage<Integer> deleteCookies(URI url, @Nullable String name) {
+        Objects.requireNonNull(url, "url");
+        return CompletableFuture.failedFuture(
+                new UnsupportedOperationException("this page cannot delete its cookies"));
+    }
+
+    /// Deletes every cookie in the engine's jar, for every site.
+    ///
+    /// @return completed once the jar is empty; failed as [#cookies] fails
+    default CompletionStage<Void> clearCookies() {
+        return CompletableFuture.failedFuture(new UnsupportedOperationException("this page cannot clear its cookies"));
+    }
+
+    /// Sends `agent` as the page's user agent from its next request on; null
+    /// puts the engine's own back where the engine can. [WebViewSpec#userAgent]
+    /// sets it before the first request.
+    ///
+    /// @return whether the engine took it; false by default
+    default boolean userAgent(@Nullable String agent) {
+        return false;
     }
 
     /// Whether this page has been closed.

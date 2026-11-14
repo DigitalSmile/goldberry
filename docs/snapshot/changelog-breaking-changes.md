@@ -24,6 +24,19 @@ Everything below is measured against 2026.2 (tag commit d3eacfdc).
 - `Slider` has a fourteenth component, `marks`; the thirteen-argument
   constructor stays and means none. A record pattern over `Slider` names
   fourteen components. <!-- ADR-0655 -->
+- `Typography` has an eighth component, `features` (a `FontFeatures`); the
+  seven-argument constructor stays and means none. A record pattern over
+  `Typography` names eight components. <!-- ADR-0695 -->
+- `ListView` has a thirteenth component, `sections`; the twelve-argument
+  constructor stays and means none. A record pattern over `ListView` names
+  thirteen components. <!-- ADR-0696 -->
+- `RichText` is a stateful widget over a `rich-text` leaf, with a third
+  component, `selectable`; `role()` and `accessibleName()` moved to the leaf.
+  `Run` has four components (`text`, `onPress`, `spoiler`, `attributes`), and
+  `SpanPaint` five (`background` last). The old constructors stay.
+  <!-- ADR-0697 -->
+- `WebViewSpec` has an eleventh component, `userAgent`; the ten-argument
+  constructor stays. <!-- ADR-0699 -->
 #### goldberry-media: FFmpeg left the module
 
 - The natives classifiers are `natives-<target>`, not `ffmpeg-<target>`:

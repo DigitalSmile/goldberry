@@ -57,6 +57,35 @@ public final class WebviewSignInProbe {
                         + cookie.isHttpOnly() + " path=" + cookie.getPath());
             }
 
+            // A sign-out's half: one cookie by name, then the user agent the
+            // next request carries, then everything.
+            var deleted = page.deleteCookies(base + "/", "theme");
+            if (!pumpUntil(deleted::isDone)) {
+                System.exit(TIMED_OUT);
+            }
+            System.out.println("deleted " + deleted.get(1, TimeUnit.SECONDS));
+            printCookies(page, base, "after delete");
+
+            System.out.println("agent " + page.userAgent("GoldberryProbe/1"));
+            var agentSeen = new boolean[1];
+            page.onNavigate(uri -> {
+                System.out.println("navigate " + uri);
+                if (uri.endsWith("/agent")) {
+                    agentSeen[0] = true;
+                }
+                return !uri.endsWith("/blocked");
+            });
+            page.navigate(base + "/agent");
+            var loaded = Instant.now().plus(Duration.ofSeconds(2));
+            pumpUntil(() -> agentSeen[0] && Instant.now().isAfter(loaded));
+
+            var cleared = page.clearCookies();
+            if (!pumpUntil(cleared::isDone)) {
+                System.exit(TIMED_OUT);
+            }
+            System.out.println("cleared " + !cleared.isCompletedExceptionally());
+            printCookies(page, base, "after clear");
+
             // Refused outright: the server counts requests, and this one must
             // never reach it.
             page.navigate(base + "/blocked");
@@ -64,6 +93,19 @@ public final class WebviewSignInProbe {
             pumpUntil(() -> Instant.now().isAfter(settle));
             System.out.println("done");
         }
+    }
+
+    /// Prints the cookies the page would send to `base`, each after `label`.
+    private static void printCookies(Webview page, String base, String label) throws Exception {
+        var cookies = page.cookies(base + "/");
+        if (!pumpUntil(cookies::isDone)) {
+            System.exit(TIMED_OUT);
+        }
+        var names = cookies.get(1, TimeUnit.SECONDS).stream()
+                .map(cookie -> cookie.getName())
+                .sorted()
+                .toList();
+        System.out.println(label + " " + names);
     }
 
     /// Drives the engine until `condition` holds, for at most twenty seconds.

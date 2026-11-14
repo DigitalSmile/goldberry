@@ -18,6 +18,7 @@ import dev.goldberry.widget.Element;
 import dev.goldberry.widget.State;
 import dev.goldberry.widget.Widget;
 import dev.goldberry.widget.attr.Attributes;
+import dev.goldberry.widgets.core.affix.Affix;
 import dev.goldberry.widgets.core.scroll.ScrollScope;
 
 /// The two things a list remembers, and neither is its value.
@@ -111,13 +112,23 @@ final class ListState<T> extends State<ListView<T>> {
         // before `located` in every frame, so the banked value is never older
         // than the geometry it is measured against.
         var measuring = list.rowHeights();
+        var pitch = list.rowHeightFromToken() ? context.token(ROW_HEIGHT_TOKEN, ROW_HEIGHT) : list.rowHeight();
+        if (measuring == null && list.sections() != null && pitch > 0) {
+            // A header makes the first row of each section a different height,
+            // so a list in sections measures, with the one height as the guess.
+            measuring = RowHeights.estimating(pitch);
+        }
         if (measuring != null) {
             return buildMeasured(list, measuring, selectable, typeahead);
         }
         measured = null;
-        rowHeight = list.rowHeightFromToken() ? context.token(ROW_HEIGHT_TOKEN, ROW_HEIGHT) : list.rowHeight();
+        rowHeight = pitch;
         var children = new ArrayList<Widget>();
         if (rowHeight <= 0) {
+            var sections = list.sections();
+            if (sections != null) {
+                return new ListBox(builtSections(list, sections, selectable, typeahead), null, list.attributes());
+            }
             for (var item : items) {
                 children.add(row(list, item, list.identity().apply(item), selectable, typeahead, 0));
             }
@@ -150,6 +161,31 @@ final class ListState<T> extends State<ListView<T>> {
             children.add(new ListBox.ListSpacer((items.size() - at) * rowHeight));
         }
         return new ListBox(children, this::located, list.attributes());
+    }
+
+    /// Every row of a list that builds them all, in a [ListSection] per run of
+    /// one section key, each headed by its header in an [Affix].
+    private List<Widget> builtSections(
+            ListView<T> list, ListSections<T> sections, boolean selectable, boolean typeahead) {
+        var built = new ArrayList<Widget>();
+        var rows = new ArrayList<Widget>();
+        String current = null;
+        for (var item : list.items()) {
+            var key = Objects.requireNonNull(sections.sectionOf().apply(item), "a section key");
+            if (!key.equals(current)) {
+                if (current != null) {
+                    built.add(new ListSection(current, List.copyOf(rows)));
+                }
+                current = key;
+                rows.clear();
+                rows.add(new Affix(ListSectionHeader.inFlow(key, sections.header().apply(key), _ -> {})));
+            }
+            rows.add(row(list, item, list.identity().apply(item), selectable, typeahead, 0));
+        }
+        if (current != null) {
+            built.add(new ListSection(current, List.copyOf(rows)));
+        }
+        return built;
     }
 
     /// One row, wired back to this list.
@@ -189,7 +225,8 @@ final class ListState<T> extends State<ListView<T>> {
         }
         rowHeight = 0;
         var items = list.items();
-        window.sync(items, list.identity(), heights.estimate());
+        var sections = list.sections();
+        window.sync(items, list.identity(), heights.estimate(), sections == null ? null : sections.sectionOf());
         var tops = window.tops();
         var from = window.first();
         var to = window.last();
@@ -202,6 +239,11 @@ final class ListState<T> extends State<ListView<T>> {
             }
             for (var index = run.from(); index < run.to(); index++) {
                 var id = window.id(index);
+                if (sections != null && window.leads(index)) {
+                    var key = window.sectionOf(index);
+                    children.add(ListSectionHeader.inFlow(
+                            key, sections.header().apply(key), height -> leadOf(id, height)));
+                }
                 children.add(new MeasuredRow(
                         row(list, items.get(index), id, selectable, typeahead, 0), height -> heightOf(id, height)));
             }
@@ -210,8 +252,69 @@ final class ListState<T> extends State<ListView<T>> {
         if (at < items.size()) {
             children.add(new ListBox.ListSpacer(tops[items.size()] - tops[at]));
         }
+        var pinned = pinnedKey;
+        if (sections != null && pinned != null) {
+            children.add(ListSectionHeader.pinnedAt(pinned, sections.header().apply(pinned), pinnedTop));
+        }
         return new ListBox(children, this::locatedMeasured, list.attributes());
     }
+
+    /// The section whose header is pinned over the viewport's top, or null when
+    /// none is: no sections, or the top section's own header is in view.
+    private @Nullable String pinnedKey;
+
+    /// Where the pinned header sits below the list's top: the viewport's top
+    /// edge, or higher while the next section's header pushes it out.
+    private double pinnedTop;
+
+    /// A section header came out `height` tall; counted into its first row's
+    /// block, and followed as a row's height is.
+    private void leadOf(String id, double height) {
+        var window = measured;
+        if (window == null) {
+            return;
+        }
+        follow(window.measuredLead(id, height));
+    }
+
+    /// Which header is pinned, and where, for a viewport whose top edge is
+    /// `above` below the list's top.
+    ///
+    /// The section is the one the block at the top edge is in. Its header is
+    /// pinned once it has scrolled above the edge, and never lower than the
+    /// next section's header less its own height, so the next one pushes it
+    /// out rather than sliding over it.
+    private void pin(MeasuredWindow window, double above) {
+        String key = null;
+        var top = 0.0;
+        if (window.sectioned() && above > 0) {
+            var block = window.blockAt(above);
+            if (block >= 0) {
+                var start = window.sectionStart(block);
+                var tops = window.tops();
+                if (tops[start] < above - PIN_SLACK) {
+                    key = window.sectionOf(start);
+                    top = above;
+                    var next = window.nextSectionStart(start);
+                    if (next >= 0) {
+                        top = Math.min(top, tops[next] - window.leadOf(start));
+                    }
+                }
+            }
+        }
+        if (Objects.equals(key, pinnedKey) && Math.abs(top - pinnedTop) < PIN_SLACK) {
+            return;
+        }
+        var nextKey = key;
+        var nextTop = top;
+        setState(() -> {
+            pinnedKey = nextKey;
+            pinnedTop = nextTop;
+        });
+    }
+
+    /// Below half a logical pixel a header has not moved.
+    private static final double PIN_SLACK = 0.5;
 
     /// A row came out `height` tall. Remembered, and when the row is above the
     /// reader's line, the enclosing `scroll` is moved by the difference so the
@@ -252,6 +355,7 @@ final class ListState<T> extends State<ListView<T>> {
         if (window.fit(clip.top() - self.top(), clip.size().height(), reaching, preserving)) {
             setState(() -> {});
         }
+        pin(window, clip.top() - self.top());
         revealMeasured(window);
     }
 

@@ -4,6 +4,7 @@ import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.ValueLayout;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.Objects;
 
 import dev.goldberry.natives.harfbuzz.enums.TextDirection;
@@ -164,9 +165,17 @@ public final class ShapingBuffer implements AutoCloseable {
     /// before it is used for another run. The returned [GlyphRun] is a copy and
     /// stays valid afterwards.
     public GlyphRun shape(ShapedFont font) {
+        return shape(font, List.of());
+    }
+
+    /// [#shape(ShapedFont)] with OpenType `features` set over the whole run:
+    /// `tnum` for figures that line up in a column, `liga` 0 for no ligatures.
+    /// A feature the font does not have does nothing.
+    public GlyphRun shape(ShapedFont font, List<ShapingFeature> features) {
         requireUsable();
         Objects.requireNonNull(font, "font");
-        harfbuzz.shape(font.pointer(), buffer);
+        Objects.requireNonNull(features, "features");
+        harfbuzz.shape(font.pointer(), buffer, features);
         return harfbuzz.readGlyphs(buffer);
     }
 

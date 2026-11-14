@@ -116,8 +116,9 @@ public final class Fonts implements AutoCloseable {
     private boolean closed;
 
     /// A font: a face, the axes it is pinned at (none for the face as it is),
-    /// and a size.
-    private record Key(Face face, List<Instancer.Axis> axes, long size) {}
+    /// a size, and the OpenType features it shapes with (none for the face's
+    /// defaults).
+    private record Key(Face face, List<Instancer.Axis> axes, long size, List<FontFeatures.Setting> features) {}
 
     /// A variable face pinned at `axes`, which is a face of its own.
     private record Instance(Face face, List<Instancer.Axis> axes) {}
@@ -332,6 +333,9 @@ public final class Fonts implements AutoCloseable {
     /// Inter's upright faces is a real 500 rather than the 400. Each distinct
     /// setting is pinned once into a static face of its own, which is what both
     /// the shaper and the rasterizer then read; a static face ignores all of it.
+    ///
+    /// The OpenType features `font-variant-numeric` and `font-feature-settings`
+    /// ask for make a font of their own over the same face, shaped with them.
     public Font of(Typography typography) {
         requireUsable();
         Objects.requireNonNull(typography, "typography");
@@ -341,7 +345,11 @@ public final class Fonts implements AutoCloseable {
         }
         var usable = usable(face == null ? BundledFont.UI : face);
         var variable = variableFor(usable, typography);
-        return fontOf(variable, axesFor(variable, typography), typography.size());
+        return fontOf(
+                variable,
+                axesFor(variable, typography),
+                typography.size(),
+                typography.features().resolved());
     }
 
     /// `face`, or a variable face of its family and style whose `wght` axis
@@ -432,6 +440,10 @@ public final class Fonts implements AutoCloseable {
     }
 
     private Font fontOf(Face face, List<Instancer.Axis> axes, double size) {
+        return fontOf(face, axes, size, List.of());
+    }
+
+    private Font fontOf(Face face, List<Instancer.Axis> axes, double size, List<FontFeatures.Setting> features) {
         requireUsable();
         Objects.requireNonNull(face, "face");
         if (!Double.isFinite(size) || size <= 0) {
@@ -439,7 +451,7 @@ public final class Fonts implements AutoCloseable {
         }
         var usable = usable(face);
         var quantized = Math.round(size * SIZE_QUANTUM);
-        var key = new Key(usable, usable == face ? axes : List.of(), quantized);
+        var key = new Key(usable, usable == face ? axes : List.of(), quantized, features);
         var held = fonts.get(key);
         if (held != null) {
             return held;
@@ -450,8 +462,9 @@ public final class Fonts implements AutoCloseable {
         // promises nothing about. Hence the get-then-put rather than the compute
         // this used to be.
         var sibling = usable == BundledFont.EMOJI ? null : emojiAt(quantized);
-        var font =
-                Font.on(faceFor(usable, key.axes()), quantized / SIZE_QUANTUM).emoji(sibling);
+        var font = Font.on(faceFor(usable, key.axes()), quantized / SIZE_QUANTUM)
+                .emoji(sibling)
+                .features(features);
         if (!fallbackFamilies.isEmpty() && usable != BundledFont.EMOJI) {
             // Opens nothing: a fallback face is opened by the first character
             // that needs it, through the same get-then-put as above.
@@ -563,7 +576,7 @@ public final class Fonts implements AutoCloseable {
         if (!BundledAssets.hasEmojiFont()) {
             return null;
         }
-        var key = new Key(BundledFont.EMOJI, List.of(), quantized);
+        var key = new Key(BundledFont.EMOJI, List.of(), quantized, List.of());
         var held = fonts.get(key);
         if (held != null) {
             return held;

@@ -164,7 +164,12 @@ public record Box(
         Text fade(double alpha) {
             var faded = new ArrayList<SpanPaint>(spans.size());
             for (var span : spans) {
-                faded.add(span.argb(CssColor.fade(span.argb(), alpha)));
+                faded.add(new SpanPaint(
+                        span.start(),
+                        span.end(),
+                        CssColor.fade(span.argb(), alpha),
+                        span.decorations(),
+                        span.hasBackground() ? CssColor.fade(span.background(), alpha) : 0));
             }
             return new Text(
                     paragraph,

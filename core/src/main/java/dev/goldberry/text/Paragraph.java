@@ -1186,11 +1186,18 @@ public final class Paragraph {
         var align = flow.textAlign();
         var lineTop = 0.0;
         var kept = kept(layout, flow);
+        var behind = hasBackgrounds(spans);
         for (var i = 0; i < kept; i++) {
             var line = layout.lines().get(i);
             var offsetDown = uniform ? i * font.lineHeight() : lineTop;
             lineTop += heightOf(line);
             var baseline = top + ascentOf(line) + offsetDown;
+            if (behind && !line.isEmpty()) {
+                // Every background on the line first, so a glyph that overhangs
+                // its stretch is drawn over its neighbour's fill rather than
+                // under it.
+                fillBehind(frame, x, top + offsetDown, heightOf(line), maxWidth, align, line, spans);
+            }
             if (i == kept - 1 && kept < layout.lines().size()) {
                 paintTruncatedStyled(frame, x, baseline, maxWidth, argb, flow, spans, line);
                 continue;
@@ -1275,6 +1282,48 @@ public final class Paragraph {
         face.draw(frame, pen, baseline, TextOverflow.MARK, colour);
         var decorations = paint != null ? paint.decorations() : flow.decorations();
         rule(frame, pen, baseline, face.ellipsisWidth(), colour, decorations, face);
+    }
+
+    /// Whether any span has something behind it.
+    private static boolean hasBackgrounds(List<SpanPaint> spans) {
+        for (var span : spans) {
+            if (span.hasBackground()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /// Fills, a line box tall, behind every stretch of `line` a span gives a
+    /// background, through the same fragments the glyphs are drawn in.
+    private void fillBehind(
+            Frame frame,
+            double x,
+            double lineTop,
+            double lineHeight,
+            double maxWidth,
+            TextAlign align,
+            TextLine line,
+            List<SpanPaint> spans) {
+        var room = gapRoom(line, align, maxWidth);
+        var indent = room > 0 ? 0 : indentOf(line, align, maxWidth);
+        eachFragment(line.start(), visibleEnd(line), x + indent, room, (from, to, pen, rtl) -> {
+            var at = from;
+            while (at < to) {
+                var paint = paintAt(spans, at);
+                var next = Math.min(to, paint != null ? paint.end() : nextPaintStart(spans, at));
+                if (paint != null && paint.hasBackground()) {
+                    var left = rtl ? pen + widthOf(next, to) : pen + widthOf(from, at);
+                    frame.fillRect(
+                            (float) left,
+                            (float) lineTop,
+                            (float) widthOf(at, next),
+                            (float) lineHeight,
+                            paint.background());
+                }
+                at = next;
+            }
+        });
     }
 
     /// The first span that covers `offset`, or null.

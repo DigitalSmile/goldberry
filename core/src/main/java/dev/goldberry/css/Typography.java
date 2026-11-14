@@ -5,6 +5,7 @@ import org.jspecify.annotations.Nullable;
 import dev.goldberry.assets.BundledFont;
 import dev.goldberry.assets.Face;
 import dev.goldberry.css.value.CssLength;
+import dev.goldberry.text.font.FontFeatures;
 import dev.goldberry.text.font.FontVariation;
 
 /// Which face text is drawn with, and how big: family, size, weight, style,
@@ -51,6 +52,8 @@ import dev.goldberry.text.font.FontVariation;
 /// @param lettering  the spacing added to what the face sets
 /// @param variation  where a variable face is set beyond its weight:
 ///                   `font-stretch` and `font-variation-settings`
+/// @param features   the OpenType features text is shaped with:
+///                   `font-variant-numeric` and `font-feature-settings`
 public record Typography(
         String family,
         double size,
@@ -58,7 +61,8 @@ public record Typography(
         BundledFont.Style style,
         double lineHeight,
         Lettering lettering,
-        FontVariation variation) {
+        FontVariation variation,
+        FontFeatures features) {
 
     /// The weight nobody wrote: CSS's `normal`.
     private static final int REGULAR = 400;
@@ -70,7 +74,15 @@ public record Typography(
     /// the alternative is a toolkit whose out-of-the-box text is a size nobody
     /// chose.
     public static final Typography INITIAL =
-            new Typography("Inter", 15, REGULAR, BundledFont.Style.UPRIGHT, 20, Lettering.NONE, FontVariation.NONE);
+            new Typography(
+                    "Inter",
+                    15,
+                    REGULAR,
+                    BundledFont.Style.UPRIGHT,
+                    20,
+                    Lettering.NONE,
+                    FontVariation.NONE,
+                    FontFeatures.NONE);
 
     /// Written out so that the parameters taking null for a default can say so.
     ///
@@ -83,7 +95,8 @@ public record Typography(
             BundledFont.@Nullable Style style,
             double lineHeight,
             @Nullable Lettering lettering,
-            @Nullable FontVariation variation) {
+            @Nullable FontVariation variation,
+            @Nullable FontFeatures features) {
         if (family == null || family.isBlank()) {
             family = "Inter";
         }
@@ -104,6 +117,20 @@ public record Typography(
         this.lineHeight = lineHeight;
         this.lettering = lettering == null ? Lettering.NONE : lettering;
         this.variation = variation == null ? FontVariation.NONE : variation;
+        this.features = features == null ? FontFeatures.NONE : features;
+    }
+
+    /// A face at a size, with spacing added, set along its axes, and shaped
+    /// with no features beyond the face's defaults.
+    public Typography(
+            @Nullable String family,
+            double size,
+            int weight,
+            BundledFont.@Nullable Style style,
+            double lineHeight,
+            @Nullable Lettering lettering,
+            @Nullable FontVariation variation) {
+        this(family, size, weight, style, lineHeight, lettering, variation, FontFeatures.NONE);
     }
 
     /// A face at a size, with spacing added and no variation beyond the weight.
@@ -162,11 +189,11 @@ public record Typography(
     }
 
     public Typography family(String value) {
-        return new Typography(value, size, weight, style, lineHeight, lettering, variation);
+        return new Typography(value, size, weight, style, lineHeight, lettering, variation, features);
     }
 
     public Typography size(double value) {
-        return new Typography(family, value, weight, style, lineHeight, lettering, variation);
+        return new Typography(family, value, weight, style, lineHeight, lettering, variation, features);
     }
 
     /// This, with every length multiplied by `factor` — the design system's
@@ -196,14 +223,15 @@ public record Typography(
                 style,
                 lineHeight < 0 ? lineHeight : lineHeight * factor,
                 lettering.scaled(factor),
-                variation);
+                variation,
+                features);
     }
 
     /// This, at a CSS weight.
     ///
     /// @throws IllegalArgumentException if it is outside 1 to 1000
     public Typography weight(int value) {
-        return new Typography(family, size, value, style, lineHeight, lettering, variation);
+        return new Typography(family, size, value, style, lineHeight, lettering, variation, features);
     }
 
     /// This, at one of the two named weights.
@@ -213,12 +241,12 @@ public record Typography(
 
     /// This, upright or italic — `font-style`.
     public Typography style(BundledFont.Style value) {
-        return new Typography(family, size, weight, value, lineHeight, lettering, variation);
+        return new Typography(family, size, weight, value, lineHeight, lettering, variation, features);
     }
 
     /// An absolute line height, in logical pixels.
     public Typography lineHeight(double value) {
-        return new Typography(family, size, weight, style, value, lettering, variation);
+        return new Typography(family, size, weight, style, value, lettering, variation, features);
     }
 
     /// A line height as a multiple of the font size — CSS's bare-number form.
@@ -226,17 +254,22 @@ public record Typography(
         if (!Double.isFinite(ratio) || ratio <= 0) {
             throw new IllegalArgumentException("a line-height ratio must be positive, not " + ratio);
         }
-        return new Typography(family, size, weight, style, -ratio, lettering, variation);
+        return new Typography(family, size, weight, style, -ratio, lettering, variation, features);
     }
 
     /// This, with `lettering` added to what the face sets.
     public Typography lettering(Lettering value) {
-        return new Typography(family, size, weight, style, lineHeight, value, variation);
+        return new Typography(family, size, weight, style, lineHeight, value, variation, features);
     }
 
     /// This, set along a variable face's axes as `value` says.
     public Typography variation(FontVariation value) {
-        return new Typography(family, size, weight, style, lineHeight, lettering, value);
+        return new Typography(family, size, weight, style, lineHeight, lettering, value, features);
+    }
+
+    /// This, shaped with the OpenType features `value` asks for.
+    public Typography features(FontFeatures value) {
+        return new Typography(family, size, weight, style, lineHeight, lettering, variation, value);
     }
 
     @Override

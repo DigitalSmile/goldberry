@@ -121,6 +121,30 @@ class BlendDecodeTest {
     }
 
     @Test
+    @DisplayName("a copy with red and blue swapped is RGBA, in the same rows")
+    void copiesSwapped() {
+        var stride = 32;
+        var pixels = ByteBuffer.allocateDirect(stride * 2).order(ByteOrder.nativeOrder());
+        try (var decoded = BlendDecodedImage.decode(ByteBuffer.wrap(RGBA_PNG))) {
+            decoded.copyInto(pixels, stride, true);
+        }
+
+        assertEquals(0xFF0000FF, pixel(pixels, stride, 0, 0), "red, now in the first byte");
+        assertEquals(0xFF00FF00, pixel(pixels, stride, 0, 1), "green stays where it was");
+        assertEquals(0, pixel(pixels, stride, 2, 0), "and the padding after a row is untouched");
+    }
+
+    @Test
+    @DisplayName("the swap exchanges the first and third byte of every pixel")
+    void swapsBytes() {
+        var row = new int[] {0x80112233, 0xFF00FF00, 0};
+        Blend2dImage.swapRedAndBlue(row);
+        assertEquals(0x80332211, row[0]);
+        assertEquals(0xFF00FF00, row[1]);
+        assertEquals(0, row[2]);
+    }
+
+    @Test
     @DisplayName("a decoded image can be drawn, which is the point of decoding one")
     void blitsWhatItDecoded() {
         var pixels = buffer(2, 2);

@@ -14,12 +14,12 @@ Lantern builds on, and the entry says so.
 | G-1 | Continuous `Canvas3d` re-uploads the UI layer | Fixed in Goldberry | on master, not yet in a snapshot |
 | G-2 | Computed style value | Typed division in `calc()`; a workaround today | on master, not yet in a snapshot |
 | G-3 | Frame statistics are means only | Per-frame records, percentiles, a layer stage | on master, not yet in a snapshot |
-| G-4 | Filmstrip repaints whole | A measuring strip | planned |
+| G-4 | Filmstrip repaints whole | `Offscreen.measure(...)`, a measuring strip | on master, not yet in a snapshot |
 | G-5 | No capture of a running window | **Already there**; a while-running flag added | answered; on master, not yet in a snapshot |
 | G-6 | Natives jar not a module | **Automatic module already**; a question back | question |
 | G-7 | Click for primary only | `AUX_CLICKED` for the other buttons | on master, not yet in a snapshot |
 | G-8 | No click handler on a widget | `Attributes.onClick` | on master, not yet in a snapshot |
-| G-9 | Decode only into BGRA | `decodeInto` with a channel order; a workaround today | planned |
+| G-9 | Decode only into BGRA | `Image.decodeInto` with a channel order | on master, not yet in a snapshot |
 | G-10 | GPU adapter | `adapter()` exists; a power preference added | on master, not yet in a snapshot |
 | G-11 | Empty tree throws | An empty tree renders as nothing | on master, not yet in a snapshot |
 | G-12 | Text needs the natives | Declined | declined, ADR-0688 |
@@ -112,7 +112,29 @@ and repaints only its damage, as a window does. It reports each frame's stages
 and damaged area. `strip(...).frame()` stays as it is: each `Image` it returns
 is a view over its own buffer, which a golden test relies on.
 
-**Landed.** —
+**Landed.** `Offscreen.of(w, h).measure(root)` returns a `MeasuringStrip`.
+It paints into one buffer, repaints only the damage, and clears the damaged
+region to the background first, so a HUD with nothing under it measures
+correctly. `frame()` returns a `MeasuredFrame`: `timings()` (the same
+`FrameRecord` a window's `onFrame` listener keeps, with build, style, layout,
+raster and paint in nanoseconds) and `damage()` with `damagedPixels()`. A
+frame with nothing changed paints 0 px. `stats()` reads as `Host.frames()`
+does, including `percentile(FrameStage.PAINT, 99)` over the last sixty
+frames. `picture()` copies the buffer for a check beside the numbers.
+
+```java
+try (var meter = Offscreen.of(2560, 1440).stylesheets(sheets).measure(new Hud(model))) {
+    for (var i = 0; i < 600; i++) {
+        model.tick();
+        var frame = meter.frame();
+        log(frame.timings().paintNanos(), frame.damagedPixels());
+        meter.advance(16);
+    }
+}
+```
+
+The numbers are the toolkit's work only. Nothing is uploaded or presented,
+so the present readings are zero. ADR-0693.
 
 ## G-5. No capture of a running window
 
@@ -181,7 +203,22 @@ decodes straight into the caller's memory in RGBA or BGRA, swizzled in native
 code. `PixelFormat` keeps its one entry, because every backend's present reads
 it.
 
-**Landed.** —
+**Landed.** `Image.decodeInto` writes straight into your memory, in
+`ChannelOrder.RGBA` or `BGRA`, premultiplied, and returns the size. The
+memory is asked for once the size is known, so a transfer buffer can be
+mapped for it:
+
+```java
+var size = Image.decodeInto(pageBytes, ChannelOrder.RGBA,
+        decoded -> PixelTarget.packed(transfer.map(decoded), decoded.width()));
+```
+
+`Image.decodeInto(bytes, destination, stride, ChannelOrder.RGBA)` does the
+same into a buffer you already have, and refuses one that is too small before
+writing anything. The swap happens in the one copy out of the decoder (not
+in native code as planned, but in the same single pass), and no `Image` or
+buffer is left behind. Every format `decode` reads works, GIF and WebP
+included. ADR-0694.
 
 ## G-10. A GPU device cannot be asked for, or asked about, its adapter
 

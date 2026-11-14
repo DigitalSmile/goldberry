@@ -32,7 +32,7 @@ import dev.goldberry.natives.NativePlatform;
 class WebviewSignInTest {
 
     @Test
-    @DisplayName("hands over its HttpOnly cookie and its custom-scheme redirect, and cancels what it is told to")
+    @DisplayName("hands over its HttpOnly cookie and its redirect, cancels what it is told to, and signs out")
     void signsIn() throws IOException, InterruptedException {
         assumeTrue(
                 NativePlatform.current().os() == NativePlatform.OperatingSystem.LINUX,
@@ -43,9 +43,13 @@ class WebviewSignInTest {
         assumeTrue(library != null && !library.isBlank(), "no libgoldberry for this run");
 
         var requests = new CopyOnWriteArrayList<String>();
+        var agents = new CopyOnWriteArrayList<String>();
         var server = HttpServer.create(new InetSocketAddress(InetAddress.getLoopbackAddress(), 0), 0);
         server.createContext("/", exchange -> {
             requests.add(exchange.getRequestURI().getPath());
+            if (exchange.getRequestURI().getPath().equals("/agent")) {
+                agents.add(String.valueOf(exchange.getRequestHeaders().getFirst("User-Agent")));
+            }
             if (exchange.getRequestURI().getPath().equals("/login")) {
                 exchange.getResponseHeaders().add("Set-Cookie", "session=s3cr3t; Path=/; HttpOnly");
                 exchange.getResponseHeaders().add("Set-Cookie", "theme=dark; Path=/");
@@ -94,6 +98,12 @@ class WebviewSignInTest {
         assertTrue(output.contains("cookie session=s3cr3t httponly=true path=/"), text);
         assertTrue(output.contains("cookie theme=dark httponly=false path=/"), text);
         assertTrue(output.stream().anyMatch(line -> line.startsWith("navigate ") && line.endsWith("/blocked")), text);
+        assertTrue(output.contains("deleted 1"), text);
+        assertTrue(output.contains("after delete [session]"), text);
+        assertTrue(output.contains("agent true"), text);
+        assertTrue(output.contains("cleared true"), text);
+        assertTrue(output.contains("after clear []"), text);
+        assertEquals(List.of("GoldberryProbe/1"), agents, "the user agent the page sent");
         assertTrue(output.contains("done"), text);
         assertTrue(requests.contains("/login"), requests.toString());
         assertTrue(!requests.contains("/blocked"), "the refused navigation reached the server: " + requests);

@@ -156,6 +156,11 @@ public final class WebViewEngine {
         for (var script : spec.initScripts()) {
             webview.init(script);
         }
+        // Before the first navigation too, so the first request carries it.
+        var agent = spec.userAgent();
+        if (agent != null && !webview.userAgent(agent)) {
+            LOG.warn("this web view engine cannot set its user agent; the page sends the engine's own");
+        }
     }
 
     private static final org.slf4j.Logger LOG = dev.goldberry.log.Logs.of(WebViewEngine.class);

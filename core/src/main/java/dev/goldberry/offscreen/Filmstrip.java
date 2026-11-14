@@ -275,6 +275,25 @@ public final class Filmstrip implements AutoCloseable {
         return clock;
     }
 
+    FrameSequence sequence() {
+        return sequence;
+    }
+
+    WidgetRenderer renderer() {
+        return renderer;
+    }
+
+    Offscreen.Surface surface() {
+        return surface;
+    }
+
+    /// Requires this strip to be open, for a [MeasuringStrip] over it.
+    void requireOpen() {
+        if (closed) {
+            throw new IllegalStateException("this Filmstrip has been closed; its tree is unmounted");
+        }
+    }
+
     boolean isClosed() {
         return closed;
     }
@@ -361,11 +380,6 @@ public final class Filmstrip implements AutoCloseable {
         }
     }
 
-    private void requireOpen() {
-        if (closed) {
-            throw new IllegalStateException("this Filmstrip has been closed; its tree is unmounted");
-        }
-    }
 
     @Override
     public String toString() {

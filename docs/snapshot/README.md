@@ -186,6 +186,13 @@ page for a change to `site/` alone (ADR-0590), and GB-034, written 2026-10-10
 | `adr/0690-…` | `book/src/adr/` | PDF stays parked until PDFium's provenance is decided: Tessera's G-23. Relates to 0030 |
 | `adr/0691-…` | `book/src/adr/` | A frame is heard whole, and its spread is percentiles: `Window.onFrame`, `FrameSample`/`FrameRecord`, `FrameStats.percentile(FrameStage, p)`, `FrameStats.layers()`, the `layers` hud reading. Relates to 0681 |
 | `adr/0692-…` | `book/src/adr/` | A pinch is a pointer event with a scale: `PointerEvent.Kind.PINCH`, `PinchPhase`, `BackendEvent.PointerPinch`, `Layouts.SDL_PINCH_FINGER_EVENT`; native ABI stays 26. Relates to 0680, 0687 |
+| `adr/0693-…` | `book/src/adr/` | A strip measures what a frame costs: `Offscreen.measure(Widget)`, `MeasuringStrip`, `MeasuredFrame`, `RenderTree.repaint(frame, damage, background)`. Relates to 0691 |
+| `adr/0694-…` | `book/src/adr/` | An image decodes into memory the caller owns: `Image.decodeInto`, `ChannelOrder`, `PixelTarget`; native ABI stays 26 |
+| `adr/0695-…` | `book/src/adr/` | A stylesheet names the OpenType features text is shaped with: `font-feature-settings`, `font-variant-numeric`, `FontFeatures`, `Typography.features`, `Font.features`, `ShapingBuffer.shape(font, features)`; native ABI stays 26 |
+| `adr/0696-…` | `book/src/adr/` | A list has sections, and their headers are not rows: `ListView.sections`, `ListSections`, `list-section-header` (and `.pinned`), `list-section` |
+| `adr/0697-…` | `book/src/adr/` | A rich-text run is pressed, revealed and selected: `Run.onPress`, `Run.spoiler`, `RichText.selectable`, `rich-text-selection`, `SpanPaint.background`. Relates to 0577 (GB-021) |
+| `adr/0698-…` | `book/src/adr/` | A view shows pictures an application pushes: `PictureSource`, `PushedPictures`, `PictureView`; `MediaPlayer` is a source. Relates to 0577 (GB-019) |
+| `adr/0699-…` | `book/src/adr/` | A page signs out, and names its user agent: `deleteCookies`, `clearCookies`, `userAgent` on `Webview`/`BackendWebView`/`WebViewController`, `WebViewSpec.userAgent`; web view ABI stays 9. Relates to 0544, 0684 |
 | `guide-gaps-batch.md` | the pages each piece names | Guide pieces for the batch, each with its destination |
 
 ## Doc comments that point at the guide

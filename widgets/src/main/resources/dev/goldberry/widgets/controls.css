@@ -3824,6 +3824,27 @@ list-spacer {
   flex-shrink: 0;
 }
 
+/* A section's header: a day in a timeline, a letter in a contact list. Not a
+   row, so it has no hover, no selection and no focus ring. Opaque, because the
+   pinned copy is laid over the rows scrolling under it, and a header the rows
+   show through is unreadable. The muted caption colour is the one a group
+   heading has elsewhere in the catalogue. */
+list-section-header {
+  flex-direction: row;
+  align-items: center;
+  flex-shrink: 0;
+  min-height: var(--gb-list-row-height);
+  padding: 0 12px;
+  background: var(--gb-surface);
+  color: var(--gb-text-muted);
+}
+
+list-section {
+  flex-direction: column;
+  align-items: stretch;
+  flex-shrink: 0;
+}
+
 /* The ring stays, which is the opposite of `select-list option`'s rule and the
    difference is which thing moves. In a dropdown the arrows move the *value*, so
    the highlight is always where the keyboard is and a ring would be a second
@@ -5807,6 +5828,34 @@ link:hover {
 
 link.visited {
   color: var(--gb-text-muted);
+}
+
+/* ---------------------------------------------------------------------------
+   `rich-text` runs that do something, and its selection.
+
+   A pressable run (a mention, a hashtag, a link in a message) takes the link's
+   ink and the pointer, and nothing else: how a mention looks beyond that is the
+   application's. A spoiler is covered by a block of the muted ink, its words
+   drawn in no colour at all, until it is pressed; the reveal is instant, and an
+   application that wants it animated styles `run.spoiler.revealed` with a
+   transition. The selection's colour is the list's selection wash, behind the
+   words, so the words keep their own colours under it. */
+rich-text > run.pressable {
+  color: var(--gb-button-link-text);
+  cursor: pointer;
+}
+
+rich-text > run.spoiler {
+  cursor: pointer;
+}
+
+rich-text > run.spoiler:not(.revealed) {
+  color: transparent;
+  background: var(--gb-text-muted);
+}
+
+rich-text-selection {
+  background: var(--gb-selection);
 }
 
 /* ---------------------------------------------------------------------------

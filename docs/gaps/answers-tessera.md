@@ -15,16 +15,16 @@ nothing.
 |---|-----|--------|--------|
 | G-01 | Weaver not published | Weaver jar and a `dev.goldberry.weave` Gradle plugin | on master, not yet in a snapshot |
 | G-02 | Rich-text input | Built in Goldberry; a design document first | planned |
-| G-03 | Rich-text display with entities | Hit-testing, run clicks, selection, spoilers on `RichText` | planned |
-| G-04 | Sticky section headers | Sections in `ListView` | planned |
+| G-03 | Rich-text display with entities | Hit-testing, run clicks, selection, spoilers on `RichText` | on master, not yet in a snapshot |
+| G-04 | Sticky section headers | Sections in `ListView` | on master, not yet in a snapshot |
 | G-05 | Camera and microphone | `goldberry-camera` and `goldberry-mic` | planned |
 | G-06 | Encoders | **Declined**: bring your own | declined, ADR-0689 |
-| G-07 | Video tile from pushed frames | Works today through `PictureRenderer`; a picture source for `video-view` | answered + planned |
+| G-07 | Video tile from pushed frames | Works today through `PictureRenderer`; `PictureView` over a `PictureSource` | answered; on master, not yet in a snapshot |
 | G-08 | Web view JS bridge | Init script, `eval`, `postMessage` | on master, not yet in a snapshot |
 | G-09 | Secure credential storage | `Keychain` over the three OS stores | planned |
 | G-10 | Deep links, single instance | macOS URL delivery and `SingleInstance`; registration stays packaging | on master, not yet in a snapshot |
 | G-12 | Gestures, `Path.contains`, tile cache | Pinch, `Path.contains`; the tile cache is Tessera's | on master, not yet in a snapshot |
-| G-13 | `font-feature-settings` | Built | planned |
+| G-13 | `font-feature-settings` | Built | on master, not yet in a snapshot |
 | G-15 | `backdrop-filter` | Built on CPU frames | planned |
 | G-16 | Layout animation | Opt-in layout animation | planned |
 | G-17 | Screen-reader bridge | Still on hold | on hold |
@@ -39,7 +39,7 @@ nothing.
 | G-29 | Global hotkeys | `GlobalShortcuts` on all four platforms | planned |
 | G-30 | Shared GPU memory for Board tiles | Zero-copy rasters; a design document first | planned |
 | G-31 | Goldberry on the web | A plan document (TeaVM or a compiler of our own) | planned |
-| G-32 | Web view store, cookies, user agent | Built | planned |
+| G-32 | Web view store, cookies, user agent | Delete, clear and user agent built; the private store still planned | partly on master, not yet in a snapshot |
 
 ## G-01. The weaver is not published
 
@@ -88,7 +88,26 @@ The widget is a new `rich-input` over `Editor`, not more arguments on
 
 **Today.** As the entry says: `MarkdownView` for selectable messages.
 
-**Landed.** —
+**Landed.** As planned:
+
+```java
+new RichText(List.of(
+        new Run("Thanks "),
+        new Run("@frodo", Set.of("mention")).onPress(() -> openProfile("frodo")),
+        new Run(", the ending is "),
+        new Run("he leaves").spoiler(true)), Attributes.NONE)
+        .selectable(true)
+```
+
+A pressed run carries `pressable`, which has the link ink and the pointer
+cursor by default. A spoiler is covered (`run.spoiler:not(.revealed)`, words
+in no colour on a block of the muted ink) until pressed, then gets
+`revealed`, so `run.spoiler.revealed { transition: … }` is where the reveal
+animation goes. A selectable paragraph is dragged to select, `Ctrl+A`/`Ctrl+C`
+work while it has focus, and the highlight is `rich-text-selection`'s
+background. A run's own `background` now draws behind its words, which suits a
+mention chip. The selection is one paragraph's: a drag does not cross bubbles.
+ADR-0697.
 
 ## G-04. Variable-height list with sticky section headers
 
@@ -99,7 +118,21 @@ skip header rows.
 
 **Today.** As the entry says: an `affix` over the list.
 
-**Landed.** —
+**Landed.** `ListView.sections(sectionOf, header)`:
+
+```java
+new ListView<>(messages, Message::id, this::bubble)
+        .virtualized(RowHeights.estimating(64))
+        .sections(Message::day, day -> new Text(day))
+```
+
+A section is a run of consecutive items with one key. Its header is drawn
+above its first row, and while the section is at the viewport's top a copy
+classed `pinned` stays there, pushed up by the next day's header. Headers are
+`list-section-header` nodes, not rows: never focused, selected or matched by
+the typeahead, and `Home`/`End` go to rows. In a measured list a header counts
+into its first row's block, so prepending history still keeps the reader's
+line. A list at one height measures once it has sections. ADR-0696.
 
 ## G-05. Camera and microphone capture
 
@@ -144,7 +177,24 @@ been handed to the renderer.
 accepting any source. Then a call tile is a `video-view`, with its fit,
 poster and styling.
 
-**Landed.** —
+**Landed.** Not as `video-view` taking a source, but as a sibling over the
+same surface. `VideoView` also tells a player which form to decode into, and
+`media-controls` needs a player:
+
+```java
+var tile = new PushedPictures();
+row.add(new PictureView(tile, Fit.COVER));     // the same `video-view` node
+// on the network thread, per decoded frame:
+tile.push(new VideoPlanes(...));               // or a VideoPicture
+```
+
+`PushedPictures.push` may be called from any thread. The view redraws once a
+frame however many frames arrived, on the GPU as a layer where it can, and
+`clear()` empties the tile. `VideoPlanes` draw only on the GPU, and a
+`VideoPicture` draws everywhere. The borrowing rule is yours to keep: a
+pushed picture's bytes must stay put until two more have been pushed, so
+three buffers in turn are enough. `MediaPlayer` is a `PictureSource` too.
+ADR-0698.
 
 ## G-08. Web view JS bridge for Mini Apps
 
@@ -232,7 +282,22 @@ as `Ctrl`+wheel.
 any other tag) and `font-variant-numeric: tabular-nums` in stylesheets,
 inherited as CSS says, and passed to HarfBuzz when shaping.
 
-**Landed.** —
+**Landed.** Both properties, inherited:
+
+```css
+.timestamp { font-variant-numeric: tabular-nums }
+.code      { font-feature-settings: "liga" 0, "calt" 0 }
+.title     { font-feature-settings: "ss01", "case" }
+```
+
+`font-feature-settings` takes `"tag"`, `"tag" on|off` or `"tag" N`. A tag
+alone is on. `font-variant-numeric` takes `lining-nums`/`oldstyle-nums`,
+`proportional-nums`/`tabular-nums`, `diagonal-fractions`/`stacked-fractions`,
+`ordinal` and `slashed-zero`. The settings win over the variant on a tag both
+name, and `font` resets both. From Java, `Typography.features(FontFeatures)`
+or `Font.features(List)` on a font you made. Features apply to the text's own
+face, not to an emoji or fallback face. Over Inter, `tabular-nums` makes every
+figure one width. ADR-0695.
 
 ## G-15. Backdrop blur
 
@@ -392,4 +457,19 @@ built until that plan has been read.
 - An ephemeral (private) store on `WebViewSpec`, on all three engines, so a
   sign-out leaves no IdP session behind.
 
-**Landed.** —
+**Landed.** The first two:
+
+```java
+controller.deleteCookies(URI.create("https://idp.example.org/"), null);   // all of the IdP's
+controller.deleteCookies(URI.create("https://idp.example.org/"), "sid");  // one by name
+controller.clearCookies();                                                // the whole jar
+WebViewSpec.of(login).userAgent("Tessera/1.5 (Desktop)");                 // from the first request
+```
+
+Each change completes on the UI thread with how many cookies went. The jar is
+the engine's: on Linux and macOS a sign-out through one page signs every page
+out. Verified on WebKitGTK; the macOS and Windows code is written and not yet
+run. The private store is not done: it is set when a view is created, and
+webview/webview creates every view on the default context, so it needs the
+shim to make its own views (or a patch). Until then, `clearCookies()` after
+sign-out is the way to leave no session behind. ADR-0699.

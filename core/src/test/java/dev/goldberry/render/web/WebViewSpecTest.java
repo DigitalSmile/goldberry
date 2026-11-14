@@ -160,6 +160,27 @@ class WebViewSpecTest {
         assertTrue(answer.isCompletedExceptionally());
         var failure = assertThrows(ExecutionException.class, answer::get);
         assertTrue(failure.getCause() instanceof UnsupportedOperationException, failure.toString());
+
+        // Nor change its jar, nor its user agent.
+        for (var change : List.of(
+                page.deleteCookies(URI.create("https://example.org/"), null).toCompletableFuture(),
+                page.clearCookies().toCompletableFuture())) {
+            var refused = assertThrows(ExecutionException.class, change::get);
+            assertTrue(refused.getCause() instanceof UnsupportedOperationException, refused.toString());
+        }
+        assertFalse(page.userAgent("Probe/1"));
+    }
+
+    @Test
+    @DisplayName("carries its user agent through every other change, and the engine's own by default")
+    void userAgent() {
+        var spec = WebViewSpec.of("https://app.example.org/").userAgent("Probe/1");
+        assertEquals("Probe/1", spec.userAgent());
+        assertEquals(
+                "Probe/1",
+                spec.title("t").debug(true).sized(10, 10, WebSize.FIXED).initScript("x();").userAgent());
+        assertNull(WebViewSpec.blank().userAgent(), "the engine's own by default");
+        assertNull(spec.userAgent(null).userAgent());
     }
 
     @Test

@@ -5,7 +5,8 @@ import java.util.Set;
 
 import dev.goldberry.text.flow.TextDecoration;
 
-/// How one stretch of a paragraph is drawn: its colour, and the rules along it.
+/// How one stretch of a paragraph is drawn: its colour, the rules along it, and
+/// what is behind it.
 ///
 /// ```java
 /// var keyword = new SpanPaint(8, 16, 0xFFEBCB8B, TextDecoration.NONE);
@@ -32,7 +33,10 @@ import dev.goldberry.text.flow.TextDecoration;
 /// @param decorations the rules drawn along the stretch in that colour, and
 ///                    usually none. They **replace** the paragraph's own for this
 ///                    stretch rather than adding to them
-public record SpanPaint(int start, int end, int argb, Set<TextDecoration> decorations) {
+/// @param background  a fill behind the stretch, a line box tall on every line it
+///                    reaches, or 0 for none: a highlighted word, a selection, a
+///                    spoiler's cover
+public record SpanPaint(int start, int end, int argb, Set<TextDecoration> decorations, int background) {
 
     public SpanPaint {
         if (start < 0 || end < start) {
@@ -44,6 +48,16 @@ public record SpanPaint(int start, int end, int argb, Set<TextDecoration> decora
         decorations = Set.copyOf(Objects.requireNonNull(decorations, "decorations"));
     }
 
+    /// A stretch in a colour and its rules, with nothing behind it.
+    public SpanPaint(int start, int end, int argb, Set<TextDecoration> decorations) {
+        this(start, end, argb, decorations, 0);
+    }
+
+    /// Whether anything is drawn behind the stretch.
+    public boolean hasBackground() {
+        return background != 0;
+    }
+
     /// Whether `offset` is inside this stretch.
     public boolean covers(int offset) {
         return offset >= start && offset < end;
@@ -51,6 +65,6 @@ public record SpanPaint(int start, int end, int argb, Set<TextDecoration> decora
 
     /// This stretch in another colour, its range and its rules kept.
     public SpanPaint argb(int value) {
-        return new SpanPaint(start, end, value, decorations);
+        return new SpanPaint(start, end, value, decorations, background);
     }
 }

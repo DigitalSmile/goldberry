@@ -218,3 +218,100 @@ touchpad's zoom arrives as `Ctrl` with the wheel.
 case PINCH -> board.zoomBy(event.scale(), event.content().x(), event.content().y());
 ```
 
+
+## `book/src/guide/testing.md`, `## The virtual clock`, a new last paragraph
+
+`Offscreen.of(w, h).measure(root)` is a strip for a frame's cost rather than
+its picture. It paints into one buffer and, as a window does, only where
+something changed, so a frame with nothing changed paints nothing. Each
+`frame()` says what it cost and how much it painted, and `stats()` reads as a
+window's statistics do.
+
+```java
+try (var meter = Offscreen.of(2560, 1440).stylesheets(sheets).measure(new Hud(model))) {
+    for (var i = 0; i < 600; i++) {
+        model.tick();
+        var frame = meter.frame();
+        log(frame.timings().paintNanos(), frame.damagedPixels());
+        meter.advance(16);
+    }
+    var p99 = meter.stats().percentile(FrameStage.PAINT, 99);
+}
+```
+
+`meter.picture()` is a copy of what the buffer holds, for a check beside the
+numbers.
+
+## `book/src/guide/text.md`, `## Images`, after the paragraph on an image having nothing to close
+
+`Image.decodeInto` decodes into memory the caller owns instead, such as a GPU
+transfer buffer or an atlas page being built, and returns the size. The
+function is asked for the memory once the size is known. `ChannelOrder.RGBA`
+swaps red and blue in the same pass; `BGRA` is an image's own order. Both are
+premultiplied.
+
+```java
+var size = Image.decodeInto(bytes, ChannelOrder.RGBA,
+        decoded -> PixelTarget.packed(transfer.map(decoded), decoded.width()));
+```
+
+## `book/src/guide/styling.md`, `### Typography`, after the paragraph on weights
+
+```css
+.timestamp { font-variant-numeric: tabular-nums }
+.code      { font-feature-settings: "liga" 0, "calt" 0 }
+```
+
+`font-feature-settings` turns OpenType features on and off: `"tag"` alone or
+with `on`, `off` or a number that picks an alternate. `font-variant-numeric`
+names the figure features: `lining-nums` or `oldstyle-nums`,
+`proportional-nums` or `tabular-nums`, `diagonal-fractions` or
+`stacked-fractions`, `ordinal` and `slashed-zero`. Both inherit. Where both
+name a feature, `font-feature-settings` wins, and `font` resets both. A
+feature the face does not have does nothing. Inter's figures are proportional,
+so a clock or a counter that should not jitter as it ticks asks for
+`tabular-nums`.
+
+## `book/src/components/collections.md`, `## `list``, after the paragraph on virtualized rows, and a row in the Java table
+
+**Sections.** `sections(sectionOf, header)` groups consecutive items with one
+key, such as a day in a timeline, under a header widget. The header is drawn
+above the section's first row, and while that section is at the top of the
+viewport a copy stays pinned there until the next section's header pushes it
+out. A header is not a row: it is never focused or selected, the typeahead
+does not match it, and `Home` and `End` go to rows. It is styled as
+`list-section-header`, and the pinned copy as `list-section-header.pinned`.
+
+```java
+new ListView<>(messages, Message::id, this::bubble)
+        .virtualized(RowHeights.estimating(64))
+        .sections(Message::day, day -> new Text(day))
+```
+
+| `sections(Function<T, String>, Function<String, Widget>)` | Headed runs of items, with the top one pinned. |
+
+## `book/src/components/media.md`, `## `video-view``, a new last paragraph and sample
+
+A picture that does not come from a player, such as a call's video decoded
+by the application, is shown by `PictureView` over a `PictureSource`. A
+`PushedPictures` takes pictures from any thread, and the view draws the newest
+once a frame, as a `video-view` with the same styling.
+
+```java
+var tile = new PushedPictures();
+row.add(new PictureView(tile, Fit.COVER));
+tile.push(new VideoPlanes(...));   // from the thread that decoded it
+```
+
+A pushed picture's bytes must stay as they are until two more have been
+pushed after it. `VideoPlanes` are drawn on the GPU only, and a `VideoPicture`
+everywhere.
+
+## `book/src/components/content.md`, `## `web-view``, after the paragraph on reading cookies
+
+A sign-out deletes what the page signed in with: `deleteCookies(url, name)`
+deletes the cookies the engine would send to `url` (all of them when `name`
+is null), and `clearCookies()` empties the jar. Both complete on the UI thread.
+On Linux and macOS every page shares one jar. `WebViewSpec.userAgent(agent)`
+sets the user agent the page sends from its first request, and the
+controller's `userAgent(agent)` changes it later.

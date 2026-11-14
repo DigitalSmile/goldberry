@@ -11,8 +11,8 @@ import dev.goldberry.i18n.ToolkitLabel;
 import dev.goldberry.image.Image;
 import dev.goldberry.input.event.PointerEvent;
 import dev.goldberry.input.handler.Handles;
-import dev.goldberry.media.MediaPlayer;
 import dev.goldberry.media.picture.Picture;
+import dev.goldberry.media.picture.PictureSource;
 import dev.goldberry.media.picture.VideoPicture;
 import dev.goldberry.media.view.gpu.VideoPresenter;
 import dev.goldberry.paint.Box;
@@ -30,8 +30,9 @@ import dev.goldberry.widgets.core.image.Fit;
 /// The node a stylesheet means by `video-view`: the surface a player's pictures
 /// are drawn on.
 ///
-/// Each time it renders, it asks the player for [MediaPlayer#shownPicture()]
-/// (the newest picture whose time has come on the master clock) and draws it
+/// Each time it renders, it asks its source for
+/// [PictureSource#shownPicture()] (for a player, the newest picture whose time
+/// has come on the master clock) and draws it
 /// placed by [Fit], centred, over the box's own background. It does not keep the
 /// frame loop turning itself: the widget that owns it rebuilds it when the next
 /// picture falls due ([FollowingState]), so a 25 fps video costs 25 frames a
@@ -53,7 +54,8 @@ import dev.goldberry.widgets.core.image.Fit;
 /// **No size of its own**, like `canvas`: a stylesheet gives it one. `media.css`
 /// lets it grow.
 ///
-/// @param player     the player whose pictures are drawn
+/// @param source     where the pictures come from: a player, or pictures an
+///                   application pushes
 /// @param fit        how a picture fills a box of another shape
 /// @param attributes id and classes
 /// @param onClick    what a click on the picture does, or null for nothing:
@@ -61,7 +63,7 @@ import dev.goldberry.widgets.core.image.Fit;
 /// @param gpu        what places the picture on the GPU, or null to draw it on
 ///                   the CPU alone
 record VideoSurface(
-        MediaPlayer player,
+        PictureSource source,
         Fit fit,
         Attributes attributes,
         @Nullable Runnable onClick,
@@ -86,7 +88,7 @@ record VideoSurface(
     @Override
     public Box render(ComputedStyle style, List<Box> children, Context context) {
         var box = Box.of().style(style);
-        var picture = player.shownPicture();
+        var picture = source.shownPicture();
         return picture.isPresent() ? box.painting(painter(picture.get(), fit, gpu)) : box;
     }
 

@@ -124,6 +124,17 @@ public final class BlendDecodedImage implements AutoCloseable {
     /// @throws IllegalStateException if this has been closed, or the calling
     ///         thread is not the one that decoded it
     public void copyInto(ByteBuffer destination, int stride) {
+        copyInto(destination, stride, false);
+    }
+
+    /// [#copyInto(ByteBuffer, int)], as premultiplied **RGBA** when
+    /// `swapRedAndBlue` is set: the swap is done on the way, in the same pass.
+    ///
+    /// @throws IllegalArgumentException if the buffer is not direct, or is too
+    ///         small for the image at that stride
+    /// @throws IllegalStateException if this has been closed, or the calling
+    ///         thread is not the one that decoded it
+    public void copyInto(ByteBuffer destination, int stride, boolean swapRedAndBlue) {
         Objects.requireNonNull(destination, "destination");
         requireUsable();
         if (!destination.isDirect()) {
@@ -143,7 +154,7 @@ public final class BlendDecodedImage implements AutoCloseable {
             throw new IllegalArgumentException("a " + width + "x" + height + " image at stride " + stride + " needs "
                     + required + " bytes, and the buffer offers " + destination.remaining());
         }
-        calls.copyPixels(image, destination, stride);
+        calls.copyPixels(image, destination, stride, swapRedAndBlue);
     }
 
     /// Releases the pixels Blend2D allocated.

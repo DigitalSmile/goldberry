@@ -159,13 +159,51 @@ final class Blend2dImage {
     // region Blend2D allocated and nothing more.
     @SuppressWarnings("restricted")
     void copyPixels(MemorySegment image, ByteBuffer destination, int destinationStride) {
+        copyPixels(image, destination, destinationStride, false);
+    }
+
+    /// [#copyPixels(MemorySegment, ByteBuffer, int)], with red and blue swapped
+    /// on the way when `swapRedAndBlue` is set: premultiplied RGBA rather than
+    /// BGRA, in the same single pass.
+    ///
+    /// The swap runs over one row at a time in an `int[]` this call allocates
+    /// once: two bulk copies and a loop over an array, which the compiler turns
+    /// into vector instructions, where a loop over the segments would not be.
+    @SuppressWarnings("restricted")
+    void copyPixels(MemorySegment image, ByteBuffer destination, int destinationStride, boolean swapRedAndBlue) {
         var data = imageData(image);
         var rowBytes = Math.multiplyExact(data.width(), 4);
         var source = MemorySegment.ofAddress(data.pixels())
                 .reinterpret(Math.addExact(Math.multiplyExact(data.stride(), data.height() - 1L), rowBytes));
         var into = MemorySegment.ofBuffer(destination);
+        if (!swapRedAndBlue) {
+            for (var y = 0; y < data.height(); y++) {
+                MemorySegment.copy(source, y * data.stride(), into, (long) y * destinationStride, rowBytes);
+            }
+            return;
+        }
+        var row = new int[data.width()];
         for (var y = 0; y < data.height(); y++) {
-            MemorySegment.copy(source, y * data.stride(), into, (long) y * destinationStride, rowBytes);
+            MemorySegment.copy(source, PIXEL, y * data.stride(), row, 0, row.length);
+            swapRedAndBlue(row);
+            MemorySegment.copy(row, 0, into, PIXEL, (long) y * destinationStride, row.length);
+        }
+    }
+
+    /// A pixel as memory holds it: four bytes in the platform's order, read
+    /// wherever a row starts.
+    private static final ValueLayout.OfInt PIXEL = ValueLayout.JAVA_INT_UNALIGNED;
+
+    /// Swaps the first and third byte of every pixel, whichever byte order the
+    /// platform has: `B G R A` becomes `R G B A`.
+    ///
+    /// On a little-endian platform, the only kind this module runs on, the
+    /// pixel reads as `0xAARRGGBB`, so the swap moves bits 0-7 and 16-23 and
+    /// leaves the green and alpha bytes where they are.
+    static void swapRedAndBlue(int[] row) {
+        for (var i = 0; i < row.length; i++) {
+            var pixel = row[i];
+            row[i] = (pixel & 0xFF00FF00) | ((pixel >>> 16) & 0xFF) | ((pixel & 0xFF) << 16);
         }
     }
 

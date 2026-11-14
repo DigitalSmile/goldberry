@@ -257,6 +257,25 @@ public final class RenderTree implements AutoCloseable {
     /// overlapping regions and gives up past a handful, so the union is close to
     /// the rectangles themselves in every case that reaches here.
     public void paint(Frame frame, java.util.List<DamageRect> damage) {
+        paint(frame, damage, false, 0);
+    }
+
+    /// [#paint(Frame, List)], with the region **replaced by `background`** before
+    /// anything is drawn into it.
+    ///
+    /// For a buffer this tree painted last time and nobody else has touched, whose
+    /// tree may be transparent: a window's root paints an opaque background over
+    /// the damage, and a tree with nothing under it would blend its antialiased
+    /// edges onto last frame's pixels instead. The region cleared is exactly the
+    /// one painted, so no pixel outside it changes.
+    ///
+    /// @param background a colour as `0xAARRGGBB`, not premultiplied; 0 clears
+    ///                   to transparent
+    public void repaint(Frame frame, List<DamageRect> damage, int background) {
+        paint(frame, damage, true, background);
+    }
+
+    private void paint(Frame frame, List<DamageRect> damage, boolean clear, int background) {
         Objects.requireNonNull(frame, "frame");
         Objects.requireNonNull(damage, "damage");
         if (damage.isEmpty()) {
@@ -287,7 +306,14 @@ public final class RenderTree implements AutoCloseable {
         // still shows whole. It puts the clip back
         // when the walk is done: the next thing drawn on this frame did not ask
         // to be clipped.
-        frame.repaintOnly(clip.left(), clip.top(), clip.width(), clip.height(), () -> paint(frame, clip));
+        frame.repaintOnly(clip.left(), clip.top(), clip.width(), clip.height(), () -> {
+            if (clear) {
+                // Inside the region, so the fill replaces only what is about to
+                // be painted again.
+                frame.fill(background);
+            }
+            paint(frame, clip);
+        });
     }
 
     /// Paints the tree laid out by the last [#update].

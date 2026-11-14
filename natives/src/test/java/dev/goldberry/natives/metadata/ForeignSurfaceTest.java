@@ -105,11 +105,13 @@ class ForeignSurfaceTest {
     }
 
     @Test
-    @DisplayName("declares the fourteen upcall shapes, Yoga's struct return among them")
+    @DisplayName("declares the fifteen upcall shapes, Yoga's struct return among them")
     void upcalls() {
         var upcalls = ForeignSurface.upcalls();
         assertAll(
-                () -> assertEquals(14, upcalls.size(), upcalls.toString()),
+                // The fifteenth is a web view's cookie change answered: a request
+                // number and a count.
+                () -> assertEquals(15, upcalls.size(), upcalls.toString()),
                 () -> assertTrue(
                         upcalls.stream()
                                 .anyMatch(d -> d.returnLayout()

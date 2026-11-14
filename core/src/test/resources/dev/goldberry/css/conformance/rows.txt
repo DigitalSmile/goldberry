@@ -252,7 +252,10 @@ decl | white-space: break-spaces | DROPPED | unplanned
 decl | font: 12px Inter | APPLIED | -
 decl | font-family: Mono, Inter | IGNORED | unplanned | font-family: Mono
 decl | font-variant: small-caps | UNKNOWN | unplanned
-decl | font-feature-settings: "tnum" | UNKNOWN | unplanned
+decl | font-feature-settings: "tnum" | APPLIED | -
+decl | font-feature-settings: "tnum" 1.5 | DROPPED | by-design
+decl | font-variant-numeric: tabular-nums slashed-zero | APPLIED | -
+decl | font-variant-numeric: tabular-nums proportional-nums | DROPPED | by-design
 decl | font-variation-settings: "wght" 500 | APPLIED | -
 decl | font-stretch: condensed | APPLIED | -
 decl | font-stretch: 250% | DROPPED | by-design

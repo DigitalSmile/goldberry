@@ -3,6 +3,7 @@ package dev.goldberry.widgets.panel.list;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.Function;
 
 import org.jspecify.annotations.Nullable;
@@ -56,6 +57,18 @@ final class MeasuredWindow {
     /// The height each item's row came out as, by the item's identity.
     private final Map<String, Double> heights = new HashMap<>();
 
+    /// The height each section's header came out as, by the identity of the
+    /// item it heads. A header is counted into its first row's block: the
+    /// block begins at the header's top and ends at the row's bottom.
+    private final Map<String, Double> leads = new HashMap<>();
+
+    /// Each item's section key, or null when the list has no sections.
+    private String @Nullable [] sections;
+
+    /// What a header not yet measured counts as: the last header measured, or
+    /// the row estimate before any has been.
+    private double leadEstimate = Double.NaN;
+
     /// The model the arrays below describe — compared by identity, since a
     /// `ListView` copies its items once and a new list is a new model.
     private List<?> items = List.of();
@@ -93,7 +106,14 @@ final class MeasuredWindow {
     /// Takes the current model and estimate, keeping the window on the same
     /// **items** when rows were inserted or removed around it.
     <T> void sync(List<T> model, Function<T, String> identity, double guess) {
-        if (model == items && guess == estimate) {
+        sync(model, identity, guess, null);
+    }
+
+    /// [#sync(List, Function, double)] for a list in sections: `sectionOf` gives
+    /// each item's section key, or is null for none.
+    <T> void sync(
+            List<T> model, Function<T, String> identity, double guess, @Nullable Function<T, String> sectionOf) {
+        if (model == items && guess == estimate && (sectionOf == null) == (sections == null)) {
             return;
         }
         var firstId = first < ids.length ? ids[first] : null;
@@ -110,11 +130,21 @@ final class MeasuredWindow {
             ids = next;
             indexOf = index;
             items = model;
+            sections = null;
             var moved = firstId == null ? null : indexOf.get(firstId);
             if (moved != null) {
                 first = moved;
                 last = moved + span;
             }
+        }
+        if (sectionOf == null) {
+            sections = null;
+        } else if (sections == null) {
+            var keys = new String[model.size()];
+            for (var i = 0; i < keys.length; i++) {
+                keys[i] = Objects.requireNonNull(sectionOf.apply(model.get(i)), "a section key");
+            }
+            sections = keys;
         }
         estimate = guess;
         stale = true;
@@ -138,7 +168,7 @@ final class MeasuredWindow {
             for (var i = 0; i < ids.length; i++) {
                 tops[i] = at;
                 var measured = heights.get(ids[i]);
-                at += measured == null ? estimate : measured;
+                at += (measured == null ? estimate : measured) + leadOf(i);
             }
             tops[ids.length] = at;
             stale = false;
@@ -165,11 +195,79 @@ final class MeasuredWindow {
         return Math.max(first(), Math.min(last, ids.length));
     }
 
+    /// Whether the item at `index` begins a section, so its block begins with
+    /// the section's header.
+    boolean leads(int index) {
+        var keys = sections;
+        return keys != null && index < keys.length && (index == 0 || !keys[index].equals(keys[index - 1]));
+    }
+
+    /// Whether the list has sections.
+    boolean sectioned() {
+        return sections != null;
+    }
+
+    /// The section key of the item at `index`.
+    String sectionOf(int index) {
+        return Objects.requireNonNull(sections, "a list with no sections")[index];
+    }
+
+    /// How tall the header at the top of `index`'s block is counted: zero for
+    /// an item that begins no section.
+    double leadOf(int index) {
+        if (!leads(index)) {
+            return 0;
+        }
+        var measured = leads.get(ids[index]);
+        if (measured != null) {
+            return measured;
+        }
+        return Double.isNaN(leadEstimate) ? estimate : leadEstimate;
+    }
+
+    /// The first item of the section `index` is in.
+    int sectionStart(int index) {
+        var at = Math.clamp(index, 0, Math.max(0, ids.length - 1));
+        while (at > 0 && !leads(at)) {
+            at--;
+        }
+        return at;
+    }
+
+    /// The first item of the section after `index`'s, or -1 for the last.
+    int nextSectionStart(int index) {
+        for (var at = index + 1; at < ids.length; at++) {
+            if (leads(at)) {
+                return at;
+            }
+        }
+        return -1;
+    }
+
+    /// The block whose top is the last at or above `y`, below the list's top.
+    int blockAt(double y) {
+        return ids.length == 0 ? -1 : rowAt(tops(), y);
+    }
+
+    /// Takes the height the header of `id`'s section came out as, and answers how
+    /// far the reader's line moved because of it, as [#measured] does for a row.
+    double measuredLead(String id, double height) {
+        leadEstimate = height;
+        var known = leads.put(id, height);
+        var was = known == null ? estimate : known;
+        return moved(id, height, was);
+    }
+
     /// Takes a row's height, and answers how far the reader's line moved because
     /// of it — zero unless the row is above that line and changed.
     double measured(String id, double height) {
         var known = heights.put(id, height);
         var was = known == null ? estimate : known;
+        return moved(id, height, was);
+    }
+
+    /// The correction for a block whose height went from `was` to `height`.
+    private double moved(String id, double height, double was) {
         if (Math.abs(height - was) < STILL) {
             return 0;
         }
@@ -202,6 +300,11 @@ final class MeasuredWindow {
             var forgotten = heights.remove(ids[i]);
             if (forgotten != null && i < line) {
                 moved += estimate - forgotten;
+            }
+            // A header wraps too, so its height at another width is as stale.
+            var lead = leads.remove(ids[i]);
+            if (lead != null && i < line) {
+                moved += leadOf(i) - lead;
             }
         }
         stale = true;

@@ -42,7 +42,10 @@ public record WebviewCalls(
         Blur blur,
         Cookies cookies,
         OnNavigate onNavigate,
-        Init init) {
+        Init init,
+        DeleteCookies deleteCookies,
+        ClearCookies clearCookies,
+        UserAgent userAgent) {
 
     /// Binds **only** the ABI probe.
     ///
@@ -89,7 +92,10 @@ public record WebviewCalls(
                 new Blur(lookup),
                 new Cookies(lookup),
                 new OnNavigate(lookup),
-                new Init(lookup));
+                new Init(lookup),
+                new DeleteCookies(lookup),
+                new ClearCookies(lookup),
+                new UserAgent(lookup));
     }
 
     /// Creates a page and its window.
@@ -624,6 +630,98 @@ public record WebviewCalls(
                 return (int) FD_goldberry_webview_cookies.invokeExact(address, webview, url, callback, request);
             } catch (Throwable t) {
                 throw Downcalls.failure("goldberry_webview_cookies", t);
+            }
+        }
+    }
+
+    /// Deletes the cookies the engine would send to a URL: all of them, or
+    /// those with one name.
+    ///
+    /// ```c
+    /// int goldberry_webview_delete_cookies(void *w, const char *url, const char *name,
+    ///                                      void (*fn)(long long request, int result), long long request);
+    /// ```
+    ///
+    /// Asynchronous, as a read is: 0 means `fn` will be called exactly once
+    /// with how many went, or -1 where the engine could not; -1 means it will
+    /// never be called.
+    public static final class DeleteCookies {
+
+        private static final MethodHandle FD_goldberry_webview_delete_cookies =
+                Downcalls.link(FunctionDescriptor.of(JAVA_INT, ADDRESS, ADDRESS, ADDRESS, ADDRESS, JAVA_LONG));
+
+        private final MemorySegment address;
+
+        DeleteCookies(SymbolLookup lookup) {
+            this.address = Downcalls.symbol(lookup, "goldberry_webview_delete_cookies");
+        }
+
+        /// @param url      the URL whose cookies go, a C string
+        /// @param name     the one name to delete, a C string, or NULL for all
+        /// @param callback an upcall stub of the answer's shape
+        /// @param request  handed back beside the answer
+        /// @return 0 when the answer will come, -1 when it will not
+        public int call(
+                MemorySegment webview, MemorySegment url, MemorySegment name, MemorySegment callback, long request) {
+            try {
+                return (int)
+                        FD_goldberry_webview_delete_cookies.invokeExact(address, webview, url, name, callback, request);
+            } catch (Throwable t) {
+                throw Downcalls.failure("goldberry_webview_delete_cookies", t);
+            }
+        }
+    }
+
+    /// Deletes every cookie in the engine's jar.
+    ///
+    /// ```c
+    /// int goldberry_webview_clear_cookies(void *w, void (*fn)(long long request, int result), long long request);
+    /// ```
+    public static final class ClearCookies {
+
+        private static final MethodHandle FD_goldberry_webview_clear_cookies =
+                Downcalls.link(FunctionDescriptor.of(JAVA_INT, ADDRESS, ADDRESS, JAVA_LONG));
+
+        private final MemorySegment address;
+
+        ClearCookies(SymbolLookup lookup) {
+            this.address = Downcalls.symbol(lookup, "goldberry_webview_clear_cookies");
+        }
+
+        /// @return 0 when the answer will come, -1 when it will not
+        public int call(MemorySegment webview, MemorySegment callback, long request) {
+            try {
+                return (int) FD_goldberry_webview_clear_cookies.invokeExact(address, webview, callback, request);
+            } catch (Throwable t) {
+                throw Downcalls.failure("goldberry_webview_clear_cookies", t);
+            }
+        }
+    }
+
+    /// The user agent the page sends.
+    ///
+    /// ```c
+    /// int goldberry_webview_user_agent(void *w, const char *agent);
+    /// ```
+    ///
+    /// NULL puts the engine's own back where the engine can.
+    public static final class UserAgent {
+
+        private static final MethodHandle FD_goldberry_webview_user_agent =
+                Downcalls.link(FunctionDescriptor.of(JAVA_INT, ADDRESS, ADDRESS));
+
+        private final MemorySegment address;
+
+        UserAgent(SymbolLookup lookup) {
+            this.address = Downcalls.symbol(lookup, "goldberry_webview_user_agent");
+        }
+
+        /// @return 0, or -1 where it cannot be set
+        public int call(MemorySegment webview, MemorySegment agent) {
+            try {
+                return (int) FD_goldberry_webview_user_agent.invokeExact(address, webview, agent);
+            } catch (Throwable t) {
+                throw Downcalls.failure("goldberry_webview_user_agent", t);
             }
         }
     }

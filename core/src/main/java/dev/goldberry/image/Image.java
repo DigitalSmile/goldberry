@@ -8,6 +8,7 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.function.Function;
 
 import dev.goldberry.Goldberry;
 import dev.goldberry.image.gif.GifDecoder;
@@ -162,42 +163,62 @@ public final class Image {
             decoded.copyInto(buffer.pixels(), buffer.stride());
             return new Image(buffer);
         } catch (BlendException e) {
-            // Translated here rather than propagated. An application catching a
-            // failed paste must not have to name a type from `:natives` to do it
-            // — that is the leak this whole family of changes is about.
-            throw new ImageDecodeException(
-                    "these " + bytes.remaining() + " bytes are not an image any codec here (PNG, JPEG, QOI,"
-                            + " GIF, WebP) recognises",
-                    e);
+            throw Decoding.refused(bytes, e);
         }
+    }
+
+    /// Decodes `bytes` straight into memory the caller owns, in the channel
+    /// order it asks for, and returns the image's size.
+    ///
+    /// ```java
+    /// var size = Image.decodeInto(page, ChannelOrder.RGBA,
+    ///         decoded -> PixelTarget.packed(transfer.map(decoded), decoded.width()));
+    /// ```
+    ///
+    /// `target` is asked once, with the decoded size, for where the pixels go:
+    /// the size of a file is known only once it is decoded, and a GPU transfer
+    /// buffer or a page being built is sized from it. The pixels are
+    /// premultiplied, as an [Image]'s are. For [ChannelOrder#BGRA] this is a
+    /// copy; for [ChannelOrder#RGBA] red and blue are swapped in the same pass.
+    /// No [Image] is made and no buffer is left behind.
+    ///
+    /// Every format [#decode(ByteBuffer)] reads is read here, with the same
+    /// errors.
+    ///
+    /// @throws ImageDecodeException if no codec recognises the bytes, or the image
+    ///         is malformed
+    /// @throws IllegalArgumentException if there are no bytes, or the memory
+    ///         `target` returned is too small for the image at its stride
+    public static PhysicalSize decodeInto(
+            ByteBuffer bytes, ChannelOrder order, Function<PhysicalSize, PixelTarget> target) {
+        Objects.requireNonNull(bytes, "bytes");
+        Objects.requireNonNull(order, "order");
+        Objects.requireNonNull(target, "target");
+        if (!bytes.hasRemaining()) {
+            throw new IllegalArgumentException("there is nothing to decode: no bytes were given");
+        }
+        return Decoding.into(bytes, order, target);
+    }
+
+    /// [#decodeInto(ByteBuffer, ChannelOrder, Function)] into memory the caller
+    /// already has, for an image whose size it knows.
+    ///
+    /// @throws IllegalArgumentException if `destination` is too small for the
+    ///         decoded image at `stride`; nothing is written then
+    public static PhysicalSize decodeInto(ByteBuffer bytes, ByteBuffer destination, int stride, ChannelOrder order) {
+        var into = new PixelTarget(destination, stride);
+        return decodeInto(bytes, order, size -> into);
     }
 
     /// A GIF, through the toolkit's own decoder.
-    ///
-    /// The exception is translated here for [BlendException]'s reason: an
-    /// application catching a failed paste must not have to name which codec
-    /// refused it.
     private static Image decodeGif(ByteBuffer bytes) {
-        try {
-            var decoded = GifDecoder.decode(bytes);
-            return ofArgb(decoded.width(), decoded.height(), decoded.argb());
-        } catch (GifFormatException e) {
-            throw new ImageDecodeException("these " + bytes.remaining() + " bytes begin like a GIF and are not one", e);
-        }
+        var decoded = Decoding.gif(bytes);
+        return ofArgb(decoded.width(), decoded.height(), decoded.pixels());
     }
 
     /// A WebP, through libwebp.
-    ///
-    /// Null back from the decoder is "these bytes are not a WebP I can read",
-    /// which for a lossless-or-lossy container with an animation form it does not
-    /// decode is a normal answer rather than a fault.
     private static Image decodeWebp(ByteBuffer bytes) {
-        var decoded = Webp.get().decode(bytes);
-        if (decoded == null) {
-            throw new ImageDecodeException("these " + bytes.remaining()
-                    + " bytes begin like a WebP and are not one this decoder reads — an animated WebP is the"
-                    + " usual reason, since only a still frame is decoded");
-        }
+        var decoded = Decoding.webp(bytes);
         return ofArgb(decoded.width(), decoded.height(), decoded.pixels());
     }
 
@@ -610,7 +631,7 @@ public final class Image {
     /// `(c * a + 127) / 255` rather than `c * a / 255`: the second truncates, so
     /// mid-grey at half alpha comes out a level darker and a gradient built this
     /// way bands visibly against the same gradient drawn by the rasterizer.
-    private static int premultiply(int argb) {
+    static int premultiply(int argb) {
         var a = argb >>> 24;
         if (a == 0xFF) {
             return argb;

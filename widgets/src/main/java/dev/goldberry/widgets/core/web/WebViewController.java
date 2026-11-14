@@ -65,6 +65,42 @@ public final class WebViewController {
         return current.cookies(url);
     }
 
+    /// Deletes the cookies the page's engine would send to `url`: every one, or
+    /// only those named `name` — see `BackendWebView.deleteCookies`.
+    ///
+    /// @return how many went, completing on the UI thread; failed with
+    ///         [IllegalStateException] while no page is open
+    public CompletionStage<Integer> deleteCookies(URI url, @Nullable String name) {
+        Objects.requireNonNull(url, "url");
+        var current = page;
+        if (current == null || current.isClosed()) {
+            return CompletableFuture.failedFuture(
+                    new IllegalStateException("no page is open under this controller yet"));
+        }
+        return current.deleteCookies(url, name);
+    }
+
+    /// Deletes every cookie in the page's engine, for every site.
+    ///
+    /// @return completed once the jar is empty; failed with
+    ///         [IllegalStateException] while no page is open
+    public CompletionStage<Void> clearCookies() {
+        var current = page;
+        if (current == null || current.isClosed()) {
+            return CompletableFuture.failedFuture(
+                    new IllegalStateException("no page is open under this controller yet"));
+        }
+        return current.clearCookies();
+    }
+
+    /// Sends `agent` as the page's user agent from its next request on.
+    ///
+    /// @return false while no page is open, or where the engine cannot set it
+    public boolean userAgent(@Nullable String agent) {
+        var current = page;
+        return current != null && !current.isClosed() && current.userAgent(agent);
+    }
+
     /// Runs `script` in the page: what the application says to a page that
     /// listens. Nothing comes back; an answer reaches the application through
     /// a callback the page calls (`WebPage.on`).

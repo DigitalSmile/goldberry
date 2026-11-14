@@ -23,7 +23,9 @@
 
 #include <webview/webview.h>
 
+#include <memory>
 #include <string>
+#include <vector>
 #include <unordered_map>
 
 #if defined(__linux__) || defined(__FreeBSD__)
@@ -765,6 +767,10 @@ static void drain() {
 /// or NULL when the engine could not read them.
 typedef void (*goldberry_webview_cookies_fn)(long long request, const char *cookies);
 
+/// `void (*)(long long request, int result)` -- a change to the jar is done:
+/// how many cookies it deleted, or -1 when the engine could not.
+typedef void (*goldberry_webview_done_fn)(long long request, int result);
+
 /// `int (*)(long long page, const char *uri)` -- nonzero lets the navigation go
 /// ahead, zero cancels it.
 typedef int (*goldberry_webview_navigate_fn)(long long page, const char *uri);
@@ -958,6 +964,137 @@ static void forget(void *w) {
     navigation_handlers().erase(w);
 }
 
+
+/// One outstanding deletion: the cookies still to go, and how many went.
+struct delete_request {
+    WebKitCookieManager *manager;
+    std::string name;
+    bool any_name;
+    goldberry_webview_done_fn fn;
+    long long request;
+    int pending = 0;
+    int deleted = 0;
+};
+
+static void finish_delete(delete_request *request) {
+    request->fn(request->request, request->deleted);
+    g_object_unref(request->manager);
+    delete request;
+}
+
+static void on_deleted(GObject *source, GAsyncResult *result, gpointer data) {
+    auto *request = static_cast<delete_request *>(data);
+    GError *error = nullptr;
+    if (webkit_cookie_manager_delete_cookie_finish(WEBKIT_COOKIE_MANAGER(source), result, &error)) {
+        request->deleted++;
+    } else if (error != nullptr) {
+        g_log("goldberry-webview", G_LOG_LEVEL_DEBUG, "the engine could not delete a cookie: %s", error->message);
+        g_error_free(error);
+    }
+    if (--request->pending == 0) {
+        finish_delete(request);
+    }
+}
+
+/// The cookies the engine would send to the URL, read first and then deleted
+/// one by one: WebKitGTK deletes a cookie it is handed, not one it is named.
+static void on_cookies_to_delete(GObject *source, GAsyncResult *result, gpointer data) {
+    auto *request = static_cast<delete_request *>(data);
+    GError *error = nullptr;
+    GList *cookies = webkit_cookie_manager_get_cookies_finish(WEBKIT_COOKIE_MANAGER(source), result, &error);
+    if (error != nullptr) {
+        g_log("goldberry-webview", G_LOG_LEVEL_DEBUG, "the engine could not read cookies: %s", error->message);
+        g_error_free(error);
+        request->fn(request->request, -1);
+        g_object_unref(request->manager);
+        delete request;
+        return;
+    }
+    for (GList *item = cookies; item != nullptr; item = item->next) {
+        auto *cookie = static_cast<SoupCookie *>(item->data);
+        if (request->any_name || request->name == soup_cookie_get_name(cookie)) {
+            request->pending++;
+        }
+    }
+    if (request->pending == 0) {
+        g_list_free_full(cookies, reinterpret_cast<GDestroyNotify>(soup_cookie_free));
+        finish_delete(request);
+        return;
+    }
+    // Counted before any is started, so an answer that arrives at once cannot
+    // bring the count to zero while cookies are still to go.
+    for (GList *item = cookies; item != nullptr; item = item->next) {
+        auto *cookie = static_cast<SoupCookie *>(item->data);
+        if (request->any_name || request->name == soup_cookie_get_name(cookie)) {
+            webkit_cookie_manager_delete_cookie(request->manager, cookie, nullptr, on_deleted, request);
+        }
+    }
+    g_list_free_full(cookies, reinterpret_cast<GDestroyNotify>(soup_cookie_free));
+}
+
+static int delete_cookies(void *w, const char *url, const char *name, goldberry_webview_done_fn fn, long long request) {
+    WebKitWebView *view = goldberry_glib::web_view(w);
+    WebKitCookieManager *manager = view == nullptr ? nullptr : cookie_manager(view);
+    if (manager == nullptr) {
+        return -1;
+    }
+    g_object_ref(manager);
+    auto *pending = new delete_request{manager, name == nullptr ? std::string() : std::string(name), name == nullptr,
+                                       fn, request};
+    webkit_cookie_manager_get_cookies(manager, url, nullptr, on_cookies_to_delete, pending);
+    return 0;
+}
+
+/// One outstanding clear.
+struct done_request {
+    goldberry_webview_done_fn fn;
+    long long request;
+};
+
+static void on_cleared(GObject *source, GAsyncResult *result, gpointer data) {
+    auto *request = static_cast<done_request *>(data);
+    GError *error = nullptr;
+    gboolean cleared = webkit_website_data_manager_clear_finish(WEBKIT_WEBSITE_DATA_MANAGER(source), result, &error);
+    if (error != nullptr) {
+        g_log("goldberry-webview", G_LOG_LEVEL_DEBUG, "the engine could not clear cookies: %s", error->message);
+        g_error_free(error);
+    }
+    request->fn(request->request, cleared ? 0 : -1);
+    delete request;
+}
+
+/// The website data behind `view`: the jar, and everything else a site keeps.
+static WebKitWebsiteDataManager *data_manager(WebKitWebView *view) {
+#if GTK_MAJOR_VERSION == 4
+    WebKitNetworkSession *session = webkit_web_view_get_network_session(view);
+    return session == nullptr ? nullptr : webkit_network_session_get_website_data_manager(session);
+#else
+    return webkit_web_view_get_website_data_manager(view);
+#endif
+}
+
+static int clear_cookies(void *w, goldberry_webview_done_fn fn, long long request) {
+    WebKitWebView *view = goldberry_glib::web_view(w);
+    WebKitWebsiteDataManager *data = view == nullptr ? nullptr : data_manager(view);
+    if (data == nullptr) {
+        return -1;
+    }
+    // A timespan of 0 is everything, however old.
+    webkit_website_data_manager_clear(data, WEBKIT_WEBSITE_DATA_COOKIES, 0, nullptr, on_cleared,
+                                      new done_request{fn, request});
+    return 0;
+}
+
+static int user_agent(void *w, const char *agent) {
+    WebKitWebView *view = goldberry_glib::web_view(w);
+    if (view == nullptr) {
+        return -1;
+    }
+    // NULL puts the engine's own back.
+    webkit_settings_set_user_agent(webkit_web_view_get_settings(view), agent);
+    return 0;
+}
+
 #elif defined(GOLDBERRY_WEBVIEW_COCOA)
 // WKWebView: the data store's WKHTTPCookieStore, which hands back EVERY cookie
 // and leaves matching them to a URL to the caller, and a WKNavigationDelegate,
@@ -1146,6 +1283,99 @@ inline int read_cookies(void *w, const char *url, goldberry_webview_cookies_fn f
         fn(request, out.c_str());
     };
     msg_send<void>(store, sel("getAllCookies:"), completion);
+    return 0;
+}
+
+
+/// Deletes the cookies `read_cookies` would read for `url`, all of them or
+/// those named `name`. UNVERIFIED on macOS: written against the WebKit
+/// headers, and no lane here runs it.
+inline int delete_cookies(void *w, const char *url, const char *name, goldberry_webview_done_fn fn, long long request) {
+    webview::detail::objc::autoreleasepool pool;
+    id view = goldberry_cocoa::web_view(w);
+    if (view == nullptr) {
+        return -1;
+    }
+    id store = msg_send<id>(
+            msg_send<id>(msg_send<id>(view, sel("configuration")), sel("websiteDataStore")), sel("httpCookieStore"));
+    id target = msg_send<id>(
+            cls("NSURL"), sel("URLWithString:"), msg_send<id>(cls("NSString"), sel("stringWithUTF8String:"), url));
+    if (store == nullptr || target == nullptr) {
+        return -1;
+    }
+    std::string host = lower(utf8(msg_send<id>(target, sel("host"))));
+    std::string path = utf8(msg_send<id>(target, sel("path")));
+    std::string scheme = lower(utf8(msg_send<id>(target, sel("scheme"))));
+    bool secure_channel = scheme == "https" || scheme == "wss";
+    bool any_name = name == nullptr;
+    std::string wanted = any_name ? std::string() : std::string(name);
+    void (^completion)(id) = ^(id cookies) {
+        NSUInteger count = cookies == nullptr ? 0 : msg_send<NSUInteger>(cookies, sel("count"));
+        std::vector<id> doomed;
+        for (NSUInteger i = 0; i < count; i++) {
+            id cookie = msg_send<id>(cookies, sel("objectAtIndex:"), i);
+            std::string domain = utf8(msg_send<id>(cookie, sel("domain")));
+            std::string cookie_path = utf8(msg_send<id>(cookie, sel("path")));
+            bool secure = msg_send<BOOL>(cookie, sel("isSecure"));
+            if (!domain_matches(host, domain) || !path_matches(path, cookie_path) || (secure && !secure_channel)) {
+                continue;
+            }
+            if (!any_name && utf8(msg_send<id>(cookie, sel("name"))) != wanted) {
+                continue;
+            }
+            doomed.push_back(cookie);
+        }
+        if (doomed.empty()) {
+            fn(request, 0);
+            return;
+        }
+        auto remaining = std::make_shared<int>(static_cast<int>(doomed.size()));
+        int total = static_cast<int>(doomed.size());
+        for (id cookie : doomed) {
+            void (^deleted)(void) = ^{
+                if (--*remaining == 0) {
+                    fn(request, total);
+                }
+            };
+            msg_send<void>(store, sel("deleteCookie:completionHandler:"), cookie, deleted);
+        }
+    };
+    msg_send<void>(store, sel("getAllCookies:"), completion);
+    return 0;
+}
+
+/// Every cookie in the page's data store. UNVERIFIED on macOS.
+inline int clear_cookies(void *w, goldberry_webview_done_fn fn, long long request) {
+    webview::detail::objc::autoreleasepool pool;
+    id view = goldberry_cocoa::web_view(w);
+    if (view == nullptr) {
+        return -1;
+    }
+    id store = msg_send<id>(msg_send<id>(view, sel("configuration")), sel("websiteDataStore"));
+    if (store == nullptr) {
+        return -1;
+    }
+    // WKWebsiteDataTypeCookies is this string; spelt out rather than linked,
+    // as every other WebKit name here is.
+    id type = msg_send<id>(cls("NSString"), sel("stringWithUTF8String:"), "WKWebsiteDataTypeCookies");
+    id types = msg_send<id>(cls("NSSet"), sel("setWithObject:"), type);
+    id since = msg_send<id>(cls("NSDate"), sel("distantPast"));
+    void (^done)(void) = ^{
+        fn(request, 0);
+    };
+    msg_send<void>(store, sel("removeDataOfTypes:modifiedSince:completionHandler:"), types, since, done);
+    return 0;
+}
+
+/// The page's user agent; NULL puts the engine's own back. UNVERIFIED on macOS.
+inline int user_agent(void *w, const char *agent) {
+    webview::detail::objc::autoreleasepool pool;
+    id view = goldberry_cocoa::web_view(w);
+    if (view == nullptr) {
+        return -1;
+    }
+    id text = agent == nullptr ? nullptr : msg_send<id>(cls("NSString"), sel("stringWithUTF8String:"), agent);
+    msg_send<void>(view, sel("setCustomUserAgent:"), text);
     return 0;
 }
 
@@ -1367,8 +1597,157 @@ inline int watch_navigation(void *w, goldberry_webview_navigate_fn fn, long long
     return 0;
 }
 
+
+/// The page's cookie manager, with a reference the caller releases; null on a
+/// WebView2 Runtime older than it.
+inline ICoreWebView2CookieManager *cookie_manager_of(void *w) {
+    ICoreWebView2 *core = core_of(w);
+    if (core == nullptr) {
+        return nullptr;
+    }
+    ICoreWebView2_2 *core2 = nullptr;
+    HRESULT found = core->QueryInterface(__uuidof(ICoreWebView2_2), reinterpret_cast<void **>(&core2));
+    core->Release();
+    if (FAILED(found) || core2 == nullptr) {
+        return nullptr;
+    }
+    ICoreWebView2CookieManager *manager = nullptr;
+    HRESULT got = core2->get_CookieManager(&manager);
+    core2->Release();
+    return FAILED(got) ? nullptr : manager;
+}
+
+/// Deletes each cookie of a read that `name` matches, all of them for NULL.
+class delete_handler final : public ICoreWebView2GetCookiesCompletedHandler {
+public:
+    delete_handler(ICoreWebView2CookieManager *manager, const char *name, goldberry_webview_done_fn fn,
+                   long long request)
+        : m_manager(manager), m_any(name == nullptr), m_name(name == nullptr ? std::string() : std::string(name)),
+          m_fn(fn), m_request(request) {
+        m_manager->AddRef();
+    }
+
+    ~delete_handler() { m_manager->Release(); }
+
+    ULONG STDMETHODCALLTYPE AddRef() override { return ++m_refs; }
+
+    ULONG STDMETHODCALLTYPE Release() override {
+        ULONG left = --m_refs;
+        if (left == 0) {
+            delete this;
+        }
+        return left;
+    }
+
+    HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void **out) override {
+        if (out == nullptr) {
+            return E_POINTER;
+        }
+        if (riid == __uuidof(IUnknown) || riid == __uuidof(ICoreWebView2GetCookiesCompletedHandler)) {
+            *out = static_cast<ICoreWebView2GetCookiesCompletedHandler *>(this);
+            AddRef();
+            return S_OK;
+        }
+        *out = nullptr;
+        return E_NOINTERFACE;
+    }
+
+    HRESULT STDMETHODCALLTYPE Invoke(HRESULT result, ICoreWebView2CookieList *list) override {
+        if (FAILED(result) || list == nullptr) {
+            m_fn(m_request, -1);
+            return S_OK;
+        }
+        UINT count = 0;
+        list->get_Count(&count);
+        int deleted = 0;
+        for (UINT i = 0; i < count; i++) {
+            ICoreWebView2Cookie *cookie = nullptr;
+            if (FAILED(list->GetValueAtIndex(i, &cookie)) || cookie == nullptr) {
+                continue;
+            }
+            LPWSTR name = nullptr;
+            cookie->get_Name(&name);
+            if (m_any || take(name) == m_name) {
+                if (SUCCEEDED(m_manager->DeleteCookie(cookie))) {
+                    deleted++;
+                }
+            }
+            cookie->Release();
+        }
+        m_fn(m_request, deleted);
+        return S_OK;
+    }
+
+private:
+    std::atomic<ULONG> m_refs{1};
+    ICoreWebView2CookieManager *m_manager;
+    bool m_any;
+    std::string m_name;
+    goldberry_webview_done_fn m_fn;
+    long long m_request;
+};
+
+/// UNVERIFIED: written against the WebView2 SDK headers and not yet compiled.
+inline int delete_cookies(void *w, const char *url, const char *name, goldberry_webview_done_fn fn, long long request) {
+    ICoreWebView2CookieManager *manager = cookie_manager_of(w);
+    if (manager == nullptr) {
+        return -1;
+    }
+    auto *handler = new delete_handler(manager, name, fn, request);
+    HRESULT started = manager->GetCookies(webview::detail::widen_string(url).c_str(), handler);
+    handler->Release();
+    manager->Release();
+    return SUCCEEDED(started) ? 0 : -1;
+}
+
+/// UNVERIFIED, as above. WebView2 clears at once, so `fn` is called before
+/// this returns.
+inline int clear_cookies(void *w, goldberry_webview_done_fn fn, long long request) {
+    ICoreWebView2CookieManager *manager = cookie_manager_of(w);
+    if (manager == nullptr) {
+        return -1;
+    }
+    HRESULT cleared = manager->DeleteAllCookies();
+    manager->Release();
+    if (FAILED(cleared)) {
+        return -1;
+    }
+    fn(request, 0);
+    return 0;
+}
+
+/// UNVERIFIED, as above. WebView2 has no way back to its own agent, so NULL
+/// leaves the agent as it is.
+inline int user_agent(void *w, const char *agent) {
+    if (agent == nullptr) {
+        return 0;
+    }
+    ICoreWebView2 *core = core_of(w);
+    if (core == nullptr) {
+        return -1;
+    }
+    ICoreWebView2Settings *settings = nullptr;
+    HRESULT got = core->get_Settings(&settings);
+    core->Release();
+    if (FAILED(got) || settings == nullptr) {
+        return -1;
+    }
+    ICoreWebView2Settings2 *settings2 = nullptr;
+    HRESULT found = settings->QueryInterface(__uuidof(ICoreWebView2Settings2), reinterpret_cast<void **>(&settings2));
+    settings->Release();
+    if (FAILED(found) || settings2 == nullptr) {
+        return -1;
+    }
+    HRESULT put = settings2->put_UserAgent(webview::detail::widen_string(agent).c_str());
+    settings2->Release();
+    return SUCCEEDED(put) ? 0 : -1;
+}
+
 #else
 inline int read_cookies(void *, const char *, goldberry_webview_cookies_fn, long long) { return -1; }
+inline int delete_cookies(void *, const char *, const char *, goldberry_webview_done_fn, long long) { return -1; }
+inline int clear_cookies(void *, goldberry_webview_done_fn, long long) { return -1; }
+inline int user_agent(void *, const char *) { return -1; }
 inline int watch_navigation(void *, goldberry_webview_navigate_fn, long long) { return -1; }
 inline void forget(void *) {}
 #endif
@@ -1954,5 +2333,40 @@ GOLDBERRY_WEBVIEW_EXPORT int goldberry_webview_on_navigate(void *w, goldberry_we
         return -1;
     }
     return goldberry_hooks::watch_navigation(w, fn, page);
+}
+
+/// Deletes the cookies the engine would send to `url`: every one, or only those
+/// named `name` when it is not NULL. Asynchronous, as a read is: 0 means `fn`
+/// WILL be called exactly once, later and on the UI thread (at once on
+/// Windows), with how many went, or -1 where the engine could not; -1 means it
+/// will not be called at all.
+///
+/// The jar is the engine's: on Linux and macOS every page shares it, so a
+/// cookie deleted through one page is gone for all of them.
+GOLDBERRY_WEBVIEW_EXPORT int goldberry_webview_delete_cookies(
+        void *w, const char *url, const char *name, goldberry_webview_done_fn fn, long long request) {
+    if (w == nullptr || url == nullptr || fn == nullptr) {
+        return -1;
+    }
+    return goldberry_hooks::delete_cookies(w, url, name, fn, request);
+}
+
+/// Deletes every cookie in the engine's jar, for every site. Called back as a
+/// deletion is, with 0 once it is done.
+GOLDBERRY_WEBVIEW_EXPORT int goldberry_webview_clear_cookies(void *w, goldberry_webview_done_fn fn, long long request) {
+    if (w == nullptr || fn == nullptr) {
+        return -1;
+    }
+    return goldberry_hooks::clear_cookies(w, fn, request);
+}
+
+/// The user agent the page sends from its next request on; NULL puts the
+/// engine's own back where the engine can. Returns 0, or -1 where it cannot be
+/// set.
+GOLDBERRY_WEBVIEW_EXPORT int goldberry_webview_user_agent(void *w, const char *agent) {
+    if (w == nullptr) {
+        return -1;
+    }
+    return goldberry_hooks::user_agent(w, agent);
 }
 }

@@ -1374,6 +1374,16 @@ static const goldberry_layout_entry_t GOLDBERRY_LAYOUTS[] = {
     GB_FIELD(hb_glyph_position_t, x_offset),
     GB_FIELD(hb_glyph_position_t, y_offset),
 
+    /* What Java writes for `font-feature-settings`: an array of these handed
+     * to hb_shape. Four 32-bit fields today, registered so that a HarfBuzz
+     * that ever grew one would fail the layout check rather than shape with
+     * every feature after the first read from the middle of its neighbour. */
+    GB_STRUCT(hb_feature_t),
+    GB_FIELD(hb_feature_t, tag),
+    GB_FIELD(hb_feature_t, value),
+    GB_FIELD(hb_feature_t, start),
+    GB_FIELD(hb_feature_t, end),
+
     /* Text direction. Not sequential -- LTR is 4, and the gap below it is why
      * the values are declared rather than counted. */
     GB_CONSTANT("HB_DIRECTION_INVALID", HB_DIRECTION_INVALID),

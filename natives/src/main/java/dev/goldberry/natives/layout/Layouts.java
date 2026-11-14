@@ -1425,6 +1425,28 @@ public final class Layouts {
                     ValueLayout.JAVA_INT.withName("y_offset"),
                     MemoryLayout.paddingLayout(4))); // var
 
+    /// One OpenType feature to shape with — `hb_feature_t`.
+    ///
+    /// ```c
+    /// typedef struct hb_feature_t {
+    ///     hb_tag_t     tag;
+    ///     uint32_t     value;
+    ///     unsigned int start;
+    ///     unsigned int end;
+    /// } hb_feature_t;
+    /// ```
+    ///
+    /// Java allocates the array and writes every field: the tag packed as
+    /// HarfBuzz's `HB_TAG` packs it, the value (0 off, 1 on, or an alternate's
+    /// index), and the cluster range, which is the whole run.
+    public static final NativeStructLayout HB_FEATURE = new NativeStructLayout(
+            "hb_feature_t",
+            MemoryLayout.structLayout(
+                    ValueLayout.JAVA_INT.withName("tag"),
+                    ValueLayout.JAVA_INT.withName("value"),
+                    ValueLayout.JAVA_INT.withName("start"),
+                    ValueLayout.JAVA_INT.withName("end")));
+
     /// The bytes handed to libwebp's animation decoder — `WebPData`.
     ///
     /// ```c
@@ -1569,6 +1591,7 @@ public final class Layouts {
                 BL_RUNTIME_BUILD_INFO,
                 HB_GLYPH_INFO,
                 HB_GLYPH_POSITION,
+                HB_FEATURE,
                 WEBP_DATA,
                 WEBP_ANIM_DECODER_OPTIONS,
                 WEBP_ANIM_INFO);

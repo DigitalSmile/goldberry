@@ -266,8 +266,7 @@ class RichTextTest {
         @Test
         @DisplayName("its name is the words end to end, with no trace of the styles")
         void accessibleName() {
-            assertEquals(Role.TEXT, sentence().role());
-            assertEquals(GIVE + BLEEDING + REST, sentence().accessibleName());
+            assertEquals(GIVE + BLEEDING + REST, sentence().text());
 
             var column = new Column(List.of(sentence()), Attributes.NONE.id("column"));
             try (var session =
@@ -282,12 +281,14 @@ class RichTextTest {
         void runsAreNodes() {
             var tree = new ElementTree(sentence());
             tree.flush();
-            var root = tree.root();
+            // The stateful widget, then the node the cascade sees.
+            var root = tree.root().children().getFirst();
 
             assertEquals("rich-text", root.type());
-            assertEquals(3, root.children().size());
+            assertEquals(4, root.children().size(), "three runs and the selection's part");
             assertEquals("run", root.children().get(1).type());
             assertEquals(Set.of("keyword"), root.children().get(1).classes());
+            assertEquals("rich-text-selection", root.children().get(3).type());
         }
     }
 }

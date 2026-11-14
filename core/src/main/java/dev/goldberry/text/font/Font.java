@@ -1,5 +1,7 @@
 package dev.goldberry.text.font;
 
+import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Objects;
 
 import org.jspecify.annotations.Nullable;
@@ -7,6 +9,7 @@ import org.jspecify.annotations.Nullable;
 import dev.goldberry.assets.BundledFont;
 import dev.goldberry.natives.harfbuzz.ShapedFont;
 import dev.goldberry.natives.harfbuzz.ShapingBuffer;
+import dev.goldberry.natives.harfbuzz.ShapingFeature;
 import dev.goldberry.paint.Frame;
 import dev.goldberry.paint.GlyphPen;
 import dev.goldberry.text.Paragraph;
@@ -80,6 +83,13 @@ public final class Font implements AutoCloseable {
     /// Not final, because the thing that attaches it is the book that opened
     /// both; see [#emoji(Font)].
     private @Nullable Font emoji;
+
+    /// The OpenType features this font shapes with, as the shaper takes them;
+    /// see [#features(List)].
+    private List<ShapingFeature> shapingFeatures = List.of();
+
+    /// The same, as they were asked for.
+    private List<FontFeatures.Setting> features = List.of();
 
     /// Where characters this font's face lacks are drawn instead; see
     /// [#fallbacks(Fallbacks)].
@@ -225,6 +235,35 @@ public final class Font implements AutoCloseable {
         return this;
     }
 
+    /// The OpenType features this font shapes with: empty for the face's own
+    /// defaults.
+    public List<FontFeatures.Setting> features() {
+        return features;
+    }
+
+    /// Shapes this font's text with `value` set over every run, and returns this
+    /// font: `tnum` for figures that line up in a column, `liga` 0 for no
+    /// ligatures. A feature the face does not have does nothing.
+    ///
+    /// Set it before anything is shaped, for [#emoji(Font)]'s reason: a
+    /// [Paragraph] is held by a cache keyed on this font. [Fonts] gives each
+    /// distinct set of features a font of its own.
+    ///
+    /// @param value the features, in order; a tag written twice keeps its last
+    ///              value
+    public Font features(List<FontFeatures.Setting> value) {
+        requireUsable();
+        var settings = List.copyOf(Objects.requireNonNull(value, "value"));
+        var shaping = new LinkedHashMap<String, ShapingFeature>();
+        for (var setting : settings) {
+            shaping.remove(setting.tag());
+            shaping.put(setting.tag(), new ShapingFeature(setting.tag(), setting.value()));
+        }
+        this.features = settings;
+        this.shapingFeatures = List.copyOf(shaping.values());
+        return this;
+    }
+
     private static void requireUsableSize(double size) {
         if (!Double.isFinite(size) || size <= 0) {
             throw new IllegalArgumentException(
@@ -283,7 +322,7 @@ public final class Font implements AutoCloseable {
                         case RTL -> dev.goldberry.natives.harfbuzz.enums.TextDirection.RTL;
                     });
         }
-        return copyOut(this.text.shape(shaper));
+        return copyOut(this.text.shape(shaper, shapingFeatures));
     }
 
     /// The shaper's run as the toolkit's.

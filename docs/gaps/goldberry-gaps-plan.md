@@ -255,27 +255,27 @@ log in the same commit as the work.
 | L-1 | W1.1 | done | 0681 | |
 | L-2 | W1.9 | done | 0679 | |
 | L-3 | W2.1 | done | 0691 | |
-| L-4 | W2.2 | todo | | |
+| L-4 | W2.2 | done | 0693 | |
 | L-5 | W1.5 | done | 0682 | |
 | L-6 | W1.6 | asked (Lantern: is it `jlink`?) | | |
 | L-7 | W1.2 | done | 0680 | |
 | L-8 | W1.2 | done | 0680 | |
-| L-9 | W2.3 | answered (BGRA texture); W2.3 todo | | |
+| L-9 | W2.3 | done | 0694 | |
 | L-10 | W1.3 | done | 0676 | |
 | L-11 | W1.4 | done | 0677 | |
 | L-12 | — | declined (D14) | 0688 | |
 | T-01 | W1.8 | done | 0685 | |
 | T-02 | W3.1 | todo (plan document first) | | |
-| T-03 | W2.6 | todo | | |
-| T-04 | W2.5 | todo | | |
+| T-03 | W2.6 | done | 0697 | |
+| T-04 | W2.5 | done | 0696 | |
 | T-05 | W3.4 | todo | | |
 | T-06 | — | declined (D9) | 0689 | |
-| T-07 | W2.7 | answered (`PictureRenderer`); W2.7 todo | | |
+| T-07 | W2.7 | done | 0698 | |
 | T-08 | W1.11 | done | 0684 | |
 | T-09 | W2.11 | todo | | |
 | T-10 | W1.10 | done | 0683 | |
 | T-12 | W2.9 | done: `Path.contains` and pinch; the tile cache stays Tessera's | 0687, 0692 | |
-| T-13 | W2.4 | todo | | |
+| T-13 | W2.4 | done | 0695 | |
 | T-15 | W3.2 | todo | | |
 | T-16 | W2.10 | todo | | |
 | T-17 | — | parked (ADR-0440) | | |
@@ -290,7 +290,7 @@ log in the same commit as the work.
 | T-29 | W3.8 | todo | | |
 | T-30 | W3.10 | todo (plan document first) | | |
 | T-31 | W3.11 | todo (plan document only) | | |
-| T-32 | W2.8 | todo | | |
+| T-32 | W2.8 | done: delete, clear, user agent; the private store waits for the shim to build its own views | 0699 | |
 
 ## 9. Risks
 
@@ -358,3 +358,36 @@ log in the same commit as the work.
   runs them on lavapipe).
 - **2026-11-14.** Committed to master with the plan and both answers files.
   `done` in §8 means on master; nothing is pushed or in a snapshot yet.
+- **2026-11-14, later.** Wave 2 continued in the main tree, uncommitted.
+  W2.2 (ADR-0693): `Offscreen.measure(root)`, a `MeasuringStrip` over one
+  buffer that repaints only its damage, clearing it to the background first
+  (`RenderTree.repaint`), and reports a `MeasuredFrame` per frame and
+  `stats()` as a window's. W2.3 (ADR-0694): `Image.decodeInto` with
+  `ChannelOrder` and `PixelTarget`. The swap is done in the existing Java row
+  copy, not by binding Blend2D's converter, so no ABI bump. W2.4 (ADR-0695):
+  `font-feature-settings` and `font-variant-numeric` through `FontFeatures`,
+  a `Typography` component, one font per feature set, and `hb_feature_t` as
+  a row of the layout table. No new symbol, so the ABI stays 26. W2.5
+  (ADR-0696): `ListView.sections`. Headers are not rows: in a measured list
+  they count into their section's first block, a pinned copy sits over the
+  viewport, and a list at one height measures once it has sections. W2.6
+  (ADR-0697): `RichText` is stateful over a `rich-text` leaf, with
+  `Run.onPress`, `Run.spoiler`, `RichText.selectable` and
+  `SpanPaint.background`. The selection is not shared with `content.select`.
+  The first full `:widgets` run caught `Decoding` using `MemorySegment`
+  outside `:natives` (`BoundaryTest`); it uses `ByteBuffer` now. W2.7
+  (ADR-0698): `PictureSource`, implemented by `MediaPlayer`, `PushedPictures`
+  and `PictureView`. `VideoView` stays the player's view. W2.8 (ADR-0699):
+  `deleteCookies`, `clearCookies` and `userAgent` in the web view shim on all
+  three engines, verified on WebKitGTK only and still under web view ABI 9.
+  The private store stays open, and the new upcall shape is the fifteenth
+  (`ForeignSurfaceTest`). Not started: W2.10, which needs an opt-in property
+  carried from the cascade through `Box` to the render tree and a paint-time
+  clock; W2.11, which needs object paths, byte arrays, structs and prompts in
+  the D-Bus binding and a fake Secret Service to test against; and W2.12,
+  which is Windows only. `MediaWidgetsTest$Controls.arrowsSeek` failed once in
+  three runs under load; the seek it reads is asynchronous, and nothing here
+  touched it. Next ADR 0700.
+- **2026-11-14, evening.** W2.2–W2.8 committed to master with their ADRs
+  (0693–0699), the plan and both answers files. `done` in §8 still means on
+  master; nothing is pushed or in a snapshot yet.

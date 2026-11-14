@@ -7,6 +7,8 @@ import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
+import org.jspecify.annotations.Nullable;
+
 import dev.goldberry.natives.webview.Webview;
 
 /// [BackendWebView] over `:natives`' [Webview].
@@ -65,6 +67,28 @@ final class NativeWebView implements BackendWebView {
             return CompletableFuture.failedFuture(new IllegalStateException("this page is closed"));
         }
         return webview.cookies(url.toString());
+    }
+
+    @Override
+    public CompletionStage<Integer> deleteCookies(URI url, @Nullable String name) {
+        Objects.requireNonNull(url, "url");
+        if (isClosed()) {
+            return CompletableFuture.failedFuture(new IllegalStateException("this page is closed"));
+        }
+        return webview.deleteCookies(url.toString(), name);
+    }
+
+    @Override
+    public CompletionStage<Void> clearCookies() {
+        if (isClosed()) {
+            return CompletableFuture.failedFuture(new IllegalStateException("this page is closed"));
+        }
+        return webview.clearCookies();
+    }
+
+    @Override
+    public boolean userAgent(@Nullable String agent) {
+        return !isClosed() && webview.userAgent(agent);
     }
 
     @Override

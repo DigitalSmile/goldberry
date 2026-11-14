@@ -4,6 +4,7 @@ import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SymbolLookup;
 import java.lang.foreign.ValueLayout;
+import java.util.List;
 
 import dev.goldberry.natives.NativeLibrary;
 import dev.goldberry.natives.harfbuzz.calls.BufferCalls;
@@ -36,6 +37,11 @@ final class HarfBuzz {
     private static final long POS_Y_ADVANCE = Layouts.HB_GLYPH_POSITION.offsetOf("y_advance");
     private static final long POS_X_OFFSET = Layouts.HB_GLYPH_POSITION.offsetOf("x_offset");
     private static final long POS_Y_OFFSET = Layouts.HB_GLYPH_POSITION.offsetOf("y_offset");
+    private static final long FEATURE_STRIDE = Layouts.HB_FEATURE.byteSize();
+    private static final long FEATURE_TAG = Layouts.HB_FEATURE.offsetOf("tag");
+    private static final long FEATURE_VALUE = Layouts.HB_FEATURE.offsetOf("value");
+    private static final long FEATURE_START = Layouts.HB_FEATURE.offsetOf("start");
+    private static final long FEATURE_END = Layouts.HB_FEATURE.offsetOf("end");
 
     private static final class Holder {
         private static final HarfBuzz INSTANCE =
@@ -218,11 +224,30 @@ final class HarfBuzz {
     // --- shaping -----------------------------------------------------------
 
     /// Shapes `buffer` with `font`.
-    ///
-    /// Features are NULL/0 until the CSS layer has `font-feature-settings` to
-    /// compile into them.
     void shape(MemorySegment font, MemorySegment buffer) {
         shapingCalls.shape().call(font, buffer, MemorySegment.NULL, 0);
+    }
+
+    /// Shapes with `features` set over the whole run: an `hb_feature_t` array
+    /// packed in a confined arena that lives for the call.
+    void shape(MemorySegment font, MemorySegment buffer, List<ShapingFeature> features) {
+        if (features.isEmpty()) {
+            shape(font, buffer);
+            return;
+        }
+        try (var arena = Arena.ofConfined()) {
+            var array = arena.allocate(FEATURE_STRIDE * features.size(), Layouts.HB_FEATURE.byteAlignment());
+            for (var i = 0; i < features.size(); i++) {
+                var feature = features.get(i);
+                var at = i * FEATURE_STRIDE;
+                array.set(ValueLayout.JAVA_INT, at + FEATURE_TAG, feature.packedTag());
+                array.set(ValueLayout.JAVA_INT, at + FEATURE_VALUE, feature.value());
+                array.set(ValueLayout.JAVA_INT, at + FEATURE_START, 0);
+                // HB_FEATURE_GLOBAL_END, (unsigned int) -1: to the end of the run.
+                array.set(ValueLayout.JAVA_INT, at + FEATURE_END, -1);
+            }
+            shapingCalls.shape().call(font, buffer, array, features.size());
+        }
     }
 
     /// Reads the shaped glyphs out of HarfBuzz's own arrays.
