@@ -61,11 +61,6 @@ public final class VulkanRayTracer implements AutoCloseable {
         }
     }
 
-    /// The device it traces on.
-    public RayDevice device() {
-        return device;
-    }
-
     /// Builds `geometry`'s acceleration structures.
     ///
     /// @throws dev.goldberry.natives.vulkan.VulkanException when the driver

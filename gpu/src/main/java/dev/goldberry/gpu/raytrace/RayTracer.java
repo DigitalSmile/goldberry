@@ -58,7 +58,9 @@ public final class RayTracer implements AutoCloseable {
     private final RayTracing.Available device;
     private boolean closed;
 
-    private RayTracer(Tier tier) {
+    /// A tracer over `tier`, owned by the calling thread; package-private for
+    /// the tests, which give it a tier with no device.
+    RayTracer(Tier tier) {
         this.tier = tier;
         this.owner = Thread.currentThread();
         this.device = tier.answer();
@@ -291,20 +293,14 @@ public final class RayTracer implements AutoCloseable {
                     into + " belongs to " + into.shading().device() + ", and the frame to " + frame.device());
         }
         var structures = scene.structuresFor(this);
-        call("the lighting could not be traced", () -> {
-            tier.traceLighting(frame, structures, request, into);
-            return null;
-        });
+        run("the lighting could not be traced", () -> tier.traceLighting(frame, structures, request, into));
     }
 
     /// Rebuilds `scene`'s structure over its instances for `geometry`, which
     /// places none but the meshes it was built with.
     void update(RayScene scene, TracedScene structures, SceneGeometry geometry) {
         requireOpen();
-        call(scene + " could not be updated", () -> {
-            tier.update(structures, geometry);
-            return null;
-        });
+        run(scene + " could not be updated", () -> tier.update(structures, geometry));
     }
 
     /// `body`'s answer, a Vulkan failure worded as `what` on this tracer's
@@ -313,8 +309,22 @@ public final class RayTracer implements AutoCloseable {
         try {
             return body.get();
         } catch (VulkanException e) {
-            throw new GpuException(what + " on " + device.device(), e);
+            throw failure(what, e);
         }
+    }
+
+    /// Runs `body`, a Vulkan failure worded as `what` on this tracer's device.
+    private void run(String what, Runnable body) {
+        try {
+            body.run();
+        } catch (VulkanException e) {
+            throw failure(what, e);
+        }
+    }
+
+    /// `cause`, worded as `what` on this tracer's device.
+    private GpuException failure(String what, VulkanException cause) {
+        return new GpuException(what + " on " + device.device(), cause);
     }
 
     /// Whether it has been closed.

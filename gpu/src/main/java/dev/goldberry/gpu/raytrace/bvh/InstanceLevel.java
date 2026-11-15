@@ -33,13 +33,11 @@ public final class InstanceLevel {
     private final SceneGeometry geometry;
     private final int[] nodes;
     private final int[] instances;
-    private final int depth;
 
-    private InstanceLevel(SceneGeometry geometry, int[] nodes, int[] instances, int depth) {
+    private InstanceLevel(SceneGeometry geometry, int[] nodes, int[] instances) {
         this.geometry = geometry;
         this.nodes = nodes;
         this.instances = instances;
-        this.depth = depth;
     }
 
     /// The top level of `geometry` over `meshes`.
@@ -61,7 +59,7 @@ public final class InstanceLevel {
         if (placed.isEmpty()) {
             var nodes = new int[Nodes.WORDS];
             Nodes.writeEmpty(nodes, 0);
-            return new InstanceLevel(geometry, nodes, new int[0], 1);
+            return new InstanceLevel(geometry, nodes, new int[0]);
         }
         var boxes = new float[6 * placed.size()];
         var centroids = new float[3 * placed.size()];
@@ -86,7 +84,7 @@ public final class InstanceLevel {
             instances[at + 13] = meshes.firstNormal(entry.mesh);
             instances[at + 14] = (entry.instance.id() & Instance.MAX_ID) | (entry.instance.mask() << 24);
         }
-        return new InstanceLevel(geometry, nodes, instances, tree.depth());
+        return new InstanceLevel(geometry, nodes, instances);
     }
 
     /// An instance with an inverse: its mesh's place in the bottom level, the
@@ -152,11 +150,6 @@ public final class InstanceLevel {
         return nodes.length / Nodes.WORDS;
     }
 
-    /// The deepest leaf.
-    public int depth() {
-        return depth;
-    }
-
     /// The nodes, [Nodes#WORDS] words each: a copy.
     public int[] nodeWords() {
         return nodes.clone();
@@ -180,15 +173,5 @@ public final class InstanceLevel {
     /// How many bytes the two take on the GPU.
     public long bytes() {
         return 4L * (nodes.length + Math.max(INSTANCE_WORDS, instances.length));
-    }
-
-    /// Word `index` of the nodes, for [BvhTraversal].
-    int node(int index) {
-        return nodes[index];
-    }
-
-    /// Word `index` of the instances, for [BvhTraversal].
-    int instance(int index) {
-        return instances[index];
     }
 }

@@ -40,7 +40,6 @@ public final class MeshLevels {
     private final int[] nodes;
     private final int[] triangles;
     private final float[] normals;
-    private final int depth;
 
     private MeshLevels(
             List<TriangleMesh> meshes,
@@ -49,8 +48,7 @@ public final class MeshLevels {
             int[] firstNormals,
             int[] nodes,
             int[] triangles,
-            float[] normals,
-            int depth) {
+            float[] normals) {
         this.meshes = meshes;
         this.indices = new IdentityHashMap<>();
         for (var i = 0; i < meshes.size(); i++) {
@@ -62,7 +60,6 @@ public final class MeshLevels {
         this.nodes = nodes;
         this.triangles = triangles;
         this.normals = normals;
-        this.depth = depth;
     }
 
     /// The bottom level of `geometry`'s distinct meshes.
@@ -79,7 +76,6 @@ public final class MeshLevels {
         var rootBoxes = new float[meshes.size()][];
         var nodeBase = 0;
         var triangleBase = 0;
-        var depth = 0;
         for (var m = 0; m < meshes.size(); m++) {
             var mesh = meshes.get(m);
             var tree = trees.get(m);
@@ -93,11 +89,9 @@ public final class MeshLevels {
             }
             nodeBase += tree.nodeCount();
             triangleBase += tree.primitiveCount();
-            depth = Math.max(depth, tree.depth());
         }
         var faces = FaceNormals.of(meshes);
-        return new MeshLevels(
-                meshes, roots, rootBoxes, faces.firstTriangles(), nodes, triangles, faces.normals(), depth);
+        return new MeshLevels(meshes, roots, rootBoxes, faces.firstTriangles(), nodes, triangles, faces.normals());
     }
 
     /// A tree over `mesh`'s triangles.
@@ -164,11 +158,6 @@ public final class MeshLevels {
         return firstNormals[mesh];
     }
 
-    /// The deepest of the trees.
-    public int depth() {
-        return depth;
-    }
-
     /// How many nodes the trees have together.
     public int nodeCount() {
         return nodes.length / Nodes.WORDS;
@@ -212,15 +201,5 @@ public final class MeshLevels {
     /// How many bytes the three take on the GPU.
     public long bytes() {
         return 4L * (nodes.length + triangles.length + normals.length);
-    }
-
-    /// Word `index` of the nodes, for [BvhTraversal].
-    int node(int index) {
-        return nodes[index];
-    }
-
-    /// Word `index` of the triangles, for [BvhTraversal].
-    int triangle(int index) {
-        return triangles[index];
     }
 }

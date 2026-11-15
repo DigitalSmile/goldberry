@@ -33,8 +33,6 @@ public final class BvhTraversal {
     /// The stack a walk needs: one entry a level of the deeper tree.
     public static final int STACK = BvhBuilder.MAX_DEPTH;
 
-    private final MeshLevels meshes;
-    private final InstanceLevel instances;
     private final int[] topNodes;
     private final int[] bottomNodes;
     private final int[] triangles;
@@ -43,23 +41,13 @@ public final class BvhTraversal {
 
     /// A walk of `meshes` placed by `instances`.
     public BvhTraversal(MeshLevels meshes, InstanceLevel instances) {
-        this.meshes = Objects.requireNonNull(meshes, "meshes");
-        this.instances = Objects.requireNonNull(instances, "instances");
+        Objects.requireNonNull(meshes, "meshes");
+        Objects.requireNonNull(instances, "instances");
         this.topNodes = instances.nodeWords();
         this.bottomNodes = meshes.nodeWords();
         this.triangles = meshes.triangleWords();
         this.placed = instances.instanceWords();
         this.normals = meshes.normals();
-    }
-
-    /// What it walks: the meshes.
-    public MeshLevels meshes() {
-        return meshes;
-    }
-
-    /// What it walks: the instances.
-    public InstanceLevel instances() {
-        return instances;
     }
 
     /// The closest hit along the ray, or empty.

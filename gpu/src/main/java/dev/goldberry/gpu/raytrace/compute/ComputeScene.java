@@ -135,16 +135,6 @@ final class ComputeScene implements TracedScene {
         return device;
     }
 
-    /// Its bottom level.
-    MeshLevels meshes() {
-        return meshes;
-    }
-
-    /// Its top level, as last built.
-    InstanceLevel top() {
-        return top;
-    }
-
     @Override
     public SceneGeometry geometry() {
         return top.geometry();

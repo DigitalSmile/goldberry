@@ -20,12 +20,10 @@ import dev.goldberry.gpu.raytrace.tier.TracedScene;
 /// Its failures are [dev.goldberry.natives.vulkan.VulkanException]s.
 public final class HardwareTier implements Tier {
 
-    private final RayDevice device;
     private final VulkanRayTracer tracer;
     private final RayTracing.Hardware answer;
 
     private HardwareTier(RayDevice device, VulkanRayTracer tracer) {
-        this.device = device;
         this.tracer = tracer;
         this.answer = new RayTracing.Hardware(device.name());
     }
@@ -38,11 +36,6 @@ public final class HardwareTier implements Tier {
     public static HardwareTier open(RayDevice device) {
         Objects.requireNonNull(device, "device");
         return new HardwareTier(device, VulkanRayTracer.open(device));
-    }
-
-    /// The device it traces on.
-    public RayDevice device() {
-        return device;
     }
 
     @Override
