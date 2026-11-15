@@ -60,3 +60,37 @@ rich-text.composer-sent > run.mention {
   color: var(--gb-button-link-text);
 }
 
+
+/* The people a query in the composer matches, in a panel over the query: the
+   popover's surface, a row per person, the row Enter takes on the selection's
+   wash. */
+column.mention-list {
+  min-width: 200px;
+  padding: 4px;
+  gap: 2px;
+  background: var(--gb-surface);
+  color: var(--gb-text);
+  border: 1px solid var(--gb-border);
+  border-radius: 8px;
+  box-shadow: var(--gb-elevation-2);
+}
+
+pressable.mention-option {
+  flex-direction: row;
+  align-items: baseline;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 6px;
+}
+
+pressable.mention-option:hover {
+  background: var(--gb-overlay-hover);
+}
+
+pressable.mention-option.active {
+  background: var(--gb-selection);
+}
+
+text.mention-handle {
+  color: var(--gb-text-muted);
+}

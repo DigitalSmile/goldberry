@@ -40,6 +40,7 @@ import dev.goldberry.text.mark.MarkRun;
 import dev.goldberry.text.mark.MarkStyle;
 import dev.goldberry.text.mark.MarkedClipboard;
 import dev.goldberry.text.mark.MarkedText;
+import dev.goldberry.text.mark.MentionQuery;
 import dev.goldberry.widget.BuildContext;
 import dev.goldberry.widget.State;
 import dev.goldberry.widget.Widget;
@@ -69,7 +70,16 @@ import dev.goldberry.widgets.menu.Item;
 /// starts, or when the field loses the focus. `Ctrl+K` and the bar's Link open
 /// the link editor, which does take the keyboard and gives it back when it
 /// applies.
-final class RichInputState extends State<RichInput> implements RichInputBox.Input, TextCommands {
+///
+/// ## Mentions
+///
+/// With [RichInput#mentions] set, every change looks for a [MentionQuery] at the
+/// caret and reports it when it opens, changes, moves or ends, as a
+/// [MentionPrompt] the application completes or dismisses. While one is open
+/// the application's key handler is offered the list keys first. A query
+/// `Escape` closed stays closed until the caret leaves its word. A composition
+/// changes no query: the input method's text is not the field's yet.
+final class RichInputState extends State<RichInput> implements RichInputBox.Input, TextCommands, MentionPrompt.Field {
 
     /// How many lines a notch of the wheel scrolls.
     static final int WHEEL_LINES = 3;
@@ -130,6 +140,14 @@ final class RichInputState extends State<RichInput> implements RichInputBox.Inpu
 
     private @Nullable TextMenu menu;
 
+    /// The query last reported to the application, or null while none is
+    /// open.
+    private @Nullable MentionPrompt prompt;
+
+    /// Where a query `Escape` closed starts, which is not reported again until
+    /// the caret leaves its word; -1 for none.
+    private int dismissedAt = -1;
+
     /// The id the field goes by when the application gave it none, so the link
     /// editor can hand the keyboard back to it.
     private final String ownId = "rich-input-" + Integer.toHexString(System.identityHashCode(this));
@@ -154,10 +172,20 @@ final class RichInputState extends State<RichInput> implements RichInputBox.Inpu
         if (current != null) {
             current.readOnly(widget().readOnly() || widget().disabled());
         }
+        var before = previous.mentions();
+        if (before != null && widget().mentions() == null && prompt != null) {
+            // Told by the listener that heard it open, the only one that knows.
+            prompt = null;
+            dismissedAt = -1;
+            before.onQuery().accept(Optional.empty());
+        }
     }
 
+    /// An open query is dropped without a word: whatever the application showed
+    /// for it belongs to a tree that is going too.
     @Override
     protected void dispose() {
+        prompt = null;
         unfollow();
         stopBlinking();
         popups.close();
@@ -387,6 +415,10 @@ final class RichInputState extends State<RichInput> implements RichInputBox.Inpu
         if (current == null || widget().disabled()) {
             return;
         }
+        if (routedToMentions(event)) {
+            event.consume();
+            return;
+        }
         if (submits(event)) {
             submit();
             event.consume();
@@ -407,6 +439,20 @@ final class RichInputState extends State<RichInput> implements RichInputBox.Inpu
             event.consume();
             changed();
         }
+    }
+
+    /// Offers a list key to the application while a query is open, and closes
+    /// the query on an `Escape` it left. Whether the key was taken.
+    private boolean routedToMentions(KeyEvent event) {
+        var mentions = widget().mentions();
+        var open = prompt;
+        if (mentions == null || open == null || !Mentions.routed(event)) {
+            return false;
+        }
+        if (mentions.onKey().test(event)) {
+            return true;
+        }
+        return event.is(Key.ESCAPE) && dismiss(open);
     }
 
     /// Whether `event` is the `Enter` that sends: a plain one, with somewhere to
@@ -467,6 +513,7 @@ final class RichInputState extends State<RichInput> implements RichInputBox.Inpu
             stopBlinking();
         }
         refreshBar();
+        refreshQuery();
     }
 
     @Override
@@ -476,8 +523,10 @@ final class RichInputState extends State<RichInput> implements RichInputBox.Inpu
         }
         located = self;
         // The bar follows the field, and a field that arrived where the bar
-        // has to go has nothing else to ask for another look.
+        // has to go has nothing else to ask for another look. A suggestion
+        // list hangs off the query the same way.
         refreshBar();
+        refreshQuery();
     }
 
     @Override
@@ -530,6 +579,7 @@ final class RichInputState extends State<RichInput> implements RichInputBox.Inpu
         });
         schedule();
         refreshBar();
+        refreshQuery();
         var current = editor;
         if (current == null) {
             return;
@@ -583,12 +633,19 @@ final class RichInputState extends State<RichInput> implements RichInputBox.Inpu
         if (rects.isEmpty()) {
             return null;
         }
-        var first = rects.getFirst();
+        return inWindow(rects.getFirst(), current, field);
+    }
+
+    /// `rect`, in the editor's own space, in the window: past the field's
+    /// padding and border, less the scroll.
+    private LogicalRect inWindow(LogicalRect rect, Editor current, @Nullable LogicalRect field) {
+        var left = field == null ? 0 : field.left();
+        var top = field == null ? 0 : field.top();
         return LogicalRect.of(
-                (float) (field.left() + edges.left() + first.left()),
-                (float) (field.top() + edges.top() + first.top() - current.scrollTop()),
-                Math.max(1, first.width()),
-                first.height());
+                (float) (left + edges.left() + rect.left()),
+                (float) (top + edges.top() + rect.top() - current.scrollTop()),
+                Math.max(1, rect.width()),
+                rect.height());
     }
 
     /// The commands that are on for the selection: what the bar lights.
@@ -620,6 +677,98 @@ final class RichInputState extends State<RichInput> implements RichInputBox.Inpu
             changed();
         }
         return done;
+    }
+
+    // --- mentions ----------------------------------------------------------------
+
+    /// Looks for a query at the caret and tells the application when it
+    /// opened, changed, moved or ended. Nothing is open in a field that is not
+    /// focused and editable.
+    private void refreshQuery() {
+        var input = widget();
+        var mentions = input.mentions();
+        var current = editor;
+        if (mentions == null || current == null || !isMounted() || !focused || input.readOnly() || input.disabled()) {
+            dismissedAt = -1;
+            report(null);
+            return;
+        }
+        if (current.isComposing()) {
+            return;
+        }
+        var found = MentionQuery.at(current.marked(), mentions.triggers()).orElse(null);
+        if (found == null || found.start() != dismissedAt) {
+            dismissedAt = -1;
+        }
+        if (found == null || found.start() == dismissedAt) {
+            report(null);
+            return;
+        }
+        report(new MentionPrompt(found, queryAnchor(current, found), this));
+    }
+
+    /// The query's first line in the window, or the caret's line when the
+    /// query has no width yet.
+    private LogicalRect queryAnchor(Editor current, MentionQuery query) {
+        var rects = current.rangeRects(query.start(), query.end());
+        return inWindow(rects.isEmpty() ? current.caretLine() : rects.getFirst(), current, located);
+    }
+
+    /// `next` reported, unless it says what the open prompt says already; null
+    /// reports the end of an open one.
+    private void report(@Nullable MentionPrompt next) {
+        var open = prompt;
+        var mentions = widget().mentions();
+        if (next == null) {
+            prompt = null;
+            if (open != null && mentions != null) {
+                mentions.onQuery().accept(Optional.empty());
+            }
+            return;
+        }
+        if (open != null && open.query().equals(next.query()) && open.anchor().equals(next.anchor())) {
+            return;
+        }
+        prompt = next;
+        if (mentions != null) {
+            mentions.onQuery().accept(Optional.of(next));
+        }
+    }
+
+    @Override
+    public boolean complete(MentionPrompt asked, String text, @Nullable MarkKind kind) {
+        var current = editor;
+        if (asked != prompt || current == null || widget().readOnly() || widget().disabled()) {
+            return false;
+        }
+        var query = asked.query();
+        if (!current.replace(query.start(), query.end(), query.completion(text, kind, current.value()))) {
+            return false;
+        }
+        dismissedAt = -1;
+        changed();
+        return true;
+    }
+
+    @Override
+    public boolean dismiss(MentionPrompt asked) {
+        if (asked != prompt) {
+            return false;
+        }
+        dismissedAt = asked.query().start();
+        report(null);
+        return true;
+    }
+
+    @Override
+    public boolean isCurrent(MentionPrompt asked) {
+        return asked == prompt;
+    }
+
+    /// For a test: the query last reported, or null.
+    @Nullable
+    MentionPrompt prompt() {
+        return prompt;
     }
 
     // --- the link editor --------------------------------------------------------

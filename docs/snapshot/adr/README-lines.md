@@ -146,3 +146,4 @@ Appended to the index when the records move in, in this order.
 - [ADR-0703 Text carries marks](0703-text-carries-marks.md)
 - [ADR-0704 A field takes formatting](0704-a-field-takes-formatting.md)
 - [ADR-0705 Formatting around a selection](0705-formatting-around-a-selection.md)
+- [ADR-0706 Mentions: the field reports, the application suggests](0706-the-field-reports-the-application-suggests.md)

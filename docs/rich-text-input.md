@@ -12,8 +12,9 @@ log.
 Each decision becomes an ADR when it is taken, parked in `docs/snapshot/adr/`.
 **The owner took every recommendation on 2026-11-14** ("go for it"). D1, D2,
 D4, D5 and D6 are recorded in ADR-0703 and D3 in ADR-0704; D7, D8 and D9 are
-recorded with the phases that build them. **Phases 1 to 4 are done** (§5);
-D8 is ADR-0705. Open: phases 5 to 7. The next free ADR number is 0706.
+recorded with the phases that build them. **Phases 1 to 5 are done** (§5);
+D8 is ADR-0705 and D7 is ADR-0706. Open: phases 6 and 7. The next free ADR
+number is 0707.
 
 ## 1. Where things stand
 
@@ -183,7 +184,7 @@ A paste from a browser or a word processor arrives as `text/html`. Under (a)
 the application that wants it formatted installs the converter. Under (b) the
 toolkit has a second, smaller HTML reader beside `:html`'s.
 
-### D7. Mentions: the field reports, the application suggests (taken; phase 5)
+### D7. Mentions: the field reports, the application suggests (taken: ADR-0706)
 
 (a) The field reports a **query**: a trigger character the application chose
 (`@`, `#`, `/`) at a word start, followed by the word the caret is in. It
@@ -385,7 +386,7 @@ Tested by `RichInputFormattingTest`, `RichInputGoldenTest` and
 settled selection from the keyboard at once, not when `Shift` is let go: a
 key-made selection has no drag to wait for.
 
-### Phase 5 — mentions
+### Phase 5 — mentions (done, ADR-0706)
 
 D7: trigger characters, `MentionQuery` reported as it changes, keys routed to
 the application while a query is open, `replaceQuery` inserting an atom. If D9
@@ -397,6 +398,26 @@ stepped over, deleted whole, never split by a composition, survives undo and
 redo), and a showcase golden with a suggestion list open.
 
 **Exit:** the showcase composer mentions a contact with the keyboard alone.
+Met (`ComposerCardTest.mentionsWithKeys`: `@a`, `Down`, `Enter`, then `Enter`
+sends a message whose `mention` run reads `@Ana Silva`).
+
+**As built.** The query is found in `core`, as `MentionQuery.at(MarkedEdit,
+triggers)` in `text.mark`. Its `completion(text, kind, in)` is what replaces
+the word: the text under the kind, then a space unless whitespace follows.
+The field takes `RichInput.mentions(Mentions)`, which holds the triggers, an
+`onQuery(Optional<MentionPrompt>)` listener and a key handler.
+`replaceQuery` became `MentionPrompt.complete(text, kind)` on the reported
+prompt, so a list never needs a handle on the field. A prompt the field has
+moved on from changes nothing. The word a query covers runs past the caret to
+the word's end, and the whole word is replaced. Code, an atom and punctuation
+all close a query, and a query is at most 64 chars. Nothing is reported
+during a composition. `Editor.rangeRects` is new and gives the anchor. The
+query is **not highlighted**: that waits for W3.7's decoration layer, as
+phase 2 said. D9 stayed "later", so there are no input rules. The tests are
+`MentionQueryTest` (core), `EditorPreeditTest`'s atom and range cases,
+`RichInputMentionTest`, and in the showcase `ContactTest`,
+`ComposerCardTest` and `MentionListGoldenTest`, both themes. The golden draws
+the list alone, because a headless session opens no popups.
 
 ### Phase 6 — conversions in `:html`
 
@@ -478,3 +499,14 @@ from the same marks). A guide section parked in `docs/snapshot/`, with
   were taken again, 63 pixels each. Verified: `:core` 5930, `:widgets` 3262 and
   `:example` 938 tests green after the retake, javadoc clean, the showcase on
   the module path.
+- **2026-11-15.** Phases 1 to 4 were committed to master as `93a1ee62`.
+  Phase 5 (ADR-0706): `MentionQuery` in `core`, `Mentions` and
+  `MentionPrompt` on `rich-input`, the list keys routed to the application,
+  `Editor.rangeRects`, and in the showcase `ui.forms.mention` (`Contact`,
+  `Contacts`, `MentionList`, `MentionPicker`), with the composer card
+  mentioning from the keyboard. The card's description changed, so the
+  showcase's search index (`index.tsv`) was written again. Verified: `:core`
+  5960, `:widgets` 3280 and `:example` 946 tests green, javadoc clean, the
+  showcase on the module path (dummy driver). `spotlessCheck` is red only in
+  `:media`'s `PictureView`, which was already wrong at `93a1ee62`. Next ADR
+  0707. Open: phase 6 (Markdown and HTML in `:html`) and phase 7.

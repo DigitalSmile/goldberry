@@ -7,6 +7,8 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import dev.goldberry.example.docs.DocLink;
+import dev.goldberry.example.ui.forms.mention.Contacts;
+import dev.goldberry.example.ui.forms.mention.MentionPicker;
 import dev.goldberry.example.ui.gallery.ShowcaseCard;
 import dev.goldberry.text.mark.MarkKind;
 import dev.goldberry.text.mark.MarkRun;
@@ -25,7 +27,9 @@ import dev.goldberry.widgets.text.Run;
 ///
 /// The draft opens with a word in each style, so the formatting is visible
 /// before anything is typed. `Enter` sends and `Shift+Enter` breaks the line;
-/// selecting words opens the formatting bar over them.
+/// selecting words opens the formatting bar over them. `@` and a letter or two
+/// offers people to mention ([MentionPicker]); `Up`, `Down` and `Enter` choose
+/// one, which goes in as a single unit.
 ///
 /// Read more: [Fields and forms](https://goldberry.dev/docs/components/forms.html#keyboard).
 public record ComposerCard() implements Widget.Stateful {
@@ -40,7 +44,7 @@ public record ComposerCard() implements Widget.Stateful {
             ID,
             "A field that takes formatting",
             "Select words for the formatting bar, or use Ctrl+B, Ctrl+I, Ctrl+Shift+M and Ctrl+K. "
-                    + "Enter sends, Shift+Enter breaks the line.",
+                    + "Type @ to mention somebody. Enter sends, Shift+Enter breaks the line.",
             DocLink.to("components/forms", "keyboard"));
 
     /// What the composer opens with: a word in bold, one in italic, code and a
@@ -63,6 +67,8 @@ public record ComposerCard() implements Widget.Stateful {
 
         private final List<MarkedText> sent = new ArrayList<>();
 
+        private final MentionPicker picker = new MentionPicker(Contacts.ALL, this::context);
+
         @Override
         public Widget build(BuildContext context) {
             var parts = new ArrayList<Widget>();
@@ -73,8 +79,19 @@ public record ComposerCard() implements Widget.Stateful {
                     .placeholder("Message")
                     .maxRows(4)
                     .onSubmit(this::send)
+                    .mentions(picker.mentions())
                     .id(FIELD));
             return CARD.of(new Column(parts, Attributes.NONE.id("composer-column")));
+        }
+
+        @Override
+        protected void dispose() {
+            picker.close();
+        }
+
+        /// The picker, for a test.
+        MentionPicker picker() {
+            return picker;
         }
 
         private void send(MarkedText message) {

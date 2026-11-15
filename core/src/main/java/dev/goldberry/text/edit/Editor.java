@@ -1031,6 +1031,29 @@ public final class Editor {
         return TextGeometry.selectionRects(document(), lines(), edit.start(), edit.end(), wrapWidth, textAlign);
     }
 
+    /// `[start, end)` of [#text()], one rectangle per visual line, in the
+    /// text's own space: where a mention query is, for a suggestion list to
+    /// hang off. Empty for an empty range.
+    ///
+    /// Measured in the text as drawn, so a range after an open composition is
+    /// where the composition pushed it.
+    public List<LogicalRect> rangeRects(int start, int end) {
+        var length = edit.text().length();
+        var from = Math.clamp(start, 0, length);
+        var to = Math.clamp(end, from, length);
+        if (from == to) {
+            return List.of();
+        }
+        return TextGeometry.selectionRects(document(), lines(), toDisplay(from), toDisplay(to), wrapWidth, textAlign);
+    }
+
+    /// An offset into [#text()] as one into the text as drawn: past the caret,
+    /// moved on by the composition. The inverse of [#toDocument] outside the
+    /// composition.
+    private int toDisplay(int offset) {
+        return preedit.isEmpty() || offset <= edit.caret() ? offset : offset + preedit.length();
+    }
+
     /// The composition's rectangles, one per visual line — what an underline is
     /// drawn along. Empty when nothing is being composed.
     public List<LogicalRect> composingRects() {

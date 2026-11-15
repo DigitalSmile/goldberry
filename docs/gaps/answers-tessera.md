@@ -14,7 +14,7 @@ nothing.
 | # | Gap | Answer | Status |
 |---|-----|--------|--------|
 | G-01 | Weaver not published | Weaver jar and a `dev.goldberry.weave` Gradle plugin | on master, not yet in a snapshot |
-| G-02 | Rich-text input | `rich-input` over marked text, with the formatting bar and links; mentions and Markdown next | partly on master |
+| G-02 | Rich-text input | `rich-input` over marked text, with the formatting bar, links and mentions; Markdown and HTML next | partly on master |
 | G-03 | Rich-text display with entities | Hit-testing, run clicks, selection, spoilers on `RichText` | on master, not yet in a snapshot |
 | G-04 | Sticky section headers | Sections in `ListView` | on master, not yet in a snapshot |
 | G-05 | Camera and microphone | `goldberry-camera` and `goldberry-mic` | planned |
@@ -84,8 +84,8 @@ answers it. Undo keeps formatting, the clipboard carries marks between rich
 inputs, and a formatting bar opens over a selection. Toggle keys follow
 Telegram Desktop's set. Phase 6 converts to and from Markdown and HTML.
 
-**Landed** (on master once committed, not yet in a snapshot): ADR-0703 and
-ADR-0704.
+**Landed** (on master, not yet in a snapshot): ADR-0703, ADR-0704, ADR-0705
+and ADR-0706.
 
 - `dev.goldberry.text.mark.MarkedText` is the value: `text()` and `marks()`,
   each `Mark(start, end, kind)` in UTF-16 offsets. Your entities convert
@@ -104,10 +104,19 @@ ADR-0704.
   none. The text menu has the same commands under Format.
 - `rich-input > mark.bold`, `mark.code`, `mark.mention` and the rest are
   styled by your stylesheet, combinations included (`mark.bold.italic`).
-- Mentions are in the model: a `MarkKind.Mention` is an atom the caret steps
-  over and Backspace removes whole, and a value you load or bind may carry
-  them. Inserting one from the field (the query reported after `@`, and your
-  suggestions answering it) is the next phase but one.
+- Mentions (ADR-0706). `.mentions(Mentions.on(this::suggest, "@", "#").keys(this::listKey))`
+  makes the field report a query typed after a trigger at a word start: an
+  `Optional<MentionPrompt>` on every change, and `Optional.empty()` once when
+  it ends. The prompt holds `query()` (the trigger, what was typed after it,
+  and the word's range) and `anchor()`, the query's line in window
+  coordinates, to open your list against. `prompt.complete("@Ann Lee", new
+  MarkKind.Mention("user:42"))` puts the mention in as an atom with a space
+  after it, as one undo step. While a query is open, `Up`, `Down`, `Enter`,
+  `Tab` and `Escape` reach your handler first. An `Escape` you leave closes
+  the query. The list is yours to draw; the showcase's `MentionPicker` is one
+  in about a hundred lines. The atom itself is the model's: the caret steps
+  over it, Backspace removes it whole, and an IME composition never starts
+  inside it.
 
 ## G-03. Rich-text display with entities
 

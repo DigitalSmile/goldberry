@@ -15,14 +15,18 @@ import dev.goldberry.RendererRequirement;
 import dev.goldberry.css.Theme;
 import dev.goldberry.example.ShowcaseScene;
 import dev.goldberry.input.key.Key;
+import dev.goldberry.input.key.Modifiers;
+import dev.goldberry.input.key.PrimaryModifier;
+import dev.goldberry.input.key.Shortcut;
 import dev.goldberry.offscreen.Offscreen;
 import dev.goldberry.text.mark.MarkKind;
 import dev.goldberry.widget.Element;
 import dev.goldberry.widgets.text.RichText;
 import dev.goldberry.widgets.text.Run;
 
-/// The composer card: the draft opens formatted, `Enter` sends it, and the sent
-/// message is a `rich-text` whose runs carry the marks' classes.
+/// The composer card: the draft opens formatted, `Enter` sends it, the sent
+/// message is a `rich-text` whose runs carry the marks' classes, and a contact
+/// is mentioned with the keyboard alone.
 class ComposerCardTest {
 
     @BeforeEach
@@ -64,6 +68,57 @@ class ComposerCardTest {
                             .findFirst()
                             .orElseThrow()
                             .classes());
+        }
+    }
+
+    @Test
+    @DisplayName("the keyboard alone mentions somebody: @, a letter, Down, Enter, and Enter sends")
+    void mentionsWithKeys() {
+        try (var scene = new ShowcaseScene();
+                var session = Offscreen.of(1280, 1600)
+                        .stylesheets(scene.stylesheets(Theme.NORD_DARK))
+                        .session(new ComposerCard())) {
+            session.frame();
+            assertTrue(session.focus(ComposerCard.FIELD));
+            session.key(Shortcut.primary(Key.A).toString());
+            session.key(Key.BACKSPACE);
+            session.type("Ask @a");
+            session.frame();
+            // Ann Lee and Ana Silva start with an a; Down marks the second.
+            session.key(Key.DOWN);
+            session.key(Key.ENTER);
+            session.type("today");
+            session.key(Key.ENTER);
+            session.frame();
+            var sent = find(session.byId("composer-column").orElseThrow());
+            var mention = sent.runs().stream()
+                    .filter(run -> run.classes().contains("mention"))
+                    .map(Run::text)
+                    .toList();
+            assertEquals(List.of("@Ana Silva"), mention);
+            assertEquals(
+                    "Ask @Ana Silva today", sent.runs().stream().map(Run::text).reduce("", String::concat));
+        }
+    }
+
+    @Test
+    @DisplayName("Escape closes the list, and Enter then sends the query as typed")
+    void escapeThenSend() {
+        try (var scene = new ShowcaseScene();
+                var session = Offscreen.of(1280, 1600)
+                        .stylesheets(scene.stylesheets(Theme.NORD_DARK))
+                        .session(new ComposerCard())) {
+            session.frame();
+            assertTrue(session.focus(ComposerCard.FIELD));
+            session.key(Key.A, Modifiers.of(PrimaryModifier.current()));
+            session.key(Key.BACKSPACE);
+            session.type("@an");
+            session.key(Key.ESCAPE);
+            session.key(Key.ENTER);
+            session.frame();
+            var sent = find(session.byId("composer-column").orElseThrow());
+            assertEquals("@an", sent.runs().stream().map(Run::text).reduce("", String::concat));
+            assertTrue(sent.runs().stream().noneMatch(run -> run.classes().contains("mention")));
         }
     }
 

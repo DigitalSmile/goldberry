@@ -5,6 +5,8 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.List;
+
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -14,6 +16,9 @@ import dev.goldberry.RendererRequirement;
 import dev.goldberry.assets.BundledFont;
 import dev.goldberry.input.event.PreeditEvent;
 import dev.goldberry.text.font.Font;
+import dev.goldberry.text.mark.Mark;
+import dev.goldberry.text.mark.MarkKind;
+import dev.goldberry.text.mark.MarkedText;
 
 /// What an editor does with a composition it has not been given permission to
 /// keep.
@@ -254,5 +259,34 @@ class EditorPreeditTest {
         assertTrue(line.width() > 0, "a zero-width area lets a candidate window sit over the text");
         assertEquals(editor.caret().height(), line.height(), 0.001);
         assertNotEquals(0, line.width());
+    }
+
+    @Test
+    @DisplayName("cannot split a mention: a composition opens beside it and commits beside it")
+    void neverInsideAnAtom() {
+        var ann = new MarkKind.Mention("user:1");
+        var editor = new Editor(font).value(MarkedText.of("Hi @Ann").mark(3, 7, ann));
+        editor.caretTo(5, false);
+        assertEquals(3, editor.edit().caret(), "the caret lands at the atom's nearer end, never inside it");
+
+        editor.onPreedit(preedit("か"));
+        assertTrue(editor.onText("か"));
+
+        assertEquals("Hi か@Ann", editor.text());
+        assertEquals(List.of(new Mark(4, 8, ann)), editor.value().marks(), "the atom is whole and moved along");
+    }
+
+    @Test
+    @DisplayName("measures a range after the caret where the composition pushed it")
+    void rangeAfterAComposition() {
+        var editor = editor("ab cd").caretTo(2, false);
+        var before = editor.rangeRects(3, 5).getFirst().left();
+
+        editor.onPreedit(preedit("XYZ"));
+        var after = editor.rangeRects(3, 5).getFirst().left();
+
+        assertTrue(after > before, "the composition pushed 'cd' right: " + before + " -> " + after);
+        assertEquals(editor.rangeRects(0, 1).getFirst().left(), 0, 0.5, "before the caret, nothing moved");
+        assertTrue(editor.rangeRects(4, 4).isEmpty(), "an empty range has no rectangles");
     }
 }

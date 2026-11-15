@@ -48,6 +48,13 @@ import dev.goldberry.widgets.markup.Wiring;
 /// editor for the address. The text menu has a Format submenu with the same
 /// commands.
 ///
+/// With [#mentions] set, a trigger such as `@` typed at a word start opens a
+/// **query**: the field reports the word after it as it is typed
+/// ([MentionPrompt]), the application shows its own suggestions, and the chosen
+/// one goes in as an atom the caret steps over and `Backspace` removes whole.
+/// While a query is open, `Up`, `Down`, `Enter`, `Tab` and `Escape` go to the
+/// application first.
+///
 /// With [#onSubmit] set, `Enter` sends and `Shift+Enter` breaks the line, as a
 /// message composer does; without it `Enter` breaks the line.
 ///
@@ -64,6 +71,8 @@ import dev.goldberry.widgets.markup.Wiring;
 /// @param maxRows     how many it grows to before it scrolls
 /// @param formatting  the formatting bar's buttons: null for
 ///                    [FormatButton#defaults()], empty for no bar
+/// @param mentions    what opens a mention query and who hears it, or null
+///                    for none
 /// @param readOnly    whether edits are refused; the text can still be selected
 ///                    and copied
 /// @param disabled    whether it takes no input at all
@@ -78,6 +87,7 @@ public record RichInput(
         int rows,
         int maxRows,
         List<FormatButton> formatting,
+        @Nullable Mentions mentions,
         boolean readOnly,
         boolean disabled,
         Attributes attributes)
@@ -99,6 +109,7 @@ public record RichInput(
             int rows,
             int maxRows,
             @Nullable List<FormatButton> formatting,
+            @Nullable Mentions mentions,
             boolean readOnly,
             boolean disabled,
             @Nullable Attributes attributes) {
@@ -117,6 +128,7 @@ public record RichInput(
         this.rows = rows;
         this.maxRows = maxRows;
         this.formatting = formatting == null ? FormatButton.defaults() : List.copyOf(formatting);
+        this.mentions = mentions;
         this.readOnly = readOnly;
         this.disabled = disabled;
         this.attributes = attributes == null ? Attributes.NONE : attributes;
@@ -124,12 +136,12 @@ public record RichInput(
 
     /// An empty field.
     public RichInput() {
-        this(null, null, null, null, "", DEFAULT_ROWS, DEFAULT_MAX_ROWS, null, false, false, null);
+        this(null, null, null, null, "", DEFAULT_ROWS, DEFAULT_MAX_ROWS, null, null, false, false, null);
     }
 
     /// A field holding `value`, reporting every change to `onChange`.
     public RichInput(MarkedText value, Consumer<MarkedText> onChange) {
-        this(value, null, onChange, null, "", DEFAULT_ROWS, DEFAULT_MAX_ROWS, null, false, false, null);
+        this(value, null, onChange, null, "", DEFAULT_ROWS, DEFAULT_MAX_ROWS, null, null, false, false, null);
     }
 
     /// A field following `source`, which holds a [MarkedText] or a `String`.
@@ -137,7 +149,7 @@ public record RichInput(
     public static RichInput of(Observable<?> source, Consumer<MarkedText> onChange) {
         Objects.requireNonNull(source, "source");
         return new RichInput(
-                null, source, onChange, null, "", DEFAULT_ROWS, DEFAULT_MAX_ROWS, null, false, false, null);
+                null, source, onChange, null, "", DEFAULT_ROWS, DEFAULT_MAX_ROWS, null, null, false, false, null);
     }
 
     /// This field, showing `value` while it is empty.
@@ -151,6 +163,7 @@ public record RichInput(
                 rows,
                 maxRows,
                 formatting,
+                mentions,
                 readOnly,
                 disabled,
                 attributes);
@@ -167,6 +180,7 @@ public record RichInput(
                 value,
                 Math.max(value, maxRows),
                 formatting,
+                mentions,
                 readOnly,
                 disabled,
                 attributes);
@@ -183,6 +197,7 @@ public record RichInput(
                 rows,
                 value,
                 formatting,
+                mentions,
                 readOnly,
                 disabled,
                 attributes);
@@ -201,6 +216,7 @@ public record RichInput(
                 rows,
                 maxRows,
                 formatting,
+                mentions,
                 readOnly,
                 disabled,
                 attributes);
@@ -218,6 +234,26 @@ public record RichInput(
                 rows,
                 maxRows,
                 value,
+                mentions,
+                readOnly,
+                disabled,
+                attributes);
+    }
+
+    /// This field, reporting a word typed after one of `value`'s triggers,
+    /// such as `@an`, so the application can offer whom to mention; null for
+    /// none. See [Mentions].
+    public RichInput mentions(@Nullable Mentions value) {
+        return new RichInput(
+                this.value,
+                source,
+                onChange,
+                onSubmit,
+                placeholder,
+                rows,
+                maxRows,
+                formatting,
+                value,
                 readOnly,
                 disabled,
                 attributes);
@@ -234,6 +270,7 @@ public record RichInput(
                 rows,
                 maxRows,
                 formatting,
+                mentions,
                 value,
                 disabled,
                 attributes);
@@ -250,6 +287,7 @@ public record RichInput(
                 rows,
                 maxRows,
                 formatting,
+                mentions,
                 readOnly,
                 value,
                 attributes);
@@ -266,6 +304,7 @@ public record RichInput(
                 rows,
                 maxRows,
                 formatting,
+                mentions,
                 readOnly,
                 disabled,
                 value);
@@ -303,6 +342,7 @@ public record RichInput(
                 rows,
                 Math.max(maxRows <= 0 ? DEFAULT_MAX_ROWS : maxRows, rows),
                 barless ? List.of() : null,
+                null,
                 node.booleanProperty("read-only"),
                 Wiring.disabled(node),
                 Attributes.of(node));

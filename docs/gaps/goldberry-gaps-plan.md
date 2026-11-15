@@ -265,7 +265,7 @@ log in the same commit as the work.
 | L-11 | W1.4 | done | 0677 | |
 | L-12 | — | declined (D14) | 0688 | |
 | T-01 | W1.8 | done | 0685 | |
-| T-02 | W3.1 | doing: phases 1–4 done (marks, `Editor` with marks, `rich-input`, the formatting bar and link editor); mentions and Markdown/HTML open (`docs/rich-text-input.md` §5) | 0703, 0704, 0705 | |
+| T-02 | W3.1 | doing: phases 1–5 done (marks, `Editor` with marks, `rich-input`, the formatting bar and link editor, mentions); Markdown/HTML and the guide open (`docs/rich-text-input.md` §5) | 0703, 0704, 0705, 0706 | |
 | T-03 | W2.6 | done | 0697 | |
 | T-04 | W2.5 | done | 0696 | |
 | T-05 | W3.4 | todo | | |
@@ -450,3 +450,8 @@ log in the same commit as the work.
   selection, the link editor (`Ctrl+K`), the text menu's Format submenu,
   `RichInput.onSubmit` and a blinking caret (ADR-0705), and a composer card
   on the showcase's Forms screen. Uncommitted. Next ADR 0706.
+- **2026-11-15, rich text phase 5.** Phases 1–4 are committed as `93a1ee62`.
+  Mentions (ADR-0706): the field reports a query typed after a trigger
+  (`MentionQuery`, `Mentions`, `MentionPrompt`), offers the list keys to the
+  application first, and puts the chosen person in as an atom. The showcase
+  composer mentions somebody from the keyboard. Uncommitted. Next ADR 0707.

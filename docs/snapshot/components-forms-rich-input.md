@@ -105,6 +105,47 @@ message composer does. Without it, `Enter` breaks the line.
 
 ### Mentions
 
+Type `@` at the start of a word and the field opens a **query**: it tells the
+application what is typed after the trigger, letter by letter, and where it
+is. The application looks people up and shows its own list. The field draws
+none, because who can be mentioned, how a suggestion looks and where the list
+goes are the application's.
+
+```java
+import dev.goldberry.widgets.form.richinput.MentionPrompt;
+import dev.goldberry.widgets.form.richinput.Mentions;
+
+new RichInput(draft, onChange)
+        .mentions(Mentions.on(this::suggest, "@", "#").keys(this::listKey));
+
+void suggest(Optional<MentionPrompt> prompt) {
+    prompt.ifPresentOrElse(
+            open -> showPeople(lookUp(open.query().query()), open.anchor()),
+            this::hidePeople);
+}
+
+void choose(Person person) {
+    prompt.complete("@" + person.name(), new MarkKind.Mention(person.id()));
+}
+```
+
+A query is a trigger at the start of the text, after a space or after an
+opening bracket or quote, and the letters, digits and `_` after it. So
+`mail@example` opens none, and a space, a comma or a caret moved away closes
+one. `onQuery` hears it open, hears every change, and hears
+`Optional.empty()` once when it ends. `anchor()` is the query's line in window
+coordinates, which is what a popup is opened against.
+
+While a query is open, `Up`, `Down`, `Enter`, `Tab` and `Escape` are offered
+to the key handler first, and it returns true for a key it takes. An `Escape`
+it leaves closes the query until the caret leaves the word.
+
+`complete` replaces the whole word, trigger included, with the text you give
+under the kind you give, and adds a space after it. It is one undo step. A
+`MarkKind.Mention` makes the text an atom; null puts in plain text, such as an
+emoji for a `:` shortcode. A prompt answers only for the query it was made
+for: once another letter is typed, completing the old one changes nothing.
+
 A mention is an atom. The caret steps over it, a click inside lands at its
 nearer end, a selection grows to cover it, and `Backspace` next to it removes
 all of it. An input method cannot start a composition inside one.
