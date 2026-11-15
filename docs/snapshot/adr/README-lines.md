@@ -147,3 +147,4 @@ Appended to the index when the records move in, in this order.
 - [ADR-0704 A field takes formatting](0704-a-field-takes-formatting.md)
 - [ADR-0705 Formatting around a selection](0705-formatting-around-a-selection.md)
 - [ADR-0706 Mentions: the field reports, the application suggests](0706-the-field-reports-the-application-suggests.md)
+- [ADR-0707 Marked text in Markdown and HTML](0707-marked-text-in-markdown-and-html.md)

@@ -171,6 +171,7 @@ final class RichInputState extends State<RichInput> implements RichInputBox.Inpu
         var current = editor;
         if (current != null) {
             current.readOnly(widget().readOnly() || widget().disabled());
+            current.clipboardFormats(widget().clipboardFormats());
         }
         var before = previous.mentions();
         if (before != null && widget().mentions() == null && prompt != null) {
@@ -338,7 +339,10 @@ final class RichInputState extends State<RichInput> implements RichInputBox.Inpu
         if (current != null && this.font == font) {
             return current;
         }
-        var made = new Editor(font).multiline(true).readOnly(widget().readOnly() || widget().disabled());
+        var made = new Editor(font)
+                .multiline(true)
+                .readOnly(widget().readOnly() || widget().disabled())
+                .clipboardFormats(widget().clipboardFormats());
         if (current == null) {
             made.value(pending);
         } else {
@@ -959,7 +963,9 @@ final class RichInputState extends State<RichInput> implements RichInputBox.Inpu
             return false;
         }
         Clipboard board = window.clipboard();
-        return board.hasText() || board.has(MarkedClipboard.MIME);
+        return board.hasText()
+                || board.has(MarkedClipboard.MIME)
+                || widget().clipboardFormats().stream().anyMatch(format -> board.has(format.mime()));
     }
 
     @Override

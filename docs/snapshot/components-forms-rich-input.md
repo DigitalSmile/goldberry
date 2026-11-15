@@ -150,6 +150,38 @@ A mention is an atom. The caret steps over it, a click inside lands at its
 nearer end, a selection grows to cover it, and `Backspace` next to it removes
 all of it. An input method cannot start a composition inside one.
 
+### Markdown and HTML
+
+`goldberry-html` converts marked text both ways. `MarkedMarkdown` writes a
+message's Markdown and reads it back, and `MarkedHtml` does the same for HTML:
+
+```java
+import dev.goldberry.html.marked.MarkedHtml;
+import dev.goldberry.markdown.marked.MarkedMarkdown;
+
+String markdown = MarkedMarkdown.write(draft);   // "Ship it **today**"
+MarkedText typed = MarkedMarkdown.read("Ship it **today**");
+String html = MarkedHtml.write(draft);           // "Ship it <strong>today</strong>"
+```
+
+The Markdown is the kind a messenger accepts: `**bold**`, `*italic*`,
+`_underline_`, `~~strike~~`, `` `code` ``, `||spoiler||`, `[words](address)`,
+and a mention as a link to `mention:` and its id. Text that looks like markup
+is escaped, so it reads back as itself. Markdown cannot say everything marks
+can: a mark across a line break comes back as one per line, and whitespace at
+the edge of bold or italic falls outside it.
+
+To keep formatting on the clipboard beyond other rich fields, install the HTML
+format. A copy then offers HTML to a word processor, and a paste from a
+browser or a document editor keeps its bold, italic, links and code:
+
+```java
+new RichInput(draft, onChange).clipboardFormats(List.of(MarkedHtml.format()));
+```
+
+A paste prefers the toolkit's own type, then each installed format in turn,
+then the plain text.
+
 ### Styling the marks
 
 Each set of marks in the text is a `mark` node under the field, with a class

@@ -12,9 +12,9 @@ log.
 Each decision becomes an ADR when it is taken, parked in `docs/snapshot/adr/`.
 **The owner took every recommendation on 2026-11-14** ("go for it"). D1, D2,
 D4, D5 and D6 are recorded in ADR-0703 and D3 in ADR-0704; D7, D8 and D9 are
-recorded with the phases that build them. **Phases 1 to 5 are done** (§5);
-D8 is ADR-0705 and D7 is ADR-0706. Open: phases 6 and 7. The next free ADR
-number is 0707.
+recorded with the phases that build them. **Phases 1 to 6 are done** (§5);
+D8 is ADR-0705, D7 is ADR-0706, and phase 6's conversions are ADR-0707. Open:
+phase 7. The next free ADR number is 0708.
 
 ## 1. Where things stand
 
@@ -419,7 +419,7 @@ phase 2 said. D9 stayed "later", so there are no input rules. The tests are
 `ComposerCardTest` and `MentionListGoldenTest`, both themes. The golden draws
 the list alone, because a headless session opens no popups.
 
-### Phase 6 — conversions in `:html`
+### Phase 6 — conversions in `:html` (done, ADR-0707)
 
 `markdown.marked` (or the package D6's converter lands in): `MarkedText` to
 Markdown and back for the subset marks express, and HTML on paste (`<b>`,
@@ -428,6 +428,26 @@ read as its text. The converter installs into `rich-input`'s clipboard (D6).
 
 **Tests:** round trips through Markdown for every kind, an HTML paste from a
 captured browser selection, and unknown elements reduced to their text.
+
+**As built.** The hook is `core`'s `MarkedFormat` (a MIME type, `write`,
+`read`), installed with `RichInput.clipboardFormats(…)` or
+`Editor.clipboardFormats(…)`, rather than D6's `RichInput.clipboard(…)`. A
+paste tries the toolkit's own type, then each format, then the text.
+`MarkedMarkdown` (in `markdown.marked`) writes and reads its own dialect,
+`SYNTAX`: CommonMark with strike-through, `_` underline, hard breaks, and no
+HTML or indented code. A spoiler is `||x||`, swapped for a rare punctuation
+character before the parse. A mention is a `mention:` link and a custom kind a
+`mark:` link (`content.marked.MarkLinks`). `MarkedHtml` (in `html.marked`)
+also reads inline styles, so a document editor's paste keeps its bold and its
+`font-weight: normal` wrapper does not make everything bold.
+`MarkedHtml.format()` is the `text/html` format, and it reads UTF-16 with a
+byte-order mark and the Windows `Version:` header. What Markdown cannot hold is
+listed in the class comment. The random round trip promises the same text and
+the same kinds on every non-whitespace character. The showcase composer
+installs the HTML format and reads a draft with no formatting as Markdown on
+send, which is D9 taken at send time. The tests are `MarkedClipboardTest`,
+`MarkedMarkdownTest`, `MarkedHtmlTest`, `MarkLinksTest`,
+`RichInputClipboardFormatTest` and `ComposerCardTest`.
 
 ### Phase 7 — the showcase, the guide and the answer
 
@@ -510,3 +530,15 @@ from the same marks). A guide section parked in `docs/snapshot/`, with
   showcase on the module path (dummy driver). `spotlessCheck` is red only in
   `:media`'s `PictureView`, which was already wrong at `93a1ee62`. Next ADR
   0707. Open: phase 6 (Markdown and HTML in `:html`) and phase 7.
+- **2026-11-15, later.** Phase 5 was committed as `84f1f44d`. Phase 6
+  (ADR-0707): `MarkedFormat` in `core`, `MarkedMarkdown` and `MarkedHtml` in
+  `:html` (two more exported packages, and `content.marked`, which is not
+  exported), the `text/html` format, and the composer reading Markdown on send.
+  Writing Markdown had a bug, found by the random round trip: a kind closed and
+  reopened at the same boundary was not reopened. The test host's clipboard in
+  `:widgets` holds bytes now. The card's description changed again, and so did
+  `index.tsv`. Verified: `:core` 5964, `:widgets` 3283, `:html` 354 and
+  `:example` 948 tests green; spotless and javadoc clean; the showcase on the
+  module path. Three `GalleryTextScaleTest` screens first failed on a truncated
+  jar while another session rebuilt `:gpu` in the same tree, and passed on a
+  rerun. Next ADR 0708. Open: phase 7.

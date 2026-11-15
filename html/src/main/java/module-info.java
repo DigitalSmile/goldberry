@@ -59,6 +59,9 @@ module dev.goldberry.html {
     /// styleable and not constructible.
     exports dev.goldberry.markdown.view;
 
+    /// Marked text, the value a `rich-input` edits, as Markdown and back.
+    exports dev.goldberry.markdown.marked;
+
     /// What the two content views share as **API**: today
     /// [dev.goldberry.content.ImageSource], which an application
     /// implements to say where a document's images come from — because a `src` is a
@@ -83,6 +86,10 @@ module dev.goldberry.html {
     /// beside it. Its parts stay in here for the same reason the Markdown view's
     /// do: a part is styleable and not constructible.
     exports dev.goldberry.html.view;
+
+    /// Marked text as HTML and back, and the `text/html` clipboard format a
+    /// `rich-input` installs to keep a browser paste's formatting.
+    exports dev.goldberry.html.marked;
 
     /// So the toolkit can read `markdown.css`.
     ///

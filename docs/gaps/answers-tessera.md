@@ -14,7 +14,7 @@ nothing.
 | # | Gap | Answer | Status |
 |---|-----|--------|--------|
 | G-01 | Weaver not published | Weaver jar and a `dev.goldberry.weave` Gradle plugin | on master, not yet in a snapshot |
-| G-02 | Rich-text input | `rich-input` over marked text, with the formatting bar, links and mentions; Markdown and HTML next | partly on master |
+| G-02 | Rich-text input | `rich-input` over marked text, with the formatting bar, links, mentions, and Markdown and HTML conversions | on master; guide at release |
 | G-03 | Rich-text display with entities | Hit-testing, run clicks, selection, spoilers on `RichText` | on master, not yet in a snapshot |
 | G-04 | Sticky section headers | Sections in `ListView` | on master, not yet in a snapshot |
 | G-05 | Camera and microphone | `goldberry-camera` and `goldberry-mic` | planned |
@@ -84,8 +84,7 @@ answers it. Undo keeps formatting, the clipboard carries marks between rich
 inputs, and a formatting bar opens over a selection. Toggle keys follow
 Telegram Desktop's set. Phase 6 converts to and from Markdown and HTML.
 
-**Landed** (on master, not yet in a snapshot): ADR-0703, ADR-0704, ADR-0705
-and ADR-0706.
+**Landed** (on master, not yet in a snapshot): ADR-0703 to ADR-0707.
 
 - `dev.goldberry.text.mark.MarkedText` is the value: `text()` and `marks()`,
   each `Mark(start, end, kind)` in UTF-16 offsets. Your entities convert
@@ -117,6 +116,16 @@ and ADR-0706.
   in about a hundred lines. The atom itself is the model's: the caret steps
   over it, Backspace removes it whole, and an IME composition never starts
   inside it.
+- Markdown and HTML (ADR-0707), in `goldberry-html`.
+  `MarkedMarkdown.write(text)` and `read(markdown)` convert to and from a
+  message dialect: `**bold**`, `*italic*`, `_underline_`, `~~strike~~`, code,
+  `||spoiler||`, links, and mentions as `[@Ann](mention:user%3A42)`.
+  `MarkedHtml.write` and `read` do the same for HTML; reading also understands
+  a word processor's inline styles. Install `MarkedHtml.format()` with
+  `.clipboardFormats(List.of(…))`, and a paste from a browser keeps its bold
+  while a copy offers HTML to other applications. Your entities stay
+  `MarkedText`'s marks; these are for the services and the clipboards that
+  speak Markdown or HTML.
 
 ## G-03. Rich-text display with entities
 

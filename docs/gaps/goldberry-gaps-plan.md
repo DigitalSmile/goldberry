@@ -265,7 +265,7 @@ log in the same commit as the work.
 | L-11 | W1.4 | done | 0677 | |
 | L-12 | — | declined (D14) | 0688 | |
 | T-01 | W1.8 | done | 0685 | |
-| T-02 | W3.1 | doing: phases 1–5 done (marks, `Editor` with marks, `rich-input`, the formatting bar and link editor, mentions); Markdown/HTML and the guide open (`docs/rich-text-input.md` §5) | 0703, 0704, 0705, 0706 | |
+| T-02 | W3.1 | doing: phases 1–6 done (marks, `Editor` with marks, `rich-input`, the formatting bar and link editor, mentions, Markdown and HTML); the guide and the answer open (`docs/rich-text-input.md` §5) | 0703–0707 | |
 | T-03 | W2.6 | done | 0697 | |
 | T-04 | W2.5 | done | 0696 | |
 | T-05 | W3.4 | todo | | |
@@ -455,3 +455,7 @@ log in the same commit as the work.
   (`MentionQuery`, `Mentions`, `MentionPrompt`), offers the list keys to the
   application first, and puts the chosen person in as an atom. The showcase
   composer mentions somebody from the keyboard. Uncommitted. Next ADR 0707.
+- **2026-11-15, rich text phase 6.** Phase 5 was committed as `84f1f44d`.
+  Markdown and HTML (ADR-0707): clipboard formats in `core`, `MarkedMarkdown`
+  and `MarkedHtml` in `:html`, and the `text/html` format a `rich-input`
+  installs. Uncommitted. Next ADR 0708.

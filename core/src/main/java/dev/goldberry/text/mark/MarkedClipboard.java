@@ -6,6 +6,7 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -27,7 +28,9 @@ import dev.goldberry.text.mark.MarkKind.Style;
 /// A copy offers [#MIME], the toolkit's own type, **and** the plain text, so a
 /// paste into another rich field keeps the bold and a paste into a terminal
 /// gets the words. A paste prefers the toolkit's type and falls back to the
-/// text.
+/// text. An application can add types of its own ([MarkedFormat]), such as
+/// HTML: a copy offers each, and a paste tries each after the toolkit's own and
+/// before the plain text.
 ///
 /// The type is a few lines of UTF-8: a header, the marks one per line, and the
 /// text. [#encode] and [#decode] are its whole definition, and a payload that
@@ -52,13 +55,25 @@ public final class MarkedClipboard {
     ///
     /// @return whether the platform accepted it
     public static boolean copy(Clipboard clipboard, MarkedText text) {
+        return copy(clipboard, text, List.of());
+    }
+
+    /// Puts `text` on `clipboard` as [#copy(Clipboard, MarkedText)] does, and
+    /// in each of `formats` as well when it has marks.
+    ///
+    /// @return whether the platform accepted it
+    public static boolean copy(Clipboard clipboard, MarkedText text, List<MarkedFormat> formats) {
         Objects.requireNonNull(clipboard, "clipboard");
         Objects.requireNonNull(text, "text");
+        Objects.requireNonNull(formats, "formats");
         if (text.isPlain()) {
             return clipboard.text(text.text());
         }
         var offer = new LinkedHashMap<String, byte[]>();
         offer.put(MIME, encode(text));
+        for (var format : formats) {
+            offer.putIfAbsent(format.mime(), format.write(text));
+        }
         var plain = text.text().getBytes(StandardCharsets.UTF_8);
         offer.put(TEXT_MIME, plain);
         offer.put("text/plain", plain);
@@ -70,11 +85,27 @@ public final class MarkedClipboard {
     /// What `clipboard` holds as marked text: its own type when it is there and
     /// reads, the plain text otherwise, and nothing when it holds neither.
     public static Optional<MarkedText> paste(Clipboard clipboard) {
+        return paste(clipboard, List.of());
+    }
+
+    /// What `clipboard` holds as marked text: the toolkit's own type, then each
+    /// of `formats` in order, then the plain text; nothing when it holds none of
+    /// them. A format whose bytes do not read is passed over.
+    public static Optional<MarkedText> paste(Clipboard clipboard, List<MarkedFormat> formats) {
         Objects.requireNonNull(clipboard, "clipboard");
+        Objects.requireNonNull(formats, "formats");
         if (clipboard.has(MIME)) {
             var marked = decode(clipboard.read(MIME));
             if (marked.isPresent()) {
                 return marked;
+            }
+        }
+        for (var format : formats) {
+            if (clipboard.has(format.mime())) {
+                var marked = read(format, clipboard.read(format.mime()));
+                if (marked.isPresent()) {
+                    return marked;
+                }
             }
         }
         if (!clipboard.hasText()) {
@@ -82,6 +113,16 @@ public final class MarkedClipboard {
         }
         var text = clipboard.text();
         return text.isEmpty() ? Optional.empty() : Optional.of(MarkedText.of(text));
+    }
+
+    /// What `format` reads from `bytes`, and nothing when it fails: a format is
+    /// the application's code reading another process's bytes.
+    private static Optional<MarkedText> read(MarkedFormat format, byte[] bytes) {
+        try {
+            return format.read(bytes).filter(text -> !text.isEmpty());
+        } catch (RuntimeException unreadable) {
+            return Optional.empty();
+        }
     }
 
     /// `text` in the toolkit's clipboard type.

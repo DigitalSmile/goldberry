@@ -32,6 +32,7 @@ import dev.goldberry.text.mark.MarkStyle;
 import dev.goldberry.text.mark.MarkStyles;
 import dev.goldberry.text.mark.MarkedClipboard;
 import dev.goldberry.text.mark.MarkedEdit;
+import dev.goldberry.text.mark.MarkedFormat;
 import dev.goldberry.text.mark.MarkedText;
 
 /// A text editor an application drives itself — on a `canvas`, at any transform,
@@ -136,6 +137,10 @@ public final class Editor {
     private boolean readOnly;
 
     private @Nullable Clipboard clipboard;
+
+    /// The clipboard types beyond the toolkit's own that a copy offers and a
+    /// paste reads.
+    private List<MarkedFormat> clipboardFormats = List.of();
 
     private @Nullable PrimarySelection primarySelection;
 
@@ -382,6 +387,14 @@ public final class Editor {
     /// report `false`, so a key is not swallowed by a feature that is not there.
     public Editor clipboard(Clipboard value) {
         this.clipboard = Objects.requireNonNull(value, "clipboard");
+        return this;
+    }
+
+    /// The clipboard types beyond the toolkit's own that a copy with marks
+    /// offers, and that a paste reads after the toolkit's own and before the
+    /// plain text: `text/html`, say, from a module that reads it.
+    public Editor clipboardFormats(List<MarkedFormat> value) {
+        this.clipboardFormats = List.copyOf(value);
         return this;
     }
 
@@ -839,7 +852,7 @@ public final class Editor {
         if (board == null || !edit.hasSelection()) {
             return false;
         }
-        return MarkedClipboard.copy(board, edit.selected());
+        return MarkedClipboard.copy(board, edit.selected(), clipboardFormats);
     }
 
     /// Copies the selection and removes it. `false` when nothing was copied or
@@ -858,7 +871,7 @@ public final class Editor {
         if (readOnly || board == null) {
             return false;
         }
-        var pasted = MarkedClipboard.paste(board);
+        var pasted = MarkedClipboard.paste(board, clipboardFormats);
         if (pasted.isEmpty()) {
             return false;
         }

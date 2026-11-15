@@ -1,5 +1,6 @@
 package dev.goldberry.widgets;
 
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -558,9 +559,38 @@ public class TestHost implements Host {
         public boolean text(String text) {
             clipboardText.setLength(0);
             clipboardText.append(text == null ? "" : text);
+            clipboardBytes.clear();
+            return true;
+        }
+
+        @Override
+        public boolean has(String mime) {
+            return clipboardBytes.containsKey(mime);
+        }
+
+        @Override
+        public byte[] read(String mime) {
+            var bytes = clipboardBytes.get(mime);
+            return bytes == null ? new byte[0] : bytes.clone();
+        }
+
+        @Override
+        public boolean write(Map<String, byte[]> byMime) {
+            // One offer replaces the last, and its plain text is the text, as on
+            // a desktop.
+            clipboardBytes.clear();
+            byMime.forEach((mime, bytes) -> clipboardBytes.put(mime, bytes.clone()));
+            var plain = byMime.get("text/plain");
+            clipboardText.setLength(0);
+            if (plain != null) {
+                clipboardText.append(new String(plain, StandardCharsets.UTF_8));
+            }
             return true;
         }
     };
+
+    /// The byte half of the clipboard: what was offered under each type.
+    private final Map<String, byte[]> clipboardBytes = new LinkedHashMap<>();
 
     private boolean textInputActive;
 

@@ -111,7 +111,7 @@ forms	overflow-card	Longer than the box	A value wider than its field scrolls und
 forms	signup-card	A form that refuses	A form finds its fields and gates a submission on them. Enlist asks the form's controller to submit, and every field checks. Leave one empty, or give a port below 1024, and press Enlist.
 forms	code-card	Boxes for a one-time code	A row of single-character boxes over one string. Type digits, or paste 123 456 and the space is dropped. Backspace clears the last box and Escape starts again.
 forms	paint-card	A colour, dragged or typed	A swatch that opens a board: a plane, a hue ramp, a hex field and presets, all writing into the hex. The second picker has an alpha ramp, which is off unless asked for.
-forms	composer-card	A field that takes formatting	Select words for the formatting bar, or use Ctrl+B, Ctrl+I, Ctrl+Shift+M and Ctrl+K. Type @ to mention somebody. Enter sends, Shift+Enter breaks the line.
+forms	composer-card	A field that takes formatting	Select words for the formatting bar, or use Ctrl+B, Ctrl+I, Ctrl+Shift+M and Ctrl+K. Type @ to mention somebody, or write **Markdown**. Enter sends, Shift+Enter breaks the line.
 forms	named-card	A bound text input	A single line of text in a well. This one is bound to the model, which echoes it below, and holds at most 40 characters: a paste past that is clipped, not refused.
 forms	limits-card	What a field refuses	A filter rejects a keystroke and never corrects it. A password masks its text and will not copy out, a read-only field takes no edit, and a disabled one is out of the Tab order.
 forms	stacked-card	The same form, stacked	Stacked is the default: each label sits above its control. form.horizontal is a label column beside them instead.

@@ -8,6 +8,7 @@ import org.jspecify.annotations.Nullable;
 
 import dev.goldberry.bind.Observable;
 import dev.goldberry.kdl.KdlNode;
+import dev.goldberry.text.mark.MarkedFormat;
 import dev.goldberry.text.mark.MarkedText;
 import dev.goldberry.widget.State;
 import dev.goldberry.widget.Widget;
@@ -73,6 +74,8 @@ import dev.goldberry.widgets.markup.Wiring;
 ///                    [FormatButton#defaults()], empty for no bar
 /// @param mentions    what opens a mention query and who hears it, or null
 ///                    for none
+/// @param clipboardFormats clipboard types beyond the toolkit's own that a copy
+///                    offers and a paste reads, such as HTML; null for none
 /// @param readOnly    whether edits are refused; the text can still be selected
 ///                    and copied
 /// @param disabled    whether it takes no input at all
@@ -88,6 +91,7 @@ public record RichInput(
         int maxRows,
         List<FormatButton> formatting,
         @Nullable Mentions mentions,
+        List<MarkedFormat> clipboardFormats,
         boolean readOnly,
         boolean disabled,
         Attributes attributes)
@@ -110,6 +114,7 @@ public record RichInput(
             int maxRows,
             @Nullable List<FormatButton> formatting,
             @Nullable Mentions mentions,
+            @Nullable List<MarkedFormat> clipboardFormats,
             boolean readOnly,
             boolean disabled,
             @Nullable Attributes attributes) {
@@ -129,6 +134,7 @@ public record RichInput(
         this.maxRows = maxRows;
         this.formatting = formatting == null ? FormatButton.defaults() : List.copyOf(formatting);
         this.mentions = mentions;
+        this.clipboardFormats = clipboardFormats == null ? List.of() : List.copyOf(clipboardFormats);
         this.readOnly = readOnly;
         this.disabled = disabled;
         this.attributes = attributes == null ? Attributes.NONE : attributes;
@@ -136,12 +142,12 @@ public record RichInput(
 
     /// An empty field.
     public RichInput() {
-        this(null, null, null, null, "", DEFAULT_ROWS, DEFAULT_MAX_ROWS, null, null, false, false, null);
+        this(null, null, null, null, "", DEFAULT_ROWS, DEFAULT_MAX_ROWS, null, null, null, false, false, null);
     }
 
     /// A field holding `value`, reporting every change to `onChange`.
     public RichInput(MarkedText value, Consumer<MarkedText> onChange) {
-        this(value, null, onChange, null, "", DEFAULT_ROWS, DEFAULT_MAX_ROWS, null, null, false, false, null);
+        this(value, null, onChange, null, "", DEFAULT_ROWS, DEFAULT_MAX_ROWS, null, null, null, false, false, null);
     }
 
     /// A field following `source`, which holds a [MarkedText] or a `String`.
@@ -149,7 +155,7 @@ public record RichInput(
     public static RichInput of(Observable<?> source, Consumer<MarkedText> onChange) {
         Objects.requireNonNull(source, "source");
         return new RichInput(
-                null, source, onChange, null, "", DEFAULT_ROWS, DEFAULT_MAX_ROWS, null, null, false, false, null);
+                null, source, onChange, null, "", DEFAULT_ROWS, DEFAULT_MAX_ROWS, null, null, null, false, false, null);
     }
 
     /// This field, showing `value` while it is empty.
@@ -164,6 +170,7 @@ public record RichInput(
                 maxRows,
                 formatting,
                 mentions,
+                clipboardFormats,
                 readOnly,
                 disabled,
                 attributes);
@@ -181,6 +188,7 @@ public record RichInput(
                 Math.max(value, maxRows),
                 formatting,
                 mentions,
+                clipboardFormats,
                 readOnly,
                 disabled,
                 attributes);
@@ -198,6 +206,7 @@ public record RichInput(
                 value,
                 formatting,
                 mentions,
+                clipboardFormats,
                 readOnly,
                 disabled,
                 attributes);
@@ -217,6 +226,7 @@ public record RichInput(
                 maxRows,
                 formatting,
                 mentions,
+                clipboardFormats,
                 readOnly,
                 disabled,
                 attributes);
@@ -235,6 +245,7 @@ public record RichInput(
                 maxRows,
                 value,
                 mentions,
+                clipboardFormats,
                 readOnly,
                 disabled,
                 attributes);
@@ -254,6 +265,28 @@ public record RichInput(
                 maxRows,
                 formatting,
                 value,
+                clipboardFormats,
+                readOnly,
+                disabled,
+                attributes);
+    }
+
+    /// This field, offering and reading `value`'s clipboard types beyond the
+    /// toolkit's own: `MarkedHtml.format()` from `goldberry-html`, so that a paste
+    /// from a browser keeps its bold.
+    public RichInput clipboardFormats(List<MarkedFormat> value) {
+        Objects.requireNonNull(value, "value");
+        return new RichInput(
+                this.value,
+                source,
+                onChange,
+                onSubmit,
+                placeholder,
+                rows,
+                maxRows,
+                formatting,
+                mentions,
+                value,
                 readOnly,
                 disabled,
                 attributes);
@@ -271,6 +304,7 @@ public record RichInput(
                 maxRows,
                 formatting,
                 mentions,
+                clipboardFormats,
                 value,
                 disabled,
                 attributes);
@@ -288,6 +322,7 @@ public record RichInput(
                 maxRows,
                 formatting,
                 mentions,
+                clipboardFormats,
                 readOnly,
                 value,
                 attributes);
@@ -305,6 +340,7 @@ public record RichInput(
                 maxRows,
                 formatting,
                 mentions,
+                clipboardFormats,
                 readOnly,
                 disabled,
                 value);
@@ -342,6 +378,7 @@ public record RichInput(
                 rows,
                 Math.max(maxRows <= 0 ? DEFAULT_MAX_ROWS : maxRows, rows),
                 barless ? List.of() : null,
+                null,
                 null,
                 node.booleanProperty("read-only"),
                 Wiring.disabled(node),

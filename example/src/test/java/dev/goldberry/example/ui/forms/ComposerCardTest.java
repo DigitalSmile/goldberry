@@ -20,7 +20,9 @@ import dev.goldberry.input.key.PrimaryModifier;
 import dev.goldberry.input.key.Shortcut;
 import dev.goldberry.offscreen.Offscreen;
 import dev.goldberry.text.mark.MarkKind;
+import dev.goldberry.text.mark.MarkedFormat;
 import dev.goldberry.widget.Element;
+import dev.goldberry.widgets.form.richinput.RichInput;
 import dev.goldberry.widgets.text.RichText;
 import dev.goldberry.widgets.text.Run;
 
@@ -119,6 +121,61 @@ class ComposerCardTest {
             var sent = find(session.byId("composer-column").orElseThrow());
             assertEquals("@an", sent.runs().stream().map(Run::text).reduce("", String::concat));
             assertTrue(sent.runs().stream().noneMatch(run -> run.classes().contains("mention")));
+        }
+    }
+
+    @Test
+    @DisplayName("a draft with no formatting is read as Markdown when it is sent")
+    void markdownOnSend() {
+        try (var scene = new ShowcaseScene();
+                var session = Offscreen.of(1280, 1600)
+                        .stylesheets(scene.stylesheets(Theme.NORD_DARK))
+                        .session(new ComposerCard())) {
+            session.frame();
+            assertTrue(session.focus(ComposerCard.FIELD));
+            session.key(Key.A, Modifiers.of(PrimaryModifier.current()));
+            session.key(Key.BACKSPACE);
+            session.type("ship it **today**, `x()`");
+            session.key(Key.ENTER);
+            session.frame();
+            var sent = find(session.byId("composer-column").orElseThrow());
+            assertEquals(
+                    "ship it today, x()", sent.runs().stream().map(Run::text).reduce("", String::concat));
+            assertEquals(
+                    List.of("today"),
+                    sent.runs().stream()
+                            .filter(run -> run.classes().contains("bold"))
+                            .map(Run::text)
+                            .toList());
+            assertEquals(
+                    List.of("x()"),
+                    sent.runs().stream()
+                            .filter(run -> run.classes().contains("code"))
+                            .map(Run::text)
+                            .toList());
+        }
+    }
+
+    @Test
+    @DisplayName("the composer reads and offers HTML on the clipboard")
+    void installsHtml() {
+        try (var scene = new ShowcaseScene();
+                var session = Offscreen.of(1280, 1600)
+                        .stylesheets(scene.stylesheets(Theme.NORD_DARK))
+                        .session(new ComposerCard())) {
+            session.frame();
+            // A headless session has no clipboard to paste from, so what is
+            // checked here is that the format is there; reading a browser's
+            // HTML is MarkedHtml's to test.
+            var field = walk(session.byId("composer-column").orElseThrow())
+                    .map(Element::widget)
+                    .filter(RichInput.class::isInstance)
+                    .map(RichInput.class::cast)
+                    .findFirst()
+                    .orElseThrow();
+            assertEquals(
+                    List.of("text/html"),
+                    field.clipboardFormats().stream().map(MarkedFormat::mime).toList());
         }
     }
 

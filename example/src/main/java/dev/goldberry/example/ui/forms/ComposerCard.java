@@ -10,6 +10,8 @@ import dev.goldberry.example.docs.DocLink;
 import dev.goldberry.example.ui.forms.mention.Contacts;
 import dev.goldberry.example.ui.forms.mention.MentionPicker;
 import dev.goldberry.example.ui.gallery.ShowcaseCard;
+import dev.goldberry.html.marked.MarkedHtml;
+import dev.goldberry.markdown.marked.MarkedMarkdown;
 import dev.goldberry.text.mark.MarkKind;
 import dev.goldberry.text.mark.MarkRun;
 import dev.goldberry.text.mark.MarkedText;
@@ -31,6 +33,11 @@ import dev.goldberry.widgets.text.Run;
 /// offers people to mention ([MentionPicker]); `Up`, `Down` and `Enter` choose
 /// one, which goes in as a single unit.
 ///
+/// A paste from a browser keeps its formatting ([MarkedHtml#format()]), and a
+/// draft with no formatting is read as Markdown when it is sent, so
+/// `**today**` typed by hand arrives bold, as a messenger's desktop client
+/// does it.
+///
 /// Read more: [Fields and forms](https://goldberry.dev/docs/components/forms.html#keyboard).
 public record ComposerCard() implements Widget.Stateful {
 
@@ -44,7 +51,7 @@ public record ComposerCard() implements Widget.Stateful {
             ID,
             "A field that takes formatting",
             "Select words for the formatting bar, or use Ctrl+B, Ctrl+I, Ctrl+Shift+M and Ctrl+K. "
-                    + "Type @ to mention somebody. Enter sends, Shift+Enter breaks the line.",
+                    + "Type @ to mention somebody, or write **Markdown**. Enter sends, Shift+Enter breaks the line.",
             DocLink.to("components/forms", "keyboard"));
 
     /// What the composer opens with: a word in bold, one in italic, code and a
@@ -80,6 +87,7 @@ public record ComposerCard() implements Widget.Stateful {
                     .maxRows(4)
                     .onSubmit(this::send)
                     .mentions(picker.mentions())
+                    .clipboardFormats(List.of(MarkedHtml.format()))
                     .id(FIELD));
             return CARD.of(new Column(parts, Attributes.NONE.id("composer-column")));
         }
@@ -98,8 +106,9 @@ public record ComposerCard() implements Widget.Stateful {
             if (message.text().isBlank()) {
                 return;
             }
+            var formatted = message.isPlain() ? MarkedMarkdown.read(message.text()) : message;
             setState(() -> {
-                sent.add(message);
+                sent.add(formatted);
                 draft = MarkedText.EMPTY;
             });
         }
