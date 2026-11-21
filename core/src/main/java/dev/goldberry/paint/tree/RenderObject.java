@@ -700,6 +700,24 @@ public final class RenderObject implements AutoCloseable {
         return layer;
     }
 
+    /// The layer as it was last drawn, if that was at `bounds` and it is still
+    /// good; otherwise null. Asks without changing anything: what a
+    /// `backdrop-filter` drawing what is under it blits, rather than drawing
+    /// this subtree a second time.
+    @Nullable
+    Layer layerIfCurrent(RenderTree.Bounds bounds) {
+        return layer != null && layer.isValid() && bounds.equals(layerBounds) ? layer : null;
+    }
+
+    /// The same, for [#clipLayer]: if it was last drawn at `bounds` and
+    /// `alpha` and is still good.
+    @Nullable
+    Layer clipLayerIfCurrent(RenderTree.Bounds bounds, double alpha) {
+        return clipLayer != null && clipLayer.isValid() && bounds.equals(clipLayerBounds) && alpha == clipLayerAlpha
+                ? clipLayer
+                : null;
+    }
+
     /// The raster of this node's **children**, cut to its rounded corners, kept
     /// between frames while it is valid.
     ///

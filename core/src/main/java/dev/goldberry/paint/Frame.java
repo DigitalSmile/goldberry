@@ -137,8 +137,10 @@ public final class Frame {
     /// The GPU layers placed so far, in paint order.
     private final List<GpuPlacement> placements = new ArrayList<>();
 
-    /// The read-back layers' pixels drawn so far, held until [#end()]: a
-    /// threaded context may still be reading them after the blit returns.
+    /// The pixels blitted from so far that nothing else may be keeping alive --
+    /// read-back GPU layers, `clip-path` masks, layers on a threaded context --
+    /// held until [#end()]: a threaded context may still be reading them after
+    /// the blit returns.
     /// Never queried, because holding them is the whole job.
     @SuppressWarnings("MismatchedQueryAndUpdateOfCollection")
     private final List<ByteBuffer> drawnPixels = new ArrayList<>();
@@ -640,6 +642,12 @@ public final class Frame {
         // view and views are cheap; holding one across frames would mean holding
         // a native handle to a buffer whose lifetime is the layer's, not this
         // frame's.
+        if (context.threadCount() > 0) {
+            // A threaded context only queues the blit, and a layer made for one
+            // frame -- what a `backdrop-filter` is drawn from -- may be dropped
+            // before the workers read it. Held until `end`, as a read-back is.
+            drawnPixels.add(layer.pixels().pixels());
+        }
         try (var image = BlendImage.wrapping(
                 layer.pixels().pixels(),
                 size.width(),
@@ -776,6 +784,9 @@ public final class Frame {
             masking.end();
         }
         var factor = scale.factor();
+        // Queued, on a threaded context, past this method's return: the mask is
+        // held until `end` so the workers still have it to read.
+        drawnPixels.add(mask.pixels());
         try (var view = BlendImage.wrapping(mask.pixels(), size.width(), size.height(), mask.stride())) {
             context.compOp(BlendCompOp.DST_IN);
             try {

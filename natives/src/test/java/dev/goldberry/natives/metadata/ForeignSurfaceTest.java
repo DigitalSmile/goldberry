@@ -105,13 +105,20 @@ class ForeignSurfaceTest {
     }
 
     @Test
-    @DisplayName("declares the sixteen upcall shapes, Yoga's struct return among them")
+    @DisplayName("declares the eighteen upcall shapes, Yoga's struct return among them")
     void upcalls() {
         var upcalls = ForeignSurface.upcalls();
         assertAll(
                 // The fifteenth is a web view's cookie change answered: a request
-                // number and a count. The sixteenth is a Windows window procedure.
-                () -> assertEquals(16, upcalls.size(), upcalls.toString()),
+                // number and a count. The sixteenth is a Windows window procedure,
+                // the seventeenth the X error handler a global shortcut's grab is
+                // made under, the eighteenth the Carbon handler of a macOS hotkey.
+                () -> assertEquals(18, upcalls.size(), upcalls.toString()),
+                () -> assertTrue(
+                        upcalls.contains(FunctionDescriptor.of(JAVA_INT, ADDRESS, ADDRESS)), "Xlib's XErrorHandler"),
+                () -> assertTrue(
+                        upcalls.contains(FunctionDescriptor.of(JAVA_INT, ADDRESS, ADDRESS, ADDRESS)),
+                        "Carbon's EventHandlerProcPtr"),
                 () -> assertTrue(
                         upcalls.stream()
                                 .anyMatch(d -> d.returnLayout()

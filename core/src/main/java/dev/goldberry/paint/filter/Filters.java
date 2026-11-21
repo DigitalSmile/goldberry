@@ -36,6 +36,47 @@ public final class Filters {
         var width = buffer.size().width();
         var height = buffer.size().height();
         var pixels = read(buffer, width, height);
+        run(pixels, width, height, filters, factor);
+        write(buffer, pixels, width, height);
+    }
+
+    /// Applies `filters` to `buffer` in place, as if it went on past its edges
+    /// by `edges`, each pixel out there a copy of the nearest one on the edge:
+    /// what a `backdrop-filter` does to what is under a box at the window's
+    /// edge, where nothing was drawn past it.
+    ///
+    /// @param factor physical pixels per logical one
+    public static void apply(PixelBuffer buffer, List<FilterFunction> filters, double factor, EdgeExtension edges) {
+        Objects.requireNonNull(edges, "edges");
+        if (edges.isNone()) {
+            apply(buffer, filters, factor);
+            return;
+        }
+        Objects.requireNonNull(buffer, "buffer");
+        Objects.requireNonNull(filters, "filters");
+        if (filters.isEmpty()) {
+            return;
+        }
+        var width = buffer.size().width();
+        var height = buffer.size().height();
+        var pixels = read(buffer, width, height);
+        var wide = width + edges.left() + edges.right();
+        var tall = height + edges.top() + edges.bottom();
+        var extended = new int[wide * tall];
+        for (var y = 0; y < tall; y++) {
+            var from = Math.clamp(y - edges.top(), 0, height - 1) * width;
+            for (var x = 0; x < wide; x++) {
+                extended[y * wide + x] = pixels[from + Math.clamp(x - edges.left(), 0, width - 1)];
+            }
+        }
+        run(extended, wide, tall, filters, factor);
+        for (var y = 0; y < height; y++) {
+            System.arraycopy(extended, (y + edges.top()) * wide + edges.left(), pixels, y * width, width);
+        }
+        write(buffer, pixels, width, height);
+    }
+
+    private static void run(int[] pixels, int width, int height, List<FilterFunction> filters, double factor) {
         for (var filter : filters) {
             switch (filter) {
                 case FilterFunction.Blur(var radius) -> blur(pixels, width, height, radius * factor);
@@ -44,7 +85,6 @@ public final class Filters {
                 case FilterFunction.ColourFunction colour -> matrix(pixels, ColourMatrix.of(colour));
             }
         }
-        write(buffer, pixels, width, height);
     }
 
     private static int[] read(PixelBuffer buffer, int width, int height) {

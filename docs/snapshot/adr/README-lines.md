@@ -149,3 +149,6 @@ Appended to the index when the records move in, in this order.
 - [ADR-0706 Mentions: the field reports, the application suggests](0706-the-field-reports-the-application-suggests.md)
 - [ADR-0707 Marked text in Markdown and HTML](0707-marked-text-in-markdown-and-html.md)
 - [ADR-0708 A showcase screen for rich-input](0708-a-screen-for-rich-input.md)
+- [ADR-0709 backdrop-filter draws what is under the box again](0709-backdrop-filter-draws-what-is-under-the-box-again.md)
+- [ADR-0710 A page's own styles, in a scope of their own](0710-a-page-s-own-styles-in-a-scope-of-their-own.md)
+- [ADR-0711 Global shortcuts are asked of the desktop](0711-global-shortcuts-are-asked-of-the-desktop.md)

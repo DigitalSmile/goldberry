@@ -29,7 +29,7 @@ import dev.goldberry.log.Logs;
 /// ```
 ///
 /// The CSS subset is small on purpose and an unsupported declaration is not an
-/// error: naming `backdrop-filter` before it exists must not stop a window
+/// error: naming `mask-image` before it exists must not stop a window
 /// opening, so the engine logs the dropped declaration and carries on. That is
 /// right for a stylesheet, and wrong as the only signal an author ever gets,
 /// because a warning in a log nobody is watching is not seen at any level. This

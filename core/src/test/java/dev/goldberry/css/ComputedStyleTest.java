@@ -514,9 +514,9 @@ class ComputedStyleTest {
         void unknownProperty() {
             // The subset's property list is longer than this record; a stylesheet naming
             // a property the engine has not grown yet must not stop a window
-            // opening. This was `box-shadow` for a long time and is
-            // `backdrop-filter` now.
-            var style = compute("button { backdrop-filter: blur(24px); color: red }");
+            // opening. This was `box-shadow` for a long time, then
+            // `backdrop-filter`, and is `mask-image` now.
+            var style = compute("button { mask-image: linear-gradient(red, blue); color: red }");
             assertEquals(0xFFFF0000, style.color());
         }
 

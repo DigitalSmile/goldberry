@@ -5,6 +5,7 @@ import java.util.Objects;
 import java.util.function.Consumer;
 
 import dev.goldberry.css.compositing.FilterFunction;
+import dev.goldberry.paint.filter.EdgeExtension;
 import dev.goldberry.paint.filter.Filters;
 import dev.goldberry.paint.tree.RenderTree;
 import dev.goldberry.render.PixelBuffer;
@@ -145,6 +146,20 @@ public final class Layer implements AutoCloseable {
         Objects.requireNonNull(scale, "scale");
         requireUsable();
         Filters.apply(pixels, filters, scale.factor());
+    }
+
+    /// The same, with the raster taken to go on past each edge by as many
+    /// physical pixels, each one out there a copy of the nearest pixel on the
+    /// edge: what a `backdrop-filter` does with what is under a box at the
+    /// window's edge, where nothing is drawn past it.
+    ///
+    /// @throws IllegalArgumentException if a count is negative
+    public void filter(List<FilterFunction> filters, DisplayScale scale, int left, int top, int right, int bottom) {
+        Objects.requireNonNull(filters, "filters");
+        Objects.requireNonNull(scale, "scale");
+        var edges = new EdgeExtension(left, top, right, bottom);
+        requireUsable();
+        Filters.apply(pixels, filters, scale.factor(), edges);
     }
 
     /// The buffer, for [Frame#drawLayer].

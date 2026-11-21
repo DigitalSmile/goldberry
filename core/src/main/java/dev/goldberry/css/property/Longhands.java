@@ -84,6 +84,12 @@ final class Longhands {
                                 .compositing()
                                 .filter(from.presence().compositing().filter())))));
         all.add(own(
+                "backdrop-filter",
+                (from, into) -> into.presence(into.presence()
+                        .compositing(into.presence()
+                                .compositing()
+                                .backdropFilter(from.presence().compositing().backdropFilter())))));
+        all.add(own(
                 "clip-path",
                 (from, into) -> into.presence(into.presence()
                         .compositing(into.presence()

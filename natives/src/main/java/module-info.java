@@ -118,6 +118,13 @@ module dev.goldberry.natives {
     exports dev.goldberry.natives.desktop.keychain to
             dev.goldberry.core;
 
+    // Shortcuts the desktop delivers while the application is not focused:
+    // the GlobalShortcuts portal, X11 key grabs, `RegisterHotKey` and Carbon
+    // hotkeys, bound at run time. To `:core`, whose `GlobalShortcuts` is what
+    // an application sees.
+    exports dev.goldberry.natives.desktop.shortcuts to
+            dev.goldberry.core;
+
     /// What this build of the platform layer can actually do.
     ///
     /// Qualified to `:core`, like Yoga's and Blend2D's wrappers and for the same

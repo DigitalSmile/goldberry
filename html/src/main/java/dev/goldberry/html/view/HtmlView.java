@@ -11,12 +11,15 @@ import dev.goldberry.content.ImageSource;
 import dev.goldberry.content.select.SelectableDocument;
 import dev.goldberry.html.Html;
 import dev.goldberry.html.model.HtmlDocument;
+import dev.goldberry.html.style.Colours;
+import dev.goldberry.html.style.DocumentStyles;
 import dev.goldberry.kdl.KdlNode;
 import dev.goldberry.widget.BuildContext;
 import dev.goldberry.widget.Widget;
 import dev.goldberry.widget.attr.Attributed;
 import dev.goldberry.widget.attr.Attributes;
 import dev.goldberry.widget.attr.Bindable;
+import dev.goldberry.widget.style.StyleScope;
 import dev.goldberry.widgets.markup.Markup;
 import dev.goldberry.widgets.markup.Wiring;
 
@@ -66,6 +69,21 @@ import dev.goldberry.widgets.markup.Wiring;
 /// application must add [HtmlStyles#stylesheet()] beside `Controls.stylesheets(theme)`
 /// or a page renders as unstyled words.
 ///
+/// ## A page's own styles reach that page and nothing else
+///
+/// A mail's `<style>` and `style=`, and the `bgcolor` of mail written before CSS,
+/// are applied: a safe subset (colours, type, spacing, boxes, borders, corners,
+/// `display: none`) and nothing that fetches, moves a box out of the page or reads
+/// the theme. The rules are matched against the document's own tree, handed to the
+/// widgets as one generated class per element, and held in a `StyleScope` round the
+/// page, so one mail's rules cannot reach the shell or the mail beside it. They rank
+/// above the application's own sheets for the page's nodes, and an application
+/// overrides them with `!important`.
+///
+/// Colour is the open question a mail asks of a themed application, and
+/// [#authorStyles(AuthorStyles)] answers it: [AuthorStyles#ADAPTED] by default, which
+/// keeps a colour where it can be seen to read on a background the mail painted.
+///
 /// ## A reader can take a copy of it
 ///
 /// Drag, double-click a word, triple-click a block, `Ctrl+A`, `Ctrl+C`, with the
@@ -86,6 +104,8 @@ import dev.goldberry.widgets.markup.Wiring;
 ///        are drawn and inert
 /// @param images where an `<img src=…>` comes from, or null for a page that draws
 ///        its alt text
+/// @param styles what is done with the document's own `<style>` and `style=`; see
+///        [AuthorStyles]
 /// @param attributes the view's own `id`, classes and key. They land on the column
 ///        this builds, beside the `html` class every rule hangs off
 @Markup("html-view")
@@ -94,6 +114,7 @@ public record HtmlView(
         @Nullable Observable<?> source,
         @Nullable Consumer<String> onLink,
         @Nullable ImageSource images,
+        AuthorStyles styles,
         Attributes attributes)
         implements Widget.Stateless, Attributed<HtmlView>, Bindable<HtmlView> {
 
@@ -103,6 +124,7 @@ public record HtmlView(
             @Nullable Observable<?> source,
             @Nullable Consumer<String> onLink,
             @Nullable ImageSource images,
+            @Nullable AuthorStyles styles,
             @Nullable Attributes attributes) {
         Objects.requireNonNull(document, "document");
         attributes = attributes == null ? Attributes.NONE : attributes;
@@ -110,12 +132,24 @@ public record HtmlView(
         this.source = source;
         this.onLink = onLink;
         this.images = images;
+        this.styles = styles == null ? AuthorStyles.ADAPTED : styles;
         this.attributes = attributes;
+    }
+
+    /// A view applying the document's styles [AuthorStyles#ADAPTED], as every
+    /// view does unless it says otherwise.
+    public HtmlView(
+            HtmlDocument document,
+            @Nullable Observable<?> source,
+            @Nullable Consumer<String> onLink,
+            @Nullable ImageSource images,
+            @Nullable Attributes attributes) {
+        this(document, source, onLink, images, AuthorStyles.ADAPTED, attributes);
     }
 
     /// A view of `document`.
     public HtmlView(HtmlDocument document) {
-        this(document, null, null, null, Attributes.NONE);
+        this(document, null, null, null, AuthorStyles.ADAPTED, Attributes.NONE);
     }
 
     /// A view of `document`.
@@ -137,12 +171,18 @@ public record HtmlView(
     /// The Java spelling of `bind=`. What an editor's preview is: the property is the
     /// page, and this node rebuilds when it changes.
     public static HtmlView following(Observable<?> source) {
-        return new HtmlView(HtmlDocument.EMPTY, Objects.requireNonNull(source, "source"), null, null, Attributes.NONE);
+        return new HtmlView(
+                HtmlDocument.EMPTY,
+                Objects.requireNonNull(source, "source"),
+                null,
+                null,
+                AuthorStyles.ADAPTED,
+                Attributes.NONE);
     }
 
     /// This view, handing every anchor's `href` to `handler`.
     public HtmlView onLink(Consumer<String> handler) {
-        return new HtmlView(document, source, Objects.requireNonNull(handler, "handler"), images, attributes);
+        return new HtmlView(document, source, Objects.requireNonNull(handler, "handler"), images, styles, attributes);
     }
 
     /// This view, drawing the images `source` can find.
@@ -150,7 +190,16 @@ public record HtmlView(
     /// Without one an `<img>` is its alt text, which is what every view did before
     /// this existed and what a page with a broken `src` still shows.
     public HtmlView images(ImageSource source) {
-        return new HtmlView(document, this.source, onLink, Objects.requireNonNull(source, "source"), attributes);
+        return new HtmlView(
+                document, this.source, onLink, Objects.requireNonNull(source, "source"), styles, attributes);
+    }
+
+    /// This view, doing with the document's own styles what `styles` says.
+    ///
+    /// [AuthorStyles#ADAPTED] unless this is called: a mail's layout and boxes as
+    /// written, and its colours kept where they read.
+    public HtmlView authorStyles(AuthorStyles styles) {
+        return new HtmlView(document, source, onLink, images, Objects.requireNonNull(styles, "styles"), attributes);
     }
 
     /// What this view is showing **right now**: the bound property, parsed, or the
@@ -174,7 +223,7 @@ public record HtmlView(
 
     @Override
     public HtmlView bound(Observable<?> value) {
-        return new HtmlView(document, value, onLink, images, attributes);
+        return new HtmlView(document, value, onLink, images, styles, attributes);
     }
 
     @Override
@@ -184,7 +233,7 @@ public record HtmlView(
 
     @Override
     public HtmlView withAttributes(Attributes attributes) {
-        return new HtmlView(document, source, onLink, images, attributes);
+        return new HtmlView(document, source, onLink, images, styles, attributes);
     }
 
     @Override
@@ -200,8 +249,23 @@ public record HtmlView(
         // The memo is ignored here. `markdown-view` got block reuse because that is
         // where the measurement was taken; the same lever is available to this fold
         // and is a separate piece of work, not a line of it.
-        return new SelectableDocument((minter, _, overlay) ->
-                new HtmlWidgets(onLink, images, minter).document(document, attributes, overlay));
+        var authored = authored(document, styles);
+        return new SelectableDocument((minter, _, overlay) -> {
+            var page = new HtmlWidgets(onLink, images, minter, authored).document(document, attributes, overlay);
+            // Always a scope, empty or not, so a page whose `<style>` comes and goes
+            // keeps its widgets and the selection in them.
+            return new StyleScope(authored.rules(), page);
+        });
+    }
+
+    /// What `document` says about its own appearance, as far as `styles` lets it.
+    private static DocumentStyles authored(HtmlDocument document, AuthorStyles styles) {
+        return switch (styles) {
+            case IGNORED -> DocumentStyles.NONE;
+            case THEME_COLOURS -> DocumentStyles.of(document, Colours.THEME);
+            case ADAPTED -> DocumentStyles.of(document, Colours.ADAPT);
+            case AS_WRITTEN -> DocumentStyles.of(document, Colours.AUTHOR);
+        };
     }
 
     /// Builds an `html-view` from markup.
@@ -215,7 +279,11 @@ public record HtmlView(
     /// ```kdl
     /// html-view "<p>A <em>little</em> page.</p>"
     /// html-view bind="doc.source" link="doc.open"
+    /// html-view bind="mail.body" author-styles="theme-colours"
     /// ```
+    ///
+    /// `author-styles=` is [AuthorStyles#markupName()]: `ignored`, `theme-colours`,
+    /// `adapted` (when it says nothing) or `as-written`.
     ///
     /// **No `src=` yet**, which would read as `html-view
     /// src="help/getting-started.html"`. Reading a file means deciding what a relative
@@ -243,6 +311,7 @@ public record HtmlView(
                 // names is neither a value nor a method -- which is the third
                 // registry's whole job (`Wiring.handle`).
                 wiring.handle(node, "images", ImageSource.class),
+                AuthorStyles.parse(node.stringProperty("author-styles")),
                 Attributes.of(node));
     }
 }

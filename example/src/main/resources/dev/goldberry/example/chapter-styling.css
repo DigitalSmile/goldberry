@@ -652,6 +652,26 @@ column.probe-result {
 #styling-compositing panel.blend-screen { mix-blend-mode: screen; }
 #styling-compositing panel.blend-difference { mix-blend-mode: difference; }
 
+/* The same stripes, under plates that frost them: each plate's own background
+   is a thin tint, and what shows through it is what its backdrop-filter made
+   of the stripes. */
+#styling-compositing row#backdrop-row {
+  padding: 12px;
+  border-radius: 6px;
+  background: repeating-linear-gradient(45deg, #5e81ac 0, #5e81ac 8px, #a3be8c 8px, #a3be8c 16px);
+}
+
+#styling-compositing panel.frost-plate {
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  border-radius: 12px;
+  background: rgba(236, 239, 244, 0.35);
+  color: #2e3440;
+}
+
+#styling-compositing panel.frost-blur { backdrop-filter: blur(6px); }
+#styling-compositing panel.frost-saturate { backdrop-filter: blur(6px) saturate(160%); }
+#styling-compositing panel.frost-grey { backdrop-filter: grayscale(1); }
+
 /* --- Styling: lettering ----------------------------------------------------- */
 
 #styling-lettering text#letter-spaced {

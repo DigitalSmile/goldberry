@@ -13,6 +13,7 @@ import org.jspecify.annotations.Nullable;
 import dev.goldberry.bind.Subscription;
 import dev.goldberry.css.ComputedStyle;
 import dev.goldberry.css.StyleElement;
+import dev.goldberry.css.cascade.ScopedRules;
 import dev.goldberry.css.cascade.StyleResolver;
 import dev.goldberry.css.container.QueryContainer;
 import dev.goldberry.css.select.PseudoElement;
@@ -22,6 +23,7 @@ import dev.goldberry.layout.Display;
 import dev.goldberry.layout.Presence;
 import dev.goldberry.motion.Animations;
 import dev.goldberry.stats.FrameStats;
+import dev.goldberry.widget.style.StyleScope;
 import dev.goldberry.widget.style.Styled;
 
 /// The persistent node a [Widget] is turned into: the second of the toolkit's
@@ -338,6 +340,9 @@ public final class Element implements BuildContext, StyleElement {
         this.tree = tree;
         this.parent = parent;
         this.widget = widget;
+        if (widget instanceof StyleScope) {
+            tree.scopeMounted();
+        }
         if (widget instanceof Widget.Stateful stateful) {
             this.state = stateful.createState();
             this.state.mount(this, widget);
@@ -513,6 +518,11 @@ public final class Element implements BuildContext, StyleElement {
     /// instance, or whose `classes` returned an equal-but-unordered set, is
     /// reported as different and pays the walk it used to pay unconditionally.
     private static boolean matchesDiffer(Widget previous, Widget next) {
+        // A scope's rules reach every node below it, so different rules are a
+        // different match for the whole subtree, as different classes are.
+        if (previous instanceof StyleScope before && next instanceof StyleScope after) {
+            return !before.rules().equals(after.rules());
+        }
         var before = previous instanceof Styled styled ? styled : null;
         var after = next instanceof Styled styled ? styled : null;
         if (before == null || after == null) {
@@ -736,6 +746,9 @@ public final class Element implements BuildContext, StyleElement {
         if (state != null) {
             state.unmount();
         }
+        if (widget instanceof StyleScope) {
+            tree.scopeUnmounted();
+        }
         tree.forget(this);
     }
 
@@ -951,6 +964,27 @@ public final class Element implements BuildContext, StyleElement {
     @Override
     public boolean hasState(Selector.PseudoClass state) {
         return states.contains(state);
+    }
+
+    /// The rules of every [StyleScope] at or above this node, nearest first.
+    ///
+    /// Answered without walking in a tree that mounts no scope, which is every
+    /// tree that shows no styled document.
+    @Override
+    public List<ScopedRules> scopes() {
+        if (!tree.hasScopes()) {
+            return List.of();
+        }
+        List<ScopedRules> found = null;
+        for (var current = this; current != null; current = current.parent) {
+            if (current.widget instanceof StyleScope scope && !scope.rules().isEmpty()) {
+                if (found == null) {
+                    found = new ArrayList<>(2);
+                }
+                found.add(scope.rules());
+            }
+        }
+        return found == null ? List.of() : found;
     }
 
     /// This element's index among its parent's children — every child, the

@@ -18,6 +18,8 @@ import dev.goldberry.paint.BoxEdges;
 import dev.goldberry.paint.BoxPainter;
 import dev.goldberry.paint.Clip;
 import dev.goldberry.paint.Frame;
+import dev.goldberry.paint.Layer;
+import dev.goldberry.paint.Path;
 import dev.goldberry.paint.clip.ClipShapes;
 import dev.goldberry.paint.cull.BoxInk;
 import dev.goldberry.paint.overflow.Overrun;
@@ -366,7 +368,9 @@ public final class RenderTree implements AutoCloseable {
         boxesPainted = 0;
         boxesCulled = 0;
         {
-            var state = new Painting(frame, base);
+            var top = root;
+            var state = new Painting(
+                    frame, base, (into, dx, dy) -> paint(top, dx, dy, 1.0, Affine.IDENTITY, Clip.NONE, into), null);
             // The walk's clips are the tree's own; the damage is `state`'s, and
             // is only what the walk culls against.
             paint(root, 0, 0, 1.0, Affine.IDENTITY, Clip.NONE, state);
@@ -402,9 +406,24 @@ public final class RenderTree implements AutoCloseable {
         /// boxes must cost no calls.
         private Clip clip = Clip.NONE;
 
-        Painting(Frame frame, Clip base) {
+        /// How to draw again what this painting's raster holds, shifted: what
+        /// a `backdrop-filter` reads what is under its box from.
+        private final Replay replay;
+
+        /// Set on a painting a backdrop is drawn into, and null on every other.
+        private final @Nullable BackdropWalk walk;
+
+        Painting(Frame frame, Clip base, Replay replay, @Nullable BackdropWalk walk) {
             this.frame = frame;
             this.base = base;
+            this.replay = replay;
+            this.walk = walk;
+        }
+
+        /// Whether this is a backdrop's painting and it has reached the box
+        /// the backdrop is for: nothing after that is under it.
+        boolean stopped() {
+            return walk != null && walk.reached;
         }
 
         /// What of `clip`, one of the tree's, lies in the region being
@@ -472,6 +491,19 @@ public final class RenderTree implements AutoCloseable {
             Clip parentClip,
             Painting state) {
 
+        var walk = state.walk;
+        if (walk != null) {
+            // Drawing what is under a `backdrop-filter`'s box: everything drawn
+            // before it, and nothing from the box on.
+            if (walk.reached) {
+                return;
+            }
+            if (object == walk.target) {
+                walk.reached = true;
+                return;
+            }
+        }
+
         var box = object.appliedBox();
         var layout = object.layout();
         var left = parentLeft + layout.left();
@@ -499,11 +531,14 @@ public final class RenderTree implements AutoCloseable {
         state.clipTo(parentClip);
 
         if (object.isPromoted()) {
-            compositeThroughLayer(object, left, top, parentAlpha, transform, state);
+            compositeThroughLayer(object, left, top, parentAlpha, transform, parentClip, state);
             return;
         }
 
         var alpha = parentAlpha * box.opacity();
+        if (box.presence().isVisible() && box.presence().compositing().hasBackdrop()) {
+            paintBackdrop(object, left, top, alpha, transform, parentClip, state);
+        }
         state.transform(transform);
         // `visibility: hidden` leaves the box's own drawing out and walks on:
         // a child that says `visible` is drawn, which is CSS's rule.
@@ -545,7 +580,10 @@ public final class RenderTree implements AutoCloseable {
         // of them: nothing is allocated and the walk below is the one it always was.
         if (box.overflow() != Overflow.VISIBLE && !box.decoration().corners().isSquare()) {
             var rounded = RoundedClip.of(box, object.layout());
-            if (rounded != null && !(state.frame.hasGpu() && object.clipHoldsGpu())) {
+            // A backdrop's box inside: its children are drawn up to it, which
+            // no raster of all of them can hold. The rectangle clips them.
+            var holdsTarget = state.walk != null && holds(object, state.walk.target);
+            if (rounded != null && !holdsTarget && !(state.frame.hasGpu() && object.clipHoldsGpu())) {
                 if (paintRounded(object, left, top, alpha, transform, clip, rounded, state)) {
                     return;
                 }
@@ -558,8 +596,27 @@ public final class RenderTree implements AutoCloseable {
     private void paintInOrder(
             RenderObject object, double left, double top, double alpha, Affine transform, Clip clip, Painting state) {
         for (var child : paintOrder(object.children())) {
+            if (state.stopped()) {
+                return;
+            }
             paint(child, left, top, alpha, transform, clip, state);
         }
+    }
+
+    /// Whether `target` is `object` or under it.
+    private static boolean holds(RenderObject object, @Nullable RenderObject target) {
+        if (target == null) {
+            return false;
+        }
+        if (object == target) {
+            return true;
+        }
+        for (var child : object.children()) {
+            if (holds(child, target)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /// Draws the children of a node that clips them to its `border-radius`.
@@ -614,38 +671,68 @@ public final class RenderTree implements AutoCloseable {
         if (!(bounds.width() > 0) || !(bounds.height() > 0)) {
             return true;
         }
-        var layer = object.clipLayerFor(bounds, scale, alpha);
+        var walk = state.walk;
+        Layer layer;
+        if (walk == null) {
+            layer = object.clipLayerFor(bounds, scale, alpha);
+        } else {
+            // Under a backdrop: the raster the frame has just drawn, if it is
+            // the one, and otherwise one of the backdrop's own, so the node's
+            // stays what the frame drew.
+            var drawn = walk.cachesUsable ? object.clipLayerIfCurrent(walk.unshifted(bounds), alpha) : null;
+            layer = drawn != null ? drawn : walk.scratch(bounds, scale);
+        }
         if (!layer.isValid()) {
             var dx = left - bounds.left();
             var dy = top - bounds.top();
             var askedForGpu = new boolean[1];
+            var inner = walk == null ? null : walk.inner();
             layer.paint(scale, into -> {
-                var inner = new Painting(into, Clip.NONE);
-                var inside = Clip.of(dx + content.left(), dy + content.top(), content.width(), content.height());
-                for (var child : paintOrder(object.children())) {
-                    paint(child, dx, dy, alpha, Affine.IDENTITY, inside, inner);
-                }
-                inner.clipTo(Clip.NONE);
-                inner.untransform();
+                var painting = new Painting(
+                        into,
+                        Clip.NONE,
+                        (p, rx, ry) -> paintClippedChildren(object, dx + rx, dy + ry, alpha, content, p),
+                        inner);
+                paintClippedChildren(object, dx, dy, alpha, content, painting);
+                painting.clipTo(Clip.NONE);
+                painting.untransform();
                 var outline = rounded.outline();
                 into.cutCorners(
                         dx + outline.left(), dy + outline.top(), outline.width(), outline.height(), rounded.corners());
                 askedForGpu[0] = into.gpuLayersAsked() > 0;
             });
-            object.clipHoldsGpu(askedForGpu[0]);
-            if (askedForGpu[0] && frame.hasGpu()) {
-                // Drawn with the GPU layers' fallbacks in it, which this frame
-                // does not need: the raster is not kept.
-                layer.valid(false);
-                return false;
+            if (walk == null) {
+                object.clipHoldsGpu(askedForGpu[0]);
+                if (askedForGpu[0] && frame.hasGpu()) {
+                    // Drawn with the GPU layers' fallbacks in it, which this frame
+                    // does not need: the raster is not kept.
+                    layer.valid(false);
+                    return false;
+                }
+                layersRepainted++;
             }
-            layersRepainted++;
         }
-        layersComposited++;
+        if (walk == null) {
+            layersComposited++;
+        }
         state.clipTo(clip);
         state.transform(transform);
         frame.drawLayer(bounds.left(), bounds.top(), layer, 1.0);
         return true;
+    }
+
+    /// The children of a node that clips them to its rounded corners, into the
+    /// raster they are cut from: at `(dx, dy)`, untransformed, under the node's
+    /// content box.
+    private void paintClippedChildren(
+            RenderObject object, double dx, double dy, double alpha, RoundedClip.Area content, Painting state) {
+        var inside = Clip.of(dx + content.left(), dy + content.top(), content.width(), content.height());
+        for (var child : paintOrder(object.children())) {
+            if (state.stopped()) {
+                return;
+            }
+            paint(child, dx, dy, alpha, Affine.IDENTITY, inside, state);
+        }
     }
 
     /// The clip a box's children are painted under.
@@ -687,7 +774,13 @@ public final class RenderTree implements AutoCloseable {
     /// 3. The raster is **kept**. If nothing under this node changed, the layer
     ///    is still what it was and this is a blit and nothing else.
     private void compositeThroughLayer(
-            RenderObject object, double left, double top, double parentAlpha, Affine transform, Painting state) {
+            RenderObject object,
+            double left,
+            double top,
+            double parentAlpha,
+            Affine transform,
+            Clip parentClip,
+            Painting state) {
 
         var frame = state.frame;
         var scale = frame.scale();
@@ -696,26 +789,43 @@ public final class RenderTree implements AutoCloseable {
             return;
         }
 
-        var layer = object.layerFor(bounds, scale);
-        layersComposited++;
+        var walk = state.walk;
+        Layer layer;
+        if (walk == null) {
+            layer = object.layerFor(bounds, scale);
+            layersComposited++;
+        } else {
+            // Under a backdrop: the raster this frame drew for the node, if it
+            // is the one, or one of the backdrop's own, so the node's is left
+            // as the frame drew it.
+            var drawn = walk.cachesUsable ? object.layerIfCurrent(walk.unshifted(bounds)) : null;
+            layer = drawn != null ? drawn : walk.scratch(bounds, scale);
+        }
         if (!layer.isValid()) {
-            layersRepainted++;
+            if (walk == null) {
+                layersRepainted++;
+            }
             // The subtree, drawn into the layer's own coordinates: its bounding
             // box's top-left corner becomes (0, 0), which is the one piece of
             // arithmetic a layer costs.
+            var ox = left - bounds.left();
+            var oy = top - bounds.top();
+            var inner = walk == null ? null : walk.inner();
             layer.paint(scale, into -> {
-                {
-                    // [Clip#NONE] and not the clip in force outside: the layer
-                    // is rasterized at full extent and it is the *blit* that
-                    // gets confined. A clip inside this subtree still applies,
-                    // and lands in the layer's own coordinates for free --
-                    // every rectangle below is derived from the shifted origin
-                    // passed here.
-                    var inner = new Painting(into, Clip.NONE);
-                    paintIntoLayer(object, left - bounds.left(), top - bounds.top(), 1.0, Affine.IDENTITY, inner);
-                    inner.clipTo(Clip.NONE);
-                    inner.untransform();
-                }
+                // [Clip#NONE] and not the clip in force outside: the layer
+                // is rasterized at full extent and it is the *blit* that
+                // gets confined. A clip inside this subtree still applies,
+                // and lands in the layer's own coordinates for free --
+                // every rectangle below is derived from the shifted origin
+                // passed here.
+                var painting = new Painting(
+                        into,
+                        Clip.NONE,
+                        (p, dx, dy) -> paintIntoLayer(object, ox + dx, oy + dy, 1.0, Affine.IDENTITY, p),
+                        inner);
+                paintIntoLayer(object, ox, oy, 1.0, Affine.IDENTITY, painting);
+                painting.clipTo(Clip.NONE);
+                painting.untransform();
             });
             // Then CSS's order: the filters, the clip, and last, below, the
             // opacity and the blend the raster is composited with.
@@ -737,14 +847,170 @@ public final class RenderTree implements AutoCloseable {
             }
         }
 
-        state.transform(transform);
         var box = object.appliedBox();
+        if (box.presence().isVisible() && box.presence().compositing().hasBackdrop()) {
+            // Under the group, on the raster it is composited onto: what is
+            // under the box is what is under the group.
+            paintBackdrop(object, left, top, parentAlpha * box.opacity(), transform, parentClip, state);
+        }
+        state.transform(transform);
         frame.drawLayer(
                 bounds.left(),
                 bounds.top(),
                 layer,
                 parentAlpha * box.opacity(),
                 box.presence().compositing().blend());
+    }
+
+    /// Draws what is under `object`'s box again, through its `backdrop-filter`,
+    /// inside its rounded border, before the box itself is drawn.
+    ///
+    /// **Drawn again, not read back.** The raster the box is drawn onto is
+    /// redrawn from the node it started at -- the tree's root, a group's, or a
+    /// rounded clip's -- up to the box and no further, into a raster of the
+    /// region the filters read: the box out by their reach. What the frame
+    /// holds is not read, because outside the region being repainted it holds
+    /// last frame's picture, frosted already, and blurring that again would
+    /// frost it twice. The rasters this frame has already drawn for groups and
+    /// rounded clips under the box are blitted rather than drawn again.
+    ///
+    /// The result is filtered, with the raster's edge pixels repeated where the
+    /// region met its edge, cut to the box's border and its radii through the
+    /// box's matrix, and composited at the box's opacity.
+    ///
+    /// **Over a GPU layer it is the box's own background, opaque.** What the
+    /// GPU draws is not in any raster here: where the frame shows GPU layers
+    /// and something under the box asked for one, the frost would be of the
+    /// layer's fallback, so the box is filled with its background colour at
+    /// full strength instead, and its own drawing goes over that. Where the
+    /// frame shows no GPU layers the fallback is what is on screen, and it is
+    /// what is frosted.
+    ///
+    /// A frosted box drawn under another one is drawn without its own frost.
+    private void paintBackdrop(
+            RenderObject object,
+            double left,
+            double top,
+            double alpha,
+            Affine transform,
+            Clip parentClip,
+            Painting state) {
+
+        if (state.walk != null || !(alpha > 0)) {
+            return;
+        }
+        var box = object.appliedBox();
+        var layout = object.layout();
+        var frame = state.frame;
+        var scale = frame.scale();
+        var factor = scale.factor();
+        var compositing = box.presence().compositing();
+        var shape = Clip.of(left, top, layout.width(), layout.height()).map(transform);
+        var region =
+                BackdropRegion.of(shape, compositing.backdropReach(), frame.size(), state.visible(parentClip), factor);
+        if (region == null) {
+            return;
+        }
+        var walk = new BackdropWalk(object, -region.left(), -region.top(), true, new ArrayList<>());
+        var under = Layer.of(new PhysicalSize(Math.max(1, (int) Math.ceil(region.width() * factor)), Math.max(1, (int)
+                Math.ceil(region.height() * factor))));
+        var askedForGpu = new boolean[1];
+        try {
+            under.paint(scale, into -> {
+                var painting = new Painting(into, Clip.of(0, 0, region.width(), region.height()), state.replay, walk);
+                state.replay.into(painting, walk.dx, walk.dy);
+                painting.clipTo(Clip.NONE);
+                painting.untransform();
+                askedForGpu[0] = into.gpuLayersAsked() > 0;
+            });
+        } finally {
+            // The backdrop's frame has ended, so nothing reads them any more.
+            walk.scratch.forEach(Layer::close);
+        }
+        var outline = Path.roundRect(
+                left, top, layout.width(), layout.height(), box.decoration().corners());
+        try {
+            if (askedForGpu[0] && frame.hasGpu()) {
+                var colour = box.background();
+                if ((colour >>> 24) != 0) {
+                    state.transform(transform);
+                    frame.fillPath(outline, opaque(colour, alpha));
+                }
+                return;
+            }
+            var edges = region.edges();
+            under.filter(compositing.backdropFilter(), scale, edges.left(), edges.top(), edges.right(), edges.bottom());
+            var into = transform.then(Affine.translate(-region.left(), -region.top()));
+            under.amend(scale, raster -> raster.keepInside(outline.transformed(into), false));
+            state.untransform();
+            frame.drawLayer(region.left(), region.top(), under, Math.min(1, alpha));
+        } finally {
+            under.close();
+        }
+    }
+
+    /// `argb` at full strength, then faded to `alpha`.
+    private static int opaque(int argb, double alpha) {
+        var a = (int) Math.round(255 * Math.clamp(alpha, 0, 1));
+        return (a << 24) | (argb & 0xFFFFFF);
+    }
+
+    /// How to draw a raster's content again, at `(dx, dy)` from where it was
+    /// drawn, into `into`: what each painting is made with, so a
+    /// `backdrop-filter` inside it can draw what is under its box.
+    @FunctionalInterface
+    private interface Replay {
+        void into(Painting into, double dx, double dy);
+    }
+
+    /// One drawing of what is under a `backdrop-filter`'s box.
+    private static final class BackdropWalk {
+
+        /// The box, where the drawing stops; null in a raster drawn inside the
+        /// backdrop, which the box is not in.
+        private final @Nullable RenderObject target;
+
+        /// How far this drawing is shifted from the raster it draws again.
+        private final double dx;
+
+        private final double dy;
+
+        /// Whether the rasters the frame drew for groups and rounded clips can
+        /// be blitted here: at the same shift from where the frame drew them.
+        /// False inside a raster of the backdrop's own.
+        private final boolean cachesUsable;
+
+        /// The rasters made for this backdrop alone, closed when it is drawn.
+        private final List<Layer> scratch;
+
+        private boolean reached;
+
+        BackdropWalk(@Nullable RenderObject target, double dx, double dy, boolean cachesUsable, List<Layer> scratch) {
+            this.target = target;
+            this.dx = dx;
+            this.dy = dy;
+            this.cachesUsable = cachesUsable;
+            this.scratch = scratch;
+        }
+
+        /// `bounds` where the frame drew them, before this drawing's shift.
+        Bounds unshifted(Bounds bounds) {
+            return new Bounds(bounds.left() - dx, bounds.top() - dy, bounds.width(), bounds.height());
+        }
+
+        /// A raster for `bounds` that this backdrop owns and closes.
+        Layer scratch(Bounds bounds, DisplayScale scale) {
+            var layer = Layer.of(new PhysicalSize(
+                    Math.max(1, (int) Math.ceil(bounds.width() * scale.factor())),
+                    Math.max(1, (int) Math.ceil(bounds.height() * scale.factor()))));
+            scratch.add(layer);
+            return layer;
+        }
+
+        /// The walk for a raster drawn inside this one.
+        BackdropWalk inner() {
+            return new BackdropWalk(null, 0, 0, false, scratch);
+        }
     }
 
     /// The same walk, inside a layer: the promoted node itself is drawn here
@@ -1059,7 +1325,11 @@ public final class RenderTree implements AutoCloseable {
 
         var rects = new java.util.ArrayList<DamageRect>();
         var everything = new boolean[] {false};
-        collectDamage(root, 0, 0, Affine.IDENTITY, frame, rects, everything);
+        var backdrops = new ArrayList<BackdropDamage>();
+        collectDamage(root, 0, 0, Affine.IDENTITY, frame, rects, everything, backdrops);
+        if (!everything[0]) {
+            widenForBackdrops(rects, backdrops);
+        }
 
         if (everything[0] || rects.size() > MAX_DAMAGE_RECTS) {
             return java.util.List.of(whole);
@@ -1111,12 +1381,28 @@ public final class RenderTree implements AutoCloseable {
             Affine parentTransform,
             Frame frame,
             java.util.List<DamageRect> into,
-            boolean[] everything) {
+            boolean[] everything,
+            List<BackdropDamage> backdrops) {
 
         var layout = object.layout();
         var left = parentLeft + layout.left();
         var top = parentTop + layout.top();
         var transform = compose(parentTransform, object, left, top);
+
+        var compositing = object.appliedBox().presence().compositing();
+        if (compositing.hasBackdrop()) {
+            var shape = Clip.of(left, top, layout.width(), layout.height()).map(transform);
+            var reach = compositing.backdropReach();
+            backdrops.add(new BackdropDamage(
+                    toPhysical(bounds(shape), frame),
+                    toPhysical(
+                            bounds(new Clip(
+                                    shape.left() - reach[0],
+                                    shape.top() - reach[1],
+                                    shape.right() + reach[2],
+                                    shape.bottom() + reach[3])),
+                            frame)));
+        }
 
         // **Through `transform`**, which is this node's own matrix and its
         // ancestors'. Measured with `Affine.IDENTITY` -- which is what the
@@ -1146,8 +1432,54 @@ public final class RenderTree implements AutoCloseable {
             add(into, union(before, now));
         }
         for (var child : object.children()) {
-            collectDamage(child, left, top, transform, frame, into, everything);
+            collectDamage(child, left, top, transform, frame, into, everything, backdrops);
         }
+    }
+
+    /// A box with a `backdrop-filter`, as the damage sees it: its own rectangle,
+    /// and the one its filters read, both in physical pixels.
+    private record BackdropDamage(DamageRect box, DamageRect reads) {}
+
+    /// Adds to `rects` every frosted box whose filters read some of them.
+    ///
+    /// A change under a frosted box changes the frost, and not only where it
+    /// changed: a blur spreads it over the box, and a change just outside the
+    /// box reaches in. And inside the box, what is left of last frame is
+    /// frosted already, so the box cannot be repainted in part. Again until
+    /// nothing is added, since a box added can be under another.
+    private static void widenForBackdrops(List<DamageRect> rects, List<BackdropDamage> backdrops) {
+        var pending = new ArrayList<>(backdrops);
+        var grew = true;
+        while (grew && !pending.isEmpty()) {
+            grew = false;
+            for (var iterator = pending.iterator(); iterator.hasNext(); ) {
+                var backdrop = iterator.next();
+                if (backdrop.box().width() <= 0 || backdrop.box().height() <= 0) {
+                    iterator.remove();
+                    continue;
+                }
+                var touched = false;
+                for (var rect : rects) {
+                    if (intersects(rect, backdrop.reads())) {
+                        touched = true;
+                        break;
+                    }
+                }
+                if (touched) {
+                    add(rects, backdrop.box());
+                    iterator.remove();
+                    grew = true;
+                }
+            }
+        }
+    }
+
+    /// `clip` as [Bounds]; null when it is empty.
+    private static @Nullable Bounds bounds(Clip clip) {
+        if (clip.isEmpty()) {
+            return null;
+        }
+        return new Bounds(clip.left(), clip.top(), clip.right() - clip.left(), clip.bottom() - clip.top());
     }
 
     /// Adds `rect`, merging it into an existing one they overlap rather than

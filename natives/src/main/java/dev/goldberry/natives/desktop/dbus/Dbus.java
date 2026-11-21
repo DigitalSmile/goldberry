@@ -18,6 +18,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.OptionalInt;
 import java.util.function.Consumer;
 
 import org.jspecify.annotations.Nullable;
@@ -459,6 +460,20 @@ public final class Dbus implements AutoCloseable {
         }
     }
 
+    /// The socket under this connection, for a thread that sleeps in `poll`
+    /// until something arrives rather than in [#receive] with a timeout. Read
+    /// whatever libdbus has already queued with `receive(0, …)` before each
+    /// wait: a message read in along with a reply is in that queue, not on the
+    /// socket.
+    public OptionalInt unixFd() {
+        try (var arena = Arena.ofConfined()) {
+            var fd = arena.allocate(JAVA_INT);
+            return (int) lib.call(lib.getUnixFd, connection, fd) == 0
+                    ? OptionalInt.empty()
+                    : OptionalInt.of(fd.get(JAVA_INT, 0));
+        }
+    }
+
     private boolean send(MemorySegment message) {
         var sent = (int) lib.call(lib.send, connection, message, MemorySegment.NULL) != 0;
         lib.call(lib.flush, connection);
@@ -756,6 +771,7 @@ public final class Dbus implements AutoCloseable {
         final MethodHandle getInterface;
         final MethodHandle getMember;
         final MethodHandle requestName;
+        final MethodHandle getUnixFd;
         final MethodHandle errorInit;
         final MethodHandle errorFreeHandle;
 
@@ -793,6 +809,7 @@ public final class Dbus implements AutoCloseable {
             getInterface = bind(lookup, "dbus_message_get_interface", P_P);
             getMember = bind(lookup, "dbus_message_get_member", P_P);
             requestName = bind(lookup, "dbus_bus_request_name", I_PPIP);
+            getUnixFd = bind(lookup, "dbus_connection_get_unix_fd", I_PP);
             errorInit = bind(lookup, "dbus_error_init", V_P);
             errorFreeHandle = bind(lookup, "dbus_error_free", V_P);
         }

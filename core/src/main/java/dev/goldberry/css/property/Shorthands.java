@@ -116,7 +116,8 @@ final class Shorthands {
                 new Alias("-webkit-line-clamp", "line-clamp"),
                 new Alias("-webkit-user-select", "user-select"),
                 new Alias("font-width", "font-stretch"),
-                new Alias("-webkit-filter", "filter"));
+                new Alias("-webkit-filter", "filter"),
+                new Alias("-webkit-backdrop-filter", "backdrop-filter"));
     }
 
     /// The four sides' names between `prefix` and `suffix`, top first.

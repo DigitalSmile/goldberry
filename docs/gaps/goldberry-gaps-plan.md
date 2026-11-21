@@ -276,7 +276,7 @@ log in the same commit as the work.
 | T-10 | W1.10 | done | 0683 | |
 | T-12 | W2.9 | done: `Path.contains` and pinch; the tile cache stays Tessera's | 0687, 0692 | |
 | T-13 | W2.4 | done | 0695 | |
-| T-15 | W3.2 | todo | | |
+| T-15 | W3.2 | done: `backdrop-filter` on CPU frames, the opaque background over GPU layers | 0709 | |
 | T-16 | W2.10 | done (`view-transition-name`; the opt-in is the implementer's choice, see the ADR) | 0702 | |
 | T-17 | — | parked (ADR-0440) | | |
 | T-18 | W1.7 | done | 0678 | |
@@ -284,12 +284,12 @@ log in the same commit as the work.
 | T-20 | W3.9 | todo | | |
 | T-22 | W3.6 | todo | | |
 | T-23 | — | parked (D11) | 0690 | |
-| T-24 | W3.3 | todo | | |
+| T-24 | W3.3 | done: a page's `<style>`, `style=`, `bgcolor` and `<font color>` in a `StyleScope` of the view's own; `AuthorStyles` with `ADAPTED` the default (a text colour with no background of the mail's under it takes the theme's) | 0710 | |
 | T-25 | W3.7 | todo | | |
 | T-26 | W2.13 | done | 0686 | |
-| T-29 | W3.8 | todo | | |
-| T-30 | W3.10 | todo (plan document first) | | |
-| T-31 | W3.11 | todo (plan document only) | | |
+| T-29 | W3.8 | done: `GlobalShortcuts` (portal, X11 grab, `RegisterHotKey`, Carbon); Windows and macOS written, not run; the Windows release is polled while held, not hooked | 0711 | |
+| T-30 | W3.10 | plan answered (`docs/zero-copy-tiles.md`): D1 (a), D2 (a), D4 (a), D5 `RasterTexture`, D6 the gate; D3 rejected, its replacement asked. Phase 0 (measurements) is unblocked | | |
+| T-31 | W3.11 | done: plan written (`docs/web-target.md`, D1–D8 asked); no code until it is read | | |
 | T-32 | W2.8 | done: delete, clear, user agent; the private store waits for the shim to build its own views | 0699 | |
 
 ## 9. Risks
@@ -467,3 +467,23 @@ log in the same commit as the work.
   `/` with a different kind each. Tessera's G-02 answer points at the screen.
   T-02 is done; the guide moves into the book at release. Uncommitted. Next
   ADR 0709.
+- **2026-11-21.** Everything through `5998561b` is pushed (Snapshot #81 and
+  Qodana #85 are its first CI runs). The owner asked to close W3.2, W3.3, W3.8,
+  W3.10 and W3.11. Three are being built side by side: W3.2 `backdrop-filter`
+  (ADR-0709), W3.3 author styles in `html-view` (ADR-0710) and W3.8
+  `GlobalShortcuts` (ADR-0711). W3.10 and W3.11 get their plan documents,
+  `docs/zero-copy-tiles.md` and `docs/web-target.md`; W3.10's code waits for
+  its plan to be read. Next ADR 0712.
+- **2026-11-21, later.** W3.2, W3.3 and W3.8 are built and integrated,
+  uncommitted. W3.2 (ADR-0709) draws what is under a frosted box again
+  instead of reading the frame back: Blend2D's flush is not exported, and a
+  partial repaint would frost twice. W3.3 (ADR-0710) needed a core scope
+  (`ScopedRules`, `StyleScope`) because D3 took no inline layer; a page's
+  rules beat the window's normal ones and lose to `!important`, and its
+  `<style>` is matched on the document, not the folded widget tree. W3.8
+  (ADR-0711) polls the Windows release while a hotkey is held instead of a
+  low-level hook, which Windows drops after a slow upcall. Both plan
+  documents are written; W3.10 waits for its D1–D6. Next ADR 0712.
+- **2026-11-21, evening.** The owner answered W3.10's plan: D1 (a), D2 (a),
+  D4 (a), D5 `RasterTexture`, D6 the gate as written, D3 rejected. Phase 0 can
+  start; phases 1–3 wait for D3's replacement. Next ADR 0712.

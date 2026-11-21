@@ -51,6 +51,7 @@ class PropertiesTest {
             order: 3; direction: rtl; unicode-bidi: plaintext; box-sizing: content-box; container-type: size; container-name: side;
             visibility: hidden; pointer-events: none; user-select: none; z-index: 4;
             clip-path: circle(); mix-blend-mode: multiply; isolation: isolate; filter: sepia(1);
+            backdrop-filter: blur(3px);
             padding-top: 5px; padding-right: 6px; padding-bottom: 7px; padding-left: 8px;
             margin-top: 1px; margin-right: 2px; margin-bottom: 3px; margin-left: 4px;
             top: 1px; right: 2px; bottom: 3px; left: 4px;
@@ -92,6 +93,7 @@ class PropertiesTest {
             Map.entry("gap", "7px 8px"),
             Map.entry("font-width", "expanded"),
             Map.entry("-webkit-filter", "blur(1px)"),
+            Map.entry("-webkit-backdrop-filter", "blur(1px)"),
             Map.entry("container", "main / inline-size"),
             Map.entry("flex", "4 5 6px"),
             Map.entry("text-decoration", "line-through"),

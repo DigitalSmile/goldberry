@@ -19,6 +19,7 @@ import dev.goldberry.html.model.HtmlDocument;
 import dev.goldberry.html.model.HtmlNode;
 import dev.goldberry.html.model.HtmlText;
 import dev.goldberry.html.model.Tags;
+import dev.goldberry.html.style.DocumentStyles;
 import dev.goldberry.widget.Widget;
 import dev.goldberry.widget.attr.Attributes;
 import dev.goldberry.widgets.controls.button.Button;
@@ -60,9 +61,10 @@ import dev.goldberry.widgets.core.scroll.ScrollAxis;
 ///   is the one that *is* litehtml's, and it is why an engine is still an open
 ///   question rather than a closed one. **Selecting** across those words does work,
 ///   because each one reports where it was painted.
-/// - **`<style>` and `style=` are read into the model and applied by nothing.** The
-///   cascade here is the application's stylesheets, which is what makes a page follow
-///   the theme; an author's colours would fight it.
+/// - **A document's own styles are a subset, and a box on an inline element is
+///   not a box.** `<style>` and `style=` reach the widgets as one generated class
+///   per element ([DocumentStyles]), so a `background` on a `span` is drawn round
+///   each of its words rather than round the run.
 /// - **`sub` and `sup` are a size and not a baseline shift**, because the toolkit's
 ///   CSS subset has no `vertical-align`.
 /// - **A form control draws nothing.** Interactive widgets are out of scope for a
@@ -91,11 +93,24 @@ final class HtmlWidgets {
     /// Where `src` comes from, or null for a view that draws alt text.
     private final @Nullable ImageSource images;
 
-    HtmlWidgets(@Nullable Consumer<String> onLink, @Nullable ImageSource images, WordMinter minter) {
+    /// The class each element's own styles were minted as.
+    private final DocumentStyles authored;
+
+    HtmlWidgets(
+            @Nullable Consumer<String> onLink,
+            @Nullable ImageSource images,
+            WordMinter minter,
+            DocumentStyles authored) {
         this.onLink = onLink;
         this.images = images;
         this.minter = minter;
+        this.authored = authored;
         this.words = Words.prefixed("html", minter);
+    }
+
+    /// With no styles of the document's own.
+    HtmlWidgets(@Nullable Consumer<String> onLink, @Nullable ImageSource images, WordMinter minter) {
+        this(onLink, images, minter, DocumentStyles.NONE);
     }
 
     /// The whole document, as one column.
@@ -289,8 +304,12 @@ final class HtmlWidgets {
         return new Column(rows, classesOf(element, "html-list", numbered ? "numbered" : "bulleted"));
     }
 
+    /// An item's content, carrying the item's own styles: the `li` is this box
+    /// and not the row with the mark in it.
     private Widget body(Element item) {
-        return new Column(blocks(item.children()), classes("html-item-body"));
+        var author = authored.classOf(item);
+        var attributes = author == null ? classes("html-item-body") : classes("html-item-body", author);
+        return new Column(blocks(item.children()), attributes);
     }
 
     private Widget marker(String text) {
@@ -455,8 +474,11 @@ final class HtmlWidgets {
             }
             var own = Words.and(marks, "html-" + tag);
             for (var name : element.classes()) {
-                own = Words.and(own, "html-" + name);
+                if (DocumentStyles.forwardable(name)) {
+                    own = Words.and(own, "html-" + name);
+                }
             }
+            own = authoredOver(own, authored.classOf(element));
             switch (tag) {
                 // **A `br` ends the line, which is the whole of what it is for**
                 // It is a boundary rather than anything drawn, so it goes
@@ -558,15 +580,42 @@ final class HtmlWidgets {
         return Attributes.NONE.classes(names);
     }
 
-    /// `base`, plus the element's tag and its own classes in the `html-` namespace.
-    private static Attributes classesOf(Element element, String... base) {
-        var classes = new LinkedHashSet<String>(base.length + 2);
+    /// `base`, plus the element's tag, its own classes in the `html-` namespace and
+    /// the class its own styles were minted as.
+    private Attributes classesOf(Element element, String... base) {
+        var classes = new LinkedHashSet<String>(base.length + 3);
         classes.addAll(List.of(base));
         classes.add("html-" + element.tag());
         for (var name : element.classes()) {
-            classes.add("html-" + name);
+            if (DocumentStyles.forwardable(name)) {
+                classes.add("html-" + name);
+            }
+        }
+        var author = authored.classOf(element);
+        if (author != null) {
+            classes.add(author);
         }
         return Attributes.NONE.classes(classes.toArray(String[]::new));
+    }
+
+    /// `marks` with the generated class of the inline element around them replaced
+    /// by `author`, the innermost one's, which already holds everything the outer
+    /// ones said: a word carries one, so two rules of equal weight never have to
+    /// agree on it.
+    private static Set<String> authoredOver(Set<String> marks, @Nullable String author) {
+        if (author == null && marks.stream().noneMatch(mark -> mark.startsWith(DocumentStyles.PREFIX))) {
+            return marks;
+        }
+        var replaced = new LinkedHashSet<String>(marks.size() + 1);
+        for (var mark : marks) {
+            if (!mark.startsWith(DocumentStyles.PREFIX)) {
+                replaced.add(mark);
+            }
+        }
+        if (author != null) {
+            replaced.add(author);
+        }
+        return replaced;
     }
 
     /// `attributes` with `first` added to its classes, keeping its id and key.

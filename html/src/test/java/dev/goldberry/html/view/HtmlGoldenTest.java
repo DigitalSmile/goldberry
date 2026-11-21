@@ -66,9 +66,35 @@ class HtmlGoldenTest {
             <p>AT&amp;T, &#38; the last word. <img src="none.png" alt="[a picture]"></p>
             """;
 
+    /// A mail as a newsletter tool writes one: a `<style>` with a class and a hover
+    /// rule, `style=` on almost everything, a `bgcolor` from before CSS, a hidden
+    /// preview line, and a colour that cannot be read on the dark theme.
+    private static final String MAIL = """
+            <style>
+              .card { background-color: #ffffff; padding: 16px; border-radius: 8px; border: 1px solid #d0d7de }
+              .card h2 { color: #0b3d91; margin: 0 }
+              .muted { color: #8a8a8a }
+              a:hover { color: #d1242f }
+            </style>
+            <div style="display:none">Your October statement is ready</div>
+            <div class="card">
+              <h2>October statement</h2>
+              <p>Hello Ada, your statement is <strong style="color:#1a7f37">ready</strong>.</p>
+              <p class="muted">Faint grey on white still reads, because it is darkened.</p>
+              <p style="color:#eeeeee">This one was too faint and is replaced.</p>
+              <table><tr><td bgcolor="#fff8c5" style="padding:8px">Due <b>14 November</b></td></tr></table>
+              <p><a href="https://example.com/statement">View the statement</a></p>
+            </div>
+            <p style="color:#cc0000; font-size: 12px">A red line on the reader's own surface takes the theme's colour.</p>
+            """;
+
     private void paint(String name, Theme theme, int width, int height) {
+        paint(name, theme, width, height, view());
+    }
+
+    private void paint(String name, Theme theme, int width, int height, Widget view) {
         RendererRequirement.enforce();
-        var tree = new ElementTree(view());
+        var tree = new ElementTree(view);
         var renderer = new WidgetRenderer(
                 List.of(
                         Controls.baseStylesheet(),
@@ -110,6 +136,20 @@ class HtmlGoldenTest {
     @DisplayName("the same page on the light theme, which is a different set of tokens")
     void light() {
         paint("html-light", Theme.NORD_LIGHT, 460, 720);
+    }
+
+    /// A mail's own styles, adapted: its white card kept, its text made to read on it,
+    /// and its loose red line on the theme's surface in the theme's colour.
+    @Test
+    @DisplayName("a styled mail on the dark theme, its colours adapted")
+    void mailDark() {
+        paint("html-mail-dark", Theme.NORD_DARK, 460, 400, HtmlView.of(MAIL).id("page"));
+    }
+
+    @Test
+    @DisplayName("the same mail on the light theme")
+    void mailLight() {
+        paint("html-mail-light", Theme.NORD_LIGHT, 460, 400, HtmlView.of(MAIL).id("page"));
     }
 
     /// The `button.link` variant is a control with states, and a golden of a page at

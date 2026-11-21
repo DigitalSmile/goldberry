@@ -200,6 +200,11 @@ module dev.goldberry.core {
     // backend sees it.
     exports dev.goldberry.input.cursor;
 
+    // Shortcuts that work while the application is not focused: the desktop
+    // portal, X11 key grabs, Windows and Carbon hotkeys, each granted rather
+    // than assumed.
+    exports dev.goldberry.input.global;
+
     // The frame clock, the three easing curves, and the per-node animation
     // overlay CSS transitions run through. Exported because an application
     // supplies the clock (a test drives a virtual one so a golden image can

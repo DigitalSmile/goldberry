@@ -98,7 +98,7 @@ import dev.goldberry.text.flow.WordBreak;
 /// ## What is not here
 ///
 /// The subset is closed. A property the engine does not know, such as
-/// `backdrop-filter` or `letter-spacing`, is ignored, and the stylesheet that
+/// `float` or `mask-image`, is ignored, and the stylesheet that
 /// names it warns once per property when it is parsed ([#isProperty] is the
 /// question it asks); a known property with a value it cannot read is dropped
 /// with a warning that quotes the text. Each property arrives with the thing that paints it, which is why the
@@ -855,6 +855,14 @@ public record ComputedStyle(
                 FilterParser.parse(value, context, color)
                         .map(v -> presence(
                                 presence.compositing(presence.compositing().filter(v))))
+                        .orElseGet(() -> dropped(property, value));
+
+            // The same functions, applied to what is drawn under the box and
+            // shown inside its rounded border. The box is not a group for it.
+            case "backdrop-filter", "-webkit-backdrop-filter" ->
+                FilterParser.parse(value, context, color)
+                        .map(v -> presence(
+                                presence.compositing(presence.compositing().backdropFilter(v))))
                         .orElseGet(() -> dropped(property, value));
 
             case "clip-path" ->

@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 
+import dev.goldberry.css.cascade.ScopedRules;
 import dev.goldberry.css.container.ContainerType;
 import dev.goldberry.css.container.QueryContainer;
 import dev.goldberry.css.select.PseudoElement;
@@ -31,6 +32,7 @@ public final class TestElement implements StyleElement {
     private StyleElement openedFrom;
     private PseudoElement pseudoElement;
     private QueryContainer container;
+    private ScopedRules scope;
 
     private TestElement(String type) {
         this.type = type;
@@ -134,6 +136,24 @@ public final class TestElement implements StyleElement {
 
     /// Makes this the root of a popup opened from `opener`: its
     /// [#selectorParent()] steps there, and its [#parent()] stays null.
+    /// Rules this element carries for itself and its subtree, as a
+    /// `StyleScope` does in the element tree.
+    public TestElement scoped(ScopedRules rules) {
+        this.scope = rules;
+        return this;
+    }
+
+    @Override
+    public List<ScopedRules> scopes() {
+        var found = new ArrayList<ScopedRules>();
+        for (var current = this; current != null; current = current.parent) {
+            if (current.scope != null) {
+                found.add(current.scope);
+            }
+        }
+        return found;
+    }
+
     public TestElement openedFrom(StyleElement opener) {
         this.openedFrom = opener;
         return this;

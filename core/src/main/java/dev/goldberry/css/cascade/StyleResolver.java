@@ -1058,9 +1058,11 @@ public final class StyleResolver {
             }
             var sublayer = sublayerOf(candidate.layer(), rule);
             for (var declaration : rule.declarations()) {
-                matches.add(new Match(declaration, candidate.layer(), sublayer, best, candidate.sheet(), rule.order()));
+                matches.add(
+                        new Match(declaration, candidate.layer(), sublayer, best, candidate.sheet(), rule.order(), 0));
             }
         }
+        scoped(element, matches);
 
         // Weakest first, so a later put() overwrites a weaker one.
         matches.sort(CASCADE);
@@ -1091,6 +1093,45 @@ public final class StyleResolver {
             revert(winners, matches);
         }
         return winners;
+    }
+
+    /// Adds the matches of every [ScopedRules] `element` is under.
+    ///
+    /// Each scope ranks above the window's sheets and the nearer of two ranks
+    /// above the farther, which [#CASCADE] reads from [Match#scope] before
+    /// specificity. The selectors are single compounds by [ScopedRules]'
+    /// construction, so matching one is asking the element itself and nothing
+    /// above it.
+    private void scoped(StyleElement element, List<Match> matches) {
+        var scopes = element.scopes();
+        if (scopes.isEmpty()) {
+            return;
+        }
+        for (var at = 0; at < scopes.size(); at++) {
+            var scope = scopes.get(at);
+            var rank = scopes.size() - at;
+            for (var rule : scope.candidates(element.type(), element.id(), element.classes())) {
+                var best = -1;
+                for (var selector : rule.selectors()) {
+                    if (SelectorMatcher.matches(selector, element, SelectorMatcher.Reach.OWN_TREE)) {
+                        best = Math.max(best, selector.specificity());
+                    }
+                }
+                if (best < 0) {
+                    continue;
+                }
+                for (var declaration : rule.declarations()) {
+                    matches.add(new Match(
+                            declaration,
+                            CascadeLayer.INLINE,
+                            UNLAYERED,
+                            best,
+                            stylesheets.size(),
+                            scope.order(rule),
+                            rank));
+                }
+            }
+        }
     }
 
     private static boolean isRevert(List<Token> value) {
@@ -1180,6 +1221,12 @@ public final class StyleResolver {
     /// `!important` first because it outranks everything — with fixed layers
     /// there is no origin for it to invert, so it is simply the top key.
     ///
+    /// Then the scope: a declaration from a [ScopedRules] a node is under beats
+    /// every normal declaration from the window's sheets, and the nearer of two
+    /// scopes wins. A document's own styles are an origin of their own, as an
+    /// author's sheet is above a browser's, and specificity cannot reach across
+    /// two origins without making the order inconsistent.
+    ///
     /// Then specificity, then layer, then source order. Layer *after* specificity
     /// is the rule: a later layer wins at equal specificity, which makes a layer
     /// an extension of source order rather than the override `@layer` provides. A
@@ -1209,6 +1256,7 @@ public final class StyleResolver {
 
     private static final Comparator<Match> CASCADE = Comparator.<Match, Boolean>comparing(
                     m -> m.declaration().important())
+            .thenComparingInt(Match::scope)
             .thenComparingInt(Match::specificity)
             .thenComparing(Match::layer)
             .thenComparingInt(Match::sublayerKey)
@@ -1218,8 +1266,20 @@ public final class StyleResolver {
     /// @param sublayer the rule's `@layer` rank, [#UNLAYERED] for none
     /// @param sheet    the sheet's index in this resolver's list — see [Candidate]
     /// @param order    the rule's index inside that sheet
+    /// @param scope    0 for a rule in the window's sheets, and for a rule a
+    ///                 [ScopedRules] holds its rank among the scopes the element
+    ///                 is under, the nearest highest: a scoped declaration beats
+    ///                 every normal one from the sheets whatever its specificity,
+    ///                 and loses to an important one, which is how an
+    ///                 application insists
     private record Match(
-            Declaration declaration, CascadeLayer layer, int sublayer, int specificity, int sheet, int order) {
+            Declaration declaration,
+            CascadeLayer layer,
+            int sublayer,
+            int specificity,
+            int sheet,
+            int order,
+            int scope) {
 
         /// The `@layer` rank as the cascade sorts it: as it is for a normal
         /// declaration, and the other way round for an important one.

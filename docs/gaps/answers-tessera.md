@@ -372,7 +372,7 @@ box. Over a GPU layer (a `canvas3d`, video on the GPU) the box draws its
 background instead, which is the opaque fallback Tessera uses today, so frost
 over a call's video tiles stays opaque.
 
-**Landed.** —
+**Landed.** Built on Goldberry's master (not yet in a snapshot), ADR-0709. `backdrop-filter` takes `filter`'s functions and runs them over what is drawn under the box, inside its border and radii, at its opacity and through its transform: `.control-bar { background: rgb(236 239 244 / 35%); border-radius: 12px; backdrop-filter: blur(24px) saturate(110%) }`. `-webkit-backdrop-filter` is an alias. What is under the box is drawn again rather than read back, so a partial repaint never frosts twice, and a change within the blur's reach repaints the whole bar. At the window's edge the edge pixels are repeated, so a bar along it stays evenly frosted. Over a call's video tiles, or any GPU layer, the bar shows its own background colour at full strength: the opaque surface Tessera uses today, now automatic. Inside a group (`opacity`, `filter`, `isolation`) or a rounded clip, only what that group drew is frosted. A frosted box under another one is drawn without its own frost in the upper one.
 
 ## G-16. Layout (FLIP) animation
 
@@ -439,7 +439,7 @@ How author colours meet the theme is still being designed.
 
 **Today.** As the entry says: a server-side subset.
 
-**Landed.** —
+**Landed.** Built on Goldberry's master (not yet in a snapshot), ADR-0710. `html-view` applies a mail's own `<style>`, `style=`, `bgcolor` and `<font color>` to that page alone: the rules are matched against the mail's own tree, so `ul > li`, `td a` and `p:first-child` mean what they say. They reach the page's widgets as one generated class per element, held in a scope round the page, so one mail's rules cannot reach the shell or the mail beside it. They win over the application's own sheets for the page's nodes; an application that has to insist writes `!important`. What is read is the safe part: colour, type, spacing, boxes, borders, corners, `max-width`, `display: none` for the preview line. Nothing that fetches (`url()` included), nothing that moves a box out of the page, no `var()` or custom properties, no `font-family`, and no at-rules, so a phone `@media` is skipped. Colour is `author-styles=` / `HtmlView.authorStyles(...)`: `adapted` by default keeps a background the mail paints and holds text on it to 4.5:1, its own colour where that reads and dark or light ink where it does not, and gives a link on it a readable blue. A text colour with no background of the mail's under it takes the theme's. `theme-colours` keeps the layout with every colour the theme's, `as-written` keeps everything, `ignored` is the old rendering. The server-side subset and the plain-text fallback can go: `html-view author-styles="adapted" bind="mail.body"`. Two limits: a `background` on a `span` is drawn round each word rather than the run, and `:last-child` never matches.
 
 ## G-25. Spellcheck
 
@@ -491,7 +491,7 @@ push-to-talk needs) while the app is unfocused:
 - Windows: a hotkey plus a keyboard hook for the release.
 - macOS: Carbon hotkeys.
 
-**Landed.** —
+**Landed.** Built on Goldberry's master (not yet in a snapshot), ADR-0711. `GlobalShortcuts.open()` on the UI thread, then `bind(List.of(GlobalShortcut.of("talk", "Push to talk", "Ctrl+Alt+T")), event -> microphone.open(event.isPress()))`, which answers a `Grant` per shortcut: `Granted(id, trigger)`, `Refused(id, DENIED | TAKEN | UNMAPPABLE, …)` or `Unsupported`. Each shortcut is heard once going down and once coming up, with repeats dropped, and one held when the shortcuts are rebound or closed is released first. On Wayland the GlobalShortcuts portal asks the user, who may pick another trigger (the granted `trigger` is theirs), under the desktop entry id `-Dgoldberry.desktop.id` names. On X11 it is a root-window key grab that ignores Caps Lock and Num Lock. On Windows it is `RegisterHotKey`, with the release noticed within 20 ms. On macOS it is Carbon's `RegisterEventHotKey`, which needs no Accessibility permission. Only keys `Key` names can be bound, so F13–F24 and media keys cannot be asked for yet. `GlobalShortcuts.simulated()` drives Tessera's push-to-talk tests. Verified against a test portal and on X11; the Windows and macOS code is written and not yet run.
 
 ## G-30. Shared memory between `Canvas3d` layers and Board tiles
 

@@ -123,13 +123,27 @@ takes a copy, line by line.</p>
 
 <h2>What it does not do, drawn honestly</h2>
 
-<p>A <code>&lt;style&gt;</code> block is kept in the model and applied by nothing: the
-cascade here is the application's stylesheets, which is what makes this page follow
-the theme rather than fight it.</p>
+<p>A page's own <code>&lt;style&gt;</code> and <code>style=</code> apply to this page
+and to nothing else in the window. A colour is kept where it can be seen to read: the
+receipt below paints its own white, so its text is held to that white, in either
+theme.</p>
 
-<style>h1 { color: hotpink }</style>
+<style>
+  .receipt { background-color: #ffffff; border: 1px solid #d0d7de; border-radius: 8px; padding: 12px }
+  .receipt .total { font-weight: bold; color: #1a7f37 }
+  h1 { color: hotpink }
+</style>
 
-<p>Nothing above turned pink, and no <code>&lt;script&gt;</code> ran:</p>
+<div class="receipt">
+  <p>Order <b>#1042</b>: two pots of tea and a tin of biscuits.</p>
+  <p class="total">Paid: £18.40</p>
+  <p style="color:#dddddd">A grey too faint for white is darkened until it reads.</p>
+</div>
+
+<p>The heading at the top asked to be hot pink, and is not: a colour with no ground of
+the page's own under it would sit on the theme's surface, light or dark, so it is the
+theme's. Nothing that fetches, moves a box out of the page or touches the theme is read
+at all, and no <code>&lt;script&gt;</code> ran:</p>
 
 <script>document.title = "nor this"</script>
 

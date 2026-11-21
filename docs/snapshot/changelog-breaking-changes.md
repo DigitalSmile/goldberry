@@ -270,3 +270,13 @@ Everything below is measured against 2026.2 (tag commit d3eacfdc).
   jars at the same version as `goldberry-media`; an application's own FFmpeg
   build runs this release's layout probe again.
   <!-- ADR-0558, ADR-0599 -->
+- `Compositing` has a fifth component, `backdropFilter`; the four-argument
+  constructor stays and means none. A record pattern over `Compositing` names
+  five components. <!-- ADR-0709 -->
+- `html-view` applies a page's own `<style>`, `style=`, `bgcolor` and
+  `<font color>` by default (a safe subset, colours adapted to the theme).
+  `HtmlView.authorStyles(AuthorStyles.IGNORED)` or `author-styles="ignored"`
+  restores the theme-only rendering. <!-- ADR-0710 -->
+- `HtmlView` has a new component, `styles`, before `attributes`; the
+  five-argument constructor stays. A record pattern over `HtmlView` names six
+  components. <!-- ADR-0710 -->

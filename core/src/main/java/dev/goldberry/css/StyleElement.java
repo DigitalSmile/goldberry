@@ -5,6 +5,7 @@ import java.util.Set;
 
 import org.jspecify.annotations.Nullable;
 
+import dev.goldberry.css.cascade.ScopedRules;
 import dev.goldberry.css.cascade.StyleResolver;
 import dev.goldberry.css.container.QueryContainer;
 import dev.goldberry.css.parse.Token;
@@ -69,6 +70,16 @@ public interface StyleElement {
     /// nothing.
     default @Nullable StyleElement selectorParent() {
         return parent();
+    }
+
+    /// The scoped rules this element is under, **nearest first**: those its own
+    /// node carries, then each ancestor's, up its own tree.
+    ///
+    /// Empty for nearly every element, and the default answers so. The element
+    /// tree answers it for the nodes under a `StyleScope`; a hand-written element
+    /// in a test can answer it directly.
+    default List<ScopedRules> scopes() {
+        return List.of();
     }
 
     /// The custom properties this element resolved last time, if they are still

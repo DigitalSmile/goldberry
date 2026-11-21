@@ -290,7 +290,10 @@ decl | background-image: image-set("a.png" 1x) | DROPPED | unplanned
 
 decl | filter: blur(2px) | APPLIED | -
 decl | filter: url(#soften) | DROPPED | by-design
-decl | backdrop-filter: blur(2px) | UNKNOWN | by-design
+decl | backdrop-filter: blur(2px) | APPLIED | -
+decl | backdrop-filter: blur(8px) saturate(140%) | APPLIED | -
+decl | -webkit-backdrop-filter: blur(2px) | APPLIED | -
+decl | backdrop-filter: url(#soften) | DROPPED | by-design
 decl | mix-blend-mode: multiply | APPLIED | -
 decl | mix-blend-mode: hue | DROPPED | by-design
 decl | isolation: isolate | APPLIED | -

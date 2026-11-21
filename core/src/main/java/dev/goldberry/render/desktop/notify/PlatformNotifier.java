@@ -327,9 +327,12 @@ public final class PlatformNotifier implements BackendNotifier {
         }
     }
 
-    /// The application's desktop entry id: the property, or the entry the
-    /// desktop started it from.
-    static @Nullable String desktopId() {
+    /// The application's desktop entry id, without `.desktop`: the property,
+    /// or the entry the desktop started it from, or null where neither says.
+    ///
+    /// Public because the desktop asks for it by more than a notification: a
+    /// global shortcut is listed under it too.
+    public static @Nullable String desktopId() {
         return desktopId(System.getProperty(DESKTOP_ID_PROPERTY), System.getenv("GIO_LAUNCHED_DESKTOP_FILE"));
     }
 

@@ -11,6 +11,7 @@ import org.slf4j.Logger;
 
 import dev.goldberry.css.StyleElement;
 import dev.goldberry.log.Logs;
+import dev.goldberry.widget.style.StyleScope;
 
 /// The element tree, and the rebuild schedule that drives it.
 ///
@@ -250,5 +251,22 @@ public final class ElementTree {
 
     void forget(Element element) {
         dirty.remove(element);
+    }
+
+    /// How many [StyleScope] nodes are mounted in this tree, so that an element
+    /// asked for its scopes in a tree with none answers without walking up.
+    private int scopes;
+
+    void scopeMounted() {
+        scopes++;
+    }
+
+    void scopeUnmounted() {
+        scopes--;
+    }
+
+    /// Whether any [StyleScope] is mounted here.
+    boolean hasScopes() {
+        return scopes > 0;
     }
 }

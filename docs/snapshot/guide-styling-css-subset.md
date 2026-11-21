@@ -675,7 +675,7 @@ in the subset.
 written. A `drop-shadow()` follows the shape of what is drawn, its rounded
 corners and its transparent parts, where `box-shadow` follows the box. A
 blurred or shadowed box draws past its edges by about three times the radius.
-`backdrop-filter` is not in the subset.
+`backdrop-filter` is described in `guide-styling-backdrop-filter.md` piece 1.
 
 ```css
 .disabled-card { filter: grayscale(1) opacity(0.6) }

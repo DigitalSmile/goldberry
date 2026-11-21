@@ -140,9 +140,10 @@ final class AdvancedCards {
         return new ShowcaseCard(
                         "styling-compositing",
                         "Clip, blend and filter",
-                        "clip-path cuts a box to a circle, an ellipse, a polygon or a rounded inset, filter runs"
-                                + " over everything it draws, and mix-blend-mode blends it with what is under it,"
-                                + " kept inside its group by isolation.",
+                        "clip-path cuts a box to a shape, filter runs over everything it draws, and"
+                                + " mix-blend-mode blends it with what is under it, kept inside its group by"
+                                + " isolation. backdrop-filter runs over what is under a box instead, inside its"
+                                + " rounded border: frosted glass.",
                         DocLink.to(CHAPTER, "border-outline-and-shadow"))
                 .of(
                         Demo.row(
@@ -161,7 +162,13 @@ final class AdvancedCards {
                                 "blend-group",
                                 Demo.box("multiply", "blend-plate", "blend-multiply"),
                                 Demo.box("screen", "blend-plate", "blend-screen"),
-                                Demo.box("difference", "blend-plate", "blend-difference")));
+                                Demo.box("difference", "blend-plate", "blend-difference")),
+                        Demo.row(
+                                "backdrop-row",
+                                Demo.box("blur(6px)", "frost-plate", "frost-blur"),
+                                Demo.box("blur() saturate()", "frost-plate", "frost-saturate"),
+                                Demo.box("grayscale(1)", "frost-plate", "frost-grey"),
+                                Demo.box("none", "frost-plate")));
     }
 
     static Widget lettering() {

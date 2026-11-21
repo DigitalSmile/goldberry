@@ -39,11 +39,13 @@ import dev.goldberry.html.model.HtmlDocument;
 ///   parenting of content out of a table, no adoption agency for `<b>a<i>b</b>c</i>`,
 ///   no namespaces. A fragment stays a fragment and misnesting is closed innermost
 ///   first, which is what a hand-written document means.
-/// - **Not a CSS engine.** A `<style>` block is parsed and kept in the model and drawn
-///   by nothing: the cascade an `html-view` is under is the application's stylesheets,
-///   which is what makes a page follow the theme instead of fighting it
-///   ([dev.goldberry.html.view.HtmlStyles]). An inline `style=`
-///   attribute is read into the model and not applied either.
+/// - **Not a CSS engine.** The cascade an `html-view` is under is the application's
+///   stylesheets, which is what makes a page follow the theme
+///   ([dev.goldberry.html.view.HtmlStyles]). A page's own `<style>` and `style=` are
+///   kept in the model as written, and `html-view` applies a safe subset of them to
+///   that page alone, its colours as [dev.goldberry.html.view.AuthorStyles] says:
+///   matched against the document, handed to the widgets as a class per element and
+///   scoped to the page, so nothing a page writes reaches the application round it.
 /// - **Not a resolver.** An `href` and a `src` are strings. Whether one may be
 ///   followed, what a relative path is relative to and what fetching costs are the
 ///   application's answers, in the same division the toolkit draws for URL schemes

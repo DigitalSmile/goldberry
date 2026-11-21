@@ -22,6 +22,8 @@ import dev.goldberry.natives.Upcalls;
 import dev.goldberry.natives.desktop.macos.MacMenuBar;
 import dev.goldberry.natives.desktop.macos.MacNotifier;
 import dev.goldberry.natives.desktop.notify.WindowsNotifier;
+import dev.goldberry.natives.desktop.shortcuts.CarbonHotkeys;
+import dev.goldberry.natives.desktop.shortcuts.XlibHotkeys;
 import dev.goldberry.natives.glib.GlibLog;
 import dev.goldberry.natives.sdl.SdlEventWatch;
 import dev.goldberry.natives.sdl.SdlFileDialogs;
@@ -77,13 +79,18 @@ public final class ForeignSurface {
             MacNotifier.class,
             // The window procedure of the Windows notification icon's own
             // message-only window, which hears a click on the balloon.
-            WindowsNotifier.class);
+            WindowsNotifier.class,
+            // The X error handler a global shortcut's grab is made under, and
+            // the Carbon event handler that hears a macOS hotkey.
+            XlibHotkeys.class,
+            CarbonHotkeys.class);
 
     /// The classes that bind a system library outside a `…calls` package —
-    /// libdbus, libobjc, shell32, ole32, advapi32, Security, libX11 — and declare every shape they send as a
-    /// constant, so that initialising them records the shapes wherever the
-    /// library is missing. Their libraries are opened by nested holders, which
-    /// this does not touch.
+    /// libdbus, libobjc, shell32, ole32, advapi32, Security, libX11, libc,
+    /// Carbon — and declare every shape they send as a constant, so that
+    /// initialising them records the shapes wherever the library is missing.
+    /// Their libraries are opened by nested holders, which this does not
+    /// touch.
     static final List<String> SYSTEM_LIBRARY_SHAPES = List.of(
             "dev.goldberry.natives.desktop.dbus.Dbus",
             "dev.goldberry.natives.desktop.notify.WindowsNotifier",
@@ -93,7 +100,11 @@ public final class ForeignSurface {
             "dev.goldberry.natives.desktop.keychain.WindowsCredentials",
             "dev.goldberry.natives.desktop.macos.ObjC",
             "dev.goldberry.natives.x11.XlibVisuals",
-            "dev.goldberry.natives.x11.XlibCompositing");
+            "dev.goldberry.natives.x11.XlibCompositing",
+            "dev.goldberry.natives.desktop.shortcuts.PollWakeup",
+            "dev.goldberry.natives.desktop.shortcuts.XlibHotkeys",
+            "dev.goldberry.natives.desktop.shortcuts.WindowsHotkeys",
+            "dev.goldberry.natives.desktop.shortcuts.CarbonHotkeys");
 
     private ForeignSurface() {}
 
