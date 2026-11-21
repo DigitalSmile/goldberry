@@ -156,13 +156,22 @@ module dev.goldberry.natives {
             dev.goldberry.html;
     exports dev.goldberry.natives.md4c.enums to
             dev.goldberry.html;
-    /// SDL's audio streams, exported to `:media` and to nobody else.
+    /// SDL's audio streams, exported to `:media` and `:mic` and to nobody else.
     ///
-    /// The toolkit plays no audio itself, and SDL, already linked in, is a
-    /// second audio library the media engine does not have to ship. What crosses
-    /// is a direct `ByteBuffer` in and frame counts out.
+    /// The toolkit plays and records no audio itself, and SDL, already linked
+    /// in, is a second audio library neither module has to ship. What crosses
+    /// is a direct `ByteBuffer` and frame counts.
     exports dev.goldberry.natives.sdl.audio to
-            dev.goldberry.media;
+            dev.goldberry.media,
+            dev.goldberry.mic;
+    /// SDL's cameras, to `:camera` alone. A frame is lent as a read-only
+    /// `ByteBuffer` scoped to its release.
+    exports dev.goldberry.natives.sdl.camera to
+            dev.goldberry.camera;
+    /// SDL's device events, to the two modules that hear hot-plug.
+    exports dev.goldberry.natives.sdl.device to
+            dev.goldberry.mic,
+            dev.goldberry.camera;
     // SDL_GPU: to :core, which claims a window and presents through it, and to
     // :gpu, whose public API is built on it. The wrappers carry no
     // MemorySegment.

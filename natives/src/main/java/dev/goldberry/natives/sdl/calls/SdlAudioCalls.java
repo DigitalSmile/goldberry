@@ -12,11 +12,13 @@ import java.lang.invoke.MethodHandle;
 
 import dev.goldberry.natives.Downcalls;
 
-/// SDL's audio streams, for `goldberry-media`'s audio sink.
+/// SDL's audio streams, for `goldberry-media`'s audio sink and
+/// `goldberry-mic`'s recordings.
 ///
 /// A push stream on the default playback device: the media engine puts
 /// interleaved f32 into it and reads back how much is still queued, which is its
-/// audio clock. See [Downcalls] for why each handle is a `static final` constant.
+/// audio clock. A recording stream is the other way round: SDL's device thread
+/// fills it, and the caller takes what is there. See [Downcalls] for why each handle is a `static final` constant.
 public record SdlAudioCalls(
         OpenAudioDeviceStream openAudioDeviceStream,
         ResumeAudioStreamDevice resumeAudioStreamDevice,
@@ -26,7 +28,12 @@ public record SdlAudioCalls(
         ClearAudioStream clearAudioStream,
         SetAudioStreamGain setAudioStreamGain,
         SetAudioStreamFrequencyRatio setAudioStreamFrequencyRatio,
-        DestroyAudioStream destroyAudioStream) {
+        DestroyAudioStream destroyAudioStream,
+        GetAudioRecordingDevices getAudioRecordingDevices,
+        GetAudioDeviceName getAudioDeviceName,
+        GetAudioDeviceFormat getAudioDeviceFormat,
+        GetAudioStreamData getAudioStreamData,
+        GetAudioStreamAvailable getAudioStreamAvailable) {
 
     /// `SDL_AUDIO_F32`: 32-bit float samples in native byte order, which on
     /// every target here is little-endian (`SDL_AUDIO_F32LE`).
@@ -35,6 +42,10 @@ public record SdlAudioCalls(
     /// `SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK`: whichever output the user chose,
     /// followed when they change it.
     public static final int SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK = 0xFFFFFFFF;
+
+    /// `SDL_AUDIO_DEVICE_DEFAULT_RECORDING`: whichever input the user chose,
+    /// followed when they change it.
+    public static final int SDL_AUDIO_DEVICE_DEFAULT_RECORDING = 0xFFFFFFFE;
 
     /// Binds every function above.
     ///
@@ -49,7 +60,12 @@ public record SdlAudioCalls(
                 new ClearAudioStream(lookup),
                 new SetAudioStreamGain(lookup),
                 new SetAudioStreamFrequencyRatio(lookup),
-                new DestroyAudioStream(lookup));
+                new DestroyAudioStream(lookup),
+                new GetAudioRecordingDevices(lookup),
+                new GetAudioDeviceName(lookup),
+                new GetAudioDeviceFormat(lookup),
+                new GetAudioStreamData(lookup),
+                new GetAudioStreamAvailable(lookup));
     }
 
     /// `SDL_AudioStream *SDL_OpenAudioDeviceStream(SDL_AudioDeviceID devid,`
@@ -252,6 +268,124 @@ public record SdlAudioCalls(
                 FD_SDL_DestroyAudioStream.invokeExact(address, stream);
             } catch (Throwable t) {
                 throw Downcalls.failure("SDL_DestroyAudioStream", t);
+            }
+        }
+    }
+
+    /// `SDL_AudioDeviceID *SDL_GetAudioRecordingDevices(int *count)`
+    ///
+    /// The recording devices there are now, `count` of them and a zero after,
+    /// in memory the caller releases with `SDL_free`. Null on failure.
+    public static final class GetAudioRecordingDevices {
+
+        private static final MethodHandle FD_SDL_GetAudioRecordingDevices =
+                Downcalls.link(FunctionDescriptor.of(ADDRESS, ADDRESS));
+
+        private final MemorySegment address;
+
+        GetAudioRecordingDevices(SymbolLookup lookup) {
+            this.address = Downcalls.symbol(lookup, "SDL_GetAudioRecordingDevices");
+        }
+
+        public MemorySegment call(MemorySegment count) {
+            try {
+                return (MemorySegment) FD_SDL_GetAudioRecordingDevices.invokeExact(address, count);
+            } catch (Throwable t) {
+                throw Downcalls.failure("SDL_GetAudioRecordingDevices", t);
+            }
+        }
+    }
+
+    /// `const char *SDL_GetAudioDeviceName(SDL_AudioDeviceID devid)`
+    ///
+    /// SDL's string, valid while the device is; null for an id it does not know.
+    public static final class GetAudioDeviceName {
+
+        private static final MethodHandle FD_SDL_GetAudioDeviceName =
+                Downcalls.link(FunctionDescriptor.of(ADDRESS, JAVA_INT));
+
+        private final MemorySegment address;
+
+        GetAudioDeviceName(SymbolLookup lookup) {
+            this.address = Downcalls.symbol(lookup, "SDL_GetAudioDeviceName");
+        }
+
+        public MemorySegment call(int device) {
+            try {
+                return (MemorySegment) FD_SDL_GetAudioDeviceName.invokeExact(address, device);
+            } catch (Throwable t) {
+                throw Downcalls.failure("SDL_GetAudioDeviceName", t);
+            }
+        }
+    }
+
+    /// `bool SDL_GetAudioDeviceFormat(SDL_AudioDeviceID devid, SDL_AudioSpec *spec, int *sample_frames)`
+    ///
+    /// The format the device runs at, or would open in, and its buffer size in
+    /// sample frames.
+    public static final class GetAudioDeviceFormat {
+
+        private static final MethodHandle FD_SDL_GetAudioDeviceFormat =
+                Downcalls.link(FunctionDescriptor.of(JAVA_BOOLEAN, JAVA_INT, ADDRESS, ADDRESS));
+
+        private final MemorySegment address;
+
+        GetAudioDeviceFormat(SymbolLookup lookup) {
+            this.address = Downcalls.symbol(lookup, "SDL_GetAudioDeviceFormat");
+        }
+
+        public boolean call(int device, MemorySegment spec, MemorySegment sampleFrames) {
+            try {
+                return (boolean) FD_SDL_GetAudioDeviceFormat.invokeExact(address, device, spec, sampleFrames);
+            } catch (Throwable t) {
+                throw Downcalls.failure("SDL_GetAudioDeviceFormat", t);
+            }
+        }
+    }
+
+    /// `int SDL_GetAudioStreamData(SDL_AudioStream *stream, void *buf, int len)`
+    ///
+    /// Takes up to `len` bytes of converted samples out of the stream: the
+    /// number of bytes taken, or -1 on failure.
+    public static final class GetAudioStreamData {
+
+        private static final MethodHandle FD_SDL_GetAudioStreamData =
+                Downcalls.link(FunctionDescriptor.of(JAVA_INT, ADDRESS, ADDRESS, JAVA_INT));
+
+        private final MemorySegment address;
+
+        GetAudioStreamData(SymbolLookup lookup) {
+            this.address = Downcalls.symbol(lookup, "SDL_GetAudioStreamData");
+        }
+
+        public int call(MemorySegment stream, MemorySegment buffer, int length) {
+            try {
+                return (int) FD_SDL_GetAudioStreamData.invokeExact(address, stream, buffer, length);
+            } catch (Throwable t) {
+                throw Downcalls.failure("SDL_GetAudioStreamData", t);
+            }
+        }
+    }
+
+    /// `int SDL_GetAudioStreamAvailable(SDL_AudioStream *stream)`
+    ///
+    /// Bytes of converted samples ready to be taken, or -1 on failure.
+    public static final class GetAudioStreamAvailable {
+
+        private static final MethodHandle FD_SDL_GetAudioStreamAvailable =
+                Downcalls.link(FunctionDescriptor.of(JAVA_INT, ADDRESS));
+
+        private final MemorySegment address;
+
+        GetAudioStreamAvailable(SymbolLookup lookup) {
+            this.address = Downcalls.symbol(lookup, "SDL_GetAudioStreamAvailable");
+        }
+
+        public int call(MemorySegment stream) {
+            try {
+                return (int) FD_SDL_GetAudioStreamAvailable.invokeExact(address, stream);
+            } catch (Throwable t) {
+                throw Downcalls.failure("SDL_GetAudioStreamAvailable", t);
             }
         }
     }

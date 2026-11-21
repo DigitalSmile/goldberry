@@ -12,6 +12,9 @@ import dev.goldberry.natives.sdl.calls.SdlAudioCalls;
 import dev.goldberry.natives.sdl.calls.SdlGpuCommandCalls;
 import dev.goldberry.natives.sdl.calls.SdlGpuPipelineCalls;
 import dev.goldberry.natives.sdl.calls.SdlGpuSwapchainCalls;
+import dev.goldberry.natives.sdl.camera.SdlCameraPermission;
+import dev.goldberry.natives.sdl.camera.SdlCameraPixelFormat;
+import dev.goldberry.natives.sdl.camera.SdlCameraPosition;
 import dev.goldberry.natives.sdl.desktop.SdlSystemCursor;
 import dev.goldberry.natives.sdl.desktop.SdlSystemTheme;
 import dev.goldberry.natives.sdl.desktop.SdlTrayEntryFlag;
@@ -140,6 +143,24 @@ public final class NativeConstants {
         constants.add(new NativeConstant(
                 "SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK",
                 Integer.toUnsignedLong(SdlAudioCalls.SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK)));
+        // goldberry-mic's default device, 0xFFFFFFFE: one below playback's, and
+        // the same trap for a signed `int`.
+        constants.add(new NativeConstant(
+                "SDL_AUDIO_DEVICE_DEFAULT_RECORDING",
+                Integer.toUnsignedLong(SdlAudioCalls.SDL_AUDIO_DEVICE_DEFAULT_RECORDING)));
+        // goldberry-camera's enums: positions and permission states are ordinals
+        // (the denied state is -1, which the shim's uint32 row carries as
+        // 0xFFFFFFFF), and the pixel formats are FourCCs a typo turns into a
+        // format no camera offers.
+        for (var position : SdlCameraPosition.values()) {
+            constants.add(new NativeConstant(position.nativeName(), position.value()));
+        }
+        for (var permission : SdlCameraPermission.values()) {
+            constants.add(new NativeConstant(permission.nativeName(), Integer.toUnsignedLong(permission.value())));
+        }
+        for (var format : SdlCameraPixelFormat.values()) {
+            constants.add(new NativeConstant(format.nativeName(), Integer.toUnsignedLong(format.value())));
+        }
         // SDL_GPU's enumerators and bits. The
         // texture formats are positions in a list of more than a hundred that
         // SDL keeps adding to, which is exactly what a hand-copied value gets

@@ -159,3 +159,4 @@ Appended to the index when the records move in, in this order.
 - [ADR-0716 A Wayland drag starts from SDL's own seat](0716-a-wayland-drag-starts-from-sdl-s-own-seat.md)
 - [ADR-0717 A Windows drag runs inside DoDragDrop, and the loop turns there](0717-a-windows-drag-runs-inside-dodragdrop.md)
 - [ADR-0718 A macOS drag is an AppKit session begun on SDL's view](0718-a-macos-drag-is-an-appkit-session-begun-on-sdl-s-view.md)
+- [ADR-0719 Camera and microphone are two modules over SDL, and Linux counts two pulls](0719-camera-and-microphone-are-two-modules-over-sdl.md)

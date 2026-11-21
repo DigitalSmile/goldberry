@@ -177,6 +177,32 @@ public enum SdlEventType {
     /// that sent no `DROP_COMPLETE` would otherwise be dropped twice.
     DROP_BEGIN(0x1002),
 
+    /// An audio device appeared: plugged in, or found when the subsystem
+    /// started. Read with [dev.goldberry.natives.sdl.SdlEventBuffer#deviceId()]
+    /// and [dev.goldberry.natives.sdl.SdlEventBuffer#deviceIsRecording()].
+    ///
+    /// Like every device event here, it is queued only while something pumps
+    /// events: the window loop does, and nothing else.
+    AUDIO_DEVICE_ADDED(0x1100),
+
+    /// An audio device went away. A stream opened on it stops getting samples.
+    AUDIO_DEVICE_REMOVED(0x1101),
+
+    /// The system changed a device's format under it.
+    AUDIO_DEVICE_FORMAT_CHANGED(0x1102),
+
+    /// A camera appeared.
+    CAMERA_DEVICE_ADDED(0x1400),
+
+    /// A camera went away.
+    CAMERA_DEVICE_REMOVED(0x1401),
+
+    /// The user allowed an opened camera to be used: frames follow.
+    CAMERA_DEVICE_APPROVED(0x1402),
+
+    /// The user refused an opened camera, which will never give a frame.
+    CAMERA_DEVICE_DENIED(0x1403),
+
     /// The base of the user-defined event range. Goldberry's cross-thread wakeup
     /// is pushed as one of these.
     USER(0x8000);

@@ -463,6 +463,26 @@ nativeTests.probe('videoPresentProbe', 'dev.goldberry.media.view.VideoPresentPro
     }
 }
 
+// The playback probe: SDL's PulseAudio and PipeWire drivers side by side on
+// this desktop -- pull sizes, the sink's clock, and what PipeWire reports
+// (docs/camera-and-mic.md, D8). Needs a library built with PipeWire and a
+// PipeWire session; read by a person, not part of `check`.
+//
+//   ./gradlew :media:audioDriverProbe [-Pgoldberry.probe.drivers=pulseaudio,pipewire]
+nativeTests.probe('audioDriverProbe', 'dev.goldberry.media.audio.AudioDriverProbe',
+        'Plays through SDL\'s PulseAudio and PipeWire drivers and reports what changes for the audio clock.').configure {
+    workingDir = projectDir
+    systemProperty 'goldberry.media.libdir', libraryDirectory.get()
+    var drivers = providers.gradleProperty('goldberry.probe.drivers')
+    if (drivers.present) {
+        args drivers.get()
+    }
+    var monitor = providers.gradleProperty('goldberry.probe.monitor')
+    if (monitor.present) {
+        systemProperty 'goldberry.probe.monitor', monitor.get()
+    }
+}
+
 // The same tests with no :gpu on the class path, as an application that ships
 // no GPU module runs: video-view draws on the CPU, and every test
 // that is not the GPU lane's passes the same. `goldberry.test.gpuModule` tells

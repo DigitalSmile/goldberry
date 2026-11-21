@@ -205,8 +205,11 @@ class ExportedSurfaceTest {
         }
         sealedTo.put("dev.goldberry.natives.md4c", Set.of("dev.goldberry.html"));
         sealedTo.put("dev.goldberry.natives.md4c.enums", Set.of("dev.goldberry.html"));
-        // SDL's audio streams, for goldberry-media's sink alone.
-        sealedTo.put("dev.goldberry.natives.sdl.audio", Set.of("dev.goldberry.media"));
+        // SDL's audio streams, for goldberry-media's sink and goldberry-mic's
+        // recordings; its cameras and device events, for the two capture modules.
+        sealedTo.put("dev.goldberry.natives.sdl.audio", Set.of("dev.goldberry.media", "dev.goldberry.mic"));
+        sealedTo.put("dev.goldberry.natives.sdl.camera", Set.of("dev.goldberry.camera"));
+        sealedTo.put("dev.goldberry.natives.sdl.device", Set.of("dev.goldberry.mic", "dev.goldberry.camera"));
         // SDL_GPU, to the two modules built on it and no third: `:core` claims
         // windows and presents, `:gpu` is the public API. An application reaches
         // it only through `:gpu`.

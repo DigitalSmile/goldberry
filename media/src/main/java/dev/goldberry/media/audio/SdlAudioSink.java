@@ -52,8 +52,15 @@ import dev.goldberry.natives.sdl.audio.SdlAudioStream;
 ///   has handed over by construction. On macOS SDL's CoreAudio backend then keeps
 ///   three AudioQueue buffers, the one playing and two waiting, and a pull fills
 ///   the one that has just finished: a sample is heard two pulls after SDL takes
-///   it. Three pulls in all, 64 ms at 48 kHz. Elsewhere only the first is
-///   counted, until SDL's WASAPI and PulseAudio backends are read as closely.
+///   it. Three pulls in all, 64 ms at 48 kHz. On Linux a pull is heard one
+///   pull after SDL takes it, through PulseAudio and through PipeWire alike:
+///   two pulls in all, which is 10.7 ms on a PulseAudio stream (256-frame
+///   pulls) and 42.7 ms on a PipeWire one (1024-frame pulls, one graph cycle
+///   for the stream and one for the device, as PipeWire's own port latency
+///   says). A loopback through the sink's monitor puts both paths within a
+///   tenth of a millisecond of each other once both pulls are counted. On
+///   Windows only the first is counted, until SDL's WASAPI backend is
+///   measured as closely.
 /// - **The operating system's**, from [OutputLatency]: the device, its safety
 ///   offset and its stream, where Bluetooth spends 150–250 ms. Asked every
 ///   [#REFRESH] from the audio thread, so a headset connected mid-song is in the
@@ -146,12 +153,17 @@ public final class SdlAudioSink implements AudioSink {
     }
 
     /// How many pulls behind the smoothed queue a sample is heard, before the
-    /// system's latency: three on macOS, where SDL keeps three AudioQueue buffers,
-    /// and elsewhere the one the smoothing runs ahead by (see the class note).
+    /// system's latency: three on macOS, where SDL keeps three AudioQueue
+    /// buffers, two on Linux, where the sound server holds one more, and
+    /// elsewhere the one the smoothing runs ahead by (see the class note).
     ///
     /// @param osName the `os.name` property
     static int pullsAhead(String osName) {
-        return osName.toLowerCase(Locale.ROOT).startsWith("mac") ? 3 : 1;
+        var os = osName.toLowerCase(Locale.ROOT);
+        if (os.startsWith("mac")) {
+            return 3;
+        }
+        return os.startsWith("linux") ? 2 : 1;
     }
 
     @Override

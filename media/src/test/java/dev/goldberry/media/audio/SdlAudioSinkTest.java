@@ -133,10 +133,11 @@ class SdlAudioSinkTest {
     }
 
     @Test
-    @DisplayName("counts three pulls of SDL's buffers on macOS, and the one the smoothing runs ahead elsewhere")
+    @DisplayName(
+            "counts three pulls of SDL's buffers on macOS, two on Linux, and the one the smoothing runs ahead elsewhere")
     void pullsAhead() {
         assertEquals(3, SdlAudioSink.pullsAhead("Mac OS X"));
-        assertEquals(1, SdlAudioSink.pullsAhead("Linux"));
+        assertEquals(2, SdlAudioSink.pullsAhead("Linux"));
         assertEquals(1, SdlAudioSink.pullsAhead("Windows 11"));
     }
 

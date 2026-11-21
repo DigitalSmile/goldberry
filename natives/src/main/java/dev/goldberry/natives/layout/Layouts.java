@@ -455,6 +455,63 @@ public final class Layouts {
                     ValueLayout.JAVA_INT.withName("freq")));
 
     /// ```c
+    /// typedef struct SDL_AudioDeviceEvent {
+    ///     SDL_EventType type; Uint32 reserved; Uint64 timestamp;
+    ///     SDL_AudioDeviceID which; bool recording; Uint8 padding1, padding2, padding3;
+    /// } SDL_AudioDeviceEvent;
+    /// ```
+    ///
+    /// A recording or playback device came, went, or changed format:
+    /// `goldberry-mic`'s hot-plug. `which` is the device's id, and `recording`
+    /// says which of the two lists it is in.
+    public static final NativeStructLayout SDL_AUDIO_DEVICE_EVENT = new NativeStructLayout(
+            "SDL_AudioDeviceEvent",
+            MemoryLayout.structLayout(
+                    ValueLayout.JAVA_INT.withName("type"),
+                    MemoryLayout.paddingLayout(4),
+                    ValueLayout.JAVA_LONG.withName("timestamp"),
+                    ValueLayout.JAVA_INT.withName("which"),
+                    ValueLayout.JAVA_BOOLEAN.withName("recording"),
+                    MemoryLayout.paddingLayout(3)));
+
+    /// ```c
+    /// typedef struct SDL_CameraDeviceEvent {
+    ///     SDL_EventType type; Uint32 reserved; Uint64 timestamp; SDL_CameraID which;
+    /// } SDL_CameraDeviceEvent;
+    /// ```
+    ///
+    /// A camera came or went, or the user answered the permission prompt:
+    /// `goldberry-camera`'s hot-plug. The compiler pads the struct to the eight
+    /// bytes its timestamp aligns to.
+    public static final NativeStructLayout SDL_CAMERA_DEVICE_EVENT = new NativeStructLayout(
+            "SDL_CameraDeviceEvent",
+            MemoryLayout.structLayout(
+                    ValueLayout.JAVA_INT.withName("type"),
+                    MemoryLayout.paddingLayout(4),
+                    ValueLayout.JAVA_LONG.withName("timestamp"),
+                    ValueLayout.JAVA_INT.withName("which"),
+                    MemoryLayout.paddingLayout(4)));
+
+    /// ```c
+    /// typedef struct SDL_CameraSpec {
+    ///     SDL_PixelFormat format; SDL_Colorspace colorspace; int width; int height;
+    ///     int framerate_numerator; int framerate_denominator;
+    /// } SDL_CameraSpec;
+    /// ```
+    ///
+    /// One mode a camera offers, and what `goldberry-camera` opens it in. Both
+    /// enums are `int`s.
+    public static final NativeStructLayout SDL_CAMERA_SPEC = new NativeStructLayout(
+            "SDL_CameraSpec",
+            MemoryLayout.structLayout(
+                    ValueLayout.JAVA_INT.withName("format"),
+                    ValueLayout.JAVA_INT.withName("colorspace"),
+                    ValueLayout.JAVA_INT.withName("width"),
+                    ValueLayout.JAVA_INT.withName("height"),
+                    ValueLayout.JAVA_INT.withName("framerate_numerator"),
+                    ValueLayout.JAVA_INT.withName("framerate_denominator")));
+
+    /// ```c
     /// typedef struct SDL_FColor { float r; float g; float b; float a; } SDL_FColor;
     /// ```
     ///
@@ -1535,6 +1592,9 @@ public final class Layouts {
                 SDL_DISPLAY_MODE,
                 SDL_RECT,
                 SDL_AUDIO_SPEC,
+                SDL_AUDIO_DEVICE_EVENT,
+                SDL_CAMERA_DEVICE_EVENT,
+                SDL_CAMERA_SPEC,
                 SDL_FCOLOR,
                 SDL_GPU_TEXTURE_CREATE_INFO,
                 SDL_GPU_TRANSFER_BUFFER_CREATE_INFO,

@@ -68,6 +68,9 @@ public final class SdlEventBuffer implements AutoCloseable {
     private static final long DROP_DATA_OFFSET = Layouts.SDL_DROP_EVENT.offsetOf("data");
     private static final long DROP_X_OFFSET = Layouts.SDL_DROP_EVENT.offsetOf("x");
     private static final long DROP_Y_OFFSET = Layouts.SDL_DROP_EVENT.offsetOf("y");
+    private static final long AUDIO_DEVICE_OFFSET = Layouts.SDL_AUDIO_DEVICE_EVENT.offsetOf("which");
+    private static final long AUDIO_RECORDING_OFFSET = Layouts.SDL_AUDIO_DEVICE_EVENT.offsetOf("recording");
+    private static final long CAMERA_DEVICE_OFFSET = Layouts.SDL_CAMERA_DEVICE_EVENT.offsetOf("which");
 
     /// Null for a borrowed view — see [#borrowing].
     private final Arena arena;
@@ -434,6 +437,42 @@ public final class SdlEventBuffer implements AutoCloseable {
         event.set(ValueLayout.JAVA_FLOAT, BUTTON_Y_OFFSET, y);
         event.set(ValueLayout.JAVA_BYTE, BUTTON_INDEX_OFFSET, (byte) button);
         event.set(ValueLayout.JAVA_BYTE, BUTTON_CLICKS_OFFSET, (byte) clicks);
+    }
+
+    /// The device an audio or camera device event is about: an
+    /// `SDL_AudioDeviceID` or an `SDL_CameraID`. Only meaningful for
+    /// [SdlEventType#AUDIO_DEVICE_ADDED] and the six after it.
+    public int deviceId() {
+        var type = type();
+        var offset =
+                type >= SdlEventType.CAMERA_DEVICE_ADDED.value() && type <= SdlEventType.CAMERA_DEVICE_DENIED.value()
+                        ? CAMERA_DEVICE_OFFSET
+                        : AUDIO_DEVICE_OFFSET;
+        return event.get(ValueLayout.JAVA_INT, offset);
+    }
+
+    /// Whether an audio device event is about a recording device rather than a
+    /// playback one.
+    public boolean deviceIsRecording() {
+        return event.get(ValueLayout.JAVA_BOOLEAN, AUDIO_RECORDING_OFFSET);
+    }
+
+    /// Fills this buffer with an audio device event, the way SDL fills one:
+    /// what a test of a hot-plug listener hands it in place of a headset.
+    public void writeAudioDevice(SdlEventType type, int device, boolean recording) {
+        Objects.requireNonNull(type, "type");
+        clear();
+        event.set(ValueLayout.JAVA_INT, TYPE_OFFSET, type.value());
+        event.set(ValueLayout.JAVA_INT, AUDIO_DEVICE_OFFSET, device);
+        event.set(ValueLayout.JAVA_BOOLEAN, AUDIO_RECORDING_OFFSET, recording);
+    }
+
+    /// Fills this buffer with a camera device event, the way SDL fills one.
+    public void writeCameraDevice(SdlEventType type, int camera) {
+        Objects.requireNonNull(type, "type");
+        clear();
+        event.set(ValueLayout.JAVA_INT, TYPE_OFFSET, type.value());
+        event.set(ValueLayout.JAVA_INT, CAMERA_DEVICE_OFFSET, camera);
     }
 
     /// Fills this buffer with a window event — a resize, an expose, a close

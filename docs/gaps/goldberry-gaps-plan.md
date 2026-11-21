@@ -268,7 +268,7 @@ log in the same commit as the work.
 | T-02 | W3.1 | done: phases 1–7 (marks, `Editor` with marks, `rich-input`, the formatting bar and link editor, mentions, Markdown and HTML, the showcase's Rich input screen); the guide is parked until release (`docs/rich-text-input.md` §5) | 0703–0708 | |
 | T-03 | W2.6 | done | 0697 | |
 | T-04 | W2.5 | done | 0696 | |
-| T-05 | W3.4 | todo | | |
+| T-05 | W3.4 | in progress (`docs/camera-and-mic.md`): D1–D9 taken (a), D8 on a measurement; phase 1 (the SDL surface, native ABI 29) done; phases 2–6 (`goldberry-mic`, its widgets, `goldberry-camera`, PipeWire in CI, the showcase) open | 0719 | |
 | T-06 | — | declined (D9) | 0689 | |
 | T-07 | W2.7 | done | 0698 | |
 | T-08 | W1.11 | done | 0684 | |
@@ -535,3 +535,17 @@ log in the same commit as the work.
   draggable with an offer in-app instead of dropping it. Every phase is built;
   what is left is running it: the Windows and macOS lanes, and a hand drag
   on each desktop. Next ADR 0719.
+- **2026-11-21, W3.4.** `docs/camera-and-mic.md` written from the tree at
+  `258b836f`. Found: SDL already compiles its camera (V4L2 here, Media
+  Foundation, CoreMedia) and its recording; PipeWire is off for want of
+  headers, and compiling it in moves playback to PipeWire too; hot-plug and
+  camera approval arrive only through `SDL_PumpEvents`; SDL never converts
+  MJPG; and `VideoSurface` draws `VideoPlanes` on the GPU only, so a camera
+  (or pushed planes) shows nothing on the CPU path. D1–D9 asked. Next ADR 0719.
+- **2026-11-21, W3.4 decided, phase 1.** D1–D9 (a). D8 (PipeWire) taken on a
+  loopback measurement: with `SdlAudioSink` counting two pulls on Linux,
+  playback through PulseAudio and through PipeWire is heard within 0.2 ms of
+  each other against the sink's clock (one pull counted, PipeWire was 16 ms
+  late). Phase 1: sixteen SDL symbols, native ABI 29, recording, cameras and
+  device events in `:natives`, run against the C922 here. ADR-0719. Next ADR
+  0720.

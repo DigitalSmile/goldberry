@@ -358,6 +358,32 @@ SDL_SetAudioStreamGain
 SDL_SetAudioStreamFrequencyRatio
 SDL_DestroyAudioStream
 
+# Audio in, for goldberry-mic (docs/camera-and-mic.md, phase 1). The recording
+# devices and their names and formats, and a stream opened on one of them -- or
+# on SDL_AUDIO_DEVICE_DEFAULT_RECORDING, which follows the system's choice --
+# with SDL_OpenAudioDeviceStream above. SDL's device thread fills the stream;
+# the module's capture thread takes what is there with GetAudioStreamData.
+SDL_GetAudioRecordingDevices
+SDL_GetAudioDeviceName
+SDL_GetAudioDeviceFormat
+SDL_GetAudioStreamData
+SDL_GetAudioStreamAvailable
+
+# Cameras, for goldberry-camera (docs/camera-and-mic.md, phase 1). The list, a
+# camera's name, position and formats, its permission state, and frames
+# acquired as SDL_Surfaces and released straight after they are copied.
+SDL_GetCameras
+SDL_GetCameraSupportedFormats
+SDL_GetCameraName
+SDL_GetCameraPosition
+SDL_OpenCamera
+SDL_GetCameraPermissionState
+SDL_GetCameraFormat
+SDL_AcquireCameraFrame
+SDL_ReleaseCameraFrame
+SDL_CloseCamera
+SDL_GetCurrentCameraDriver
+
 # Property groups, for the options SDL takes by name: a GPU device's driver,
 # debug mode and shader formats (docs/gpu-plan.md, D2).
 SDL_CreateProperties
