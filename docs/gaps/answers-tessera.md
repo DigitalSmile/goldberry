@@ -17,7 +17,7 @@ nothing.
 | G-02 | Rich-text input | `rich-input` over marked text, with the formatting bar, links, mentions, and Markdown and HTML conversions; the showcase's Rich input screen shows every option | on master; guide at release |
 | G-03 | Rich-text display with entities | Hit-testing, run clicks, selection, spoilers on `RichText` | on master, not yet in a snapshot |
 | G-04 | Sticky section headers | Sections in `ListView` | on master, not yet in a snapshot |
-| G-05 | Camera and microphone | `goldberry-camera` and `goldberry-mic` | planned |
+| G-05 | Camera and microphone | `goldberry-camera` and `goldberry-mic` | microphone landed; camera planned |
 | G-06 | Encoders | **Declined**: bring your own | declined, ADR-0689 |
 | G-07 | Video tile from pushed frames | Works today through `PictureRenderer`; `PictureView` over a `PictureSource` | answered; on master, not yet in a snapshot |
 | G-08 | Web view JS bridge | Init script, `eval`, `postMessage` | on master, not yet in a snapshot |
@@ -209,11 +209,23 @@ them:
 - `goldberry-camera`: SDL3 cameras, with frames handed out as `VideoPlanes`,
   so they go straight into G-07's video tile.
 
-On Linux, SDL's PipeWire camera backend is turned on, so cameras behind the
-portal work too. The camera permission on macOS (the `Info.plist` usage
-string) stays packaging, which is Tessera's.
+On Linux, SDL's PipeWire camera backend is turned on. That adds the cameras
+V4L2 cannot drive (the libcamera ones in many recent laptops) and lets two
+applications share a camera. **It does not reach cameras behind the portal**,
+as this answer first said: SDL connects to the session's PipeWire itself and
+never asks `org.freedesktop.portal.Camera`, so inside a Flatpak sandbox it
+sees no camera. The portal is a later item. The camera permission on macOS
+(the `Info.plist` usage string) stays packaging, which is Tessera's, and so is
+the microphone's (`NSMicrophoneUsageDescription`).
 
-**Landed.** —
+**Landed, in part** (2026-11-22, on Goldberry's master, not yet in a
+snapshot): `goldberry-mic`. `Microphones.open()` lists the recording devices
+and hears them come and go; `record(RecordingSpec.voice())` is 48 kHz mono
+float in 10 ms blocks, to listeners on a thread of its own or pulled with
+`read`. `level-meter`, `waveform-view` and `spectrum-view` draw any
+`SampleSource`, and a voice message's bubble draws its clip with
+`new WaveformPlot(Envelope.of(samples, 1, 48), played, true, Attributes.NONE)`.
+ADR-0719, ADR-0720, ADR-0721. `goldberry-camera` is next.
 
 ## G-06. Encoders and public codec access
 

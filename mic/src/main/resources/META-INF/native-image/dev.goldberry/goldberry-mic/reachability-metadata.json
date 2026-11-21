@@ -1,0 +1,13 @@
+{
+  "comment": [
+    "What :mic ships that is read as a resource, declared by glob rather than",
+    "traced.",
+    "",
+    "`mic/view/mic.css`, the three widgets' stylesheet, which :core reads out",
+    "of the package module-info opens to it. Without this an image of an",
+    "application that shows a meter has no sizes or colours for it."
+  ],
+  "resources": [
+    { "module": "dev.goldberry.mic", "glob": "dev/goldberry/mic/view/*.css" }
+  ]
+}

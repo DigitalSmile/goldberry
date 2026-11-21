@@ -1,5 +1,8 @@
 plugins {
     id 'goldberry.java-conventions'
+    // `level-meter`, `waveform-view` and `spectrum-view` are @Markup widgets, so
+    // this module declares a catalog of its own, as :media's do.
+    id 'goldberry.weave'
     // Published as goldberry-mic, optional in the umbrella.
     id 'goldberry.publish'
     // The recording tests load libgoldberry, whose SDL records from a file.
@@ -17,6 +20,7 @@ description = 'Goldberry mic: microphone capture over SDL, and the levels and sp
 // device-event wrappers to this module by name. What an application sees is
 // `Microphones`, `Recording` and the `SampleSource` the analysis and the
 // widgets read; SDL's vocabulary stops in the unexported backend package.
+// The widgets (`…mic.view`) build on :widgets and draw through `…mic.view.draw`.
 // ============================================================================
 dependencies {
     // Logging.
@@ -24,6 +28,14 @@ dependencies {
 
     // SDL's recording, device list and device events, exported here by name.
     implementation project(':natives')
+
+    // The widgets the meters are: `api` because a `LevelMeter` is a `Widget`,
+    // and whoever holds one has to be able to say so.
+    api project(':widgets')
+
+    // Element trees without a window, the headless runtime, and the golden-image
+    // helpers.
+    testImplementation testFixtures(project(':core'))
 
     // NativeLibraryRequirement: the SDL tests fail rather than skip in a lane
     // that says it has libgoldberry.

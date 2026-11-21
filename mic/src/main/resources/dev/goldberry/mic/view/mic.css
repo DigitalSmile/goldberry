@@ -1,0 +1,48 @@
+/*
+ * goldberry-mic's widgets: level-meter, waveform-view and spectrum-view.
+ *
+ * Written in the theme's tokens, so it follows whichever theme is on. The
+ * --gb-mic-* tokens are this module's component tokens: the widgets read them
+ * as they draw, so an application recolours every meter at once by setting
+ * them, or one meter with a rule on its id.
+ */
+:root {
+    /* What a level meter's bar runs along. */
+    --gb-mic-track: var(--gb-progress-track-bg);
+    /* The bar below -6 dBFS, from there to -1, and past that. */
+    --gb-mic-level: var(--gb-success);
+    --gb-mic-hot: var(--gb-warning);
+    --gb-mic-clip: var(--gb-danger);
+    /* The held peak's mark, until it clips. */
+    --gb-mic-hold: var(--gb-text);
+    /* A waveform: the part played, and a clip's part not played yet. */
+    --gb-mic-wave: var(--gb-accent);
+    --gb-mic-wave-ahead: var(--gb-text-muted);
+    /* A spectrum's bars or line. */
+    --gb-mic-spectrum: var(--gb-accent);
+}
+
+/* A meter is a track the bar fills: as wide as it is put, and short. */
+level-meter {
+    min-width: 96px;
+    height: 8px;
+    border-radius: 4px;
+    background: var(--gb-mic-track);
+    overflow: hidden;
+}
+
+level-meter.vertical {
+    min-width: 8px;
+    width: 8px;
+    height: 96px;
+}
+
+waveform-view {
+    min-width: 120px;
+    height: 40px;
+}
+
+spectrum-view {
+    min-width: 120px;
+    height: 64px;
+}

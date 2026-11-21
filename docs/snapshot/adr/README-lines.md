@@ -161,3 +161,4 @@ Appended to the index when the records move in, in this order.
 - [ADR-0718 A macOS drag is an AppKit session begun on SDL's view](0718-a-macos-drag-is-an-appkit-session-begun-on-sdl-s-view.md)
 - [ADR-0719 Camera and microphone are two modules over SDL, and Linux counts two pulls](0719-camera-and-microphone-are-two-modules-over-sdl.md)
 - [ADR-0720 A recording is a sample source on a thread of its own](0720-a-recording-is-a-sample-source-on-a-thread-of-its-own.md)
+- [ADR-0721 The microphone widgets draw a tracker's reading](0721-the-microphone-widgets-draw-a-tracker-s-reading.md)

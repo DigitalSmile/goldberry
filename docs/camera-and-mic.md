@@ -14,7 +14,7 @@ phases with exit criteria, risks, and a log. **The owner took (a) for D1–D9
 on 2026-11-21**, D8 on the condition that a measurement showed playback was
 fine on PipeWire; it did once the sink counts
 two pulls on Linux (§3, D8). ADR-0719, parked in `docs/snapshot/adr/`, records
-all nine and phase 1. **Phases 1 and 2 are done**; phase 3 is next.
+all nine and phase 1. **Phases 1–3 are done**; phase 4 is next.
 
 ## 1. Where things stand
 
@@ -339,7 +339,7 @@ Each phase ends green on `:natives`, the module's own tests, `BoundaryTest`,
 | Decisions | D1–D9 taken (a); ADR-0719 |
 | 1 SDL surface | done: 16 symbols, ABI 29, `natives.sdl.audio` recording and devices, `natives.sdl.camera`, `natives.sdl.device`; the D8 measurement and `SdlAudioSink`'s two pulls on Linux |
 | 2 `goldberry-mic` | done: the module (published, optional), recording, the synthetic source, levels, FFT, spectrum, envelope; ADR-0720; the guide chapter parked |
-| 3 mic widgets | not started |
+| 3 mic widgets | done: `level-meter`, `waveform-view`, `spectrum-view` over exported leaves, `mic.css`, six goldens; ADR-0721; the sections parked with the chapter |
 | 4 `goldberry-camera` | not started |
 | 5 PipeWire | not started |
 | 6 showcase, platforms, guide | not started |
@@ -370,3 +370,20 @@ Each phase ends green on `:natives`, the module's own tests, `BoundaryTest`,
   on SDL's `disk` driver recording a file. Published as `goldberry-mic`,
   optional in the umbrella. ADR-0720; the chapter parked as
   `docs/snapshot/components-microphone.md`. Next ADR 0721.
+- **2026-11-22, phase 2 committed, phase 3.** Phase 2 is `77d569e1`. The
+  widgets, in `dev.goldberry.mic.view`: each a stateful `@Markup` widget that
+  feeds a tracker of its own on the source's thread and hands one rebuild to
+  the UI thread however many blocks arrive. They build leaves in the exported
+  `…mic.view.draw` (`LevelBar`, `WaveformPlot`, `SpectrumPlot`, with the node
+  names as their CSS types), which an application also draws a clip's outline
+  with: `Envelope.of` is new, and a short outline draws as bars with gaps.
+  Colours are `--gb-mic-*` tokens in `mic.css`, read at render; the package
+  is opened to `:core` and the sheet declared for native images
+  (`DeclaredResourcesTest` caught it). An unbound `source=` draws silence. 42
+  new tests: pixels of each leaf, markup, mounting under a headless runtime,
+  the descriptor, and six goldens (three scenes, both themes) drawn from
+  synthetic sources. `:mic` now requires `:widgets`; `MarkupNames.MODULES`
+  lists `mic`. Seen on the way: an application rule setting a custom property
+  on the render root itself does not beat a base-layer `:root` rule for it;
+  inside any container it does, which is every window. `answers-tessera.md`
+  G-05's portal promise corrected. ADR-0721. Next ADR 0722.
