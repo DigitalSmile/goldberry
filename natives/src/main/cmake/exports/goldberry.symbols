@@ -108,6 +108,12 @@ SDL_GetPointerProperty
 # the symbol exists everywhere.
 SDL_SetX11EventHook
 
+# Where a drag out starts on Wayland (ABI 28): SDL's wl_data_device for the
+# seat whose pointer is in the window, and its implicit-grab serial, read from
+# SDL's own seat list by goldberry_sdl_wayland.c. A stub answering false on
+# the other platforms.
+goldberry_wayland_drag_origin
+
 # Windowing and the CPU present path (sec. 4, sec. 5).
 SDL_CreateWindow
 SDL_DestroyWindow

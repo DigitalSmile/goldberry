@@ -1,29 +1,19 @@
 package dev.goldberry.render.backend.sdl3;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.util.ArrayList;
-import java.util.EnumSet;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
 
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 
-import dev.goldberry.input.dragout.DragOffer;
-import dev.goldberry.input.dragout.DragOperation;
 import dev.goldberry.log.Logs;
 import dev.goldberry.natives.desktop.dragout.DragAction;
-import dev.goldberry.natives.desktop.dragout.DragData;
 import dev.goldberry.natives.desktop.dragout.DragSourceListener;
 import dev.goldberry.natives.desktop.dragout.X11DragSource;
 import dev.goldberry.render.dragout.DragEnd;
 import dev.goldberry.render.dragout.DragRequest;
 import dev.goldberry.render.dragout.DragSession;
-import dev.goldberry.render.dragout.OfferedData;
 import dev.goldberry.render.model.LogicalPoint;
 import dev.goldberry.render.window.NativeHandle;
 
@@ -36,7 +26,7 @@ import dev.goldberry.render.window.NativeHandle;
 ///
 /// No picture yet: the platform's default cursor is all that follows the
 /// pointer on X11.
-final class X11DragOut {
+final class X11DragOut implements PlatformDragOut {
 
     private static final Logger LOG = Logs.of(X11DragOut.class);
 
@@ -63,80 +53,30 @@ final class X11DragOut {
                         .ifPresent(handle -> own.put(handle.value(), sdl));
             }
         }
-        var offer = withImageFile(request.offer());
+        var offer = DragOutData.withImageFile(request.offer());
         var started = X11DragSource.start(
-                display.getAsLong(), own::containsKey, data(offer), actions(offer), new Reports(backend, own, session));
+                display.getAsLong(),
+                own::containsKey,
+                DragOutData.data(offer),
+                DragOutData.actions(offer),
+                new Reports(backend, own, session));
         return started.map(drag -> new X11DragOut(backend, drag)).orElse(null);
     }
 
-    /// Looks at whether the target has answered for too long, once a pump.
-    void tick() {
+    @Override
+    public void tick() {
         source.tick();
     }
 
-    /// Whether the drag is over and its window gone.
-    boolean isClosed() {
+    @Override
+    public boolean isClosed() {
         return source.isClosed();
     }
 
-    /// Ends the drag now, as a closing backend must.
-    void close() {
+    @Override
+    public void close() {
         source.close();
         LOG.debug("a drag out was closed with its backend {}", backend);
-    }
-
-    /// The offer's types and bytes, with `UTF8_STRING` beside UTF-8 text for
-    /// the X11 clients that ask by the old name.
-    static DragData data(DragOffer offer) {
-        var offered = OfferedData.of(offer);
-        var types = new ArrayList<>(offered.types());
-        if (types.contains(OfferedData.TEXT_UTF8)) {
-            types.add(types.indexOf(OfferedData.TEXT) + 1, "UTF8_STRING");
-        }
-        var list = List.copyOf(types);
-        return new DragData() {
-            @Override
-            public List<String> types() {
-                return list;
-            }
-
-            @Override
-            public byte @Nullable [] bytes(String mime) {
-                return offered.bytes(mime).orElse(null);
-            }
-        };
-    }
-
-    private static Set<DragAction> actions(DragOffer offer) {
-        var actions = EnumSet.noneOf(DragAction.class);
-        for (var operation : offer.operations()) {
-            actions.add(
-                    switch (operation) {
-                        case COPY -> DragAction.COPY;
-                        case MOVE -> DragAction.MOVE;
-                        case LINK -> DragAction.LINK;
-                    });
-        }
-        return actions;
-    }
-
-    /// `offer`, with its image also written to a PNG file, for the targets that
-    /// take only files. The file is made once per drag and goes when the
-    /// process exits.
-    static DragOffer withImageFile(DragOffer offer) {
-        var image = offer.image();
-        if (image == null) {
-            return offer;
-        }
-        try {
-            var file = Files.createTempFile("goldberry-drag-", ".png");
-            Files.write(file, image.get());
-            file.toFile().deleteOnExit();
-            return offer.withFiles(file);
-        } catch (IOException | RuntimeException e) {
-            LOG.warn("a drag's image could not be written to a file; it is offered as image/png only", e);
-            return offer;
-        }
     }
 
     /// The source's reports, as the session hears them, on the next pump.
@@ -165,13 +105,7 @@ final class X11DragOut {
 
         @Override
         public void delivered(@Nullable DragAction action) {
-            var operation = action == null
-                    ? null
-                    : switch (action) {
-                        case COPY -> DragOperation.COPY;
-                        case MOVE -> DragOperation.MOVE;
-                        case LINK -> DragOperation.LINK;
-                    };
+            var operation = DragOutData.operation(action);
             backend.later(() -> session.ended(new DragEnd.Delivered(operation)));
         }
 

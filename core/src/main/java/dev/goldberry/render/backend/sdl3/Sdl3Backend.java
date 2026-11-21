@@ -1223,6 +1223,9 @@ public final class Sdl3Backend implements Backend {
                     eventBuffer.wheelTicksX(),
                     -eventBuffer.wheelTicksY(),
                     Sdl.get().modifierState()));
+        } else if (isDrop(type) && takenByDragOut(type, window)) {
+            // The application's own drag over its own window: the drag out's
+            // to read, never a drop of the application's own offer on itself.
         } else if (type == SdlEventType.DROP_BEGIN.value()) {
             // No position on this one, per SDL's header, and nothing to report:
             // it is read only so a gesture starts from a known place.
@@ -1469,6 +1472,27 @@ public final class Sdl3Backend implements Backend {
     /// Runs `work` at the start of the next pump, wherever this is called from,
     /// the UI thread included.
     ///
+    private static boolean isDrop(int type) {
+        return type == SdlEventType.DROP_BEGIN.value()
+                || type == SdlEventType.DROP_POSITION.value()
+                || type == SdlEventType.DROP_FILE.value()
+                || type == SdlEventType.DROP_TEXT.value()
+                || type == SdlEventType.DROP_COMPLETE.value();
+    }
+
+    /// Hands SDL's drop event over `window` to the drag out in flight, if it
+    /// is that drag's, answering whether it took it.
+    private boolean takenByDragOut(int type, Sdl3Window window) {
+        var dragging = dragOut;
+        if (dragging == null) {
+            return false;
+        }
+        var at = type == SdlEventType.DROP_POSITION.value()
+                ? inTheWindowsOwnSpace(window, eventBuffer.dropX(), eventBuffer.dropY())
+                : new float[] {dropX, dropY};
+        return dragging.takesDrop(type, window, at[0], at[1]);
+    }
+
     /// For what a platform reports from inside SDL's own pump: an X11 event
     /// hook must not run application code, and work queued here runs after
     /// SDL has returned.
@@ -1477,19 +1501,26 @@ public final class Sdl3Backend implements Backend {
         wakeup();
     }
 
-    /// The drag out in flight on X11, or null.
-    private @Nullable X11DragOut dragOut;
+    /// The drag out in flight, on X11 or Wayland, or null.
+    private @Nullable PlatformDragOut dragOut;
 
     /// Starts a drag out from `window`, answering whether the platform took it.
+    ///
+    /// X11 first, then Wayland: each answers null for a window that is not
+    /// its platform's, so at most one of them asks the platform anything.
     boolean startDrag(Sdl3Window window, DragRequest request, DragSession session) {
         requireUiThread();
         if (dragOut != null && !dragOut.isClosed()) {
             return false;
         }
         try {
-            dragOut = X11DragOut.start(this, window, request, session);
+            PlatformDragOut started = X11DragOut.start(this, window, request, session);
+            if (started == null) {
+                started = WaylandDragOut.start(this, window, request, session);
+            }
+            dragOut = started;
         } catch (RuntimeException e) {
-            LOG.warn("the X11 drag source failed to start; the drag stays inside the application", e);
+            LOG.warn("the platform's drag source failed to start; the drag stays inside the application", e);
             dragOut = null;
         }
         return dragOut != null;

@@ -244,23 +244,49 @@ tests skip here, as `XlibHotkeysTest` does.
 
 ### Phase 3 — Wayland
 
-- `natives.wayland`: a minimal binding of libwayland-client (looked up by
-  soname, so it is the instance SDL loaded): proxies, an event queue of the
-  toolkit's own, the interface tables it exports, and listeners as upcalls.
-- `natives.desktop.dragout.WaylandDragSource`: its own `wl_registry` on
-  SDL's `wl_display`, its own `wl_seat` and `wl_pointer` so that it hears the
-  press's serial, a `wl_data_source` with the offered types, and `start_drag`
-  from SDL's surface with an icon surface in an shm buffer. `send` writes on a
-  worker into the target's file descriptor. `dnd_drop_performed`,
-  `dnd_finished` and `cancelled` become the outcome. The queue is dispatched
-  every turn of the loop.
-- `SdlVideo` reads `SDL.window.wayland.display` and `SDL.window.wayland.surface`
-  for this alone; `nativeHandle` stays empty on Wayland.
+As built (2026-11-21; ADR-0716). The plan below this paragraph had the
+toolkit bind a `wl_data_device` of its own, which mutter answers by unlinking
+SDL's: dropping in and the clipboard would stop for the rest of the process.
+So `start_drag` goes out on SDL's own data device instead.
 
-**Exit:** on CI's headless weston, a Wayland client of the test's own (in the
-test fixtures, same binding) that takes the drop and reads each type. weston
-must start a drag without a real seat; if its headless backend will not, the
-exit is a manual check on GNOME and KDE, recorded in the log.
+- `goldberry_sdl_wayland.c`, compiled with SDL's private include directories
+  and definitions: `goldberry_wayland_drag_origin` reads SDL's data device and
+  `last_implicit_grab_serial` from SDL's seat list (ABI 28). A stub off
+  Wayland.
+- `natives.wayland`: a minimal binding of libwayland-client, opened by soname
+  so it is the instance SDL loaded. `WaylandQueue` is an event queue of the
+  toolkit's own on SDL's `wl_display` with its own registry;
+  `WaylandArguments` marshals through `wl_proxy_marshal_array_flags`;
+  `WaylandDispatcher` hears every event of every proxy through
+  `wl_proxy_add_dispatcher`, one upcall shape; `Descriptors` makes the
+  memfd for the icon and writes a target's pipe with `SIGPIPE` blocked.
+- `natives.desktop.dragout.WaylandDragSource`: a `wl_data_source` with the
+  offered types and actions (version 3 of the manager or refused), the icon
+  surface (`WaylandIcon`, compositor bound at version 4 at most so `attach`
+  may still carry the hotspot), `start_drag` on SDL's device, `send` written
+  on a thread of the drag's own, the queue dispatched once a pump and the
+  reports acted on after the dispatch returns.
+- `:core`: `WaylandDragOut` and `WaylandDropTracker`. SDL's `DROP_*` events
+  are the drag's while it lasts (`PlatformDragOut.takesDrop`): a position
+  drives the router, and a "complete" marks a possible landing that a
+  `target` before the drop clears and `dnd_finished` confirms.
+- `SdlVideo.waylandDragOrigin`; `nativeHandle` stays empty on Wayland.
+
+**What it does not do:** an offer SDL's target declines (no file, no text:
+a PNG offered without its file, an application's own MIME type alone) gets
+no in-app feedback over the application's windows and is cancelled when let
+go there.
+
+**Exit as met:** the objects against a real compositor
+(`WaylandCompositorTest`: the registry, a data source with types and
+actions, the icon in a shared-memory buffer at a whole and a refused scale,
+no protocol error; on GNOME here and beside CI's headless weston),
+`WaylandDragSourceTest` (the whole start, `start_drag` on SDL's device
+included, from a hidden SDL window, with no protocol error),
+`WaylandDragOriginTest` (the C side finds SDL's data device on a real
+Wayland window, and nothing on X11), and the ordering rules
+(`WaylandDropTrackerTest`, mutter's and weston's orders). `start_drag`
+itself needs a press no test can make; the hand check on GNOME is below.
 
 ### Phase 4 — Windows
 
@@ -306,21 +332,24 @@ chapter, parked in `docs/snapshot/` until release.
 ## 5. Risks
 
 - **The serial on Wayland.** `start_drag` needs the serial of the press that
-  began the implicit grab. A second `wl_pointer` on a second `wl_seat` proxy
-  hears the same events, but only if it exists **before** the press. So it is
-  made when the first window opens, not at the drag. Compositors that check
-  the serial strictly (mutter does) refuse a wrong one silently.
+  began the implicit grab. *Answered in phase 3:* SDL keeps it as
+  `last_implicit_grab_serial`, which libgoldberry reads (ADR-0716), so no
+  early `wl_pointer` is needed.
 - **SDL's pointer state after an OS drag.** On Wayland and macOS the platform
   takes the pointer, and SDL may never hear the release, leaving its own button
   state down. Phase 3 and 5 must check `SDL_GetMouseState` after a session
   and, if it is stuck, synthesise the release into the router (not into SDL).
+  *On Wayland:* SDL raises every held button when its pointer hears `leave`,
+  which the compositor sends as the drag takes the pointer, so the router
+  hears the release at the drag's start and `dragOutFinished` finds the
+  gesture already closed.
 - **Reentrancy on Windows.** A loop turn inside `GiveFeedback` runs
   application code inside a COM call inside `DoDragDrop`. The guard refuses
   anything that would nest: a second drag, a modal file dialog, closing the
   source window (deferred until `DoDragDrop` returns).
-- **Two drop targets on Wayland.** The toolkit's own `wl_data_device` and
-  SDL's both hear `enter` for drags over the toolkit's windows. Its own ignores
-  them; only SDL's is a target.
+- **Two drop targets on Wayland.** *Gone in phase 3:* a second data device
+  of the client's own unlinks SDL's on mutter, so the drag uses SDL's, and
+  SDL's is the only target over the toolkit's windows (ADR-0716).
 - **Native-image upcalls.** Phases 2–5 add upcall shapes. Each is registered
   and counted in `ForeignSurfaceTest`, and the native image's showcase run
   covers each platform's set it can reach.
@@ -342,7 +371,7 @@ chapter, parked in `docs/snapshot/` until release.
 |-------|--------|
 | 1 — API and router | done (2026-11-21) |
 | 2 — X11 | done (2026-11-21), without a picture; see the log |
-| 3 — Wayland | not started |
+| 3 — Wayland | built (2026-11-21); the hand check on GNOME is open |
 | 4 — Windows | not started |
 | 5 — macOS | not started |
 | 6 — showcase and guide | not started |
@@ -407,3 +436,28 @@ chapter, parked in `docs/snapshot/` until release.
   `BadWindow` survived), `X11DragOutTest` (4). Not driven by hand yet: moving
   the real pointer is not something a test here does. Next: phase 3,
   Wayland.
+- **2026-11-21, phase 3.** Wayland, built, with a change of approach recorded
+  in ADR-0716. Read before writing: mutter's `get_data_device` unlinks a
+  client's earlier data device when it asks for another, so the plan's own
+  `wl_data_device` would have silenced SDL's drops and clipboard for the
+  life of the process (weston keeps both, which is why the protocol looked
+  safe). Instead libgoldberry gains one C file compiled against SDL's
+  private headers, `goldberry_wayland_drag_origin`, which hands Java SDL's
+  data device and `last_implicit_grab_serial` (native ABI 28); the plan's
+  early `wl_pointer` for the serial is not needed. Everything else is Java
+  over libwayland-client in `natives.wayland`, one upcall shape for all of
+  it (nineteen now). Because SDL's device is the only target over the
+  application's windows and a Wayland source hears no position, D2's
+  feedback comes from SDL's `DROP_*` there, which the backend takes while
+  the drag lasts; SDL's 14 ms read of its own echo times out, since the
+  source is not dispatched meanwhile. `X11DragOut`'s offer mapping moved to
+  `DragOutData`, shared. Tests: `WaylandCompositorTest` (4, a real
+  compositor), `WaylandDragOriginTest` (2), `WaylandSourceEventsTest` (5),
+  `WaylandArgumentsTest` (3), `DescriptorsTest` (3), `WaylandDropTrackerTest`
+  (10), `WaylandDragOutTest` (4), `DragOutDataTest` (5, was
+  `X11DragOutTest`), `WaylandDragSourceTest` (1: the whole start from a
+  hidden SDL window on GNOME, which ignores a drag with no press's serial,
+  with no protocol error on SDL's connection before or after closing).
+  **Open:** a hand drag on GNOME (into Nautilus, into a
+  browser, and onto an in-app target), which no test here can make. Next:
+  phase 4, Windows.

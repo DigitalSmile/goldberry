@@ -209,8 +209,10 @@ sealed class Sdl3Window implements BackendWindow permits Sdl3Popup {
         return new dev.goldberry.render.window.NativeHandle(kind, handle.value());
     }
 
-    /// On X11, the platform's drag through XDND; elsewhere refused until that
-    /// platform's source is written, so the drag stays inside the application.
+    /// On X11, the platform's drag through XDND, and on Wayland through a
+    /// `wl_data_source` dragged with SDL's data device; elsewhere refused until
+    /// that platform's source is written, so the drag stays inside the
+    /// application.
     @Override
     public boolean startDrag(DragRequest request, DragSession session) {
         backend.requireUiThread();

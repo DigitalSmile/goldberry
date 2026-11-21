@@ -802,6 +802,26 @@ target_link_libraries(goldberry PRIVATE
     webpdemux
     webp)
 
+# The one translation unit that reads SDL's private state: on Wayland, the seat
+# a drag out starts from (`goldberry_wayland_drag_origin`, ABI 28). It is
+# compiled with SDL's own private include directories and definitions, so it
+# sees SDL's structs as SDL itself was compiled to see them, and an object
+# library keeps those directories off the shim's other sources. It compiles
+# on every platform: off Wayland the function is a stub answering false, as the
+# export list is one list for all of them.
+add_library(goldberry_sdl_private OBJECT goldberry_sdl_wayland.c)
+target_include_directories(goldberry_sdl_private PRIVATE
+    "$<TARGET_PROPERTY:SDL3-static,INCLUDE_DIRECTORIES>")
+target_compile_definitions(goldberry_sdl_private PRIVATE
+    "$<TARGET_PROPERTY:SDL3-static,COMPILE_DEFINITIONS>")
+set_target_properties(goldberry_sdl_private PROPERTIES
+    C_VISIBILITY_PRESET hidden
+    POSITION_INDEPENDENT_CODE ON)
+# Built after SDL, whose generated headers (the build config and the Wayland
+# protocol headers) it includes.
+add_dependencies(goldberry_sdl_private SDL3-static)
+target_sources(goldberry PRIVATE $<TARGET_OBJECTS:goldberry_sdl_private>)
+
 # ============================================================================
 # Exported surface
 #

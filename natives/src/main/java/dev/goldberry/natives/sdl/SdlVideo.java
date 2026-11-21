@@ -22,6 +22,7 @@ import dev.goldberry.natives.sdl.calls.SdlDisplayCalls;
 import dev.goldberry.natives.sdl.calls.SdlEventCalls;
 import dev.goldberry.natives.sdl.calls.SdlSurfaceCalls;
 import dev.goldberry.natives.sdl.calls.SdlThemeCalls;
+import dev.goldberry.natives.sdl.calls.SdlWaylandCalls;
 import dev.goldberry.natives.sdl.calls.SdlWindowCalls;
 import dev.goldberry.natives.sdl.desktop.SdlSystemTheme;
 import dev.goldberry.natives.sdl.event.SdlEventType;
@@ -30,6 +31,7 @@ import dev.goldberry.natives.sdl.window.SdlFlashOperation;
 import dev.goldberry.natives.sdl.window.SdlIconImage;
 import dev.goldberry.natives.sdl.window.SdlPixelFormat;
 import dev.goldberry.natives.sdl.window.SdlWindowFlag;
+import dev.goldberry.natives.sdl.window.WaylandDragOrigin;
 import dev.goldberry.natives.x11.XlibCompositing;
 import dev.goldberry.natives.x11.XlibVisuals;
 
@@ -74,6 +76,7 @@ public final class SdlVideo {
     private final SdlDisplayCalls sdlDisplayCalls;
     private final SdlEventCalls sdlEventCalls;
     private final SdlThemeCalls sdlThemeCalls;
+    private final SdlWaylandCalls sdlWaylandCalls;
 
     /// SDL's allocator, for the display list SDL hands over.
     private final SdlClipboardCalls.Free free;
@@ -84,6 +87,7 @@ public final class SdlVideo {
         this.sdlDisplayCalls = SdlDisplayCalls.bind(lookup);
         this.sdlEventCalls = SdlEventCalls.bind(lookup);
         this.sdlThemeCalls = SdlThemeCalls.bind(lookup);
+        this.sdlWaylandCalls = SdlWaylandCalls.bind(lookup);
         this.free = SdlClipboardCalls.bind(lookup).free();
         // Everything else is bound with `Downcalls.symbol`, which fails loudly,
         // because a missing symbol there means a window cannot open and the export
@@ -266,6 +270,44 @@ public final class SdlVideo {
         return x11Screen(window)
                 .map(screen -> OptionalLong.of(screen.display().address()))
                 .orElse(OptionalLong.empty());
+    }
+
+    /// Where a drag out of `window` starts, or empty when the window is not on
+    /// Wayland or SDL's seat has no data device.
+    ///
+    /// SDL's own `wl_display` and the window's `wl_surface` come from the
+    /// window's properties; SDL's `wl_data_device` and the press's serial from
+    /// libgoldberry, which reads them from SDL's seat list, since SDL publishes
+    /// neither. Asked while the button that began the drag is still held, so
+    /// that the serial is that press's.
+    public Optional<WaylandDragOrigin> waylandDragOrigin(SdlWindowHandle window) {
+        Objects.requireNonNull(window, "window");
+        var properties = sdlWindowCalls.getWindowProperties().call(window.pointer());
+        if (properties == 0) {
+            return Optional.empty();
+        }
+        try (var arena = Arena.ofConfined()) {
+            var display = sdlWindowCalls
+                    .getPointerProperty()
+                    .call(properties, arena.allocateFrom("SDL.window.wayland.display"), MemorySegment.NULL);
+            var surface = sdlWindowCalls
+                    .getPointerProperty()
+                    .call(properties, arena.allocateFrom("SDL.window.wayland.surface"), MemorySegment.NULL);
+            if (MemorySegment.NULL.equals(display) || MemorySegment.NULL.equals(surface)) {
+                return Optional.empty();
+            }
+            var device = arena.allocate(ValueLayout.ADDRESS);
+            var serial = arena.allocate(ValueLayout.JAVA_INT);
+            if (!sdlWaylandCalls.dragOrigin().call(window.pointer(), device, serial)) {
+                return Optional.empty();
+            }
+            var dataDevice = device.get(ValueLayout.ADDRESS, 0);
+            if (MemorySegment.NULL.equals(dataDevice)) {
+                return Optional.empty();
+            }
+            return Optional.of(new WaylandDragOrigin(
+                    display.address(), surface.address(), dataDevice.address(), serial.get(ValueLayout.JAVA_INT, 0)));
+        }
     }
 
     /// Where the window's top-left is, in the desktop's coordinates.

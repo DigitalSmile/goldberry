@@ -156,3 +156,4 @@ Appended to the index when the records move in, in this order.
 - [ADR-0713 macOS 14 is the floor, whatever the runner](0713-macos-14-is-the-floor-whatever-the-runner.md)
 - [ADR-0714 A drag leaves through the platform's own drag source](0714-a-drag-leaves-through-the-platform-s-own-source.md)
 - [ADR-0715 A small golden admits two stray pixels](0715-a-small-golden-admits-two-stray-pixels.md)
+- [ADR-0716 A Wayland drag starts from SDL's own seat](0716-a-wayland-drag-starts-from-sdl-s-own-seat.md)

@@ -32,6 +32,7 @@ import dev.goldberry.natives.sdl.SdlFileDialogs;
 import dev.goldberry.natives.sdl.SdlLog;
 import dev.goldberry.natives.sdl.desktop.SdlClipboard;
 import dev.goldberry.natives.sdl.desktop.SdlTray;
+import dev.goldberry.natives.wayland.WaylandDispatcher;
 import dev.goldberry.natives.webview.Webview;
 import dev.goldberry.natives.yoga.MeasureCallback;
 
@@ -88,7 +89,10 @@ public final class ForeignSurface {
             XlibHotkeys.class,
             CarbonHotkeys.class,
             // The X error handler a drag out speaks XDND under.
-            XlibXdnd.class);
+            XlibXdnd.class,
+            // Every Wayland event of every proxy a drag out makes, through
+            // `wl_proxy_add_dispatcher`: one shape for all of Wayland.
+            WaylandDispatcher.class);
 
     /// The classes that bind a system library outside a `…calls` package —
     /// libdbus, libobjc, shell32, ole32, advapi32, Security, libX11, libc,
@@ -110,7 +114,9 @@ public final class ForeignSurface {
             "dev.goldberry.natives.desktop.shortcuts.XlibHotkeys",
             "dev.goldberry.natives.desktop.shortcuts.WindowsHotkeys",
             "dev.goldberry.natives.desktop.shortcuts.CarbonHotkeys",
-            "dev.goldberry.natives.desktop.dragout.XlibXdnd");
+            "dev.goldberry.natives.desktop.dragout.XlibXdnd",
+            "dev.goldberry.natives.wayland.WaylandClient",
+            "dev.goldberry.natives.wayland.Descriptors");
 
     private ForeignSurface() {}
 
