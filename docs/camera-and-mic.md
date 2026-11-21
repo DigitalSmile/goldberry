@@ -14,7 +14,7 @@ phases with exit criteria, risks, and a log. **The owner took (a) for D1–D9
 on 2026-11-21**, D8 on the condition that a measurement showed playback was
 fine on PipeWire; it did once the sink counts
 two pulls on Linux (§3, D8). ADR-0719, parked in `docs/snapshot/adr/`, records
-all nine and phase 1. **Phase 1 is done**; phase 2 is next.
+all nine and phase 1. **Phases 1 and 2 are done**; phase 3 is next.
 
 ## 1. Where things stand
 
@@ -252,11 +252,14 @@ Each phase ends green on `:natives`, the module's own tests, `BoundaryTest`,
   `THIRD-PARTY-NOTICES` (nothing new: SDL is already there).
 - `dev.goldberry.mic`: `Microphones` (devices, default, listeners),
   `Microphone`, `RecordingSpec`, `Recording` (status, listeners, `read`),
-  `RecordingStatus` (sealed: `Recording`, `Paused`, `Lost`, `Closed`).
+  `RecordingStatus` (sealed: `Active`, `Paused`, `Lost`, `Closed`),
+  `MicrophoneChange`, `MicrophoneException`.
 - `dev.goldberry.mic.source`: the `SampleSource` the widgets read, the
   recording's and a synthetic one (tones, noise, a clip).
 - `dev.goldberry.mic.analysis`: levels and the FFT (plain Java, tested
   against known signals).
+- `dev.goldberry.mic.backend`, not exported: `CaptureBackend` and its SDL
+  implementation, so the API is tested over a fake.
 - Tests on the `disk` driver and on the synthetic source.
 
 ### Phase 3 — the microphone's widgets
@@ -335,7 +338,7 @@ Each phase ends green on `:natives`, the module's own tests, `BoundaryTest`,
 |-------|-------|
 | Decisions | D1–D9 taken (a); ADR-0719 |
 | 1 SDL surface | done: 16 symbols, ABI 29, `natives.sdl.audio` recording and devices, `natives.sdl.camera`, `natives.sdl.device`; the D8 measurement and `SdlAudioSink`'s two pulls on Linux |
-| 2 `goldberry-mic` | not started |
+| 2 `goldberry-mic` | done: the module (published, optional), recording, the synthetic source, levels, FFT, spectrum, envelope; ADR-0720; the guide chapter parked |
 | 3 mic widgets | not started |
 | 4 `goldberry-camera` | not started |
 | 5 PipeWire | not started |
@@ -356,3 +359,14 @@ Each phase ends green on `:natives`, the module's own tests, `BoundaryTest`,
   events, and the C922 (`SdlCameraLiveTest`, NV12 frames read in place). Found
   on the way: a device id dies with the audio subsystem's last reference.
   ADR-0719. Next ADR 0720.
+- **2026-11-22, phase 1 committed, phase 2.** Phase 1 is `ade8b594`.
+  `goldberry-mic` built: `Microphones`, `Recording` (a capture thread, whole
+  blocks to listeners, a pull ring that drops and counts past its buffer, a
+  sealed status with `Lost` for an unplugged pinned device), `RecordingSpec`;
+  `SampleSource`, borrowed `SampleBlock`s and a deterministic
+  `SyntheticSource` over a sealed `Signal`; `Levels`, `LevelTracker`, `Fft`,
+  `SpectrumAnalyzer`, `EnvelopeTracker`; SDL behind an unexported
+  `CaptureBackend`. 32 tests: over a fake backend, on the synthetic source, and
+  on SDL's `disk` driver recording a file. Published as `goldberry-mic`,
+  optional in the umbrella. ADR-0720; the chapter parked as
+  `docs/snapshot/components-microphone.md`. Next ADR 0721.

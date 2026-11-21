@@ -1,0 +1,31 @@
+plugins {
+    id 'goldberry.java-conventions'
+    // Published as goldberry-mic, optional in the umbrella.
+    id 'goldberry.publish'
+    // The recording tests load libgoldberry, whose SDL records from a file.
+    id 'goldberry.native-tests'
+}
+
+description = 'Goldberry mic: microphone capture over SDL, and the levels and spectra drawn from it'
+
+// ============================================================================
+// The microphone module
+// https://goldberry.dev/docs/components/media.html
+//
+// SDL's recording streams are already inside libgoldberry, so this module has
+// no natives of its own: `:natives` exports its recording, device-list and
+// device-event wrappers to this module by name. What an application sees is
+// `Microphones`, `Recording` and the `SampleSource` the analysis and the
+// widgets read; SDL's vocabulary stops in the unexported backend package.
+// ============================================================================
+dependencies {
+    // Logging.
+    implementation project(':common')
+
+    // SDL's recording, device list and device events, exported here by name.
+    implementation project(':natives')
+
+    // NativeLibraryRequirement: the SDL tests fail rather than skip in a lane
+    // that says it has libgoldberry.
+    testImplementation testFixtures(project(':natives'))
+}

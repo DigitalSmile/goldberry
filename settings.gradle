@@ -48,6 +48,11 @@ rootProject.name = 'goldberry'
 // `docs/TODO.md` says which symbols. An application opts in; nothing in
 // :core or :widgets depends on it.
 //
+// :mic is `goldberry-mic`: microphone capture over SDL's recording streams,
+// which libgoldberry already links, so it ships Java only, as :html does. Its
+// analysis (levels, spectra, envelopes) is plain Java; its widgets read a
+// SampleSource, so a synthetic one makes them golden-testable.
+//
 // :media is `goldberry-media`: audio and video, demuxed in Java and decoded by
 // the reference codecs bound directly,
 // https://goldberry.dev/docs/components/media.html#the-module. It is the one module
@@ -75,6 +80,7 @@ include ':common',
         ':widgets',
         ':html',
         ':media',
+        ':mic',
         ':emoji',
         ':gpu',
         ':bom',

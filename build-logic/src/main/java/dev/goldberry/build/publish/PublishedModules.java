@@ -45,6 +45,7 @@ public final class PublishedModules {
             // operating system's. The natives ride as `natives-<target>` classifiers,
             // as libgoldberry rides `goldberry-natives`.
             new Library("media", Inclusion.OPTIONAL),
+            new Library("mic", Inclusion.OPTIONAL),
             // What an application's build runs over its compiled classes, and the
             // plugin that runs it: in the BOM, and in no application's run time.
             new Library("weaver", Inclusion.TOOL),
