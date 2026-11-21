@@ -50,6 +50,7 @@ class InputChapterTest {
                     "input-cursor",
                     "input-cursor-pictures",
                     "input-drop",
+                    "input-drag-out",
                     "input-context",
                     "input-custom")) {
                 assertTrue(session.byId(id).isPresent(), "no #" + id);

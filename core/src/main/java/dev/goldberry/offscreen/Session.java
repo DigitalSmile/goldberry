@@ -79,6 +79,12 @@ import dev.goldberry.widget.semantics.Semantics;
 /// control falls back from — and no tray, web view, clipboard or file
 /// dialogs. [Host#window()] throws.
 ///
+/// Nor is there a desktop to drag out to. [#drag(String, String)] carries a
+/// draggable with a `dragOut` offer inside the tree, as a platform that
+/// refuses the drag does, so it lands on a drop target and its `onDragOutEnd`
+/// hears nothing. A test that drives [#router()] itself plays the platform:
+/// `router().takeDragOut()` after the move past the threshold.
+///
 /// Confined to the thread it was opened on. Must be closed.
 ///
 /// Read more: [Driving input](https://goldberry.dev/docs/guide/testing.html#driving-input).
@@ -285,6 +291,9 @@ public final class Session implements AutoCloseable {
         router.pointerPressed(fromX, fromY, PointerEvent.Button.PRIMARY, 1);
         settle();
         router.pointerMoved((fromX + toX) / 2, (fromY + toY) / 2);
+        // Handed to the platform at the threshold: there is none here, so it
+        // is refused and goes on in-app from where the pointer is.
+        router.takeDragOut().ifPresent(router::dragOutRefused);
         settle();
         router.pointerMoved(toX, toY);
         settle();

@@ -52,9 +52,10 @@ of the one it is over, and `Escape` puts it back. `Drop.fromKeyboard()` tells
 the two apart. `Space` is taken before the focused widget hears it, so a
 draggable `pressable` is lifted by `Space` and activated by `Enter`.
 
-The payload is the object itself and never leaves the application: this is
-not the platform's drag and drop, and a drag cannot leave the window or
-cross into a popup. `session.drag("card", "done")` carries one in a test.
+The payload is the object itself and stays in the application. A drag
+cannot cross into a popup, and it leaves the window only when the draggable
+has a `dragOut` offer, which the next section is about.
+`session.drag("card", "done")` carries one in a test.
 
 <!-- 2. Destination: book/src/guide/styling.md, the pseudo-class table, a new
      row after `:active`. -->
@@ -64,6 +65,7 @@ cross into a popup. `session.drag("card", "done")` carries one in a test.
 <!-- 3. Destination: book/src/overview/limitations.md, the `Platform drag and
      drop` row, its last column. -->
 
-A file dropped on a window arrives with its position, and a widget can be
-dragged onto another inside the application. Dragging out of the application
-is not built
+A file dropped on a window arrives with its position, a widget can be dragged
+onto another inside the application, and a draggable with an offer can be
+dragged out of it to any other application. No picture follows the pointer
+out of an X11 window

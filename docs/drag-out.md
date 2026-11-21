@@ -446,7 +446,7 @@ chapter, parked in `docs/snapshot/` until release.
 | 3 — Wayland | built (2026-11-21); the hand check on GNOME is open |
 | 4 — Windows | built (2026-11-21), not run on Windows; the Windows lane and a hand check are open |
 | 5 — macOS | built (2026-11-21), not run on a Mac; the macOS lane and a hand check are open |
-| 6 — showcase and guide | not started |
+| 6 — showcase and guide | done (2026-11-21); the guide section is parked in `docs/snapshot/` |
 
 - **2026-11-21.** Plan written from the tree at `b3752f37` and SDL 3.4.18's
   sources. What shapes it: SDL is a drop target on all four platforms and a
@@ -572,3 +572,23 @@ chapter, parked in `docs/snapshot/` until release.
   lane's first run, and a hand drag into Finder, a browser and Mail and onto
   an in-app target, which also answers whether AppKit begins a session from
   the event SDL last handled. Next: phase 6, the showcase and the guide.
+- **2026-11-21, phase 6.** The showcase and the guide. `DragOutCard` on the
+  Input screen, after `DropCard`: a painted picture (`Landscape`, offered as a
+  PNG and as `goldberry-picture.png`) and a note (text and
+  `goldberry-note.txt`), each a `Keepsake` payload with a `dragOut` offer from
+  `DragOutExports`, which writes the files to a temporary folder when a drag
+  starts and offers without the file when it cannot. A tray beside them is an
+  in-app drop target for either, and a readout says how the last drag ended.
+  Found on the way: an offscreen `Session` never took the router's hand-off,
+  so `session.drag` of a draggable with an offer went nowhere. Its `drag` now
+  refuses the hand-off, as a backend without a drag does, and the drag goes
+  on in-app; a test that drives `router()` itself still plays the platform
+  with `takeDragOut()`. The guide's section, `## Dragging out of the window`,
+  is parked as `docs/snapshot/guide-input-drag-out.md`, and the parked
+  `guide-input-dragging.md` no longer says a drag cannot leave the window.
+  No ADR: nothing here is a decision. Tests: `DragOutCardTest` (11), a session
+  case in `WidgetDragTest`, the card in `InputChapterTest`, and the search
+  index rewritten; the Home and sidebar goldens and the book's
+  `screen-forms-*.webp` were retaken for the one more card. **Open for the whole plan:** the Windows and macOS lanes'
+  first runs, and hand drags on all four desktops, which the card is now the
+  place for.

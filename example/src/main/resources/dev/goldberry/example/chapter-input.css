@@ -157,3 +157,54 @@ phase-box {
   min-height: 64px;
   border: 1px dashed var(--gb-border);
 }
+
+/* Two things to carry out of the window, and a tray that keeps them in it. */
+.drag-out-row {
+  gap: 12px;
+  flex-shrink: 0;
+  align-items: stretch;
+}
+
+.keepsake {
+  padding: 8px;
+  gap: 6px;
+  flex-shrink: 0;
+  width: 192px;
+  background: var(--gb-surface);
+  border: 1px solid var(--gb-border);
+  border-radius: 8px;
+  color: var(--gb-text);
+  cursor: grab;
+}
+
+#drag-out-art {
+  height: 110px;
+  flex-shrink: 0;
+  border-radius: 4px;
+}
+
+.drag-out-preview {
+  height: 110px;
+  flex-shrink: 0;
+  color: var(--gb-text-muted);
+}
+
+.drag-out-name {
+  flex-shrink: 0;
+  font-family: monospace;
+  font-size: var(--gb-font-caption);
+  color: var(--gb-text-muted);
+}
+
+.drag-tray {
+  flex-grow: 1;
+  min-height: 64px;
+  padding: 12px;
+  color: var(--gb-text);
+  border: 1px dashed var(--gb-border);
+  border-radius: 8px;
+}
+
+.drag-tray:drag-over {
+  border-color: var(--gb-accent);
+}

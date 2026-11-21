@@ -23,6 +23,8 @@ import dev.goldberry.css.Stylesheet;
 import dev.goldberry.css.cascade.CascadeLayer;
 import dev.goldberry.css.select.Selector.PseudoClass;
 import dev.goldberry.input.PointerRouter;
+import dev.goldberry.input.dragout.DragOffer;
+import dev.goldberry.input.dragout.DragOutcome;
 import dev.goldberry.input.event.PointerEvent;
 import dev.goldberry.input.handler.Handles;
 import dev.goldberry.input.hit.HitTest;
@@ -217,6 +219,33 @@ class WidgetDragTest {
                 assertEquals(List.of("leave:b", "drop:b:card-a"), log.subList(log.size() - 2, log.size()));
                 assertTrue(session.router().dragging().isEmpty());
                 assertFalse(byId(session, "b").hasState(PseudoClass.DRAG_OVER));
+            }
+        }
+
+        @Test
+        @DisplayName("a draggable with a drag-out offer is dragged in-app: a session has no desktop to hand it to")
+        void offerStaysInTheSession() {
+            var outcomes = new ArrayList<DragOutcome>();
+            var root = new Tile(
+                    "root",
+                    List.of(
+                            tile("a")
+                                    .draggable("card-a")
+                                    .dragOut(() -> DragOffer.text("card a"))
+                                    .onDragOutEnd(outcomes::add),
+                            tile("b").dropTarget(taking("b", payload -> true))),
+                    Attributes.NONE.id("root"),
+                    false,
+                    false,
+                    log);
+            try (var session = open(root)) {
+                session.drag("a", "b");
+
+                assertEquals(
+                        List.of("card-a"), drops.stream().map(Drop::payload).toList(), log::toString);
+                assertFalse(session.router().isDraggingOut());
+                assertEquals(List.of(), outcomes, "the source hears no outcome from a drag that never left");
+                assertFalse(log.contains("click:a"), log::toString);
             }
         }
 

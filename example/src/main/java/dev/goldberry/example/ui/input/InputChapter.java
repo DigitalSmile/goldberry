@@ -50,6 +50,7 @@ public record InputChapter(GalleryContext context) implements Widget.Stateless {
                         cursors(),
                         new CursorPicturesCard(),
                         new DropCard(),
+                        new DragOutCard(),
                         contextMenu(),
                         customWidget()));
     }
