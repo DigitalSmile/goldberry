@@ -8,7 +8,7 @@ By the end of this chapter you can put a badge on a corner of an avatar, an over
 
 A `stack` keeps its first child in flow and takes every later child out of flow, so adding an overlay cannot move or resize the thing it sits on.
 
-<div class="gb-shot"><img class="gb-light" src="../images/stack-light.webp" width="52" alt="A square with GB in it and a badge reading 3 over its corner"><img class="gb-dark" src="../images/stack-dark.webp" width="52" alt="A square with GB in it and a badge reading 3 over its corner"><p>A badge laid over a portrait.</p></div>
+<div class="gb-shot"><img class="gb-light" src="../images/stack-light.webp" width="55" alt="A square with GB in it and a badge reading 3 over its corner"><img class="gb-dark" src="../images/stack-dark.webp" width="55" alt="A square with GB in it and a badge reading 3 over its corner"><p>A badge laid over a portrait.</p></div>
 
 <div class="gb-tabs">
 

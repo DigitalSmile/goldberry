@@ -338,7 +338,7 @@ for a circle.
 A labelled number: a value in the display size, a caption over it, and an
 optional unit, delta and sparkline.
 
-<div class="gb-shot"><img class="gb-light" src="../images/statistic-light.webp" width="306" alt="Three statistics: Leagues walked 1,795 up 42, Days from Rivendell 93 d down 2, and Companions lost 1 with Gandalf as the delta"><img class="gb-dark" src="../images/statistic-dark.webp" width="306" alt="Three statistics: Leagues walked 1,795 up 42, Days from Rivendell 93 d down 2, and Companions lost 1 with Gandalf as the delta"><p>A label, a value, a unit and a delta.</p></div>
+<div class="gb-shot"><img class="gb-light" src="../images/statistic-light.webp" width="356" alt="Three statistics: Leagues walked 1,795 up 42, Days from Rivendell 93 d down 2, and Companions lost 1 with Gandalf as the delta"><img class="gb-dark" src="../images/statistic-dark.webp" width="356" alt="Three statistics: Leagues walked 1,795 up 42, Days from Rivendell 93 d down 2, and Companions lost 1 with Gandalf as the delta"><p>A label, a value, a unit and a delta.</p></div>
 
 <div class="gb-tabs">
 
@@ -469,7 +469,7 @@ The strip is one Tab stop.
 One tab: the value its strip reports, a label, and the content shown while it
 is selected.
 
-<div class="gb-shot"><img class="gb-light" src="../images/tab-light.webp" width="124" alt="One tab, The road, with a footprints icon and a close cross, over its page"><img class="gb-dark" src="../images/tab-dark.webp" width="124" alt="One tab, The road, with a footprints icon and a close cross, over its page"><p>A closable tab with an icon and a colour.</p></div>
+<div class="gb-shot"><img class="gb-light" src="../images/tab-light.webp" width="132" alt="One tab, The road, with a footprints icon and a close cross, over its page"><img class="gb-dark" src="../images/tab-dark.webp" width="132" alt="One tab, The road, with a footprints icon and a close cross, over its page"><p>A closable tab with an icon and a colour.</p></div>
 
 <div class="gb-tabs">
 
@@ -508,7 +508,7 @@ new Tab("road", "The road", new Text("How far it is."))
 An ordered list of entries along an axis, each with a marker, a label, an
 optional time and optional body.
 
-<div class="gb-shot"><img class="gb-light" src="../images/timeline-light.webp" width="199" alt="A vertical timeline: Drafted on Mon, Reviewed on Thu with a badge reading 3 as its marker, and Released on Fri with a tag icon"><img class="gb-dark" src="../images/timeline-dark.webp" width="199" alt="A vertical timeline: Drafted on Mon, Reviewed on Thu with a badge reading 3 as its marker, and Released on Fri with a tag icon"><p>A dot, a badge and an icon as markers, and a pending end.</p></div>
+<div class="gb-shot"><img class="gb-light" src="../images/timeline-light.webp" width="221" alt="A vertical timeline: Drafted on Mon, Reviewed on Thu with a badge reading 3 as its marker, and Released on Fri with a tag icon"><img class="gb-dark" src="../images/timeline-dark.webp" width="221" alt="A vertical timeline: Drafted on Mon, Reviewed on Thu with a badge reading 3 as its marker, and Released on Fri with a tag icon"><p>A dot, a badge and an icon as markers, and a pending end.</p></div>
 
 <div class="gb-tabs">
 
@@ -564,7 +564,7 @@ the `timeline-marker` and a `timeline-line`, beside a `timeline-side` holding
 One event: a label, an optional time, and a marker that is a dot, an icon, or
 any widget.
 
-<div class="gb-shot"><img class="gb-light" src="../images/entry-light.webp" width="152" alt="One timeline entry: a tag icon in green, Reviewed on Thu, and Two approvals under it"><img class="gb-dark" src="../images/entry-dark.webp" width="152" alt="One timeline entry: a tag icon in green, Reviewed on Thu, and Two approvals under it"><p>An entry with an icon, a colour and a body.</p></div>
+<div class="gb-shot"><img class="gb-light" src="../images/entry-light.webp" width="166" alt="One timeline entry: a tag icon in green, Reviewed on Thu, and Two approvals under it"><img class="gb-dark" src="../images/entry-dark.webp" width="166" alt="One timeline entry: a tag icon in green, Reviewed on Thu, and Two approvals under it"><p>An entry with an icon, a colour and a body.</p></div>
 
 <div class="gb-tabs">
 

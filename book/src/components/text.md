@@ -10,7 +10,7 @@ scale, bind it to a value, and make a word open a screen or a web page.
 A `text` is one run of text. It wraps at the width layout gives it and nothing
 else about it is decided in Java.
 
-<div class="gb-shot"><img class="gb-light" src="../images/text-light.webp" width="226" alt="Three lines: The Red Book as a title, a caption in muted ink, and a bound status line"><img class="gb-dark" src="../images/text-dark.webp" width="226" alt="Three lines: The Red Book as a title, a caption in muted ink, and a bound status line"><p>A title, a caption and a bound value.</p></div>
+<div class="gb-shot"><img class="gb-light" src="../images/text-light.webp" width="261" alt="Three lines: The Red Book as a title, a caption in muted ink, and a bound status line"><img class="gb-dark" src="../images/text-dark.webp" width="261" alt="Three lines: The Red Book as a title, a caption in muted ink, and a bound status line"><p>A title, a caption and a bound value.</p></div>
 
 <div class="gb-tabs">
 
@@ -132,7 +132,7 @@ None. A `text` is not a Tab stop.
 A `link` is a word that does something: it runs an action, opens a URL through
 the desktop, or both.
 
-<div class="gb-shot"><img class="gb-light" src="../images/link-light.webp" width="180" alt="Three links: Read the docs, Goldberry on the web with an external arrow, and Write to us in the visited ink"><img class="gb-dark" src="../images/link-dark.webp" width="180" alt="Three links: Read the docs, Goldberry on the web with an external arrow, and Write to us in the visited ink"><p>An action link, an external link and a visited one.</p></div>
+<div class="gb-shot"><img class="gb-light" src="../images/link-light.webp" width="201" alt="Three links: Read the docs, Goldberry on the web with an external arrow, and Write to us in the visited ink"><img class="gb-dark" src="../images/link-dark.webp" width="201" alt="Three links: Read the docs, Goldberry on the web with an external arrow, and Write to us in the visited ink"><p>An action link, an external link and a visited one.</p></div>
 
 <div class="gb-tabs">
 

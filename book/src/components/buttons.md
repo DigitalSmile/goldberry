@@ -11,7 +11,7 @@ button's box around it.
 
 A `button` is a label, an icon, or both, with one action behind it.
 
-<div class="gb-shot"><img class="gb-light" src="../images/button-light.webp" width="363" alt="Five buttons in a row: Save, New with a plus icon in the accent, Delete in red, Later greyed out, and What is this? as a link"><img class="gb-dark" src="../images/button-dark.webp" width="363" alt="Five buttons in a row: Save, New with a plus icon in the accent, Delete in red, Later greyed out, and What is this? as a link"><p>The five variants. Each is a class, not a constructor argument.</p></div>
+<div class="gb-shot"><img class="gb-light" src="../images/button-light.webp" width="395" alt="Five buttons in a row: Save, New with a plus icon in the accent, Delete in red, Later greyed out, and What is this? as a link"><img class="gb-dark" src="../images/button-dark.webp" width="395" alt="Five buttons in a row: Save, New with a plus icon in the accent, Delete in red, Later greyed out, and What is this? as a link"><p>The five variants. Each is a class, not a constructor argument.</p></div>
 
 <div class="gb-tabs">
 
@@ -100,7 +100,7 @@ consumed.
 A `badge` is a count or a status: text in a stadium that reports and takes
 nothing back.
 
-<div class="gb-shot"><img class="gb-light" src="../images/badge-light.webp" width="141" alt="Three badges: a count of 3, offline in red, and passing in green"><img class="gb-dark" src="../images/badge-dark.webp" width="141" alt="Three badges: a count of 3, offline in red, and passing in green"><p>A count, a danger badge and a success badge bound to a value.</p></div>
+<div class="gb-shot"><img class="gb-light" src="../images/badge-light.webp" width="154" alt="Three badges: a count of 3, offline in red, and passing in green"><img class="gb-dark" src="../images/badge-dark.webp" width="154" alt="Three badges: a count of 3, offline in red, and passing in green"><p>A count, a danger badge and a success badge bound to a value.</p></div>
 
 <div class="gb-tabs">
 
@@ -155,7 +155,7 @@ None.
 A `chip` is a badge you can press: a filter that is on or off, a tag you can
 take off, a token in a recipient row.
 
-<div class="gb-shot"><img class="gb-light" src="../images/chip-light.webp" width="271" alt="Four chips: Unread filled because it is selected, Live outlined with a green dot, java with a tag icon and a dismiss cross, and Sealed greyed out"><img class="gb-dark" src="../images/chip-dark.webp" width="271" alt="Four chips: Unread filled because it is selected, Live outlined with a green dot, java with a tag icon and a dismiss cross, and Sealed greyed out"><p>A selected chip, an outlined one with a dot, one with an icon and a dismiss, and a disabled one.</p></div>
+<div class="gb-shot"><img class="gb-light" src="../images/chip-light.webp" width="292" alt="Four chips: Unread filled because it is selected, Live outlined with a green dot, java with a tag icon and a dismiss cross, and Sealed greyed out"><img class="gb-dark" src="../images/chip-dark.webp" width="292" alt="Four chips: Unread filled because it is selected, Live outlined with a green dot, java with a tag icon and a dismiss cross, and Sealed greyed out"><p>A selected chip, an outlined one with a dot, one with an icon and a dismiss, and a disabled one.</p></div>
 
 <div class="gb-tabs">
 
@@ -242,7 +242,7 @@ field, where `Backspace` is what a hand reaches for.
 Anything, made into something you press: a button's behaviour with none of a
 button's box.
 
-<div class="gb-shot"><img class="gb-light" src="../images/pressable-light.webp" width="185" alt="A row reading 2.4.0 and Released on Tuesday, with no button drawn around it"><img class="gb-dark" src="../images/pressable-dark.webp" width="185" alt="A row reading 2.4.0 and Released on Tuesday, with no button drawn around it"><p>A row made pressable, with no box of its own.</p></div>
+<div class="gb-shot"><img class="gb-light" src="../images/pressable-light.webp" width="210" alt="A row reading 2.4.0 and Released on Tuesday, with no button drawn around it"><img class="gb-dark" src="../images/pressable-dark.webp" width="210" alt="A row reading 2.4.0 and Released on Tuesday, with no button drawn around it"><p>A row made pressable, with no box of its own.</p></div>
 
 <div class="gb-tabs">
 

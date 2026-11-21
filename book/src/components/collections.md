@@ -199,7 +199,7 @@ table has no type-to-select.
 A list that remembers what is open: nodes with children, a chevron on those
 that have or may have some, and the list's selection models.
 
-<div class="gb-shot"><img class="gb-light" src="../images/tree-light.webp" width="119" alt="A tree with two closed branches, Eriador and Erebor, each with a checkbox"><img class="gb-dark" src="../images/tree-dark.webp" width="119" alt="A tree with two closed branches, Eriador and Erebor, each with a checkbox"><p>Two roots with cascading checkboxes.</p></div>
+<div class="gb-shot"><img class="gb-light" src="../images/tree-light.webp" width="125" alt="A tree with two closed branches, Eriador and Erebor, each with a checkbox"><img class="gb-dark" src="../images/tree-dark.webp" width="125" alt="A tree with two closed branches, Eriador and Erebor, each with a checkbox"><p>Two roots with cascading checkboxes.</p></div>
 
 <div class="gb-tabs">
 

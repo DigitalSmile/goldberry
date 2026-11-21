@@ -8,5 +8,7 @@
 /// cannot store: no service, the user refused, or the store failed.
 ///
 /// Exported to `:core` alone, which puts the toolkit's own words on it.
+///
+/// Read more: [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
 @org.jspecify.annotations.NullMarked
 package dev.goldberry.natives.desktop.keychain;

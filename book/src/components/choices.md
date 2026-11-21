@@ -15,7 +15,7 @@ which is where the bug is.
 
 A `checkbox` is a tick with a label, in two states or three.
 
-<div class="gb-shot"><img class="gb-light" src="../images/checkbox-light.webp" width="202" alt="Three checkboxes: Frosted sidebar ticked, Sworn to the Fellowship ticked and greyed out, and Some of them with a dash"><img class="gb-dark" src="../images/checkbox-dark.webp" width="202" alt="Three checkboxes: Frosted sidebar ticked, Sworn to the Fellowship ticked and greyed out, and Some of them with a dash"><p>Checked, checked and disabled, and indeterminate.</p></div>
+<div class="gb-shot"><img class="gb-light" src="../images/checkbox-light.webp" width="224" alt="Three checkboxes: Frosted sidebar ticked, Sworn to the Fellowship ticked and greyed out, and Some of them with a dash"><img class="gb-dark" src="../images/checkbox-dark.webp" width="224" alt="Three checkboxes: Frosted sidebar ticked, Sworn to the Fellowship ticked and greyed out, and Some of them with a dash"><p>Checked, checked and disabled, and indeterminate.</p></div>
 
 <div class="gb-tabs">
 
@@ -92,7 +92,7 @@ submit.
 A `toggle` is a switch: a pill with a disc that slides, and the one control
 that acts on a release.
 
-<div class="gb-shot"><img class="gb-light" src="../images/toggle-light.webp" width="171" alt="Two switches: Frosted sidebar on in the accent, and Bound by oath on and greyed out"><img class="gb-dark" src="../images/toggle-dark.webp" width="171" alt="Two switches: Frosted sidebar on in the accent, and Bound by oath on and greyed out"><p>Bound, and on but disabled.</p></div>
+<div class="gb-shot"><img class="gb-light" src="../images/toggle-light.webp" width="186" alt="Two switches: Frosted sidebar on in the accent, and Bound by oath on and greyed out"><img class="gb-dark" src="../images/toggle-dark.webp" width="186" alt="Two switches: Frosted sidebar on in the accent, and Bound by oath on and greyed out"><p>Bound, and on but disabled.</p></div>
 
 <div class="gb-tabs">
 
@@ -158,7 +158,7 @@ Where the thumb travels to is the stylesheet's decision. The track's padding is
 A `radio` is one option in a group. It carries a value and a label, and the
 group decides whether it is on.
 
-<div class="gb-shot"><img class="gb-light" src="../images/radio-light.webp" width="165" alt="Three radios: Moria filled, Lothlórien empty, and Follow the system greyed out"><img class="gb-dark" src="../images/radio-dark.webp" width="165" alt="Three radios: Moria filled, Lothlórien empty, and Follow the system greyed out"><p>A group with one selected and one disabled.</p></div>
+<div class="gb-shot"><img class="gb-light" src="../images/radio-light.webp" width="182" alt="Three radios: Moria filled, Lothlórien empty, and Follow the system greyed out"><img class="gb-dark" src="../images/radio-dark.webp" width="182" alt="Three radios: Moria filled, Lothlórien empty, and Follow the system greyed out"><p>A group with one selected and one disabled.</p></div>
 
 <div class="gb-tabs">
 
@@ -216,7 +216,7 @@ The arrows are the group's. See below.
 
 A `radio-group` holds the fact that exactly one of its options is on.
 
-<div class="gb-shot"><img class="gb-light" src="../images/radio-group-light.webp" width="251" alt="Two radios, Moria selected and Lothlórien not, with a caption under them"><img class="gb-dark" src="../images/radio-group-dark.webp" width="251" alt="Two radios, Moria selected and Lothlórien not, with a caption under them"><p>A group bound to a value, with a caption as a third child.</p></div>
+<div class="gb-shot"><img class="gb-light" src="../images/radio-group-light.webp" width="291" alt="Two radios, Moria selected and Lothlórien not, with a caption under them"><img class="gb-dark" src="../images/radio-group-dark.webp" width="291" alt="Two radios, Moria selected and Lothlórien not, with a caption under them"><p>A group bound to a value, with a caption as a third child.</p></div>
 
 <div class="gb-tabs">
 

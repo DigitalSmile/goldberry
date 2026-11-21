@@ -8,7 +8,7 @@ By the end of this chapter you can put a long column in a viewport, choose which
 
 A `scroll` clips its content, moves it by an offset, and keeps that offset on its element so a rebuild does not lose it.
 
-<div class="gb-shot"><img class="gb-light" src="../images/scroll-light.webp" width="86" alt="A scroll box listing Hobbiton, Bree, Rivendell and Moria"><img class="gb-dark" src="../images/scroll-dark.webp" width="86" alt="A scroll box listing Hobbiton, Bree, Rivendell and Moria"><p>A vertical viewport over a column.</p></div>
+<div class="gb-shot"><img class="gb-light" src="../images/scroll-light.webp" width="95" alt="A scroll box listing Hobbiton, Bree, Rivendell and Moria"><img class="gb-dark" src="../images/scroll-dark.webp" width="95" alt="A scroll box listing Hobbiton, Bree, Rivendell and Moria"><p>A vertical viewport over a column.</p></div>
 
 <div class="gb-tabs">
 

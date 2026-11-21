@@ -14,7 +14,7 @@ user may go next.
 The path to here, as a row of crumbs with a chevron between each pair. The last
 crumb is where you are and does not press.
 
-<div class="gb-shot"><img class="gb-light" src="../images/breadcrumbs-light.webp" width="376" alt="A trail: a house icon with Home, then Library, Reference, and The Red Book in plain text"><img class="gb-dark" src="../images/breadcrumbs-dark.webp" width="376" alt="A trail: a house icon with Home, then Library, Reference, and The Red Book in plain text"><p>Three links and the current page.</p></div>
+<div class="gb-shot"><img class="gb-light" src="../images/breadcrumbs-light.webp" width="411" alt="A trail: a house icon with Home, then Library, Reference, and The Red Book in plain text"><img class="gb-dark" src="../images/breadcrumbs-dark.webp" width="411" alt="A trail: a house icon with Home, then Library, Reference, and The Red Book in plain text"><p>Three links and the current page.</p></div>
 
 <div class="gb-tabs">
 
@@ -73,7 +73,7 @@ Only a crumb that has a `press` and is not current is a Tab stop.
 
 One entry in a trail: a label, an optional icon, and what pressing it does.
 
-<div class="gb-shot"><img class="gb-light" src="../images/crumb-light.webp" width="87" alt="One crumb: a house icon and the word Home"><img class="gb-dark" src="../images/crumb-dark.webp" width="87" alt="One crumb: a house icon and the word Home"><p>An icon and a label.</p></div>
+<div class="gb-shot"><img class="gb-light" src="../images/crumb-light.webp" width="92" alt="One crumb: a house icon and the word Home"><img class="gb-dark" src="../images/crumb-dark.webp" width="92" alt="One crumb: a house icon and the word Home"><p>An icon and a label.</p></div>
 
 <div class="gb-tabs">
 
@@ -174,7 +174,7 @@ takes no arrow keys.
 
 One step: a label, an optional description, and two flags the list reads.
 
-<div class="gb-shot"><img class="gb-light" src="../images/step-light.webp" width="129" alt="One step marked 1, Account, with Who you are under it"><img class="gb-dark" src="../images/step-dark.webp" width="129" alt="One step marked 1, Account, with Who you are under it"><p>A reachable step with a description.</p></div>
+<div class="gb-shot"><img class="gb-light" src="../images/step-light.webp" width="141" alt="One step marked 1, Account, with Who you are under it"><img class="gb-dark" src="../images/step-dark.webp" width="141" alt="One step marked 1, Account, with Who you are under it"><p>A reachable step with a description.</p></div>
 
 <div class="gb-tabs">
 
@@ -290,7 +290,7 @@ the indicator takes what [`steps`](#steps) takes when `go-to` is wired.
 One page of a wizard: a label for the indicator, and the content shown while it
 is current.
 
-<div class="gb-shot"><img class="gb-light" src="../images/page-light.webp" width="123" alt="A wizard page titled Payment reading Nothing to pay"><img class="gb-dark" src="../images/page-dark.webp" width="123" alt="A wizard page titled Payment reading Nothing to pay"><p>One page on its own.</p></div>
+<div class="gb-shot"><img class="gb-light" src="../images/page-light.webp" width="137" alt="A wizard page titled Payment reading Nothing to pay"><img class="gb-dark" src="../images/page-dark.webp" width="137" alt="A wizard page titled Payment reading Nothing to pay"><p>One page on its own.</p></div>
 
 <div class="gb-tabs">
 

@@ -161,7 +161,7 @@ crossing three rows on the way somewhere does not drop one out.
 One row: a label, an optional icon, an accelerator to show, a tick, and either
 a command or a submenu.
 
-<div class="gb-shot"><img class="gb-light" src="../images/item-light.webp" width="622" alt="One menu item: a palette icon, Switch the light, a tick, and the accelerator Ctrl+T"><img class="gb-dark" src="../images/item-dark.webp" width="622" alt="One menu item: a palette icon, Switch the light, a tick, and the accelerator Ctrl+T"><p>An icon, a label, a check and an accelerator.</p></div>
+<div class="gb-shot"><img class="gb-light" src="../images/item-light.webp" width="623" alt="One menu item: a palette icon, Switch the light, a tick, and the accelerator Ctrl+T"><img class="gb-dark" src="../images/item-dark.webp" width="623" alt="One menu item: a palette icon, Switch the light, a tick, and the accelerator Ctrl+T"><p>An icon, a label, a check and an accelerator.</p></div>
 
 <div class="gb-tabs">
 

@@ -306,7 +306,7 @@ As `line-chart`.
 Part to whole: three to eight slices of one ring, with a legend that is always
 shown.
 
-<div class="gb-shot"><img class="gb-light" src="../images/donut-chart-light.webp" width="425" alt="A donut in three segments, Lembas in green, Dried meat in pink and Nothing in gold, with a legend"><img class="gb-dark" src="../images/donut-chart-dark.webp" width="425" alt="A donut in three segments, Lembas in green, Dried meat in pink and Nothing in gold, with a legend"><p>One point per series, each a segment.</p></div>
+<div class="gb-shot"><img class="gb-light" src="../images/donut-chart-light.webp" width="424" alt="A donut in three segments, Lembas in green, Dried meat in pink and Nothing in gold, with a legend"><img class="gb-dark" src="../images/donut-chart-dark.webp" width="424" alt="A donut in three segments, Lembas in green, Dried meat in pink and Nothing in gold, with a legend"><p>One point per series, each a segment.</p></div>
 
 <div class="gb-tabs">
 
