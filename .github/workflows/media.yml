@@ -82,11 +82,21 @@ jobs:
       - name: Install the tools (Linux)
         if: runner.os == 'Linux'
         run: |
+          origin=()
           for attempt in 1 2 3; do
-            dnf install -y nasm make git && break
+            dnf install -y "${origin[@]}" nasm make git && break
             [ "$attempt" -lt 3 ] || exit 1
             echo "::warning::dnf install failed, attempt $attempt of 3; fresh metadata in 30 s"
             dnf clean metadata
+            if [ "$attempt" -eq 2 ]; then
+              # The last try skips the mirrors: AlmaLinux's own server has every
+              # file its index names, while a mirror mid-sync 404s on all of them.
+              base=https://repo.almalinux.org/almalinux/$(rpm -E %rhel)
+              origin=()
+              for repo in baseos:BaseOS appstream:AppStream powertools:PowerTools; do
+                origin+=(--setopt=${repo%%:*}.mirrorlist= --setopt=${repo%%:*}.baseurl=$base/${repo#*:}/$(uname -m)/os/)
+              done
+            fi
             sleep 30
           done
           /opt/python/cp312-cp312/bin/pip install --upgrade cmake ninja meson

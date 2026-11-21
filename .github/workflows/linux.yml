@@ -58,14 +58,7 @@ jobs:
         with:
           distribution: temurin
           java-version: '25'
-      # One run from a clean Gradle home, then this goes. The restored home
-      # held palantir-java-format, Jackson and the JUnit engine as missing,
-      # recorded while Maven Central answered 429, and Gradle trusts a cached
-      # miss rather than asking again: two runs failed in 28 s without a
-      # request. A clean home that this job saves is what the next run restores.
       - uses: gradle/actions/setup-gradle@v5
-        with:
-          cache-write-only: true
       - run: ./gradlew build checkLicenses checkMarkdown -Pgoldberry.skipNative=true --no-daemon
 
       # The suite runs in BOTH binding modes on every PR.
@@ -145,9 +138,10 @@ jobs:
           # Tried three times: a mirror caught mid-sync answers 404 for the
           # repodata its own index names, and dnf gives up once every mirror on
           # the list has been asked. Fresh metadata a little later finds one that
-          # has finished.
+          # has finished, and the third try asks AlmaLinux's own server.
+          origin=()
           for attempt in 1 2 3; do
-            dnf install -y \
+            dnf install -y "${origin[@]}" \
               libxml2-devel wayland-devel wayland-protocols-devel \
               libX11-devel libxcb-devel libXext-devel libXrandr-devel \
               libXcursor-devel libXi-devel libXfixes-devel libXtst-devel \
@@ -158,6 +152,15 @@ jobs:
             [ "$attempt" -lt 3 ] || exit 1
             echo "::warning::dnf install failed, attempt $attempt of 3; fresh metadata in 30 s"
             dnf clean metadata
+            if [ "$attempt" -eq 2 ]; then
+              # The last try skips the mirrors: AlmaLinux's own server has every
+              # file its index names, while a mirror mid-sync 404s on all of them.
+              base=https://repo.almalinux.org/almalinux/$(rpm -E %rhel)
+              origin=()
+              for repo in baseos:BaseOS appstream:AppStream powertools:PowerTools; do
+                origin+=(--setopt=${repo%%:*}.mirrorlist= --setopt=${repo%%:*}.baseurl=$base/${repo#*:}/$(uname -m)/os/)
+              done
+            fi
             sleep 30
           done
           # dbus-devel, systemd-devel and ibus-devel are the three this list was

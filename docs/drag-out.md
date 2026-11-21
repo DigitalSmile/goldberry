@@ -444,8 +444,8 @@ chapter, parked in `docs/snapshot/` until release.
 | 1 — API and router | done (2026-11-21) |
 | 2 — X11 | done (2026-11-21), without a picture; see the log |
 | 3 — Wayland | built (2026-11-21); the hand check on GNOME is open |
-| 4 — Windows | built (2026-11-21), not run on Windows; the Windows lane and a hand check are open |
-| 5 — macOS | built (2026-11-21), not run on a Mac; the macOS lane and a hand check are open |
+| 4 — Windows | built (2026-11-21); the Windows lane is green on it (Snapshot #86); a hand check is open |
+| 5 — macOS | built (2026-11-21); the macOS lane is green on it (Snapshot #86); a hand check is open |
 | 6 — showcase and guide | done (2026-11-21); the guide section is parked in `docs/snapshot/` |
 
 - **2026-11-21.** Plan written from the tree at `b3752f37` and SDL 3.4.18's
@@ -592,3 +592,12 @@ chapter, parked in `docs/snapshot/` until release.
   `screen-forms-*.webp` were retaken for the one more card. **Open for the whole plan:** the Windows and macOS lanes'
   first runs, and hand drags on all four desktops, which the card is now the
   place for.
+- **2026-11-21, Snapshot #86** (on `76ccbee7`, phases 4 and 5). The Windows
+  and macOS lanes are green: `OleClipboardRoundTripTest` went through OLE's
+  clipboard and the shell's image helper on Windows, and
+  `CocoaDraggingSourceMacTest` sent its methods through the Objective-C
+  runtime on Apple Silicon. The run's one red was the linux-aarch64 media
+  library, whose AlmaLinux AppStream mirrors were mid-sync (404 on the
+  repodata their index named, three tries running); the `dnf` loops in
+  `linux.yml` and `media.yml` now ask AlmaLinux's own server on the third try.
+  What no lane can do is still open: a hand drag on each desktop.
