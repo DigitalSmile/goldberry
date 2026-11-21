@@ -39,7 +39,13 @@ class DragOfferTest {
     void files() {
         var offer = DragOffer.files(Path.of("x/../a.txt")).withFiles(Path.of("/tmp/b.txt"));
 
-        assertEquals(List.of(Path.of("a.txt").toAbsolutePath().normalize(), Path.of("/tmp/b.txt")), offer.files());
+        assertEquals(
+                List.of(
+                        Path.of("a.txt").toAbsolutePath().normalize(),
+                        // Absolute already on Unix; on Windows a rooted path
+                        // without a drive takes the working directory's.
+                        Path.of("/tmp/b.txt").toAbsolutePath().normalize()),
+                offer.files());
     }
 
     @Test

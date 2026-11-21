@@ -1400,12 +1400,14 @@ public final class Window implements AutoCloseable {
         }
         DragOffer offer;
         try {
-            offer = handOff.out().offer().get();
+            // An application's supplier that answers null fails here, as one
+            // that throws does.
+            offer = Objects.requireNonNull(handOff.out().offer().get(), "a drag's offer answered null");
         } catch (RuntimeException e) {
             LOG.warn("a drag's offer failed; it stays inside the application", e);
             return false;
         }
-        if (offer == null || offer.isEmpty()) {
+        if (offer.isEmpty()) {
             return false;
         }
         var picture = offer.picture();

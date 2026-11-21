@@ -89,6 +89,9 @@ class HtmlGoldenTest {
             """;
 
     private void paint(String name, Theme theme, int width, int height) {
+        // Before the page is parsed: parsing resolves entities in the native
+        // library too.
+        RendererRequirement.enforce();
         paint(name, theme, width, height, view());
     }
 

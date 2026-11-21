@@ -61,8 +61,11 @@ class EditorMarksTest {
 
     @AfterEach
     void tearDown() {
-        for (var font : List.of(regular, strong, mono)) {
-            font.close();
+        // Null where the set-up was skipped for want of a renderer.
+        for (var font : new Font[] {regular, strong, mono}) {
+            if (font != null) {
+                font.close();
+            }
         }
     }
 

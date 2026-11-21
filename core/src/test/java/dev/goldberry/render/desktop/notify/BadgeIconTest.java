@@ -8,6 +8,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
+import dev.goldberry.RendererRequirement;
+
 /// The picture a Windows taskbar button shows as its badge. Drawn on any
 /// machine, because it is the toolkit's own painter that draws it; only
 /// handing it to the taskbar is Windows'.
@@ -45,6 +47,7 @@ class BadgeIconTest {
     @Test
     @DisplayName("is a red disc with the label in white, transparent at the corners")
     void picture() {
+        RendererRequirement.enforce();
         var picture = BadgeIcon.render("3");
 
         assertEquals(BadgeIcon.SIZE, picture.width());
@@ -60,6 +63,7 @@ class BadgeIconTest {
     @Test
     @DisplayName("centres the label: as much of it left of the middle as right")
     void centred() {
+        RendererRequirement.enforce();
         var picture = BadgeIcon.render("88");
 
         var left = 0;
