@@ -111,7 +111,6 @@ forms	overflow-card	Longer than the box	A value wider than its field scrolls und
 forms	signup-card	A form that refuses	A form finds its fields and gates a submission on them. Enlist asks the form's controller to submit, and every field checks. Leave one empty, or give a port below 1024, and press Enlist.
 forms	code-card	Boxes for a one-time code	A row of single-character boxes over one string. Type digits, or paste 123 456 and the space is dropped. Backspace clears the last box and Escape starts again.
 forms	paint-card	A colour, dragged or typed	A swatch that opens a board: a plane, a hue ramp, a hex field and presets, all writing into the hex. The second picker has an alpha ramp, which is off unless asked for.
-forms	composer-card	A field that takes formatting	Select words for the formatting bar, or use Ctrl+B, Ctrl+I, Ctrl+Shift+M and Ctrl+K. Type @ to mention somebody, or write **Markdown**. Enter sends, Shift+Enter breaks the line.
 forms	named-card	A bound text input	A single line of text in a well. This one is bound to the model, which echoes it below, and holds at most 40 characters: a paste past that is clipped, not refused.
 forms	limits-card	What a field refuses	A filter rejects a keystroke and never corrects it. A password masks its text and will not copy out, a read-only field takes no edit, and a disabled one is out of the Tab order.
 forms	stacked-card	The same form, stacked	Stacked is the default: each label sits above its control. form.horizontal is a label column beside them instead.
@@ -120,6 +119,18 @@ forms	forms-time	A time, typed or turned	The date picker's twin, with wheels in 
 forms	label-card	A label, a control, a message	A field is a label, a control and a message under it, and stays silent until you leave it once. Tab out of the required field while it is empty, or click a label to focus its field.
 forms	forms-text-area	More than one line	A text area wraps its text and grows from rows to max-rows, then scrolls. Enter breaks a line, and Up and Down keep the column.
 forms	gutter-card	Numbered lines	gutter=#true numbers the lines you typed at the positions the wrap put them, so the long paragraph is one number and three lines. Press Enter and the numbers follow.
+rich-input		Rich input	A field that takes formatting: marks over the words, a bar over a selection, suggestions after a trigger, and the clipboard, Markdown and HTML on either side of it.
+rich-input	rich-markup-card	In markup	A document writes rich-input with bind=, placeholder, rows, max-rows, formatting=#false, read-only and disabled. Both fields follow the bound note; the buttons rewrite it.
+rich-input	rich-states-card	Read-only and disabled	A read-only field refuses edits and still selects and copies. A disabled one takes no input at all. Switch either while the field is shown: its text stays.
+rich-input	rich-triggers-card	Mentions, topics, emoji, commands	A trigger at a word start asks the application for suggestions: @ people, # topics, : emoji and / commands. Up, Down and Enter choose; a person or a command goes in whole.
+rich-input	rich-styles-card	Marks in your own style	Each set of marks is a mark node under the field with a class per kind, so a stylesheet restyles them: rich-input.ink > mark.bold. A kind of your own, here a highlighter, is a class too.
+rich-input	rich-editor-card	Marks on a canvas	The editor under a rich-input works without one: hand Editor a MarkStyles and it shapes marked words in their own faces and takes the formatting keys. The sticky note on Drawing takes Ctrl+B.
+rich-input	rich-kinds-card	Every kind of mark	Six styles, a link, a mention and a topic of the application's own, alone and together, in three scripts. The field is read-only: select and copy, then paste into the composer.
+rich-input	rich-rows-card	Growing, then scrolling	A field starts rows lines tall and grows with its text to max-rows, then scrolls, as a text-area does. Type into each one.
+rich-input	rich-bar-card	The formatting bar	Select words and let go: the bar opens over them. Choose the stock bar, a short bar of your own buttons, or none. Ctrl+K edits a link, and the text menu has Format either way.
+rich-input	rich-clipboard-card	Copy and paste	Copy from the first field. A rich field keeps the marks; the one with HTML and Markdown installed also takes a browser's formatting. A plain field takes the words.
+rich-input	composer-card	A message composer	A conversation in day sections over a field that takes formatting. Select words for the bar, or use Ctrl+B, Ctrl+I, Ctrl+Shift+M and Ctrl+K. Type @ for people, : for emoji, or write **Markdown**. Enter sends.
+rich-input	rich-convert-card	Markdown, HTML and entities	Type and format in the field: its marks are written out as Markdown, as HTML, or as a messenger's entities, and drawn again as rich-text. Write Markdown below and read it into the field.
 panels		Panels	The containers a window is made of: surfaces, a titled frame, sections that fold, slides, placeholders, a labelled number, tabs and a timeline.
 panels	panels-panel	The building block	A panel is a flat surface with the theme's border and radius, and no elevation. It is the one container a theme can restyle completely.
 panels	group-box-card	Titled frames	A group box frames a cluster of settings under a title. Without a title there is no header and no gap where one would be.

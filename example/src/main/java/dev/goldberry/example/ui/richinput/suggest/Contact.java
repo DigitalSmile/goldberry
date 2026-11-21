@@ -1,5 +1,6 @@
-package dev.goldberry.example.ui.forms.mention;
+package dev.goldberry.example.ui.richinput.suggest;
 
+import java.util.ArrayList;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.regex.Pattern;
@@ -30,6 +31,15 @@ public record Contact(String handle, String name) {
     /// The mark the mention carries: an atom naming this contact.
     public MarkKind.Mention kind() {
         return new MarkKind.Mention("user:" + handle);
+    }
+
+    /// This contact as a row of a suggestion list: the name, the handle beside
+    /// it, and the mention it puts in.
+    public Suggestion suggestion() {
+        var keys = new ArrayList<String>();
+        keys.add(handle);
+        SPACES.splitAsStream(name).forEach(keys::add);
+        return new Suggestion("user-" + handle, name, "@" + handle, mentionText(), kind(), keys);
     }
 
     /// Whether `query` starts the handle or any word of the name, ignoring

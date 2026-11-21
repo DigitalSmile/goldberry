@@ -265,7 +265,7 @@ log in the same commit as the work.
 | L-11 | W1.4 | done | 0677 | |
 | L-12 | — | declined (D14) | 0688 | |
 | T-01 | W1.8 | done | 0685 | |
-| T-02 | W3.1 | doing: phases 1–6 done (marks, `Editor` with marks, `rich-input`, the formatting bar and link editor, mentions, Markdown and HTML); the guide and the answer open (`docs/rich-text-input.md` §5) | 0703–0707 | |
+| T-02 | W3.1 | done: phases 1–7 (marks, `Editor` with marks, `rich-input`, the formatting bar and link editor, mentions, Markdown and HTML, the showcase's Rich input screen); the guide is parked until release (`docs/rich-text-input.md` §5) | 0703–0708 | |
 | T-03 | W2.6 | done | 0697 | |
 | T-04 | W2.5 | done | 0696 | |
 | T-05 | W3.4 | todo | | |
@@ -459,3 +459,11 @@ log in the same commit as the work.
   Markdown and HTML (ADR-0707): clipboard formats in `core`, `MarkedMarkdown`
   and `MarkedHtml` in `:html`, and the `text/html` format a `rich-input`
   installs. Uncommitted. Next ADR 0708.
+- **2026-11-15, rich text phase 7.** Phase 6 was committed as `04f0dbac`.
+  The owner asked for every option shown with an example, so `rich-input` got
+  its own showcase screen, Rich input, with eleven cards (ADR-0708). The
+  composer moved there, now with a conversation in `list` sections. The
+  mention picker became `ui.richinput.suggest`, answering `@`, `#`, `:` and
+  `/` with a different kind each. Tessera's G-02 answer points at the screen.
+  T-02 is done; the guide moves into the book at release. Uncommitted. Next
+  ADR 0709.

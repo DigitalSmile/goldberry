@@ -1,0 +1,32 @@
+// The **Rich input** screen's card in markup: `rich-input` as a document
+// writes it.
+//
+// `bind=` hands a field a value holding a `MarkedText` (or a plain string),
+// which `FormsModel` registers as `app.rich-note`. A document names where a
+// value comes from and has no way to name where it goes, so the two buttons
+// rewrite the model, and every field bound to it follows. The rest of the
+// screen's cards are Java, because a suggestion list and a send handler are
+// code.
+masonry id="rich-input-document" min-column-width=360 {
+
+  card id="rich-markup-card" class="wall-card" {
+    row class="card-head" {
+      text class="card-title" "In markup"
+      spacer
+      link class="card-docs" href="https://goldberry.dev/docs/components/forms.html#how-a-field-talks-to-the-model" "Docs"
+    }
+    text class="card-summary" "A document writes rich-input with bind=, placeholder, rows, max-rows, formatting=#false, read-only and disabled. Both fields follow the bound note; the buttons rewrite it."
+    row class="toolbar" {
+      button id="rich-markup-sample" press="app.rich-note-sample" "Sample"
+      button id="rich-markup-clear" press="app.rich-note-clear" "Clear"
+    }
+    text class="caption" "bind= rows=2 max-rows=4"
+    rich-input id="rich-markup-bound" bind="app.rich-note" placeholder="Bound to app.rich-note" rows=2 max-rows=4
+    text class="caption" "bind= read-only=#true"
+    rich-input id="rich-markup-read-only" bind="app.rich-note" read-only=#true
+    text class="caption" "formatting=#false"
+    rich-input id="rich-markup-barless" placeholder="No bar: the keys still format" formatting=#false
+    text class="caption" "disabled=#true"
+    rich-input id="rich-markup-disabled" placeholder="Takes no input" disabled=#true
+  }
+}

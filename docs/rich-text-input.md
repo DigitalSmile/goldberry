@@ -12,9 +12,10 @@ log.
 Each decision becomes an ADR when it is taken, parked in `docs/snapshot/adr/`.
 **The owner took every recommendation on 2026-11-14** ("go for it"). D1, D2,
 D4, D5 and D6 are recorded in ADR-0703 and D3 in ADR-0704; D7, D8 and D9 are
-recorded with the phases that build them. **Phases 1 to 6 are done** (§5);
-D8 is ADR-0705, D7 is ADR-0706, and phase 6's conversions are ADR-0707. Open:
-phase 7. The next free ADR number is 0708.
+recorded with the phases that build them. **Phases 1 to 7 are done** (§5);
+D8 is ADR-0705, D7 is ADR-0706, and phase 6's conversions are ADR-0707.
+Phase 7's showcase is built (ADR-0708); the guide stays parked until
+release. The next free ADR number is 0709.
 
 ## 1. Where things stand
 
@@ -449,13 +450,63 @@ send, which is D9 taken at send time. The tests are `MarkedClipboardTest`,
 `MarkedMarkdownTest`, `MarkedHtmlTest`, `MarkLinksTest`,
 `RichInputClipboardFormatTest` and `ComposerCardTest`.
 
-### Phase 7 — the showcase, the guide and the answer
+### Phase 7 — the showcase, the guide and the answer (done, ADR-0708)
 
 A composer in the showcase (a message list from W2.5's sections, a
 `rich-input` with the bar and mentions, sent messages shown in `rich-text`
 from the same marks). A guide section parked in `docs/snapshot/`, with
 `BookTest`'s heading for `rich-input`. Tessera's answer written in
 `gaps/answers-tessera.md`.
+
+**Widened on 2026-11-15** by the owner: the showcase shows every option and
+an example of each. The cards outgrow the Forms screen, so `rich-input` gets
+a screen of its own, **Rich input**, under Controls after Forms
+(`example` `ui.richinput`). Its header links the Fields and forms chapter,
+and each card links a section the book has today, because the guide's own
+`rich-input` section is parked until release.
+
+| Card | Shows | Options |
+|------|-------|---------|
+| `composer-card` (wide) | A conversation: a `list` of sent messages in day sections with a pinned header, each a `rich-text` from the marks (mentions and links pressable, spoilers covered), and the composer under it | `onSubmit`, `placeholder`, `maxRows`, `mentions` (`@` people, `:` emoji), `clipboardFormats` (HTML), Markdown read on send |
+| `rich-kinds-card` | One read-only field holding every kind: the six styles, a link, a mention, a custom kind, two kinds together, and right-to-left and CJK words | `readOnly`, the value, `MarkKind.Custom` |
+| `rich-rows-card` | Three fields: one line that scrolls, one that grows to four, one fixed at three | `rows`, `maxRows` |
+| `rich-states-card` | A field and two switches that make it read-only or disabled while it is shown | `readOnly`, `disabled` |
+| `rich-bar-card` | A segmented choice of the stock bar, a short bar of the application's own, or none, over one field | `formatting`, `FormatButton`, `FormatCommand`, `Ctrl+K` |
+| `rich-triggers-card` | Four triggers and what each puts in: `@` a person as an atom, `#` a topic as a custom reference, `:` an emoji as plain text, `/` a command as a custom atom | `Mentions.on(…, triggers)`, `keys`, `MentionPrompt.complete` with each kind |
+| `rich-styles-card` | One value in two fields, the toolkit's looks and a class of the application's whose sheet restyles each `mark` | `mark.<kind>` selectors, a custom kind's class |
+| `rich-convert-card` (wide) | A field and what it is in Markdown, in HTML and as entities, live; Markdown typed in a text area read into the field | `MarkedMarkdown`, `MarkedHtml`, `Mark` offsets |
+| `rich-clipboard-card` | Copy from one field into a second (marks kept), a third with HTML installed, and a plain `text-input` (marks dropped) | `MarkedClipboard`, `clipboardFormats` |
+| `rich-markup-card` (KDL) | `rich-input` in a document: `bind=` to a model value two buttons rewrite, `formatting=#false`, `read-only`, `disabled`, `rows`/`max-rows` | the markup attributes |
+| `rich-editor-card` (reference) | Marks without a widget: the canvas `Editor` with `markStyles`, as the sticky note on Drawing uses it | `Editor.markStyles` |
+
+`ui.forms.mention` moves to `ui.richinput.suggest` and is generalised: a
+`Suggestion` (title, detail, the text and kind it completes with) per row,
+a `Suggester` per trigger, `SuggestionList` and `SuggestionPicker` over them.
+The composer's rules move from `chapter-forms.css` to a new
+`chapter-richinput.css`.
+
+**Tests:** a test per card in `example` (each option visibly applied: the
+field's component set, keys typed through `Offscreen`, the value that comes
+back), `RichInputChapterTest` (every card, in order), the moved
+`SuggestionListGoldenTest`, `GalleryDocsTest` for the links. A new screen adds
+a sidebar row to every screen, so the gallery and shell goldens, the book's
+screen pictures and the search index are taken again.
+
+**As built.** Every card in the table above, as planned, with three
+changes:
+
+- the "every kind" sample has Cyrillic and Greek where the plan had Arabic and
+  CJK, because the bundled faces have no fallback for either;
+- `MarkdownFormat` (in `ui.richinput`) is a clipboard format written by the
+  showcase, to show that an application can install its own;
+- the conversation is a built `list` (no virtualising), because a few dozen
+  messages are cheaper built than measured. Its rows are as tall as their
+  words (`#composer-list list-row { height: auto }`), and the well is an
+  end-anchored `scroll`, as the console card's is.
+
+The guide's section in `docs/snapshot/components-forms-rich-input.md` gained
+a paragraph on writing a clipboard format. Tessera's answer (G-02 in
+`gaps/answers-tessera.md`) points at the screen.
 
 ## 6. Risks
 
@@ -542,3 +593,19 @@ from the same marks). A guide section parked in `docs/snapshot/`, with
   module path. Three `GalleryTextScaleTest` screens first failed on a truncated
   jar while another session rebuilt `:gpu` in the same tree, and passed on a
   rerun. Next ADR 0708. Open: phase 7.
+- **2026-11-15, phase 7.** Phase 6 was committed as `04f0dbac`. The owner
+  widened phase 7 to "every option and an example of each", so `rich-input`
+  got a showcase screen of its own, **Rich input**, under Controls after Forms
+  (ADR-0708). It has eleven cards: markup bound to `app.rich-note`, every
+  kind, rows, read-only and disabled, the bar three ways, four triggers, the
+  stylesheet, the clipboard, the canvas editor, the composer and the
+  conversions. The composer moved off the Forms screen. Its sent messages
+  now sit in a `list` in day sections, drawn by `MarkedRuns` with pressable
+  mentions, links and topics and covered spoilers. `ui.forms.mention` became
+  `ui.richinput.suggest`: `Suggestion`, `Suggester`, `Directories` and
+  `SuggestionPicker`. `Ctrl+0` opens Rich input now. The new sidebar row and
+  the Forms count (14 to 13) meant retaking every gallery and shell golden,
+  both tour goldens, 18 screen pictures and `index.tsv`. Verified: `:example`
+  989 tests green, `spotlessCheck` and PMD clean, the showcase on the module
+  path (dummy driver). Next ADR 0709. Open: nothing in this plan. The guide
+  moves into the book at release.

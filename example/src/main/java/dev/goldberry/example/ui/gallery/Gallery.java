@@ -37,6 +37,7 @@ import dev.goldberry.example.ui.menus.MenusChapter;
 import dev.goldberry.example.ui.navigation.NavigationChapter;
 import dev.goldberry.example.ui.overlays.OverlaysChapter;
 import dev.goldberry.example.ui.panels.PanelsChapter;
+import dev.goldberry.example.ui.richinput.RichInputChapter;
 import dev.goldberry.example.ui.sheet.EmojiScreen;
 import dev.goldberry.example.ui.sheet.IconsScreen;
 import dev.goldberry.example.ui.styling.DesignChapter;
@@ -69,6 +70,7 @@ public final class Gallery {
             new GalleryTab("choices", "Choices", CONTROLS, "list-checks", Fit.SCROLLED, ChoicesChapter::new),
             new GalleryTab("values", "Values", CONTROLS, "sliders-horizontal", Fit.SCROLLED, ValuesChapter::new),
             new GalleryTab("forms", "Forms", CONTROLS, "text-cursor-input", Fit.SCROLLED, FormsChapter::new),
+            new GalleryTab(RichInputChapter.NAME, "Rich input", CONTROLS, "bold", Fit.SCROLLED, RichInputChapter::new),
             new GalleryTab("panels", "Panels", STRUCTURE, "panels-top-left", Fit.SCROLLED, PanelsChapter::new),
             new GalleryTab("collections", "Collections", STRUCTURE, "rows-3", Fit.SCROLLED, CollectionsChapter::new),
             new GalleryTab("navigation", "Navigation", STRUCTURE, "compass", Fit.SCROLLED, NavigationChapter::new),

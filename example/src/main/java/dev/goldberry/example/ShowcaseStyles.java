@@ -23,6 +23,7 @@ public final class ShowcaseStyles {
             "text",
             "controls",
             "forms",
+            "richinput",
             "panels",
             "collections",
             "navigation",

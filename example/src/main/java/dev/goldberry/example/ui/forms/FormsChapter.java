@@ -12,8 +12,8 @@ import dev.goldberry.widget.Widget;
 /// chapter.
 ///
 /// The cards are `forms-fields.kdl`, bound to the paths the model registers,
-/// and two cards in Java: [FieldCard], whose required field needs a value of its
-/// own to check, and [ComposerCard], whose sent messages are state.
+/// and one card in Java: [FieldCard], whose required field needs a value of its
+/// own to check. `rich-input` has a screen of its own, Rich input.
 ///
 /// Read more: [Fields and forms](https://goldberry.dev/docs/components/forms.html).
 ///
@@ -35,6 +35,6 @@ public record FormsChapter(GalleryContext context) implements Widget.Stateless {
                         + "Text, a date, a time, a colour and a one-time code.",
                 CHAPTER,
                 context.documents().wall(DOCUMENT),
-                List.of(new FieldCard(), new ComposerCard()));
+                List.of(new FieldCard()));
     }
 }

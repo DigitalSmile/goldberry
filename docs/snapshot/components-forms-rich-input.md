@@ -182,6 +182,27 @@ new RichInput(draft, onChange).clipboardFormats(List.of(MarkedHtml.format()));
 A paste prefers the toolkit's own type, then each installed format in turn,
 then the plain text.
 
+A format is three methods, so an application can add its own: the type it is
+offered under, how marked text is written in it, and how it is read back.
+`read` gets bytes from another process, so it answers nothing rather than
+throwing:
+
+```java
+import dev.goldberry.text.mark.MarkedFormat;
+
+record MarkdownFormat() implements MarkedFormat {
+    public String mime() { return "text/markdown"; }
+    public byte[] write(MarkedText text) {
+        return MarkedMarkdown.write(text).getBytes(StandardCharsets.UTF_8);
+    }
+    public Optional<MarkedText> read(byte[] bytes) {
+        return Optional.of(MarkedMarkdown.read(new String(bytes, StandardCharsets.UTF_8)));
+    }
+}
+
+new RichInput(draft, onChange).clipboardFormats(List.of(MarkedHtml.format(), new MarkdownFormat()));
+```
+
 ### Styling the marks
 
 Each set of marks in the text is a `mark` node under the field, with a class

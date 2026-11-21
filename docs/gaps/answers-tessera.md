@@ -14,7 +14,7 @@ nothing.
 | # | Gap | Answer | Status |
 |---|-----|--------|--------|
 | G-01 | Weaver not published | Weaver jar and a `dev.goldberry.weave` Gradle plugin | on master, not yet in a snapshot |
-| G-02 | Rich-text input | `rich-input` over marked text, with the formatting bar, links, mentions, and Markdown and HTML conversions | on master; guide at release |
+| G-02 | Rich-text input | `rich-input` over marked text, with the formatting bar, links, mentions, and Markdown and HTML conversions; the showcase's Rich input screen shows every option | on master; guide at release |
 | G-03 | Rich-text display with entities | Hit-testing, run clicks, selection, spoilers on `RichText` | on master, not yet in a snapshot |
 | G-04 | Sticky section headers | Sections in `ListView` | on master, not yet in a snapshot |
 | G-05 | Camera and microphone | `goldberry-camera` and `goldberry-mic` | planned |
@@ -112,8 +112,8 @@ Telegram Desktop's set. Phase 6 converts to and from Markdown and HTML.
   MarkKind.Mention("user:42"))` puts the mention in as an atom with a space
   after it, as one undo step. While a query is open, `Up`, `Down`, `Enter`,
   `Tab` and `Escape` reach your handler first. An `Escape` you leave closes
-  the query. The list is yours to draw; the showcase's `MentionPicker` is one
-  in about a hundred lines. The atom itself is the model's: the caret steps
+  the query. The list is yours to draw; the showcase's `SuggestionPicker` is
+  one in about a hundred and fifty lines. The atom itself is the model's: the caret steps
   over it, Backspace removes it whole, and an IME composition never starts
   inside it.
 - Markdown and HTML (ADR-0707), in `goldberry-html`.
@@ -125,7 +125,21 @@ Telegram Desktop's set. Phase 6 converts to and from Markdown and HTML.
   `.clipboardFormats(List.of(…))`, and a paste from a browser keeps its bold
   while a copy offers HTML to other applications. Your entities stay
   `MarkedText`'s marks; these are for the services and the clipboards that
-  speak Markdown or HTML.
+  speak Markdown or HTML. A format of your own is three methods
+  (`MarkedFormat`: `mime`, `write`, `read`); the showcase writes a
+  `text/markdown` one in a dozen lines.
+- To see all of it working (ADR-0708), open the showcase's **Rich input**
+  screen, under Controls. It has a card per option: every kind of mark, rows,
+  read-only and disabled, the bar three ways, four triggers (`@` a person as
+  an atom, `#` a topic as a custom reference, `:` an emoji as plain text, `/`
+  a command as a custom atom), the stylesheet restyling marks, the clipboard,
+  and the field in markup with `bind=`. The composer card is the closest to
+  Tessera: a conversation in day sections (`list` sections, G-04) whose
+  messages are `rich-text` built from the marks, with pressable mentions and
+  covered spoilers (G-03), over the field. The conversions card shows a draft
+  as Markdown, as HTML and as entities (offset, length, type), which is your
+  storage shape. The code is `example` `ui.richinput`; `MarkedRuns` and
+  `Entities` are short enough to copy.
 
 ## G-03. Rich-text display with entities
 

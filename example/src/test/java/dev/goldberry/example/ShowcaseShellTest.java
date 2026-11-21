@@ -96,6 +96,7 @@ class ShowcaseShellTest {
                         "choices",
                         "values",
                         "forms",
+                        "rich-input",
                         "panels",
                         "collections",
                         "navigation",
@@ -117,7 +118,7 @@ class ShowcaseShellTest {
                         "application",
                         "lookalike"),
                 Screen.GALLERY);
-        assertEquals("panels", Screen.GALLERY.get(9), "Ctrl+0 is the tenth screen");
+        assertEquals("rich-input", Screen.GALLERY.get(9), "Ctrl+0 is the tenth screen");
     }
 
     @Test

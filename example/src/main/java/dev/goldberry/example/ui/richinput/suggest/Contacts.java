@@ -1,4 +1,4 @@
-package dev.goldberry.example.ui.forms.mention;
+package dev.goldberry.example.ui.richinput.suggest;
 
 import java.util.List;
 import java.util.Objects;
@@ -7,7 +7,7 @@ import java.util.Objects;
 public final class Contacts {
 
     /// The most suggestions shown at once.
-    public static final int SHOWN = 5;
+    public static final int SHOWN = Suggester.SHOWN;
 
     /// Everybody, in the order they are suggested.
     public static final List<Contact> ALL = List.of(

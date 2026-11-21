@@ -5,6 +5,8 @@ import org.jspecify.annotations.Nullable;
 import dev.goldberry.bind.Action;
 import dev.goldberry.bind.Bind;
 import dev.goldberry.bind.Model;
+import dev.goldberry.text.mark.MarkKind;
+import dev.goldberry.text.mark.MarkedText;
 import dev.goldberry.widgets.form.Validator;
 import dev.goldberry.widgets.form.form.FormController;
 import dev.goldberry.widgets.markup.Named;
@@ -20,6 +22,12 @@ import dev.goldberry.widgets.markup.Named;
 // in a native image. The reader is generated.
 @SuppressWarnings("UnusedVariable")
 public final class FormsModel {
+
+    /// The note [#richNote] opens with, and what its Sample button puts back.
+    public static final MarkedText RICH_NOTE = MarkedText.of("Bound with bind=, and drawn with its marks.")
+            .mark(11, 16, MarkKind.Style.CODE)
+            .mark(22, 27, MarkKind.Style.BOLD)
+            .mark(37, 42, MarkKind.Style.ITALIC);
 
     /// The Red Book's own field, and the one that proves the round trip: the
     /// field reports every keystroke, the action below writes it here, and the
@@ -93,6 +101,13 @@ public final class FormsModel {
 
             - [ ] Pack the rope
             - [x] Return the ring""";
+
+    /// What the Rich input screen's markup card binds its fields to: a value
+    /// with marks, which two buttons rewrite so the bound fields can be seen
+    /// following it.
+    @Bind("app.rich-note")
+    @SuppressWarnings("unused")
+    private MarkedText richNote = RICH_NOTE;
 
     /// The handle that submits the enlistment form, which the document names.
     ///
@@ -197,6 +212,20 @@ public final class FormsModel {
         /// The submit event carries **nothing**, which is right — `bind=` reads
         /// *from* this model, so the values are already here and an event
         /// carrying them would hand the application its own data back.
+        /// Puts the markup card's note back to its sample.
+        @Action("app.rich-note-sample")
+        @SuppressWarnings("unused")
+        void richNoteSample() {
+            values.richNote = RICH_NOTE;
+        }
+
+        /// Empties the markup card's note.
+        @Action("app.rich-note-clear")
+        @SuppressWarnings("unused")
+        void richNoteClear() {
+            values.richNote = MarkedText.EMPTY;
+        }
+
         @Action("app.submit-signup")
         @SuppressWarnings("unused")
         void submitSignup() {

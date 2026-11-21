@@ -1,4 +1,4 @@
-package dev.goldberry.example.ui.forms.mention;
+package dev.goldberry.example.ui.richinput.suggest;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;

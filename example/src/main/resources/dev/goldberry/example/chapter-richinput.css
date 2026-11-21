@@ -1,0 +1,187 @@
+/* The rules of the screen in `dev.goldberry.example.ui.richinput`, loaded after
+   `showcase.css` by `ShowcaseStyles`. A rule every screen shares belongs in
+   `showcase.css`; a rule about this screen's cards belongs here. */
+
+/* The kinds of the showcase's own, wherever marked text is drawn: in a field
+   as a `mark`, in a sent message as a `run`. A topic is the link's ink, a
+   command a tag on the surface, a highlight a marker's stroke. */
+rich-input > mark.topic,
+rich-text > run.topic {
+  color: var(--gb-button-link-text);
+}
+
+rich-input > mark.command,
+rich-text > run.command {
+  font-family: "JetBrains Mono";
+  color: var(--gb-accent);
+}
+
+rich-input > mark.highlight,
+rich-text > run.highlight {
+  background: var(--gb-badge-accent-bg);
+}
+
+/* The styles card's own looks: the same marks under `rich-input.ink`, each
+   changed in a way that is visible at a glance. */
+rich-input.ink > mark.bold {
+  color: var(--gb-accent);
+}
+
+rich-input.ink > mark.code {
+  background: var(--gb-surface-sunken);
+  color: var(--gb-success);
+}
+
+rich-input.ink > mark.link {
+  color: var(--gb-warning);
+}
+
+rich-input.ink > mark.mention {
+  background: var(--gb-selection);
+}
+
+rich-input.ink > mark.highlight {
+  background: var(--gb-warning);
+  color: var(--gb-bg);
+}
+
+/* The composer: the conversation over its status line and the field. */
+#composer-column {
+  gap: 8px;
+}
+
+/* The conversation's well: a fixed height the list scrolls in, kept at its
+   end as messages arrive. */
+#composer-messages {
+  height: 280px;
+  border: 1px solid var(--gb-border);
+  border-radius: 8px;
+  background: var(--gb-surface-sunken);
+}
+
+/* A day's header, pinned over the list's top while its messages scroll: the
+   well's own surface, so a message scrolling under it is hidden, not shown
+   through. */
+#composer-list list-section-header {
+  min-height: 0;
+  padding: 4px 10px;
+  background: var(--gb-surface-sunken);
+}
+
+text.composer-day {
+  font-size: var(--gb-font-caption);
+  line-height: var(--gb-line-caption);
+  font-weight: var(--gb-weight-strong);
+  color: var(--gb-text-muted);
+}
+
+/* A message is as tall as its words, not a list's one row height, and is read
+   rather than chosen: no pointer, no hover wash. */
+#composer-list list-row {
+  height: auto;
+  padding: 0;
+  align-items: stretch;
+  cursor: default;
+}
+
+#composer-list list-row:hover {
+  background: transparent;
+}
+
+column.message {
+  flex-grow: 1;
+  gap: 2px;
+  padding: 4px 10px;
+}
+
+column.message.mine {
+  align-items: flex-end;
+}
+
+column.message > rich-text.message-body {
+  align-self: flex-start;
+}
+
+column.message.mine > rich-text.message-body {
+  align-self: flex-end;
+}
+
+text.message-author {
+  font-size: var(--gb-font-caption);
+  line-height: var(--gb-line-caption);
+  color: var(--gb-text-muted);
+}
+
+/* A message, and the conversions card's preview: a `rich-text` whose runs
+   carry the classes of the marks they were typed with. */
+rich-text.message-body {
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: var(--gb-surface-raised);
+}
+
+rich-text.message-body > run.bold {
+  font-weight: 600;
+}
+
+rich-text.message-body > run.italic {
+  font-style: italic;
+}
+
+rich-text.message-body > run.underline {
+  text-decoration: underline;
+}
+
+rich-text.message-body > run.strike {
+  text-decoration: line-through;
+}
+
+rich-text.message-body > run.code {
+  font-family: "JetBrains Mono";
+}
+
+rich-text.message-body > run.link,
+rich-text.message-body > run.mention {
+  color: var(--gb-button-link-text);
+}
+
+/* The conversions card's output: what the field holds, written out. */
+text.rich-convert-output {
+  padding: 8px 10px;
+  border-radius: 6px;
+  background: var(--gb-surface-sunken);
+  white-space: pre-wrap;
+}
+
+/* What a query matches, in a panel over the query: the popover's surface, a
+   row per suggestion, the row Enter takes on the selection's wash. */
+column.suggestion-list {
+  min-width: 200px;
+  padding: 4px;
+  gap: 2px;
+  background: var(--gb-surface);
+  color: var(--gb-text);
+  border: 1px solid var(--gb-border);
+  border-radius: 8px;
+  box-shadow: var(--gb-elevation-2);
+}
+
+pressable.suggestion-option {
+  flex-direction: row;
+  align-items: baseline;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 6px;
+}
+
+pressable.suggestion-option:hover {
+  background: var(--gb-overlay-hover);
+}
+
+pressable.suggestion-option.active {
+  background: var(--gb-selection);
+}
+
+text.suggestion-detail {
+  color: var(--gb-text-muted);
+}

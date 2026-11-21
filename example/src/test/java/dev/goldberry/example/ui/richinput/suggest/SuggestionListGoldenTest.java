@@ -1,4 +1,4 @@
-package dev.goldberry.example.ui.forms.mention;
+package dev.goldberry.example.ui.richinput.suggest;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -15,7 +15,7 @@ import dev.goldberry.offscreen.Offscreen;
 /// popup windows.
 ///
 /// `./gradlew :example:test -Dgoldberry.golden.update=true` rewrites them.
-class MentionListGoldenTest {
+class SuggestionListGoldenTest {
 
     private static final int WIDTH = 240;
     private static final int HEIGHT = 96;
@@ -26,7 +26,7 @@ class MentionListGoldenTest {
     }
 
     private static void paint(String name, Theme theme) {
-        var list = new MentionList(Contacts.matching(Contacts.ALL, "a"), 1, _ -> {});
+        var list = new SuggestionList(Suggester.of(Directories.PEOPLE).suggest("a"), 1, _ -> {});
         try (var scene = new ShowcaseScene()) {
             var sheets = scene.stylesheets(theme);
             GoldenImage.assertMatches(
