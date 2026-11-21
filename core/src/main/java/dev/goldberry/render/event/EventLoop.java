@@ -92,6 +92,9 @@ public final class EventLoop implements AutoCloseable {
     private volatile boolean running;
     private boolean closed;
 
+    /// Whether [#turnWhileHeld] is running, which a turn never nests in.
+    private boolean holding;
+
     public EventLoop(Backend backend) {
         this(backend, System::nanoTime);
     }
@@ -161,6 +164,34 @@ public final class EventLoop implements AutoCloseable {
         } finally {
             running = false;
             LOG.debug("event loop finished");
+        }
+    }
+
+    /// One turn of this loop while the platform holds the UI thread: the work
+    /// posted to the UI thread, the timers that are due, and the work they
+    /// posted in turn, as [#run] does around a pump.
+    ///
+    /// For a backend whose platform does not return for a while and calls the
+    /// toolkit back in the meantime: Windows' `DoDragDrop`, which runs a modal
+    /// loop for as long as a drag out lasts. Without it, a posted result or a
+    /// tooltip's delay waits for the drag to end.
+    ///
+    /// A turn inside a turn returns at once, so application code that makes
+    /// the platform call back again cannot recurse.
+    ///
+    /// @throws BackendException if called off the UI thread
+    public void turnWhileHeld() {
+        ui.requireUiThread();
+        if (holding) {
+            return;
+        }
+        holding = true;
+        try {
+            ui.drain();
+            fireDueTimers();
+            ui.drain();
+        } finally {
+            holding = false;
         }
     }
 

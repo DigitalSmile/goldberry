@@ -21,11 +21,16 @@ import dev.goldberry.natives.Downcalls;
 import dev.goldberry.natives.Upcalls;
 import dev.goldberry.natives.desktop.dragout.X11EventHook;
 import dev.goldberry.natives.desktop.dragout.XlibXdnd;
+import dev.goldberry.natives.desktop.dragout.cocoa.CocoaDraggingSource;
+import dev.goldberry.natives.desktop.dragout.ole.OleDataObject;
+import dev.goldberry.natives.desktop.dragout.ole.OleDropSource;
+import dev.goldberry.natives.desktop.dragout.ole.OleFormatEnumerator;
 import dev.goldberry.natives.desktop.macos.MacMenuBar;
 import dev.goldberry.natives.desktop.macos.MacNotifier;
 import dev.goldberry.natives.desktop.notify.WindowsNotifier;
 import dev.goldberry.natives.desktop.shortcuts.CarbonHotkeys;
 import dev.goldberry.natives.desktop.shortcuts.XlibHotkeys;
+import dev.goldberry.natives.desktop.windows.ComServer;
 import dev.goldberry.natives.glib.GlibLog;
 import dev.goldberry.natives.sdl.SdlEventWatch;
 import dev.goldberry.natives.sdl.SdlFileDialogs;
@@ -92,11 +97,21 @@ public final class ForeignSurface {
             XlibXdnd.class,
             // Every Wayland event of every proxy a drag out makes, through
             // `wl_proxy_add_dispatcher`: one shape for all of Wayland.
-            WaylandDispatcher.class);
+            WaylandDispatcher.class,
+            // The COM objects a Windows drag out hands `DoDragDrop`: IUnknown's
+            // three methods, shared, then each interface's own.
+            ComServer.class,
+            OleDataObject.class,
+            OleFormatEnumerator.class,
+            OleDropSource.class,
+            // A macOS drag out's source object: the dragging source and the
+            // pasteboard item's data provider, two of its methods taking an
+            // NSPoint by value.
+            CocoaDraggingSource.class);
 
     /// The classes that bind a system library outside a `…calls` package —
-    /// libdbus, libobjc, shell32, ole32, advapi32, Security, libX11, libc,
-    /// Carbon — and declare every shape they send as a constant, so that
+    /// libdbus, libobjc, shell32, ole32, advapi32, kernel32, gdi32, Security,
+    /// libX11, libc, Carbon — and declare every shape they send as a constant, so that
     /// initialising them records the shapes wherever the library is missing.
     /// Their libraries are opened by nested holders, which this does not
     /// touch.
@@ -115,6 +130,11 @@ public final class ForeignSurface {
             "dev.goldberry.natives.desktop.shortcuts.WindowsHotkeys",
             "dev.goldberry.natives.desktop.shortcuts.CarbonHotkeys",
             "dev.goldberry.natives.desktop.dragout.XlibXdnd",
+            "dev.goldberry.natives.desktop.windows.Win32GlobalMemory",
+            "dev.goldberry.natives.desktop.dragout.ole.OleCalls",
+            "dev.goldberry.natives.desktop.dragout.ole.OleDataObject",
+            "dev.goldberry.natives.desktop.dragout.ole.OleDragImage",
+            "dev.goldberry.natives.desktop.dragout.cocoa.CocoaDragItems",
             "dev.goldberry.natives.wayland.WaylandClient",
             "dev.goldberry.natives.wayland.Descriptors");
 

@@ -31,6 +31,7 @@ import org.junit.jupiter.api.Test;
 
 import dev.goldberry.natives.CompiledClasses;
 import dev.goldberry.natives.Downcalls;
+import dev.goldberry.natives.desktop.macos.ObjC;
 import dev.goldberry.natives.glib.GlibLog;
 import dev.goldberry.natives.layout.Layouts;
 import dev.goldberry.natives.sdl.SdlLog;
@@ -105,7 +106,7 @@ class ForeignSurfaceTest {
     }
 
     @Test
-    @DisplayName("declares the nineteen upcall shapes, Yoga's struct return among them")
+    @DisplayName("declares the twenty-eight upcall shapes, Yoga's struct return among them")
     void upcalls() {
         var upcalls = ForeignSurface.upcalls();
         assertAll(
@@ -114,8 +115,24 @@ class ForeignSurfaceTest {
                 // the seventeenth the X error handler a global shortcut's grab is
                 // made under, the eighteenth the Carbon handler of a macOS hotkey,
                 // the nineteenth libwayland's dispatcher, every event of a drag
-                // out's proxies.
-                () -> assertEquals(19, upcalls.size(), upcalls.toString()),
+                // out's proxies. The last six are the COM methods a Windows
+                // drag out's objects answer that no earlier shape covers, and
+                // the last three a macOS drag out's source object, two of them
+                // taking an NSPoint by value.
+                () -> assertEquals(28, upcalls.size(), upcalls.toString()),
+                () -> assertTrue(
+                        upcalls.contains(FunctionDescriptor.ofVoid(ADDRESS, ADDRESS, ADDRESS, ObjC.POINT, JAVA_LONG)),
+                        "NSDraggingSource's draggingSession:endedAtPoint:operation:"),
+                () -> assertTrue(upcalls.contains(FunctionDescriptor.of(JAVA_INT, ADDRESS)), "IUnknown's AddRef"),
+                () -> assertTrue(
+                        upcalls.contains(FunctionDescriptor.of(JAVA_INT, ADDRESS, JAVA_INT, JAVA_INT)),
+                        "IDropSource's QueryContinueDrag"),
+                () -> assertTrue(
+                        upcalls.contains(FunctionDescriptor.of(JAVA_INT, ADDRESS, ADDRESS, ADDRESS, JAVA_INT)),
+                        "IDataObject's SetData"),
+                () -> assertTrue(
+                        upcalls.contains(FunctionDescriptor.of(JAVA_INT, ADDRESS, JAVA_INT, ADDRESS, ADDRESS)),
+                        "IEnumFORMATETC's Next"),
                 () -> assertTrue(
                         upcalls.contains(FunctionDescriptor.of(JAVA_INT, ADDRESS, ADDRESS, JAVA_INT, ADDRESS, ADDRESS)),
                         "libwayland's wl_dispatcher_func_t"),

@@ -12,14 +12,19 @@ import org.slf4j.Logger;
 
 import dev.goldberry.input.dragout.DragOffer;
 import dev.goldberry.input.dragout.DragOperation;
+import dev.goldberry.input.dragout.DragPicture;
 import dev.goldberry.log.Logs;
 import dev.goldberry.natives.desktop.dragout.DragAction;
 import dev.goldberry.natives.desktop.dragout.DragData;
+import dev.goldberry.natives.desktop.dragout.DragIcon;
 import dev.goldberry.render.dragout.OfferedData;
+import dev.goldberry.render.model.DisplayScale;
+import dev.goldberry.render.model.PixelFormat;
 
-/// An offer as the platforms' drag sources take it, the same on X11 and
-/// Wayland: types and bytes, the actions in the platform's words, and an
-/// image written to a file for the targets that take only files.
+/// An offer as the platforms' drag sources take it, the same on X11, Wayland
+/// and Windows: types and bytes, the actions in the platform's words, an
+/// image written to a file for the targets that take only files, and the
+/// picture as pixels.
 final class DragOutData {
 
     private static final Logger LOG = Logs.of(DragOutData.class);
@@ -93,5 +98,35 @@ final class DragOutData {
             LOG.warn("a drag's image could not be written to a file; it is offered as image/png only", e);
             return offer;
         }
+    }
+
+    /// The picture as a platform takes it, at `scale` physical pixels to a
+    /// logical one, or null when there is none or it is not premultiplied BGRA.
+    static @Nullable DragIcon icon(@Nullable DragPicture picture, int scale) {
+        if (picture == null) {
+            return null;
+        }
+        var pixels = picture.pixels();
+        if (pixels.format() != PixelFormat.BGRA32_PREMULTIPLIED) {
+            LOG.debug("a drag picture in {} is not shown", pixels.format());
+            return null;
+        }
+        return new DragIcon(
+                pixels.size().width(),
+                pixels.size().height(),
+                pixels.stride(),
+                pixels.pixels(),
+                picture.hotspotX(),
+                picture.hotspotY(),
+                scale);
+    }
+
+    /// `scale` as a whole number of physical pixels to a logical one, as a
+    /// Wayland buffer and an `NSImage` of the picture take it: 1 where the
+    /// window's scale is fractional, so the picture shows at its pixel size.
+    static int wholeScale(DisplayScale scale) {
+        var factor = scale.factor();
+        var whole = Math.round(factor);
+        return whole >= 1 && Math.abs(factor - whole) < 1e-3f ? whole : 1;
     }
 }

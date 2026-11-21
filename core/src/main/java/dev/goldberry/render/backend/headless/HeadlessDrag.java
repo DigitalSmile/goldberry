@@ -39,6 +39,12 @@ public record HeadlessDrag(HeadlessWindow window, DragRequest request, DragSessi
         session.over(target, new LogicalPoint(x, y));
     }
 
+    /// The platform holds the UI thread and offers a turn of the loop, as
+    /// Windows' modal drag does on every move.
+    public void whileHeld() {
+        session.whileHeld();
+    }
+
     /// The pointer left every window of the application.
     public void outside() {
         session.outside();

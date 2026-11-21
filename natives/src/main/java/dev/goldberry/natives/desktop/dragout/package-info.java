@@ -2,7 +2,10 @@
 ///
 /// SDL is a drop target on every platform and a drag source on none, so each
 /// platform's source is written here, under the SDL backend and for this one
-/// capability: XDND on X11 over SDL's own `Display`. A [DragSourceListener]
+/// capability: XDND on X11 over SDL's own `Display`, `start_drag` on SDL's own
+/// Wayland data device, OLE's `DoDragDrop` on Windows ([OleDragSource], whose
+/// COM objects are in `…dragout.ole`), and an `NSDraggingSession` on macOS
+/// ([CocoaDragSource], whose class is in `…dragout.cocoa`). A [DragSourceListener]
 /// hears where the pointer is over the application's own windows and how the
 /// drag ended; [DragData] answers the types and bytes a target asks for.
 ///

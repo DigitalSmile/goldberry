@@ -11,8 +11,11 @@ import java.lang.foreign.FunctionDescriptor;
 import java.lang.foreign.Linker;
 import java.lang.foreign.MemoryLayout;
 import java.lang.foreign.MemorySegment;
+import java.lang.foreign.SegmentAllocator;
+import java.lang.foreign.StructLayout;
 import java.lang.foreign.SymbolLookup;
 import java.lang.invoke.MethodHandle;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
@@ -32,8 +35,11 @@ import dev.goldberry.natives.Downcalls;
 /// signature for every message, so each shape is a downcall handle of its own,
 /// made from the Java types of the arguments: a [MemorySegment] is an `id`, a
 /// `SEL` or a pointer, a [Long] is an `NSInteger`/`NSUInteger`, a [Boolean] is
-/// a `BOOL`, a [Double] a `CGFloat`. Struct arguments and returns are not
-/// supported, and nothing that needs one is called through here.
+/// a `BOOL`, a [Double] a `CGFloat`, and a [Point], [Size] or [Rect] is the
+/// `NSPoint`, `NSSize` or `NSRect` passed by value. A struct comes back only
+/// as an `NSPoint` ([#sendPoint]): sixteen bytes, returned in registers on
+/// both architectures, so plain `objc_msgSend` carries it. A larger one would
+/// need `objc_msgSend_stret` on x86-64, and nothing here asks for one.
 ///
 /// The shapes this module sends are also declared as constants, so a native
 /// image is told them wherever it is built — see `Downcalls.describe`.
@@ -68,6 +74,27 @@ public final class ObjC {
             Downcalls.describe(shape);
         }
     }
+
+    /// `NSPoint`, which is `CGPoint`: two `CGFloat`s.
+    public static final StructLayout POINT =
+            MemoryLayout.structLayout(JAVA_DOUBLE.withName("x"), JAVA_DOUBLE.withName("y"));
+
+    /// `NSSize`, which is `CGSize`.
+    public static final StructLayout SIZE =
+            MemoryLayout.structLayout(JAVA_DOUBLE.withName("width"), JAVA_DOUBLE.withName("height"));
+
+    /// `NSRect`, which is `CGRect`: an origin and a size.
+    public static final StructLayout RECT = MemoryLayout.structLayout(POINT.withName("origin"), SIZE.withName("size"));
+
+    /// An `NSPoint`, in points.
+    public record Point(double x, double y) {}
+
+    /// An `NSSize`, in points.
+    public record Size(double width, double height) {}
+
+    /// An `NSRect`, in points, its origin at the bottom left in AppKit's
+    /// unflipped coordinates.
+    public record Rect(double x, double y, double width, double height) {}
 
     private static final FunctionDescriptor P_P = Downcalls.describe(FunctionDescriptor.of(ADDRESS, ADDRESS));
     private static final FunctionDescriptor P_PPL =
@@ -184,6 +211,12 @@ public final class ObjC {
         message(null, receiver, selector, arguments);
     }
 
+    /// Sends a message that answers an `NSPoint`.
+    public Point sendPoint(MemorySegment receiver, String selector, Object... arguments) {
+        var point = (MemorySegment) message(POINT, receiver, selector, arguments);
+        return new Point(point.get(JAVA_DOUBLE, 0), point.get(JAVA_DOUBLE, 8));
+    }
+
     /// An `NSString` holding `text`, autoreleased: call inside [#autoreleased].
     public MemorySegment string(String text) {
         try (var arena = Arena.ofConfined()) {
@@ -219,6 +252,14 @@ public final class ObjC {
     /// it. Answers the class already registered under `name` if there is one.
     public MemorySegment defineClass(
             String name, String superclass, @Nullable String protocol, Map<String, Method> methods) {
+        return defineClass(name, superclass, protocol == null ? List.of() : List.of(protocol), methods);
+    }
+
+    /// [#defineClass], adopting every protocol in `protocols`; one the runtime
+    /// does not know is skipped, since adopting is a declaration and the
+    /// methods are what answer.
+    public MemorySegment defineClass(
+            String name, String superclass, List<String> protocols, Map<String, Method> methods) {
         var existing = cls(name);
         if (existing.address() != 0) {
             return existing;
@@ -228,7 +269,7 @@ public final class ObjC {
             if (made.address() == 0) {
                 throw new IllegalStateException("the runtime would not make a class called " + name);
             }
-            if (protocol != null) {
+            for (var protocol : protocols) {
                 var adopted = (MemorySegment) invoke(getProtocol, arena.allocateFrom(protocol));
                 if (adopted.address() != 0) {
                     invoke(addProtocol, made, adopted);
@@ -310,16 +351,59 @@ public final class ObjC {
         var layouts = new MemoryLayout[arguments.length + 2];
         layouts[0] = ADDRESS;
         layouts[1] = ADDRESS;
-        var values = new Object[arguments.length + 3];
-        values[0] = msgSend;
-        values[1] = receiver;
-        values[2] = sel(selector);
-        for (var index = 0; index < arguments.length; index++) {
-            layouts[index + 2] = layout(arguments[index]);
-            values[index + 3] = arguments[index] instanceof Boolean flag ? (byte) (flag ? 1 : 0) : arguments[index];
+        var returnsStruct = returns instanceof StructLayout;
+        var leading = returnsStruct ? 4 : 3;
+        var values = new Object[arguments.length + leading];
+        // A struct that comes back is written where the allocator says, and
+        // read before this returns: the caller gets a heap copy's worth of
+        // doubles, never the segment.
+        try (var arena = Arena.ofConfined()) {
+            values[0] = msgSend;
+            if (returnsStruct) {
+                values[1] = (SegmentAllocator) arena;
+            }
+            values[leading - 2] = receiver;
+            values[leading - 1] = sel(selector);
+            for (var index = 0; index < arguments.length; index++) {
+                layouts[index + 2] = layout(arguments[index]);
+                values[index + leading] = value(arena, arguments[index]);
+            }
+            var shape = returns == null ? FunctionDescriptor.ofVoid(layouts) : FunctionDescriptor.of(returns, layouts);
+            var result = invoke(handle(shape), values);
+            if (result instanceof MemorySegment struct && returnsStruct) {
+                return Arena.ofAuto().allocate(struct.byteSize()).copyFrom(struct);
+            }
+            return result;
         }
-        var shape = returns == null ? FunctionDescriptor.ofVoid(layouts) : FunctionDescriptor.of(returns, layouts);
-        return invoke(handle(shape), values);
+    }
+
+    /// An argument as the downcall takes it: a struct record laid out in
+    /// `arena`, a `BOOL` as a byte, the rest as it is.
+    private static Object value(Arena arena, Object argument) {
+        return switch (argument) {
+            case Boolean flag -> (byte) (flag ? 1 : 0);
+            case Point(var x, var y) -> {
+                var point = arena.allocate(POINT);
+                point.set(JAVA_DOUBLE, 0, x);
+                point.set(JAVA_DOUBLE, 8, y);
+                yield point;
+            }
+            case Size(var width, var height) -> {
+                var size = arena.allocate(SIZE);
+                size.set(JAVA_DOUBLE, 0, width);
+                size.set(JAVA_DOUBLE, 8, height);
+                yield size;
+            }
+            case Rect(var x, var y, var width, var height) -> {
+                var rect = arena.allocate(RECT);
+                rect.set(JAVA_DOUBLE, 0, x);
+                rect.set(JAVA_DOUBLE, 8, y);
+                rect.set(JAVA_DOUBLE, 16, width);
+                rect.set(JAVA_DOUBLE, 24, height);
+                yield rect;
+            }
+            default -> argument;
+        };
     }
 
     private MethodHandle handle(FunctionDescriptor shape) {
@@ -333,6 +417,9 @@ public final class ObjC {
             case Integer _ -> JAVA_INT;
             case Boolean _ -> JAVA_BYTE;
             case Double _ -> JAVA_DOUBLE;
+            case Point _ -> POINT;
+            case Size _ -> SIZE;
+            case Rect _ -> RECT;
             default -> throw new IllegalArgumentException("no Objective-C type for " + argument.getClass());
         };
     }

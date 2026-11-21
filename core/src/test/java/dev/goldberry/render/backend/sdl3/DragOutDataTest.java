@@ -20,6 +20,7 @@ import dev.goldberry.input.dragout.DragOperation;
 import dev.goldberry.natives.desktop.dragout.DragAction;
 import dev.goldberry.render.clipboard.UriList;
 import dev.goldberry.render.dragout.OfferedData;
+import dev.goldberry.render.model.DisplayScale;
 
 /// What an offer looks like to X11 and Wayland targets, without either.
 @DisplayName("a drag out, as the platform's targets see the offer")
@@ -71,5 +72,13 @@ class DragOutDataTest {
         var offer = DragOffer.text("x");
 
         assertSame(offer, DragOutData.withImageFile(offer));
+    }
+
+    @Test
+    @DisplayName("takes a whole display scale as the picture's, and 1 for a fractional one")
+    void wholeScale() {
+        assertEquals(1, DragOutData.wholeScale(new DisplayScale(1f)));
+        assertEquals(2, DragOutData.wholeScale(new DisplayScale(2f)));
+        assertEquals(1, DragOutData.wholeScale(new DisplayScale(1.25f)));
     }
 }

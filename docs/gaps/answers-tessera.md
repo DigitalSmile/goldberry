@@ -30,7 +30,7 @@ nothing.
 | G-17 | Screen-reader bridge | Still on hold | on hold |
 | G-18 | Text scaling | `Host.textScale` | on master, not yet in a snapshot |
 | G-19 | Windows notifications | Click and badge | on master, not yet in a snapshot |
-| G-20 | Drag out to the OS | All four platforms | X11 and Wayland built |
+| G-20 | Drag out to the OS | All four platforms | X11 and Wayland built, Windows and macOS written |
 | G-22 | SVG | `goldberry-vector` on ThorVG | planned |
 | G-23 | PDF | Still parked | parked, ADR-0690 |
 | G-24 | HTML mail styles | A subset of `style=` and `<style>` | planned |
@@ -413,7 +413,7 @@ drag source, so this is platform code of Goldberry's own.
 
 **Today.** "Save as…" and the clipboard, as the entry says.
 
-**Landed.** In part, on Goldberry's master (not yet in a snapshot), ADR-0714 and ADR-0716. A widget with `dragOut(() -> DragOffer...)` becomes the platform's own drag once it moves 4 px, carrying files, text, a URL, a PNG (also offered as a file) or bytes of a type you name, asked for only when a target takes them; `onDragOutEnd` hears `Delivered`, `Landed` (let go over one of your own windows, where your drop targets take the original payload) or `Cancelled`. Working on X11 and on Wayland. On Wayland, an offer with no file and no text (your own MIME type alone) is not seen by your own windows' drop targets during the drag. Windows and macOS are next. No picture follows the pointer on X11 yet.
+**Landed.** In part, on Goldberry's master (not yet in a snapshot), ADR-0714, ADR-0716, ADR-0717 and ADR-0718. A widget with `dragOut(() -> DragOffer...)` becomes the platform's own drag once it moves 4 px, carrying files, text, a URL, a PNG (also offered as a file) or bytes of a type you name, asked for only when a target takes them; `onDragOutEnd` hears `Delivered`, `Landed` (let go over one of your own windows, where your drop targets take the original payload) or `Cancelled`. Working on X11 and on Wayland. On Wayland, an offer with no file and no text (your own MIME type alone) is not seen by your own windows' drop targets during the drag. Windows (OLE's own drag, with the ghost as the picture and your windows still painting during it) and macOS (AppKit's dragging session, files as file URLs and everything else made when a target asks) are written and wait for their first runs there. No picture follows the pointer on X11 yet.
 
 ## G-22. SVG rendering
 

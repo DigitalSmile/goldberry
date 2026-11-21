@@ -281,7 +281,7 @@ log in the same commit as the work.
 | T-17 | — | parked (ADR-0440) | | |
 | T-18 | W1.7 | done | 0678 | |
 | T-19 | W2.12 | done (Win32 half unverified) | 0701 | |
-| T-20 | W3.9 | in progress (`docs/drag-out.md`): decided D1 (b) the platform's drag from the threshold, D2–D8 as recommended. Phase 1 (API, router, window, headless), phase 2 (X11, XDND over SDL's hook, native ABI 27; no picture yet) and phase 3 (Wayland, `start_drag` on SDL's own data device with SDL's serial, native ABI 28; hand check on GNOME open) done; phases 4–6 (Windows, macOS, showcase) not started | 0714, 0716 | |
+| T-20 | W3.9 | in progress (`docs/drag-out.md`): decided D1 (b) the platform's drag from the threshold, D2–D8 as recommended. Phase 1 (API, router, window, headless), phase 2 (X11, XDND over SDL's hook, native ABI 27; no picture yet) and phase 3 (Wayland, `start_drag` on SDL's own data device with SDL's serial, native ABI 28; hand check on GNOME open) done; phase 4 (Windows, OLE `DoDragDrop` with COM objects in Java and a loop turn inside it) and phase 5 (macOS, an `NSDraggingSession` on SDL's view with a source class of the toolkit's own) built, not yet run on Windows or a Mac; phase 6 (showcase and guide) not started | 0714, 0716, 0717, 0718 | |
 | T-22 | W3.6 | todo | | |
 | T-23 | — | parked (D11) | 0690 | |
 | T-24 | W3.3 | done: a page's `<style>`, `style=`, `bgcolor` and `<font color>` in a `StyleScope` of the view's own; `AuthorStyles` with `ADAPTED` the default (a text colour with no background of the mail's under it takes the theme's) | 0710 | |
@@ -517,3 +517,14 @@ log in the same commit as the work.
   over libwayland-client (`natives.wayland`). Over the application's own
   windows SDL's drop events are the position. Not driven by hand yet. Next
   ADR 0717.
+- **2026-11-21, W3.9 phase 4.** Windows: `DoDragDrop` with an
+  `IDataObject`, `IEnumFORMATETC` and `IDropSource` written in Java
+  (`ComServer`), the picture through the shell's drag image helper, and one
+  guarded turn of the loop on each of OLE's questions (ADR-0717). No native
+  ABI bump. Written and tested through the objects' vtables everywhere, not
+  yet run on Windows. Next ADR 0718.
+- **2026-11-21, W3.9 phase 5.** macOS: an `NSDraggingSession` begun on SDL's
+  content view, with `GoldberryDraggingSource` as the dragging source and the
+  pasteboard item's lazy data provider, files as file URLs, and the ghost as
+  an `NSImage`. `ObjC` passes `NSPoint`/`NSSize`/`NSRect` by value
+  (ADR-0718). Not yet run on a Mac. Next ADR 0719.

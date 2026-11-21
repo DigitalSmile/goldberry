@@ -1501,13 +1501,16 @@ public final class Sdl3Backend implements Backend {
         wakeup();
     }
 
-    /// The drag out in flight, on X11 or Wayland, or null.
+    /// The drag out in flight, on X11, Wayland, Windows or macOS, or null.
     private @Nullable PlatformDragOut dragOut;
 
     /// Starts a drag out from `window`, answering whether the platform took it.
     ///
-    /// X11 first, then Wayland: each answers null for a window that is not
-    /// its platform's, so at most one of them asks the platform anything.
+    /// X11, then Wayland, then Windows, then macOS: each answers null for a
+    /// window that is not its platform's, so at most one of them asks the
+    /// platform anything.
+    /// On Windows the drag runs here, inside `DoDragDrop`, and this returns
+    /// when it is over.
     boolean startDrag(Sdl3Window window, DragRequest request, DragSession session) {
         requireUiThread();
         if (dragOut != null && !dragOut.isClosed()) {
@@ -1518,12 +1521,53 @@ public final class Sdl3Backend implements Backend {
             if (started == null) {
                 started = WaylandDragOut.start(this, window, request, session);
             }
+            if (started == null) {
+                started = WindowsDragOut.open(this, window, request, session);
+            }
+            if (started == null) {
+                started = MacDragOut.start(this, window, request, session);
+            }
             dragOut = started;
+            if (started instanceof WindowsDragOut windows && !windows.run() && dragOut == windows) {
+                dragOut = null;
+            }
         } catch (RuntimeException e) {
             LOG.warn("the platform's drag source failed to start; the drag stays inside the application", e);
             dragOut = null;
         }
         return dragOut != null;
+    }
+
+    /// One turn of the toolkit while the platform holds the UI thread for a
+    /// drag out (Windows' `DoDragDrop`): the reports and work handed over
+    /// since the last turn, the loop's own work through `session`, and the
+    /// frames that are due, painted into the sink of the pump the drag began
+    /// in.
+    ///
+    /// Not SDL's event queue: reading it would pump the thread's messages from
+    /// inside the platform's own loop, which is pumping them already. What
+    /// arrives there waits for the drag to end.
+    ///
+    /// Shares the resize watch's guard, so neither draws inside the other.
+    void turnWhileHeld(DragSession session) {
+        if (closed || inWatch || Thread.currentThread() != uiThread) {
+            return;
+        }
+        inWatch = true;
+        try {
+            runHandedOver();
+            session.whileHeld();
+            var sink = activeSink;
+            if (sink != null && !closed) {
+                emitDueFrames(sink);
+            }
+        } catch (RuntimeException e) {
+            // Into OLE's modal loop otherwise, which would end the drag with
+            // the window's state half-changed rather than lose a frame.
+            LOG.warn("a turn of the loop during a drag out failed", e);
+        } finally {
+            inWatch = false;
+        }
     }
 
     void onUiThread(Runnable work) {

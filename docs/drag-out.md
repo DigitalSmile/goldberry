@@ -290,6 +290,40 @@ itself needs a press no test can make; the hand check on GNOME is below.
 
 ### Phase 4 — Windows
 
+As built (2026-11-21; ADR-0717), written and not yet run on Windows. Where
+it departs from the plan below this paragraph: `IEnumFORMATETC` is the
+toolkit's own rather than `SHCreateStdEnumFmtEtc`'s, so that the whole data
+object is called through its vtables by tests on any platform; the turn runs
+from `QueryContinueDrag` as well as `GiveFeedback`, since OLE asks the first
+on its timer even when the pointer is still; the turn does not read SDL's
+queue, because `SDL_PollEvent` would pump Windows messages inside OLE's
+modal loop; and a release over the application's own window lands in-app
+whatever SDL's target answered.
+
+- `natives.desktop.windows.ComServer` (a COM object in Java: a vtable of
+  upcall stubs shared by a kind, `IUnknown` shared by all, objects found by
+  address, the pointer unscoped so the last `Release` may free the block),
+  `GlobalMemory` and `Win32GlobalMemory`.
+- `natives.desktop.dragout.ole` (not exported): `OleDataObject` (offered
+  formats made on request, and what `SetData` leaves, which is how the
+  shell's drag image helper keeps the picture), `OleFormatEnumerator`,
+  `OleDropSource`, `OleDragImage` (`IDragSourceHelper::InitializeFromBitmap`
+  with a top-down DIB section), `OleCalls` (`OleInitialize`, `DoDragDrop`,
+  `RegisterClipboardFormatW`, the pointer through `GetCursorPos`,
+  `WindowFromPoint`, `GetAncestor` and `ScreenToClient`), `OleStructs`.
+- `natives.desktop.dragout`: `OleDragSource` (the facade `:core` calls:
+  `open`, then `run`, which returns when the drag is over), `OleDragTracker`
+  (the pointer over own windows, the release, Escape, the guarded turn, and
+  the ending), `OleFormat`.
+- `:core`: `WindowsDragData` (`CF_HDROP`, `UniformResourceLocatorW`,
+  `CF_UNICODETEXT` with CR LF, `PNG`, `CF_DIBV5` with straight alpha, own
+  MIME types registered by name), `WindowsDragOut` (takes every `DROP_*`
+  until the pump after its end, which swallows SDL's echo), `DragReports`
+  (shared with X11), `Sdl3Backend.turnWhileHeld`, `DragSession.whileHeld`
+  and `EventLoop.turnWhileHeld`.
+
+The plan as written:
+
 - `natives.desktop.dragout.OleDragSource`: `IDataObject` (`GetData`,
   `QueryGetData`, `EnumFormatEtc` through `SHCreateStdEnumFmtEtc`) and
   `IDropSource` (`QueryContinueDrag`, `GiveFeedback`) as vtables of upcalls
@@ -308,6 +342,34 @@ window). Written to pass there; if the runner's desktop refuses input, the
 exit is the in-process half plus a manual check.
 
 ### Phase 5 — macOS
+
+As built (2026-11-21; ADR-0718), written and not yet run on a Mac. Where
+it departs from the plan below this paragraph: `ObjC` learnt to pass
+`NSPoint`, `NSSize` and `NSRect` by value and to return an `NSPoint`;
+the class adopts both `NSDraggingSource` and `NSPasteboardItemDataProvider`
+(one pasteboard item for every non-file type, a file `NSURL` item per file);
+`draggingSession:movedToPoint:` is the in-app position, through
+`windowNumberAtPoint:` and `convertPointFromScreen:`; the current event's
+type tells Escape from a release; and the source object stays until
+`pasteboardFinishedWithDataProvider:`.
+
+- `natives.desktop.macos.ObjC`: `Point`, `Size`, `Rect`, `sendPoint`, and
+  `defineClass` over a list of protocols.
+- `natives.desktop.dragout.cocoa` (not exported): `CocoaDraggingSource`
+  (the class `GoldberryDraggingSource`, its five methods as stubs found by
+  the object's address) and `CocoaDragItems` (the pasteboard item, the
+  dragging items, the `NSImage`, the window at a point).
+- `natives.desktop.dragout`: `CocoaDragSource` (the facade `:core` calls:
+  `start` begins the session and returns), `CocoaDragTracker` (the position,
+  the ending, the operation masks, the picture's frame), `CocoaDragListener`,
+  `PasteboardFormat`.
+- `:core`: `MacDragData` (`public.url`, `public.utf8-plain-text`,
+  `public.png`, own MIME types), `MacDragOut` (reports through `later`, the
+  vertical axis turned over), and `DropEchoes`, the "SDL's drop events are
+  the drag's until the pump after its end" bookkeeping, shared with
+  `WindowsDragOut`.
+
+The plan as written:
 
 - `natives.desktop.dragout.CocoaDragSource`: a `GoldberryDragSource` class
   defined through `ObjC.defineClass` with `NSDraggingSource`
@@ -342,11 +404,21 @@ chapter, parked in `docs/snapshot/` until release.
   *On Wayland:* SDL raises every held button when its pointer hears `leave`,
   which the compositor sends as the drag takes the pointer, so the router
   hears the release at the drag's start and `dragOutFinished` finds the
-  gesture already closed.
+  gesture already closed. *On macOS:* the router closes the gesture at the
+  drag's end whether or not the release came; whether SDL's own state stays
+  down, and drops the next click's press, is the hand check's to say.
 - **Reentrancy on Windows.** A loop turn inside `GiveFeedback` runs
   application code inside a COM call inside `DoDragDrop`. The guard refuses
   anything that would nest: a second drag, a modal file dialog, closing the
-  source window (deferred until `DoDragDrop` returns).
+  source window (deferred until `DoDragDrop` returns). *As built:* a turn
+  never nests (the tracker's flag, the loop's own, and the resize watch's
+  guard), a second drag is refused while one is in flight, and a closing
+  backend cancels the drag at OLE's next question. A window closed inside a
+  turn is not deferred; the reports skip it.
+- **SDL's pointer state after a Windows drag.** OLE has the pointer captured,
+  so SDL never hears the release. It reads the buttons again from the next
+  mouse message, and the router swallows the release of a press the platform
+  finished. The hand check confirms it.
 - **Two drop targets on Wayland.** *Gone in phase 3:* a second data device
   of the client's own unlinks SDL's on mutter, so the drag uses SDL's, and
   SDL's is the only target over the toolkit's windows (ADR-0716).
@@ -372,8 +444,8 @@ chapter, parked in `docs/snapshot/` until release.
 | 1 — API and router | done (2026-11-21) |
 | 2 — X11 | done (2026-11-21), without a picture; see the log |
 | 3 — Wayland | built (2026-11-21); the hand check on GNOME is open |
-| 4 — Windows | not started |
-| 5 — macOS | not started |
+| 4 — Windows | built (2026-11-21), not run on Windows; the Windows lane and a hand check are open |
+| 5 — macOS | built (2026-11-21), not run on a Mac; the macOS lane and a hand check are open |
 | 6 — showcase and guide | not started |
 
 - **2026-11-21.** Plan written from the tree at `b3752f37` and SDL 3.4.18's
@@ -461,3 +533,42 @@ chapter, parked in `docs/snapshot/` until release.
   **Open:** a hand drag on GNOME (into Nautilus, into a
   browser, and onto an in-app target), which no test here can make. Next:
   phase 4, Windows.
+- **2026-11-21, phase 4.** Windows, built and not run there (ADR-0717).
+  COM objects in Java over `ComServer`: `OleDataObject`, its own
+  `OleFormatEnumerator`, `OleDropSource`, called through their vtables by
+  tests on every platform with global memory from the heap. `OleDragSource`
+  runs `DoDragDrop` inside the pump that started the drag; its tracker asks
+  where the pointer is on every question of OLE's, reports the application's
+  own windows, decides the ending from where the button came up, and runs
+  one guarded turn: the queued reports, `DragSession.whileHeld` (the loop's
+  posted work and due timers, `EventLoop.turnWhileHeld`), and the due frames.
+  SDL's queue is not read during the drag, so no native ABI bump: its
+  `DROP_*` events are taken until the pump after the end. The picture goes
+  through the shell's `IDragSourceHelper`. Six more upcall shapes (twenty-five).
+  Tests: `ComServerTest` (3), `OleDataObjectTest` (9), `OleDropSourceTest`
+  (2), `OleDragTrackerTest` (11), `OleDragSourceTest` (4),
+  `OleClipboardRoundTripTest` (2, Windows only: through OLE's clipboard and
+  the shell's image helper), `WindowsDragDataTest` (5), `WindowsDragOutTest`
+  (3), `EventLoopHeldTest` (3), and a held turn in `DragOutWindowTest`.
+  **Open:** the Windows lane's first run, and a hand drag on Windows into
+  Explorer, a browser and Word, and onto an in-app target. Next: phase 5,
+  macOS.
+- **2026-11-21, phase 5.** macOS, built and not run there (ADR-0718).
+  `ObjC` passes structs by value (`NSPoint`, `NSSize`, `NSRect`) and returns
+  an `NSPoint`. `GoldberryDraggingSource` is the dragging source and the
+  pasteboard item's data provider. Files go as file URLs, everything else
+  on one lazily provided pasteboard item, and the picture is an `NSImage`
+  over premultiplied BGRA. The session is begun on SDL's content view from
+  `[NSApp currentEvent]` and runs in SDL's pump, so the reports go through
+  `later` as on X11. The position comes from `movedToPoint:` and the window
+  at that point, and the ending from where it was let go, with a key press
+  as the current event meaning Escape. The echo bookkeeping is shared with
+  Windows (`DropEchoes`). Three more upcall shapes (twenty-eight). Tests:
+  `CocoaDragTrackerTest` (6), `CocoaDragSourceTest` (3),
+  `CocoaDraggingSourceMacTest` (3, macOS only: the methods sent through the
+  runtime with `NSPoint`s by value, the pasteboard item read back through
+  the data provider, the `NSImage`), `MacDragDataTest` (3), `MacDragOutTest`
+  (3), and `DragOutDataTest` gains the whole scale. **Open:** the macOS
+  lane's first run, and a hand drag into Finder, a browser and Mail and onto
+  an in-app target, which also answers whether AppKit begins a session from
+  the event SDL last handled. Next: phase 6, the showcase and the guide.

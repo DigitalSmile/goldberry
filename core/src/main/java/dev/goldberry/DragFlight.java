@@ -81,6 +81,15 @@ final class DragFlight implements DragSession {
         }
     }
 
+    /// A turn of the loop while the platform holds the thread for the drag, so
+    /// posted work and timers run during it as they would around it.
+    @Override
+    public void whileHeld() {
+        if (!ended) {
+            runtime.loop().turnWhileHeld();
+        }
+    }
+
     @Override
     public void ended(DragEnd end) {
         Objects.requireNonNull(end, "end");

@@ -1,7 +1,7 @@
 package dev.goldberry.render.backend.sdl3;
 
 /// A drag out the platform carries, as the backend drives it once a pump.
-sealed interface PlatformDragOut permits X11DragOut, WaylandDragOut {
+sealed interface PlatformDragOut permits X11DragOut, WaylandDragOut, WindowsDragOut, MacDragOut {
 
     /// Reads and acts on what the platform has said, before the pump reads
     /// SDL's events.

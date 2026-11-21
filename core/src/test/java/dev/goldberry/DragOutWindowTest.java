@@ -194,6 +194,26 @@ class DragOutWindowTest {
     }
 
     @Test
+    @DisplayName(
+            "while the platform holds the thread, a turn runs the work posted to the UI thread, until the drag ends")
+    void turnsWhileHeld() {
+        var ran = new ArrayList<String>();
+        dragFromA(board(DragOffer.text("card a")), DragOutWindowTest::nothing, host -> {
+            var drag = window().drags().getFirst();
+            Goldberry.ui().execute(() -> ran.add("posted during the drag"));
+            drag.whileHeld();
+            ran.add("after the turn");
+            drag.cancel();
+            Goldberry.ui().execute(() -> ran.add("posted after it ended"));
+            // Ended: the turn is the loop's again, and this one runs nothing.
+            drag.whileHeld();
+            ran.add("after the second turn");
+        });
+
+        assertEquals(List.of("posted during the drag", "after the turn", "after the second turn"), ran.subList(0, 3));
+    }
+
+    @Test
     @DisplayName("refused by the backend, it is an in-app drag, and the source hears no outcome")
     void refused() {
         var started = new ArrayList<Integer>();

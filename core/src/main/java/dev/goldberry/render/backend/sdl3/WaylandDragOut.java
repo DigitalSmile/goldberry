@@ -14,7 +14,6 @@ import dev.goldberry.render.dragout.DragRequest;
 import dev.goldberry.render.dragout.DragSession;
 import dev.goldberry.render.model.DisplayScale;
 import dev.goldberry.render.model.LogicalPoint;
-import dev.goldberry.render.model.PixelFormat;
 
 /// A drag out on Wayland: the offer on a `wl_data_source` of the toolkit's
 /// own, dragged with SDL's data device, and where it is judged from SDL's own
@@ -62,25 +61,7 @@ final class WaylandDragOut implements PlatformDragOut {
     /// to a whole one, as a buffer's must be: 1 where the window's is
     /// fractional, so the picture is shown at its pixel size there.
     static @Nullable DragIcon icon(@Nullable DragPicture picture, DisplayScale scale) {
-        if (picture == null) {
-            return null;
-        }
-        var pixels = picture.pixels();
-        if (pixels.format() != PixelFormat.BGRA32_PREMULTIPLIED) {
-            LOG.debug("a drag picture in {} is not shown on Wayland", pixels.format());
-            return null;
-        }
-        var factor = scale.factor();
-        var whole = Math.round(factor);
-        var bufferScale = whole >= 1 && Math.abs(factor - whole) < 1e-3f ? whole : 1;
-        return new DragIcon(
-                pixels.size().width(),
-                pixels.size().height(),
-                pixels.stride(),
-                pixels.pixels(),
-                picture.hotspotX(),
-                picture.hotspotY(),
-                bufferScale);
+        return DragOutData.icon(picture, DragOutData.wholeScale(scale));
     }
 
     @Override

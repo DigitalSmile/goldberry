@@ -257,7 +257,10 @@ public final class MacMenuBar {
     private MemorySegment target() {
         if (target == null) {
             var made = objc.defineClass(
-                    "GoldberryMenuTarget", "NSObject", null, Map.of(CHOOSE, new ObjC.Method(actionStub(), "v@:@")));
+                    "GoldberryMenuTarget",
+                    "NSObject",
+                    List.of(),
+                    Map.of(CHOOSE, new ObjC.Method(actionStub(), "v@:@")));
             target = objc.send(objc.send(made, "alloc"), "init");
         }
         return target;
