@@ -914,22 +914,23 @@ public final class RenderTree implements AutoCloseable {
         var walk = new BackdropWalk(object, -region.left(), -region.top(), true, new ArrayList<>());
         var under = Layer.of(new PhysicalSize(Math.max(1, (int) Math.ceil(region.width() * factor)), Math.max(1, (int)
                 Math.ceil(region.height() * factor))));
-        var askedForGpu = new boolean[1];
         try {
-            under.paint(scale, into -> {
-                var painting = new Painting(into, Clip.of(0, 0, region.width(), region.height()), state.replay, walk);
-                state.replay.into(painting, walk.dx, walk.dy);
-                painting.clipTo(Clip.NONE);
-                painting.untransform();
-                askedForGpu[0] = into.gpuLayersAsked() > 0;
-            });
-        } finally {
-            // The backdrop's frame has ended, so nothing reads them any more.
-            walk.scratch.forEach(Layer::close);
-        }
-        var outline = Path.roundRect(
-                left, top, layout.width(), layout.height(), box.decoration().corners());
-        try {
+            var askedForGpu = new boolean[1];
+            try {
+                under.paint(scale, into -> {
+                    var painting =
+                            new Painting(into, Clip.of(0, 0, region.width(), region.height()), state.replay, walk);
+                    state.replay.into(painting, walk.dx, walk.dy);
+                    painting.clipTo(Clip.NONE);
+                    painting.untransform();
+                    askedForGpu[0] = into.gpuLayersAsked() > 0;
+                });
+            } finally {
+                // The backdrop's frame has ended, so nothing reads them any more.
+                walk.scratch.forEach(Layer::close);
+            }
+            var outline = Path.roundRect(
+                    left, top, layout.width(), layout.height(), box.decoration().corners());
             if (askedForGpu[0] && frame.hasGpu()) {
                 var colour = box.background();
                 if ((colour >>> 24) != 0) {

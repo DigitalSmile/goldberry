@@ -37,6 +37,13 @@ on:
   workflow_call:
   workflow_dispatch:
 
+# The oldest macOS the libraries load on. Without it Apple's toolchain takes the
+# runner's SDK version, so a new runner image would raise the floor for every
+# user without anyone deciding to. CMake and the superbuild read it from the
+# environment; Linux and Windows ignore it.
+env:
+  MACOSX_DEPLOYMENT_TARGET: '14.0'
+
 jobs:
   natives:
     name: libgoldberry-media (${{ matrix.target }})
@@ -51,7 +58,7 @@ jobs:
             runner: ubuntu-24.04-arm
             image: quay.io/pypa/manylinux_2_28_aarch64
           - target: macos-aarch64
-            runner: macos-14
+            runner: macos-15
             image: ''
           - target: windows-x64
             runner: windows-2022
@@ -175,7 +182,7 @@ jobs:
               sudo apt-get update && sudo apt-get install -y
               gstreamer1.0-plugins-base gstreamer1.0-plugins-good gstreamer1.0-plugins-bad gstreamer1.0-libav
           - target: macos-aarch64
-            runner: macos-14
+            runner: macos-15
             platform-required: true
             tools: 'true'
           - target: windows-x64

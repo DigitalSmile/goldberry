@@ -40,10 +40,17 @@ on:
 # of gradle/libs.versions.toml, which is the only place any of them is written
 # down.
 
+# The oldest macOS the libraries load on. Without it Apple's toolchain takes the
+# runner's SDK version, so a new runner image would raise the floor for every
+# user without anyone deciding to. CMake and the superbuild read it from the
+# environment; Linux and Windows ignore it.
+env:
+  MACOSX_DEPLOYMENT_TARGET: '14.0'
+
 jobs:
   build:
     name: Build and test (macos-aarch64)
-    runs-on: macos-14
+    runs-on: macos-15
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-java@v6
@@ -81,6 +88,18 @@ jobs:
             || { echo "::error::$lib does not export goldberry_webview_create"; exit 1; }
           otool -L "$lib" | grep -q 'WebKit.framework' \
             || { echo "::error::$lib does not link WebKit.framework"; exit 1; }
+
+      # The floor the workflow's MACOSX_DEPLOYMENT_TARGET sets, read back from
+      # what was built: a static library inside the superbuild that ignored the
+      # environment would raise it for the whole dylib, and nothing else would say.
+      - name: Check the oldest macOS the libraries load on
+        run: |
+          for lib in natives/build/native/macos-aarch64/install/lib/*.dylib; do
+            minos=$(otool -l "$lib" | awk '/LC_BUILD_VERSION/ { found = 1 } found && $1 == "minos" { print $2; exit }')
+            echo "$lib: minos $minos"
+            test "$minos" = "$MACOSX_DEPLOYMENT_TARGET" \
+              || { echo "::error::$lib loads on macOS $minos and later, not $MACOSX_DEPLOYMENT_TARGET"; exit 1; }
+          done
 
       # The whole build against the library just made: every module's tests and
       # goldens, the layout probe, the web view's binding, the showcase's own

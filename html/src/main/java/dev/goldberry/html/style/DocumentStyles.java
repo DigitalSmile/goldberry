@@ -356,7 +356,7 @@ public final class DocumentStyles {
             }
             adapted.states().put(state.getKey(), values);
         }
-        return new Adapted(adapted, new Ground(ground, ink == null ? null : ink));
+        return new Adapted(adapted, new Ground(ground, ink));
     }
 
     /// The text colours in `said`, kept where they read on `ground`, replaced

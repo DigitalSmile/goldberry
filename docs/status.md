@@ -8232,7 +8232,7 @@ each, with no cross-targeting anywhere
 | `linux-x64` | `ubuntu-24.04` + `manylinux_2_28_x86_64` | `libgoldberry.so` |
 | `linux-aarch64` | `ubuntu-24.04-arm` + `manylinux_2_28_aarch64` | `libgoldberry.so` |
 | `windows-x64` | `windows-2022`, MSVC `-A x64` | `goldberry.dll` |
-| `macos-aarch64` | `macos-14` | `libgoldberry.dylib` |
+| `macos-aarch64` | `macos-15` (macOS 14 minimum) | `libgoldberry.dylib` |
 
 Windows on ARM and macOS on Intel are **not built**. `NativePlatform` refuses
 those two pairs at construction, so the failure names the decision rather than a

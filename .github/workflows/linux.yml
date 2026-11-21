@@ -58,7 +58,14 @@ jobs:
         with:
           distribution: temurin
           java-version: '25'
+      # One run from a clean Gradle home, then this goes. The restored home
+      # held palantir-java-format, Jackson and the JUnit engine as missing,
+      # recorded while Maven Central answered 429, and Gradle trusts a cached
+      # miss rather than asking again: two runs failed in 28 s without a
+      # request. A clean home that this job saves is what the next run restores.
       - uses: gradle/actions/setup-gradle@v5
+        with:
+          cache-write-only: true
       - run: ./gradlew build checkLicenses checkMarkdown -Pgoldberry.skipNative=true --no-daemon
 
       # The suite runs in BOTH binding modes on every PR.
