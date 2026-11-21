@@ -1,5 +1,6 @@
 package dev.goldberry.golden;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -15,16 +16,28 @@ import org.junit.jupiter.api.Test;
 class ToleranceTest {
 
     private static final int CUBE = 200 * 160;
+    private static final int FORMAT_BAR = 300 * 44;
     private static final int FRAME = 1200 * 900;
     private static final int FRAME_AT_2X = 2400 * 2000;
 
     @Test
-    @DisplayName("RASTER admits 2% within two levels, and nothing beyond them in a widget-sized golden")
+    @DisplayName("RASTER admits 2% within two levels, and two pixels beyond them in a widget-sized golden")
     void rasterOnAWidget() {
         assertTrue(Tolerance.RASTER.admits(0, 0, CUBE));
         assertTrue(Tolerance.RASTER.admits(640, 0, CUBE), "2% within the channel tolerance");
         assertFalse(Tolerance.RASTER.admits(641, 0, CUBE), "one more than 2%");
-        assertFalse(Tolerance.RASTER.admits(1, 1, CUBE), "a single pixel beyond two levels");
+        assertTrue(Tolerance.RASTER.admits(2, 1, FORMAT_BAR), "the format bar's icon pixel on Apple Silicon");
+        assertTrue(Tolerance.RASTER.admits(2, 2, CUBE), "two pixels beyond two levels");
+        assertFalse(Tolerance.RASTER.admits(3, 3, CUBE), "a third");
+        assertFalse(Tolerance.RASTER.admits(16, 16, FORMAT_BAR), "a 16px caret that went missing");
+    }
+
+    @Test
+    @DisplayName("GPU admits no stray pixels beyond its share, and a three-number tolerance none either")
+    void strayPixelsDefaultToNone() {
+        assertEquals(0, Tolerance.GPU.strayPixels());
+        assertEquals(0, new Tolerance(2, 0.02, 0).strayPixels());
+        assertFalse(new Tolerance(2, 0.02, 0).admits(1, 1, CUBE));
     }
 
     @Test
@@ -63,5 +76,6 @@ class ToleranceTest {
         assertThrows(IllegalArgumentException.class, () -> new Tolerance(2, Double.NaN, 0));
         assertThrows(IllegalArgumentException.class, () -> Tolerance.RASTER.admits(1, 2, CUBE));
         assertThrows(IllegalArgumentException.class, () -> Tolerance.RASTER.admits(0, 0, 0));
+        assertThrows(IllegalArgumentException.class, () -> new Tolerance(2, 0.02, 0, -1));
     }
 }

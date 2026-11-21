@@ -275,7 +275,7 @@ public final class GoldenImage {
         String describe() {
             return String.format(
                     "%d of %d pixels differ (%.2f%%, allowed %.2f%%), worst channel delta %d (allowed %d),"
-                            + " %d beyond it (%.3f%%, allowed %.3f%%)",
+                            + " %d beyond it (%.3f%%, allowed %.3f%% or %d pixel(s))",
                     differing,
                     total,
                     100.0 * differing / total,
@@ -284,7 +284,8 @@ public final class GoldenImage {
                     tolerance.channel(),
                     strays,
                     100.0 * strays / total,
-                    100 * tolerance.stray());
+                    100 * tolerance.stray(),
+                    tolerance.strayPixels());
         }
     }
 

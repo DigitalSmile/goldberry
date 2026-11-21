@@ -15,7 +15,10 @@ package dev.goldberry.golden;
 /// @param differing the share of pixels allowed to differ by anything at all
 /// @param stray     the share of pixels allowed to differ by **more** than
 ///                  `channel` — zero wherever the rasterizer is the toolkit's own
-public record Tolerance(int channel, double differing, double stray) {
+/// @param strayPixels how many pixels may differ by more than `channel` whatever
+///                  the image's size: what a small golden is allowed when its
+///                  share rounds to none
+public record Tolerance(int channel, double differing, double stray, int strayPixels) {
 
     /// Every golden Blend2D draws, and every golden before the GPU had its own.
     ///
@@ -25,17 +28,20 @@ public record Tolerance(int channel, double differing, double stray) {
     /// are where the pipelines disagree and an edge is a small fraction of a
     /// frame.
     ///
-    /// One pixel in 100,000 may stray beyond the two levels. Blend2D's coverage
+    /// One pixel in 100,000 may stray beyond the two levels, and two may in any
+    /// image. Blend2D's coverage
     /// is analytic, so a fill never flips, but a **stroke** is outlined by
     /// compiled code before it is filled, and an arm64 build and an x86-64 one
     /// can place a vertex of that outline a hair apart. Two of the showcase's
     /// stroked icons came out of Apple Silicon 4 levels from their x86-64
     /// goldens on 2 to 4 pixels of a 1200x900 frame, and 14 levels on 10 to 13
     /// pixels at 2x; every other pixel of those frames was identical. The share
-    /// admits 10 such pixels in a 1200x900 frame and none in a widget-sized
-    /// golden under 100,000 pixels, so a missing line, caret or focus ring still
-    /// fails.
-    public static final Tolerance RASTER = new Tolerance(2, 0.02, 0.00001);
+    /// admits 10 such pixels in a 1200x900 frame. A widget-sized golden under
+    /// 100,000 pixels would get none from the share, and the rich-text format
+    /// bar's 13,200 came out of Apple Silicon with one icon pixel 3 levels off,
+    /// so two pixels are admitted in any image as well. A missing line, caret
+    /// or focus ring is many more than two, and still fails.
+    public static final Tolerance RASTER = new Tolerance(2, 0.02, 0.00001, 2);
 
     /// A picture a **GPU** rasterized and shaded, compared across drivers.
     ///
@@ -54,16 +60,24 @@ public record Tolerance(int channel, double differing, double stray) {
     /// What still fails is what a golden is for: a colour that changed moves
     /// every pixel of a fill by tens of levels, and a vertex in the wrong place
     /// or a reversed winding moves a silhouette's several hundred.
-    public static final Tolerance GPU = new Tolerance(2, 1, 0.001);
+    public static final Tolerance GPU = new Tolerance(2, 1, 0.001, 0);
 
     public Tolerance {
         if (channel < 0 || channel > 255) {
             throw new IllegalArgumentException("channel " + channel + " is not a level");
         }
+        if (strayPixels < 0) {
+            throw new IllegalArgumentException("strayPixels " + strayPixels + " is not a count");
+        }
         if (!(differing >= 0 && differing <= 1) || !(stray >= 0 && stray <= differing)) {
             throw new IllegalArgumentException(
                     "shares must satisfy 0 <= stray <= differing <= 1, not " + stray + " and " + differing);
         }
+    }
+
+    /// A tolerance with no stray pixels admitted beyond the share.
+    public Tolerance(int channel, double differing, double stray) {
+        this(channel, differing, stray, 0);
     }
 
     /// Whether a comparison that found `differing` pixels different at all, and
@@ -73,6 +87,7 @@ public record Tolerance(int channel, double differing, double stray) {
             throw new IllegalArgumentException(
                     "counts " + strays + " <= " + differing + " <= " + total + " do not describe an image");
         }
-        return (double) differing / total <= this.differing && (double) strays / total <= stray;
+        return (double) differing / total <= this.differing
+                && ((double) strays / total <= stray || strays <= strayPixels);
     }
 }

@@ -1,6 +1,6 @@
 # ADR-0630: A golden admits a few stroke pixels in a hundred thousand
 
-- **Status:** Accepted
+- **Status:** Accepted; amended by ADR-0715 (two stray pixels in any image)
 - **Date:** 2026-10-11
 - **Amends:** ADR-0050 (one reference set, compared with a tolerance)
 
