@@ -26,6 +26,8 @@ import dev.goldberry.render.composite.Claim;
 import dev.goldberry.render.composite.CompositedWindow;
 import dev.goldberry.render.composite.ReadbackSurface;
 import dev.goldberry.render.display.Display;
+import dev.goldberry.render.dragout.DragRequest;
+import dev.goldberry.render.dragout.DragSession;
 import dev.goldberry.render.model.DisplayScale;
 import dev.goldberry.render.model.LogicalPoint;
 import dev.goldberry.render.model.LogicalRect;
@@ -205,6 +207,14 @@ sealed class Sdl3Window implements BackendWindow permits Sdl3Popup {
             case COCOA -> dev.goldberry.render.window.NativeHandle.Kind.COCOA;
         };
         return new dev.goldberry.render.window.NativeHandle(kind, handle.value());
+    }
+
+    /// On X11, the platform's drag through XDND; elsewhere refused until that
+    /// platform's source is written, so the drag stays inside the application.
+    @Override
+    public boolean startDrag(DragRequest request, DragSession session) {
+        backend.requireUiThread();
+        return open && backend.startDrag(this, request, session);
     }
 
     @Override

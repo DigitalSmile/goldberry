@@ -264,7 +264,7 @@ Everything below is measured against 2026.2 (tag commit d3eacfdc).
   as the other artifacts (the BOM does). An application that loads its own build
   through `-Dgoldberry.native.library` builds it again from this release's
   sources, and a GraalVM native image is built again from matching jars.
-  <!-- ADR-0562, ADR-0573, ADR-0580, ADR-0589, ADR-0615, ADR-0620, ADR-0639, ADR-0669 -->
+  <!-- ADR-0562, ADR-0573, ADR-0580, ADR-0589, ADR-0615, ADR-0620, ADR-0639, ADR-0669, ADR-0714 -->
 - `goldberry-media` refuses an `ffmpeg-<target>` jar built before this release,
   because the FFmpeg layout it checks has new fields. Take the `ffmpeg-<target>`
   jars at the same version as `goldberry-media`; an application's own FFmpeg

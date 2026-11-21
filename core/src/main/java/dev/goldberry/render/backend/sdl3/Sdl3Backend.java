@@ -48,6 +48,8 @@ import dev.goldberry.render.desktop.notify.BackendNotifier;
 import dev.goldberry.render.desktop.notify.PlatformNotifier;
 import dev.goldberry.render.dialog.FileDialogs;
 import dev.goldberry.render.display.Display;
+import dev.goldberry.render.dragout.DragRequest;
+import dev.goldberry.render.dragout.DragSession;
 import dev.goldberry.render.event.BackendEvent;
 import dev.goldberry.render.event.EventSink;
 import dev.goldberry.render.model.DisplayScale;
@@ -702,6 +704,13 @@ public final class Sdl3Backend implements Backend {
         // And for the same reason, a tray click a platform delivered on a
         // thread of its own.
         dialogAnswers += runHandedOver();
+        var dragging = dragOut;
+        if (dragging != null) {
+            dragging.tick();
+            if (dragging.isClosed()) {
+                dragOut = null;
+            }
+        }
 
         adoptDisplayRate();
 
@@ -1457,6 +1466,35 @@ public final class Sdl3Backend implements Backend {
     /// For a platform callback. SDL calls a tray row back from inside its own
     /// pump on every platform it ships, which is the UI thread; one that does not
     /// waits for the pump rather than running beside it.
+    /// Runs `work` at the start of the next pump, wherever this is called from,
+    /// the UI thread included.
+    ///
+    /// For what a platform reports from inside SDL's own pump: an X11 event
+    /// hook must not run application code, and work queued here runs after
+    /// SDL has returned.
+    void later(Runnable work) {
+        handedOver.add(Objects.requireNonNull(work, "work"));
+        wakeup();
+    }
+
+    /// The drag out in flight on X11, or null.
+    private @Nullable X11DragOut dragOut;
+
+    /// Starts a drag out from `window`, answering whether the platform took it.
+    boolean startDrag(Sdl3Window window, DragRequest request, DragSession session) {
+        requireUiThread();
+        if (dragOut != null && !dragOut.isClosed()) {
+            return false;
+        }
+        try {
+            dragOut = X11DragOut.start(this, window, request, session);
+        } catch (RuntimeException e) {
+            LOG.warn("the X11 drag source failed to start; the drag stays inside the application", e);
+            dragOut = null;
+        }
+        return dragOut != null;
+    }
+
     void onUiThread(Runnable work) {
         Objects.requireNonNull(work, "work");
         if (Thread.currentThread() == uiThread) {
@@ -1502,6 +1540,12 @@ public final class Sdl3Backend implements Backend {
         requireUiThread();
         closed = true;
         LOG.debug("closing the sdl3 backend and its {} window(s)", windowsById.size());
+        // Before the windows: the drag's source window and hook are on SDL's
+        // display, which closes with them.
+        if (dragOut != null) {
+            dragOut.close();
+            dragOut = null;
+        }
         // Before the windows: a Windows notifier's icon belongs to one of them.
         if (notifier != null) {
             notifier.close();

@@ -281,7 +281,7 @@ log in the same commit as the work.
 | T-17 | — | parked (ADR-0440) | | |
 | T-18 | W1.7 | done | 0678 | |
 | T-19 | W2.12 | done (Win32 half unverified) | 0701 | |
-| T-20 | W3.9 | in progress (`docs/drag-out.md`): decided D1 (b) the platform's drag from the threshold, D2–D8 as recommended. Phase 1 (API, router, window, headless) done; phases 2–6 (X11, Wayland, Windows, macOS, showcase) not started | 0714 | |
+| T-20 | W3.9 | in progress (`docs/drag-out.md`): decided D1 (b) the platform's drag from the threshold, D2–D8 as recommended. Phase 1 (API, router, window, headless) and phase 2 (X11, XDND over SDL's hook, native ABI 27; no picture yet) done; phases 3–6 (Wayland, Windows, macOS, showcase) not started | 0714 | |
 | T-22 | W3.6 | todo | | |
 | T-23 | — | parked (D11) | 0690 | |
 | T-24 | W3.3 | done: a page's `<style>`, `style=`, `bgcolor` and `<font color>` in a `StyleScope` of the view's own; `AuthorStyles` with `ADAPTED` the default (a text colour with no background of the mail's under it takes the theme's) | 0710 | |
@@ -506,3 +506,7 @@ log in the same commit as the work.
   threshold, `DragFlight` driving in-app targets from the platform's reports,
   and the echoed drop swallowed. No platform starts a drag yet, so nothing
   changes for an application until phase 2. Uncommitted. Next ADR 0715.
+- **2026-11-21, W3.9 phase 2.** X11: XDND 5 on SDL's own `Display` through
+  `SDL_SetX11EventHook` (native ABI 27). A drag with an offer leaves an X11
+  window for any XDND target, and over the application's own windows it is an
+  in-app drag. No picture under the pointer yet. Next ADR 0715.

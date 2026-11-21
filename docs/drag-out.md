@@ -341,7 +341,7 @@ chapter, parked in `docs/snapshot/` until release.
 | Phase | Status |
 |-------|--------|
 | 1 — API and router | done (2026-11-21) |
-| 2 — X11 | not started |
+| 2 — X11 | done (2026-11-21), without a picture; see the log |
 | 3 — Wayland | not started |
 | 4 — Windows | not started |
 | 5 — macOS | not started |
@@ -378,3 +378,32 @@ chapter, parked in `docs/snapshot/` until release.
   `HeadlessDrag` for tests to play the platform. Tests: `DragOutRouterTest`
   (10), `DragOutWindowTest` (6), `DragOfferTest`, `OfferedDataTest`,
   `DragPicturesTest`. Next: phase 2, X11.
+- **2026-11-21, phase 2.** X11, built. Native ABI 27 exports
+  `SDL_SetX11EventHook`; `natives.desktop.dragout.X11EventHook` binds it (the
+  same upcall shape as an event watch, so no new shape; in the qualified
+  package, because its handler takes an `XEvent*` and the unqualified
+  exports carry no foreign memory). SDL's `Display*` reaches it as an
+  address, as `NativeWindowHandle` carries an `HWND`. `natives.desktop.dragout`
+  (to `:core` only): `XdndSource`, XDND version 5 as a state machine over an
+  `XdndTransport`; `XlibXdnd`, the transport on SDL's own `Display`, with an
+  unmapped InputOnly source window and an error handler that swallows
+  `BadWindow` on its display for the length of a drag; `X11DragSource`, which
+  listens through the hook, reads the pointer with `XQueryPointer` after each
+  event (motion comes as XInput2 events, which are not parsed) and closes at
+  its ending. In `:core`, `X11DragOut` maps the offer to XDND types (with
+  `UTF8_STRING` beside UTF-8 text, and the image also written to a PNG file),
+  maps the application's own windows by X id, and hands every report to the
+  next pump (`Sdl3Backend.later`), so no drop target runs inside SDL's hook.
+  The answer timeout (5 s) is checked once a pump. Found on the way: on
+  XWayland, mutter's window manager asks the owner of `XdndSelection` for
+  `TARGETS` as soon as it is taken, to bridge the drag to Wayland, so the
+  source answers requesters it never sent a message to. **Not yet done on
+  X11:** the picture under the pointer (an input-transparent ARGB window,
+  which needs libXext's input shape), the `XdndActionAsk` cursor feedback
+  (the pointer keeps its arrow), and `INCR` for data larger than one request
+  (refused; the limit is the server's big-request size, megabytes). Tests:
+  `XdndSourceTest` (23, a fake server), `XlibXdndTest` (3, a real server on
+  `$DISPLAY` or a private Xvfb: a message read back, a selection answered, a
+  `BadWindow` survived), `X11DragOutTest` (4). Not driven by hand yet: moving
+  the real pointer is not something a test here does. Next: phase 3,
+  Wayland.

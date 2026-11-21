@@ -100,6 +100,14 @@ SDL_GetWindowProperties
 SDL_GetNumberProperty
 SDL_GetPointerProperty
 
+# Every X11 event before SDL handles it (ABI 27). The drag source of a drag
+# out (docs/drag-out.md) speaks XDND on SDL's own Display, so the XdndStatus,
+# XdndFinished and SelectionRequest sent to its window arrive through SDL's
+# event loop, and the pointer's moves during SDL's implicit grab are read on
+# the same call. SDL compiles an unsupported stub on the other platforms, so
+# the symbol exists everywhere.
+SDL_SetX11EventHook
+
 # Windowing and the CPU present path (sec. 4, sec. 5).
 SDL_CreateWindow
 SDL_DestroyWindow

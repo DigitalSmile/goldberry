@@ -19,6 +19,8 @@ import java.util.stream.Stream;
 
 import dev.goldberry.natives.Downcalls;
 import dev.goldberry.natives.Upcalls;
+import dev.goldberry.natives.desktop.dragout.X11EventHook;
+import dev.goldberry.natives.desktop.dragout.XlibXdnd;
 import dev.goldberry.natives.desktop.macos.MacMenuBar;
 import dev.goldberry.natives.desktop.macos.MacNotifier;
 import dev.goldberry.natives.desktop.notify.WindowsNotifier;
@@ -59,6 +61,7 @@ public final class ForeignSurface {
     /// [Upcalls#describe] in a static initialiser.
     static final List<Class<?>> UPCALL_OWNERS = List.of(
             SdlEventWatch.class,
+            X11EventHook.class,
             SdlFileDialogs.class,
             SdlTray.class,
             MeasureCallback.class,
@@ -83,7 +86,9 @@ public final class ForeignSurface {
             // The X error handler a global shortcut's grab is made under, and
             // the Carbon event handler that hears a macOS hotkey.
             XlibHotkeys.class,
-            CarbonHotkeys.class);
+            CarbonHotkeys.class,
+            // The X error handler a drag out speaks XDND under.
+            XlibXdnd.class);
 
     /// The classes that bind a system library outside a `…calls` package —
     /// libdbus, libobjc, shell32, ole32, advapi32, Security, libX11, libc,
@@ -104,7 +109,8 @@ public final class ForeignSurface {
             "dev.goldberry.natives.desktop.shortcuts.PollWakeup",
             "dev.goldberry.natives.desktop.shortcuts.XlibHotkeys",
             "dev.goldberry.natives.desktop.shortcuts.WindowsHotkeys",
-            "dev.goldberry.natives.desktop.shortcuts.CarbonHotkeys");
+            "dev.goldberry.natives.desktop.shortcuts.CarbonHotkeys",
+            "dev.goldberry.natives.desktop.dragout.XlibXdnd");
 
     private ForeignSurface() {}
 

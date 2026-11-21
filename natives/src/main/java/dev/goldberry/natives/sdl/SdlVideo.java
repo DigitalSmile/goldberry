@@ -255,6 +255,19 @@ public final class SdlVideo {
         }
     }
 
+    /// The address of the X11 `Display*` SDL opened `window` on, or empty when
+    /// the window is not on X11.
+    ///
+    /// SDL's own connection, the one its event loop reads: a drag source that
+    /// speaks on it hears its replies through SDL's X11 event hook. An
+    /// address, as [NativeWindowHandle] carries an `HWND`, so that no foreign
+    /// memory crosses the module's boundary.
+    public OptionalLong x11Display(SdlWindowHandle window) {
+        return x11Screen(window)
+                .map(screen -> OptionalLong.of(screen.display().address()))
+                .orElse(OptionalLong.empty());
+    }
+
     /// Where the window's top-left is, in the desktop's coordinates.
     ///
     /// For a popup this is **not** the offset it was created at: SDL reports a

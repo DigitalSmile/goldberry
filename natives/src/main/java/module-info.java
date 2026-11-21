@@ -125,6 +125,12 @@ module dev.goldberry.natives {
     exports dev.goldberry.natives.desktop.shortcuts to
             dev.goldberry.core;
 
+    // The platform's own drag source for a drag out of the application: XDND
+    // on SDL's X11 Display, heard through SDL's X11 event hook. To `:core`,
+    // whose sdl3 backend starts it.
+    exports dev.goldberry.natives.desktop.dragout to
+            dev.goldberry.core;
+
     /// What this build of the platform layer can actually do.
     ///
     /// Qualified to `:core`, like Yoga's and Blend2D's wrappers and for the same
