@@ -288,7 +288,7 @@ log in the same commit as the work.
 | T-25 | W3.7 | todo | | |
 | T-26 | W2.13 | done | 0686 | |
 | T-29 | W3.8 | done: `GlobalShortcuts` (portal, X11 grab, `RegisterHotKey`, Carbon); Windows and macOS written, not run; the Windows release is polled while held, not hooked | 0711 | |
-| T-30 | W3.10 | plan answered (`docs/zero-copy-tiles.md`): D1 (a), D2 (a), D4 (a), D5 `RasterTexture`, D6 the gate; D3 rejected, its replacement asked. Phase 0 (measurements) is unblocked | | |
+| T-30 | W3.10 | planned and decided (`docs/zero-copy-tiles.md`): D1 (a), D2 (a), D3 D6 decides per driver, D4 (a), D5 `RasterTexture`, D6 the gate. Phases 0–4 not started | 0712 | |
 | T-31 | W3.11 | done: plan written (`docs/web-target.md`, D1–D8 asked); no code until it is read | | |
 | T-32 | W2.8 | done: delete, clear, user agent; the private store waits for the shim to build its own views | 0699 | |
 
@@ -487,3 +487,6 @@ log in the same commit as the work.
 - **2026-11-21, evening.** The owner answered W3.10's plan: D1 (a), D2 (a),
   D4 (a), D5 `RasterTexture`, D6 the gate as written, D3 rejected. Phase 0 can
   start; phases 1–3 wait for D3's replacement. Next ADR 0712.
+- **2026-11-21, last.** D3 of W3.10 taken: D6's gate decides per driver, at
+  run time, with no driver ruled out ahead of time. All six decisions are in
+  ADR-0712. Phase 0 (measurements) is next for W3.10. Next ADR 0713.

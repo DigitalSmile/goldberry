@@ -115,23 +115,31 @@ for applications. (b) Only the exported API.
 hits, at the largest size, and it proves the mechanism before an API is
 promised.
 
-### D3. Per driver (rejected; the replacement is open)
+### D3. Per driver (taken: D6 decides)
 
-| Driver | In place | Staged |
-|--------|----------|--------|
-| Vulkan | **Yes**, behind D6's gate | The fallback where the gate says no, or the memory turns out uncached (D6) |
-| Metal | No: upload buffers are write-combined | Today's path; rows packed, as now |
-| Direct3D 12 | No: the upload heap is write-combined | Rows padded to 256 bytes, regions at multiples of 512 (§2 item 4) |
-| Software (`lavapipe`) | Yes: all memory is cached system memory | — |
+No driver is ruled in or out ahead of time. Every driver gets the in-place
+path, and D6's gate switches it on per driver: phase 0's benchmark gives
+each driver's numbers, and the probe at device creation decides at run time,
+so a driver that hands out uncached or write-combined memory stays on the
+staged path without a release in between.
 
-**The owner rejected this table on 2026-11-21.** What takes its place is not
-decided yet, and nothing that depends on it (phases 1 to 3, and where
-`RasterTexture` paints in place) is built until it is. Phase 0's measurements
-do not depend on it and are what it will be decided from.
+| Driver | What is expected | What decides |
+|--------|------------------|--------------|
+| Vulkan | In place: SDL's upload buffers prefer `HOST_CACHED` and stay mapped | D6 |
+| Metal | Staged: upload buffers are write-combined, so painting (which reads what it blends onto) may fail D6's second number | D6 |
+| Direct3D 12 | Staged: the upload heap is write-combined, as on Metal | D6 |
+| Software (`lavapipe`) | In place: all memory is cached system memory | D6 |
 
-Rejected in the proposal: painting on Metal into a *download* transfer buffer, which SDL makes
-with the default cache. SDL does not check a copy pass's source usage, so it
-would work, but it rests on an internal detail no SDL release promises.
+The expectations are what SDL 3.4.18's sources suggest, not a rule: where a
+measurement disagrees, the measurement wins. Either way Direct3D 12 needs rows
+padded to 256 bytes and regions at multiples of 512 (§2 item 4), for the
+staged path and the in-place one alike, so phase 1 stays.
+
+The owner rejected the first proposal, a fixed table with Metal and
+Direct3D 12 always staged, on 2026-11-21. Also rejected: painting on Metal
+into a *download* transfer buffer, which SDL makes with the default cache. SDL
+does not check a copy pass's source usage, so it would work, but it rests on an
+internal detail no SDL release promises.
 
 ### D4. Who may write while the GPU reads (taken: (a))
 
@@ -182,10 +190,9 @@ The in-place path is switched on per driver only if phase 0's benchmark shows:
    heap memory, on the same scene.
 
 SDL does not say which memory type it picked, so (2) is also how we learn
-whether the buffer is cached. A one-off probe at device creation (read a mapped
-megabyte, compare with heap) can make the choice at run time if a driver turns
-out to give uncached memory. **Recommendation: take this gate.** The owner may
-set other numbers.
+whether the buffer is cached. A one-off probe at device creation (paint a
+mapped megabyte, compare with heap) makes the choice at run time, which D3
+relies on. Taken with these numbers.
 
 ## 4. Phases
 
@@ -196,9 +203,10 @@ set other numbers.
   a mapped SDL upload transfer buffer, single- and multi-threaded; (ii)
   `present`'s upload stage at 1080p and 4K with 1%, 10% and 100% of the frame
   damaged, on today's path; (iii) the same through an in-place prototype in the
-  benchmark's own code.
+  benchmark's own code, on every driver (D3).
 - On this machine: the GTX 1660 Ti (Vulkan, x11) and lavapipe. On CI: Windows
-  (D3D12, so the hidden copy shows up or not) and macOS (Metal).
+  (D3D12, so the hidden copy shows up or not) and macOS (Metal), both in place
+  and staged.
 - An `SdlGpuDeviceTest` case that pins the Vulkan facts §1 relies on: two maps
   without `cycle` return the same address.
 
@@ -216,7 +224,8 @@ grow; gallery goldens unchanged.
 
 An internal `MappedRaster` in `gpu.render`: an upload transfer buffer sized to
 the frame (stride padded to 256), mapped once, wrapped as a `PixelBuffer`; the
-copy submitted in a command buffer of its own with a fence (D4 (a)). Exit:
+copy submitted in a command buffer of its own with a fence (D4 (a)), and the
+probe at device creation that picks the path per driver (D3, D6). Exit:
 tests on lavapipe that the texture holds what was painted, region by region,
 and that a paint waits for an unfinished copy (a fence that has not signalled
 holds it); identical pixels to the staged path.
@@ -268,10 +277,10 @@ and Tessera's G-30 answer in `answers-tessera.md`.
 
 | Phase | Status |
 |-------|--------|
-| 0 — measurements | not started; unblocked |
-| 1 — D3D12 staging | waits for D3's replacement |
-| 2 — the in-place raster | waits for D3's replacement |
-| 3 — the composited window | waits for D3's replacement |
+| 0 — measurements | not started |
+| 1 — D3D12 staging | not started |
+| 2 — the in-place raster | not started |
+| 3 — the composited window | not started |
 | 4 — `RasterTexture` | not started |
 
 - **2026-11-21.** Plan written from the tree at `5998561b` and SDL 3.4.18's
@@ -287,3 +296,8 @@ and Tessera's G-30 answer in `answers-tessera.md`.
   (the 4K upload stage at least halved, painting no more than 5% slower). D3,
   the per-driver table, was rejected; its replacement is asked. Phase 0 can
   start. The ADR is written once D3 is settled, so that it records all six.
+- **2026-11-21, last.** D3 taken: D6 decides, per driver and at run time,
+  with no driver ruled out ahead of time. Phase 0 therefore measures the
+  in-place prototype on Metal and Direct3D 12 too (CI's macOS and Windows
+  lanes), and the run-time probe is part of phase 2, not an option. All six
+  decisions are recorded in ADR-0712 (parked). Next ADR 0713.
