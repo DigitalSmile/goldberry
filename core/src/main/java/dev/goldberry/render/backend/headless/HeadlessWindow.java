@@ -1,5 +1,6 @@
 package dev.goldberry.render.backend.headless;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -14,6 +15,8 @@ import dev.goldberry.render.PixelBuffer;
 import dev.goldberry.render.composite.ReadbackSurface;
 import dev.goldberry.render.display.Display;
 import dev.goldberry.render.display.DisplayLayout;
+import dev.goldberry.render.dragout.DragRequest;
+import dev.goldberry.render.dragout.DragSession;
 import dev.goldberry.render.event.BackendEvent;
 import dev.goldberry.render.model.DisplayScale;
 import dev.goldberry.render.model.LogicalPoint;
@@ -251,6 +254,33 @@ public sealed class HeadlessWindow implements BackendWindow permits HeadlessPopu
     /// Every [#requestAttention] this window was given.
     public List<Attention> attentionRequests() {
         return List.copyOf(attentionRequests);
+    }
+
+    private final List<HeadlessDrag> drags = new ArrayList<>();
+
+    private boolean refusesDrags;
+
+    /// Recorded, for a test to play the platform's part on: see
+    /// [HeadlessDrag]. Answers true unless [#refuseDrags] said otherwise.
+    @Override
+    public boolean startDrag(DragRequest request, DragSession session) {
+        backend.requireUiThread();
+        requireOpen();
+        if (refusesDrags) {
+            return false;
+        }
+        drags.add(new HeadlessDrag(this, request, session));
+        return true;
+    }
+
+    /// Makes [#startDrag] refuse, as a platform with no drag source does.
+    public void refuseDrags(boolean refuse) {
+        refusesDrags = refuse;
+    }
+
+    /// Every drag this window was asked to start, oldest first.
+    public List<HeadlessDrag> drags() {
+        return List.copyOf(drags);
     }
 
     /// The window this one belongs to, or null.

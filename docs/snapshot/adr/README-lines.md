@@ -154,3 +154,4 @@ Appended to the index when the records move in, in this order.
 - [ADR-0711 Global shortcuts are asked of the desktop](0711-global-shortcuts-are-asked-of-the-desktop.md)
 - [ADR-0712 Rasters paint where the GPU copies from, where measuring says so](0712-rasters-paint-where-the-gpu-copies-from.md)
 - [ADR-0713 macOS 14 is the floor, whatever the runner](0713-macos-14-is-the-floor-whatever-the-runner.md)
+- [ADR-0714 A drag leaves through the platform's own drag source](0714-a-drag-leaves-through-the-platform-s-own-source.md)

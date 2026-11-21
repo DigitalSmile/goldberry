@@ -195,6 +195,11 @@ module dev.goldberry.core {
     // handed is the assembled value rather than any of them.
     exports dev.goldberry.input.drop;
 
+    // Dragging out to other applications: the offer a draggable makes outside
+    // and the outcome its source hears. Beside `input.drop` rather than in it,
+    // because what it describes leaves the process.
+    exports dev.goldberry.input.dragout;
+
     // The application's own cursor pictures, for `input.drop`'s reason: what an
     // application hands over is a value of its own, gathered by shape before a
     // backend sees it.
@@ -345,6 +350,10 @@ module dev.goldberry.core {
     /// `:widgets` puts the door on top of it.
     exports dev.goldberry.render.web;
     exports dev.goldberry.render.window;
+
+    // The backend's half of a drag out: the request, the session it reports
+    // to, and the offer as MIME types and bytes.
+    exports dev.goldberry.render.dragout;
     // The pixels a cursor shape is shown with, when the application drew one.
     exports dev.goldberry.render.cursor;
     /// The compositor seam: what the sdl3 backend asks of `:gpu` to present a

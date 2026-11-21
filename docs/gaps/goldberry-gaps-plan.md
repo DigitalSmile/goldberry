@@ -281,7 +281,7 @@ log in the same commit as the work.
 | T-17 | — | parked (ADR-0440) | | |
 | T-18 | W1.7 | done | 0678 | |
 | T-19 | W2.12 | done (Win32 half unverified) | 0701 | |
-| T-20 | W3.9 | todo | | |
+| T-20 | W3.9 | in progress (`docs/drag-out.md`): decided D1 (b) the platform's drag from the threshold, D2–D8 as recommended. Phase 1 (API, router, window, headless) done; phases 2–6 (X11, Wayland, Windows, macOS, showcase) not started | 0714 | |
 | T-22 | W3.6 | todo | | |
 | T-23 | — | parked (D11) | 0690 | |
 | T-24 | W3.3 | done: a page's `<style>`, `style=`, `bgcolor` and `<font color>` in a `StyleScope` of the view's own; `AuthorStyles` with `ADAPTED` the default (a text colour with no background of the mail's under it takes the theme's) | 0710 | |
@@ -490,3 +490,19 @@ log in the same commit as the work.
 - **2026-11-21, last.** D3 of W3.10 taken: D6's gate decides per driver, at
   run time, with no driver ruled out ahead of time. All six decisions are in
   ADR-0712. Phase 0 (measurements) is next for W3.10. Next ADR 0713.
+- **2026-11-21, W3.9.** `docs/drag-out.md` written from the tree at
+  `b3752f37` and SDL 3.4.18's sources: SDL is a drop target everywhere and a
+  drag source nowhere, but gives what a source needs (the X11 event hook,
+  OLE up on Windows, `wl_display` and `wl_surface`, the `NSWindow`). Six
+  phases, API and router first, then X11, Wayland, Windows, macOS. D1–D8 are
+  asked; no code. Next ADR 0714.
+- **2026-11-21, W3.9 answered.** D1 (b): a draggable with an offer is the
+  platform's drag from the threshold, not from the window's edge; D2–D8 as
+  recommended. ADR-0714 records them, parked. Phase 1 (API and router) next.
+  Next ADR 0715.
+- **2026-11-21, W3.9 phase 1.** The API and the router, in `:core` only:
+  `input.dragout` and `render.dragout`, `Attributes.dragOut`,
+  `BackendWindow.startDrag` (refuses by default), the hand-off at the
+  threshold, `DragFlight` driving in-app targets from the platform's reports,
+  and the echoed drop swallowed. No platform starts a drag yet, so nothing
+  changes for an application until phase 2. Uncommitted. Next ADR 0715.

@@ -4,6 +4,7 @@ import java.nio.ByteBuffer;
 import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -15,6 +16,9 @@ import org.slf4j.Logger;
 
 import dev.goldberry.bind.Subscription;
 import dev.goldberry.image.Image;
+import dev.goldberry.input.PointerRouter;
+import dev.goldberry.input.dragout.DragHandOff;
+import dev.goldberry.input.dragout.DragOffer;
 import dev.goldberry.input.drop.FileDrop;
 import dev.goldberry.input.drop.TextDrop;
 import dev.goldberry.input.event.PointerEvent;
@@ -31,6 +35,9 @@ import dev.goldberry.render.desktop.DisplayPreferences;
 import dev.goldberry.render.desktop.SystemTheme;
 import dev.goldberry.render.display.Display;
 import dev.goldberry.render.display.DisplayLayout;
+import dev.goldberry.render.dragout.DragPictures;
+import dev.goldberry.render.dragout.DragRequest;
+import dev.goldberry.render.dragout.OfferedData;
 import dev.goldberry.render.model.DisplayScale;
 import dev.goldberry.render.model.LogicalPoint;
 import dev.goldberry.render.model.LogicalRect;
@@ -137,6 +144,10 @@ public final class Window implements AutoCloseable {
 
     /// Where the last event of the gesture said the pointer was.
     private float dropX;
+
+    /// The offer of a drag out let go over this window, whose drop SDL's own
+    /// target is about to report, or null.
+    private @Nullable DragOffer expectedEcho;
 
     private float dropY;
     private BooleanSupplier closeHandler = () -> true;
@@ -1340,8 +1351,111 @@ public final class Window implements AutoCloseable {
     void handlePointerMoved(float x, float y, int modifiers) {
         if (router != null) {
             router.pointerMoved(x, y, Modifiers.fromSdl(modifiers));
+            startDragOut();
             repaintIfRestyled();
         }
+    }
+
+    /// The router this window routes through, or null when it has none.
+    @Nullable
+    PointerRouter routerOrNull() {
+        return router;
+    }
+
+    /// Repaints when a drag out's report changed what a stylesheet sees.
+    void afterDragReport() {
+        if (router != null) {
+            repaintIfRestyled();
+        }
+    }
+
+    /// A drag of this application's own was let go over this window, and SDL's
+    /// drop target took it too: the `FileDrop` or `TextDrop` of `offer` on its
+    /// way is the application's own offer coming back, and nobody hears it.
+    void expectOwnDrop(DragOffer offer) {
+        expectedEcho = Objects.requireNonNull(offer, "offer");
+    }
+
+    /// Starts the drag the router just handed over, if it handed one: as the
+    /// platform's, or, where the platform will not, back as an in-app drag.
+    ///
+    /// Here, after the router has finished with the move, because the start can
+    /// last the whole drag: Windows' platform drag returns when it is over.
+    private void startDragOut() {
+        var routing = Objects.requireNonNull(router, "asked only after the router took a move");
+        var taken = routing.takeDragOut();
+        if (taken.isEmpty()) {
+            return;
+        }
+        var handOff = taken.get();
+        if (!launchDragOut(handOff)) {
+            routing.dragOutRefused(handOff);
+        }
+    }
+
+    /// Asks the backend to take `handOff`, and answers whether it did.
+    private boolean launchDragOut(DragHandOff handOff) {
+        if (runtime.flight() != null) {
+            return false;
+        }
+        DragOffer offer;
+        try {
+            offer = handOff.out().offer().get();
+        } catch (RuntimeException e) {
+            LOG.warn("a drag's offer failed; it stays inside the application", e);
+            return false;
+        }
+        if (offer == null || offer.isEmpty()) {
+            return false;
+        }
+        var picture = offer.picture();
+        if (picture == null) {
+            picture = window.capture()
+                    .flatMap(frame -> DragPictures.ghost(frame, handOff.from(), handOff.grab(), window.scale()))
+                    .orElse(null);
+        }
+        var flight = new DragFlight(runtime, this, handOff, offer);
+        expectedEcho = null;
+        runtime.flightStarted(flight);
+        boolean started;
+        try {
+            started = window.startDrag(new DragRequest(offer, picture, handOff.pointer()), flight);
+        } catch (RuntimeException e) {
+            LOG.warn("the platform's drag failed to start; it stays inside the application", e);
+            started = false;
+        }
+        if (started || flight.isEnded()) {
+            return true;
+        }
+        runtime.flightEnded(flight);
+        return false;
+    }
+
+    /// Whether the drop just assembled is `echo`: every file one it offered,
+    /// every line of text one of its texts or links.
+    private boolean isEcho(DragOffer echo) {
+        if (dropping.isEmpty() && droppingText.isEmpty()) {
+            return false;
+        }
+        var files = new HashSet<>(echo.files());
+        for (var path : dropping) {
+            if (!files.contains(path.toAbsolutePath().normalize())) {
+                return false;
+            }
+        }
+        if (droppingText.isEmpty()) {
+            return true;
+        }
+        var data = OfferedData.of(echo);
+        var lines = new HashSet<String>();
+        data.text().lines().map(String::strip).forEach(lines::add);
+        data.uris().uris().forEach(uri -> lines.add(uri.toString()));
+        for (var line : droppingText) {
+            if (!lines.contains(line.strip())) {
+                return false;
+            }
+        }
+        return true;
     }
 
     /// Repaints when input changed something a stylesheet reacts to.
@@ -1581,6 +1695,18 @@ public final class Window implements AutoCloseable {
     /// One completion for both kinds, because the platform has one: SDL's
     /// `SDL_EVENT_DROP_COMPLETE` ends the gesture whatever it carried.
     void handleDropCompleted(float x, float y) {
+        var echo = expectedEcho;
+        if (echo != null) {
+            expectedEcho = null;
+            if (isEcho(echo)) {
+                // The application's own drag, let go over its own window, where
+                // it already landed as an in-app drop.
+                LOG.debug("the drop of this application's own drag out was swallowed");
+                dropping.clear();
+                droppingText.clear();
+                return;
+            }
+        }
         if (dropping.isEmpty() && droppingText.isEmpty()) {
             // A drag that crossed the window and left, or a drop of something
             // that is neither a file nor text. There is nothing to tell anyone

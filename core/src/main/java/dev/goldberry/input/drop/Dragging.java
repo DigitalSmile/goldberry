@@ -24,6 +24,9 @@ import dev.goldberry.widget.Element;
 /// @param pointer      where the pointer is now, in the window
 /// @param target       the accepting target under the pointer, or null over none
 /// @param fromKeyboard whether the keyboard picked it up, in which case no ghost follows a pointer
+/// @param platform     whether the platform carries it (a drag out, over one of the
+///                     application's windows), in which case the platform draws the
+///                     picture and no ghost is painted
 public record Dragging(
         Element source,
         Object payload,
@@ -31,7 +34,8 @@ public record Dragging(
         LogicalPoint grab,
         LogicalPoint pointer,
         @Nullable Element target,
-        boolean fromKeyboard) {
+        boolean fromKeyboard,
+        boolean platform) {
 
     public Dragging {
         Objects.requireNonNull(source, "source");
@@ -39,5 +43,18 @@ public record Dragging(
         Objects.requireNonNull(from, "from");
         Objects.requireNonNull(grab, "grab");
         Objects.requireNonNull(pointer, "pointer");
+    }
+
+    /// A drag the toolkit carries itself, as every drag was before one could
+    /// leave the application.
+    public Dragging(
+            Element source,
+            Object payload,
+            LogicalRect from,
+            LogicalPoint grab,
+            LogicalPoint pointer,
+            @Nullable Element target,
+            boolean fromKeyboard) {
+        this(source, payload, from, grab, pointer, target, fromKeyboard, false);
     }
 }

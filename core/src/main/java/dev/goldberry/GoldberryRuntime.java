@@ -163,6 +163,32 @@ final class GoldberryRuntime {
         return loop;
     }
 
+    /// The drag out in flight, or null. One at a time: the platform has one
+    /// pointer, and a second hand-off while one is out is refused.
+    private @Nullable DragFlight flight;
+
+    @Nullable
+    DragFlight flight() {
+        return flight;
+    }
+
+    void flightStarted(DragFlight value) {
+        flight = Objects.requireNonNull(value, "value");
+    }
+
+    void flightEnded(DragFlight value) {
+        if (flight == value) {
+            flight = null;
+        }
+    }
+
+    /// The window wrapping `backendWindow`, or null when it is none of this
+    /// application's, or has closed.
+    @Nullable
+    Window windowFor(BackendWindow backendWindow) {
+        return windows.get(backendWindow);
+    }
+
     void register(BackendWindow backendWindow, Window window) {
         windows.put(backendWindow, window);
     }

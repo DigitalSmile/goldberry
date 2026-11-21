@@ -34,10 +34,11 @@ final class DragGhost {
     private DragGhost() {}
 
     /// `root` with the ghost of `drag` on top, or `root` as it was when there is
-    /// nothing to draw: a keyboard drag, which has no pointer to follow, or a
-    /// source that painted nothing this frame.
+    /// nothing to draw: a keyboard drag, which has no pointer to follow, a drag
+    /// the platform carries and draws itself, or a source that painted nothing
+    /// this frame.
     static Box over(Box root, Dragging drag) {
-        if (drag.fromKeyboard() || Float.isNaN(drag.pointer().x())) {
+        if (drag.fromKeyboard() || drag.platform() || Float.isNaN(drag.pointer().x())) {
             return root;
         }
         var source = find(root, drag.source());

@@ -280,3 +280,9 @@ Everything below is measured against 2026.2 (tag commit d3eacfdc).
 - `HtmlView` has a new component, `styles`, before `attributes`; the
   five-argument constructor stays. A record pattern over `HtmlView` names six
   components. <!-- ADR-0710 -->
+- `Attributes` has a twelfth component, `dragOut`; the eleven-argument
+  constructor stays and means none. A record pattern over `Attributes` names
+  twelve components. <!-- ADR-0714 -->
+- `Dragging` has an eighth component, `platform`; the seven-argument
+  constructor stays and means false. A record pattern over `Dragging` names
+  eight components. <!-- ADR-0714 -->

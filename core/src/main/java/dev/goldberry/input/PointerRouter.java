@@ -14,6 +14,8 @@ import org.jspecify.annotations.Nullable;
 
 import dev.goldberry.bind.Subscription;
 import dev.goldberry.css.select.Selector.PseudoClass;
+import dev.goldberry.input.dragout.DragHandOff;
+import dev.goldberry.input.dragout.DragOut;
 import dev.goldberry.input.drop.Dragging;
 import dev.goldberry.input.drop.Drop;
 import dev.goldberry.input.drop.DropTarget;
@@ -917,13 +919,26 @@ public final class PointerRouter {
         updateHover(under, x, y);
         updateCursor(x, y);
         if (pickable != null && drag == null && captured != null && travelled(x, y) >= DRAG_THRESHOLD) {
-            beginDrag();
+            if (pickOut != null) {
+                handOff();
+            } else {
+                beginDrag();
+            }
+        }
+        if (handedOff) {
+            // The platform has the drag, or is about to be asked to take it.
+            // What the pointer is over is its report to make, not this move's,
+            // and the source that was pressed hears nothing until it is over.
+            return;
         }
         if (drag != null && !drag.fromKeyboard) {
             // The drag has the pointer now. Its source heard the press and will
             // hear the release; the moves in between are the router's, and
-            // what they are for is finding where the drop would land.
-            dragOver(under, x, y);
+            // what they are for is finding where the drop would land. A drag
+            // the platform carries is moved by the platform's reports instead.
+            if (!drag.platform) {
+                dragOver(under, x, y);
+            }
             return;
         }
         var target = captured != null ? captured : under;
@@ -978,6 +993,7 @@ public final class PointerRouter {
         if (drag != null && drag.fromKeyboard) {
             cancelDrag();
         }
+        swallowRelease = false;
         pointerAt(x, y);
         var target = elementAt(x, y);
         updateHover(target, x, y);
@@ -1027,6 +1043,15 @@ public final class PointerRouter {
     /// The same, with modifiers.
     public void pointerReleased(
             float x, float y, PointerEvent.@Nullable Button button, int clickCount, Modifiers modifiers) {
+        if (swallowRelease) {
+            // The release of a press a platform drag already finished: the
+            // platform reported the end before the button came up here, and
+            // the gesture was closed then. Nothing is left to tell anyone.
+            swallowRelease = false;
+            if (pressed == null && captured == null) {
+                return;
+            }
+        }
         pointerAt(x, y);
         var under = elementAt(x, y);
         // A drag ends before anything else is said about the release, so the
@@ -1034,9 +1059,12 @@ public final class PointerRouter {
         // hooks run last, against a router that has finished with the gesture.
         // A press that became a drag is not a click wherever it is let go, back
         // on the source included.
-        var landed = drag != null && !drag.fromKeyboard ? land(under, x, y) : null;
+        // A drag the platform carries is let go by the platform's report, not by
+        // this release, which may not even be the window's to hear.
+        var landed = drag != null && !drag.fromKeyboard && !drag.platform ? land(under, x, y) : null;
         var dragged = dragSpent;
         pickable = null;
+        pickOut = null;
         dragSpent = false;
         var target = captured != null ? captured : under;
         // Read before `setPressed(null)` clears it: whether this was a click is a
@@ -1389,6 +1417,11 @@ public final class PointerRouter {
         // A drag hears the keyboard before anything in the tree does. Escape
         // puts it back, which no dialog under it should also take as its own
         // Escape; a keyboard drag steers and drops with its own few keys.
+        if ((handedOff || (drag != null && drag.platform)) && key == Key.ESCAPE) {
+            // The platform's drag hears its own Escape and reports it. Taken
+            // here all the same, so that no dialog under it closes as well.
+            return true;
+        }
         if (drag != null && key == Key.ESCAPE) {
             cancelDrag();
             return true;
@@ -1396,7 +1429,7 @@ public final class PointerRouter {
         if (drag != null && drag.fromKeyboard && steer(key, modifiers)) {
             return true;
         }
-        if (drag == null && key == Key.SPACE && modifiers.none() && !repeat && liftFocused()) {
+        if (drag == null && !handedOff && key == Key.SPACE && modifiers.none() && !repeat && liftFocused()) {
             return true;
         }
         var event = new KeyEvent(KeyEvent.Kind.PRESSED, key, modifiers, repeat, focused);
@@ -2027,6 +2060,21 @@ public final class PointerRouter {
 
     private @Nullable LogicalRect pickFrom;
 
+    /// What the armed draggable offers outside the application, or null when it
+    /// offers nothing and its drag stays in-app.
+    private @Nullable DragOut pickOut;
+
+    /// A drag handed over and not yet taken by the window, or null.
+    private @Nullable DragHandOff pendingOut;
+
+    /// Whether the press now held became a drag the platform carries: from the
+    /// hand-off until [#dragOutFinished] or [#dragOutRefused].
+    private boolean handedOff;
+
+    /// Whether the next release belongs to a press a platform drag already
+    /// finished, and is to be heard by nobody.
+    private boolean swallowRelease;
+
     /// The drag in progress, or null.
     private @Nullable Drag drag;
 
@@ -2045,6 +2093,11 @@ public final class PointerRouter {
         final LogicalPoint grab;
         final boolean fromKeyboard;
 
+        /// Whether the platform carries it: a drag out of some window of this
+        /// application, now over this one. Its moves and its drop come from the
+        /// platform's reports rather than this window's pointer.
+        final boolean platform;
+
         @Nullable
         Element target;
 
@@ -2057,11 +2110,22 @@ public final class PointerRouter {
         int chosen;
 
         Drag(Element source, Object payload, LogicalRect from, LogicalPoint grab, boolean fromKeyboard) {
+            this(source, payload, from, grab, fromKeyboard, false);
+        }
+
+        Drag(
+                Element source,
+                Object payload,
+                LogicalRect from,
+                LogicalPoint grab,
+                boolean fromKeyboard,
+                boolean platform) {
             this.source = source;
             this.payload = payload;
             this.from = from;
             this.grab = grab;
             this.fromKeyboard = fromKeyboard;
+            this.platform = platform;
         }
     }
 
@@ -2085,7 +2149,8 @@ public final class PointerRouter {
                 current.grab,
                 pointer,
                 current.target,
-                current.fromKeyboard));
+                current.fromKeyboard,
+                current.platform));
     }
 
     /// Readies `target`'s draggable to be picked up, if the press just
@@ -2114,6 +2179,7 @@ public final class PointerRouter {
         pickable = source;
         pickPayload = payload;
         pickFrom = region.painted();
+        pickOut = dragOutOf(source);
     }
 
     /// How far the pointer is from where the button went down.
@@ -2131,8 +2197,140 @@ public final class PointerRouter {
         pickable = null;
         pickPayload = null;
         pickFrom = null;
+        pickOut = null;
         dragSpent = true;
         stylesDirty = true;
+    }
+
+    /// Turns the armed press into a drag for the platform to carry, to be taken
+    /// by the window with [#takeDragOut] once this event is over.
+    private void handOff() {
+        var source = Objects.requireNonNull(pickable, "a drag begins from an armed press");
+        var from = Objects.requireNonNull(pickFrom, "armed with the rectangle it was painted in");
+        var payload = Objects.requireNonNull(pickPayload, "armed with a payload");
+        var out = Objects.requireNonNull(pickOut, "handed off only with an offer");
+        pendingOut = new DragHandOff(
+                source,
+                payload,
+                out,
+                from,
+                new LogicalPoint(pressOriginX - from.left(), pressOriginY - from.top()),
+                new LogicalPoint(pointerX, pointerY));
+        pickable = null;
+        pickPayload = null;
+        pickFrom = null;
+        pickOut = null;
+        handedOff = true;
+        dragSpent = true;
+        stylesDirty = true;
+    }
+
+    /// The drag that crossed the threshold during the last event and is the
+    /// platform's to start, taken once: the window asks after every pointer
+    /// event and starts it, outside the router.
+    ///
+    /// Taken rather than started here because starting it can run for the whole
+    /// drag. Windows' platform drag is a loop that returns when the drag is
+    /// over, and it must not run inside a router still handling a move.
+    public Optional<DragHandOff> takeDragOut() {
+        var taken = pendingOut;
+        pendingOut = null;
+        return Optional.ofNullable(taken);
+    }
+
+    /// Whether a drag of this window's is out with the platform.
+    public boolean isDraggingOut() {
+        return handedOff;
+    }
+
+    /// The platform would not take `handOff`: it is an in-app drag after all,
+    /// from where the pointer is now, as if it had never offered anything.
+    public void dragOutRefused(DragHandOff handOff) {
+        Objects.requireNonNull(handOff, "handOff");
+        if (!handedOff) {
+            return;
+        }
+        handedOff = false;
+        if (captured == null || !handOff.source().isMounted()) {
+            // The button came up, or the source went, before the refusal: there
+            // is no held press left to carry anything.
+            return;
+        }
+        drag = new Drag(handOff.source(), handOff.payload(), handOff.from(), handOff.grab(), false);
+        stylesDirty = true;
+        if (!Float.isNaN(pointerX)) {
+            dragOver(elementAt(pointerX, pointerY), pointerX, pointerY);
+        }
+    }
+
+    /// The platform's drag of this window's is over. The press that began it
+    /// is finished too: a platform that took the pointer may never send its
+    /// release, and one that does sends it to nobody.
+    public void dragOutFinished() {
+        if (!handedOff) {
+            return;
+        }
+        handedOff = false;
+        stylesDirty = true;
+        if (pressed == null && captured == null) {
+            // Its release already came, and closed the gesture.
+            dragSpent = false;
+            return;
+        }
+        setPressed(null);
+        if (capturedImplicitly) {
+            releasePointer();
+        }
+        pressOriginX = Float.NaN;
+        pressOriginY = Float.NaN;
+        endGesture();
+        dragSpent = false;
+        swallowRelease = true;
+        if (!Float.isNaN(pointerX)) {
+            updateCursor(pointerX, pointerY);
+        }
+    }
+
+    /// A platform drag of this application's, from `source` in whichever of its
+    /// windows it began, is over this window at `x`, `y`.
+    ///
+    /// The window's targets light up and hear `whileOver` exactly as for a drag
+    /// of their own, with the original payload. No ghost is painted: the
+    /// platform draws the picture.
+    public void platformDragOver(
+            Element source, Object payload, LogicalRect from, LogicalPoint grab, float x, float y) {
+        Objects.requireNonNull(source, "source");
+        Objects.requireNonNull(payload, "payload");
+        var current = drag;
+        if (current != null && !(current.platform && current.source == source && current.payload == payload)) {
+            cancelDrag();
+            current = null;
+        }
+        if (current == null) {
+            drag = new Drag(source, payload, from, grab, false, true);
+        }
+        pointerAt(x, y);
+        dragOver(elementAt(x, y), x, y);
+    }
+
+    /// The platform drag left this window, or was cancelled over it.
+    public void platformDragLeft() {
+        if (drag != null && drag.platform) {
+            cancelDrag();
+        }
+    }
+
+    /// The platform drag was let go over this window at `x`, `y`: it lands on
+    /// the target under that point as an in-app drop.
+    ///
+    /// @return whether a target took it
+    public boolean platformDragDropped(float x, float y) {
+        if (drag == null || !drag.platform) {
+            return false;
+        }
+        var landed = land(elementAt(x, y), x, y);
+        runLanded(landed);
+        return landed != null;
     }
 
     /// Finds the target under the pointer and tells it where the drag is.
@@ -2278,6 +2476,7 @@ public final class PointerRouter {
             pickable = null;
             pickPayload = null;
             pickFrom = null;
+            pickOut = null;
         }
         var current = drag;
         if (current == null) {
@@ -2423,6 +2622,12 @@ public final class PointerRouter {
     private static @Nullable Object payloadOf(Element element) {
         return element.widget() instanceof Attributed<?> attributed
                 ? attributed.attributes().draggable()
+                : null;
+    }
+
+    private static @Nullable DragOut dragOutOf(Element element) {
+        return element.widget() instanceof Attributed<?> attributed
+                ? attributed.attributes().dragOut()
                 : null;
     }
 

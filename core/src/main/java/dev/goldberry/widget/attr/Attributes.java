@@ -7,6 +7,7 @@ import java.util.function.Predicate;
 
 import org.jspecify.annotations.Nullable;
 
+import dev.goldberry.input.dragout.DragOut;
 import dev.goldberry.input.drop.Drop;
 import dev.goldberry.input.drop.DropTarget;
 import dev.goldberry.input.event.PointerEvent;
@@ -53,12 +54,13 @@ public record Attributes(
         @Nullable Runnable onPointerExit,
         @Nullable Object draggable,
         @Nullable DropTarget dropTarget,
-        @Nullable Consumer<PointerEvent> onClick) {
+        @Nullable Consumer<PointerEvent> onClick,
+        @Nullable DragOut dragOut) {
 
     /// No id, no classes, no key, no tooltip, no name — what a widget built in
     /// Java gets unless it says otherwise.
     public static final Attributes NONE =
-            new Attributes(null, Set.of(), null, null, null, null, null, null, null, null, null);
+            new Attributes(null, Set.of(), null, null, null, null, null, null, null, null, null, null);
 
     /// Written out so that the parameters taking null for a default can say so.
     public Attributes(
@@ -72,7 +74,8 @@ public record Attributes(
             @Nullable Runnable onPointerExit,
             @Nullable Object draggable,
             @Nullable DropTarget dropTarget,
-            @Nullable Consumer<PointerEvent> onClick) {
+            @Nullable Consumer<PointerEvent> onClick,
+            @Nullable DragOut dragOut) {
         classes = Set.copyOf(classes == null ? Set.of() : classes);
         this.id = id;
         this.classes = classes;
@@ -85,6 +88,36 @@ public record Attributes(
         this.draggable = draggable;
         this.dropTarget = dropTarget;
         this.onClick = onClick;
+        this.dragOut = dragOut;
+    }
+
+    /// The eleven without a drag out, kept for the reason the three-argument
+    /// form is.
+    public Attributes(
+            @Nullable String id,
+            @Nullable Set<String> classes,
+            @Nullable Object key,
+            @Nullable String tooltip,
+            @Nullable String contextMenu,
+            @Nullable String name,
+            @Nullable Runnable onPointerEnter,
+            @Nullable Runnable onPointerExit,
+            @Nullable Object draggable,
+            @Nullable DropTarget dropTarget,
+            @Nullable Consumer<PointerEvent> onClick) {
+        this(
+                id,
+                classes,
+                key,
+                tooltip,
+                contextMenu,
+                name,
+                onPointerEnter,
+                onPointerExit,
+                draggable,
+                dropTarget,
+                onClick,
+                null);
     }
 
     /// The ten without a click handler, kept for the reason the three-argument
@@ -168,7 +201,8 @@ public record Attributes(
                 onPointerExit,
                 draggable,
                 dropTarget,
-                onClick);
+                onClick,
+                dragOut);
     }
 
     /// This, with the name of the menu a right-click should open — markup's
@@ -191,7 +225,8 @@ public record Attributes(
                 onPointerExit,
                 draggable,
                 dropTarget,
-                onClick);
+                onClick,
+                dragOut);
     }
 
     /// This, with a different `id` — **and the same id as the key**.
@@ -215,7 +250,8 @@ public record Attributes(
                 onPointerExit,
                 draggable,
                 dropTarget,
-                onClick);
+                onClick,
+                dragOut);
     }
 
     /// This, with a different set of classes.
@@ -231,7 +267,8 @@ public record Attributes(
                 onPointerExit,
                 draggable,
                 dropTarget,
-                onClick);
+                onClick,
+                dragOut);
     }
 
     /// This, with a key that is not the id — for a list item whose identity is a
@@ -248,7 +285,8 @@ public record Attributes(
                 onPointerExit,
                 draggable,
                 dropTarget,
-                onClick);
+                onClick,
+                dragOut);
     }
 
     /// This, with the text a reader should announce it as — markup's `name="…"`,
@@ -281,7 +319,8 @@ public record Attributes(
                 onPointerExit,
                 draggable,
                 dropTarget,
-                onClick);
+                onClick,
+                dragOut);
     }
 
     /// This, with something to run when the pointer **enters** this node's
@@ -316,7 +355,18 @@ public record Attributes(
     /// @param action what to run, or null to carry none
     public Attributes onPointerEnter(@Nullable Runnable action) {
         return new Attributes(
-                id, classes, key, tooltip, contextMenu, name, action, onPointerExit, draggable, dropTarget, onClick);
+                id,
+                classes,
+                key,
+                tooltip,
+                contextMenu,
+                name,
+                action,
+                onPointerExit,
+                draggable,
+                dropTarget,
+                onClick,
+                dragOut);
     }
 
     /// This, with something to run when the pointer **leaves** this node's
@@ -333,7 +383,18 @@ public record Attributes(
     /// cancels it on dispose as well, which is what a `tooltip` already does.
     public Attributes onPointerExit(@Nullable Runnable action) {
         return new Attributes(
-                id, classes, key, tooltip, contextMenu, name, onPointerEnter, action, draggable, dropTarget, onClick);
+                id,
+                classes,
+                key,
+                tooltip,
+                contextMenu,
+                name,
+                onPointerEnter,
+                action,
+                draggable,
+                dropTarget,
+                onClick,
+                dragOut);
     }
 
     /// This, with something to run when the node is **clicked**: a press and a
@@ -367,7 +428,8 @@ public record Attributes(
                 onPointerExit,
                 draggable,
                 dropTarget,
-                action);
+                action,
+                dragOut);
     }
 
     /// This, able to be picked up and dragged onto a [#dropTarget] elsewhere in
@@ -385,8 +447,9 @@ public record Attributes(
     /// node's own painted box follows the pointer, faded, and `Escape` puts it
     /// back. With the keyboard, `Space` on a focused draggable picks it up.
     ///
-    /// The payload is the object itself, handed to the target as it is: the drag
-    /// never leaves the application, and is not the platform's drag and drop.
+    /// The payload is the object itself, handed to the target as it is. Without a
+    /// [#dragOut] the drag never leaves the application and is not the
+    /// platform's drag and drop; with one, it is.
     ///
     /// Read more: [Input and focus](https://goldberry.dev/docs/guide/input.html#dropped-files-and-text).
     ///
@@ -403,7 +466,8 @@ public record Attributes(
                 onPointerExit,
                 payload,
                 dropTarget,
-                onClick);
+                onClick,
+                dragOut);
     }
 
     /// This, taking what is dragged onto it when `accepts` says yes, and doing
@@ -433,7 +497,46 @@ public record Attributes(
                 onPointerExit,
                 draggable,
                 target,
-                onClick);
+                onClick,
+                dragOut);
+    }
+
+    /// This, also offering something to other applications when it is dragged:
+    /// the node must be [#draggable] too.
+    ///
+    /// ```java
+    /// new Card(frame.title())
+    ///         .draggable(frame)
+    ///         .dragOut(() -> DragOffer.image(frame::png).withFiles(frame.path()))
+    /// ```
+    ///
+    /// A pointer drag of the node is then the platform's own drag from the
+    /// moment it begins: the platform draws the picture under the pointer, and a
+    /// file manager, a mail client or a browser can take the offer. Over this
+    /// application's own windows it is still an in-app drag, and their drop
+    /// targets are handed the payload as before. A keyboard drag stays in the
+    /// window. Where the platform will not start a drag, it is an in-app drag
+    /// as if there were no offer.
+    ///
+    /// The offer is asked for once, when the drag begins.
+    ///
+    /// Read more: [Input and focus](https://goldberry.dev/docs/guide/input.html#dropped-files-and-text).
+    ///
+    /// @param out what is offered, and who hears how it ended, or null to offer nothing outside
+    public Attributes dragOut(@Nullable DragOut out) {
+        return new Attributes(
+                id,
+                classes,
+                key,
+                tooltip,
+                contextMenu,
+                name,
+                onPointerEnter,
+                onPointerExit,
+                draggable,
+                dropTarget,
+                onClick,
+                out);
     }
 
     /// Parses `id` and `class` off a KDL node, `class` being space-separated as

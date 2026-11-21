@@ -2,7 +2,11 @@ package dev.goldberry.widget.attr;
 
 import java.util.function.Consumer;
 import java.util.function.Predicate;
+import java.util.function.Supplier;
 
+import dev.goldberry.input.dragout.DragOffer;
+import dev.goldberry.input.dragout.DragOut;
+import dev.goldberry.input.dragout.DragOutcome;
 import dev.goldberry.input.drop.Drop;
 import dev.goldberry.input.drop.DropTarget;
 import dev.goldberry.input.event.PointerEvent;
@@ -10,7 +14,7 @@ import dev.goldberry.widget.Widget;
 
 /// A widget that carries [Attributes] and can hand back a copy carrying
 /// different ones: the chainable `id`, `styled`, `keyed`, `tooltip`,
-/// `contextMenu`, `onPointerEnter`, `onPointerExit`, `draggable` and `dropTarget`
+/// `contextMenu`, `onPointerEnter`, `onPointerExit`, `draggable`, `dragOut` and `dropTarget`
 /// steps.
 ///
 /// ```java
@@ -105,6 +109,24 @@ public interface Attributed<W extends Widget> extends Widget {
     /// window, carrying `payload`; see [Attributes#draggable].
     default W draggable(Object payload) {
         return withAttributes(attributes().draggable(payload));
+    }
+
+    /// This widget offering what `offer` makes to other applications when it is
+    /// dragged; see [Attributes#dragOut]. It must be [#draggable] too.
+    default W dragOut(Supplier<DragOffer> offer) {
+        var current = attributes().dragOut();
+        return withAttributes(attributes().dragOut(current == null ? DragOut.of(offer) : current.offer(offer)));
+    }
+
+    /// This widget told how a drag out ended; see [DragOutcome].
+    ///
+    /// @throws IllegalStateException if the widget has no [#dragOut] yet
+    default W onDragOutEnd(Consumer<DragOutcome> listener) {
+        var current = attributes().dragOut();
+        if (current == null) {
+            throw new IllegalStateException("onDragOutEnd needs a dragOut offer first");
+        }
+        return withAttributes(attributes().dragOut(current.onEnd(listener)));
     }
 
     /// This widget taking what is dragged onto it when `accepts` says yes; see

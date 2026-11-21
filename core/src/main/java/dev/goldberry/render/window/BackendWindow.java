@@ -11,6 +11,8 @@ import dev.goldberry.render.DamageRect;
 import dev.goldberry.render.PixelBuffer;
 import dev.goldberry.render.PresentTimings;
 import dev.goldberry.render.display.Display;
+import dev.goldberry.render.dragout.DragRequest;
+import dev.goldberry.render.dragout.DragSession;
 import dev.goldberry.render.event.BackendEvent;
 import dev.goldberry.render.model.*;
 
@@ -451,6 +453,21 @@ public interface BackendWindow extends AutoCloseable {
     ///
     /// @return false where the platform has no way to, and by default
     default boolean requestAttention(Attention attention) {
+        return false;
+    }
+
+    /// Hands a drag that has just begun in this window to the platform, so that
+    /// another application can take it.
+    ///
+    /// A backend that can starts the platform's drag from the press that is
+    /// still held and reports to `session` on the UI thread until one
+    /// `ended`. It may report before this returns, and on Windows it does: the
+    /// platform's drag is a modal loop that returns when the drag is over.
+    ///
+    /// @return false where the platform will not start one, and by default;
+    ///         the drag then stays inside the application and `session` hears
+    ///         nothing
+    default boolean startDrag(DragRequest request, DragSession session) {
         return false;
     }
 
