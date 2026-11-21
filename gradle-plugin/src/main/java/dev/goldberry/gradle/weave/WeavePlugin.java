@@ -177,8 +177,8 @@ public final class WeavePlugin implements Plugin<Project> {
         @Override
         public void execute(Task task) {
             var file = stamp.get().getAsFile();
-            file.getParentFile().mkdirs();
             try {
+                Files.createDirectories(file.getParentFile().toPath());
                 Files.writeString(file.toPath(), "woven " + what.toLowerCase(Locale.ROOT));
             } catch (IOException e) {
                 throw new UncheckedIOException(e);

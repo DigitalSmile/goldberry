@@ -111,16 +111,18 @@ public record PictureView(PictureSource source, Fit fit, Attributes attributes)
                 var delay = wait.get().compareTo(FollowingState.PICTURE_MIN_WAIT) < 0
                         ? FollowingState.PICTURE_MIN_WAIT
                         : wait.get();
-                context.host().ifPresent(host -> due = host.after(delay, () -> {
-                    due = null;
-                    refresh();
-                }));
+                context.host()
+                        .ifPresent(host -> due = host.after(delay, () -> {
+                            due = null;
+                            refresh();
+                        }));
             }
             return new VideoSurface(view.source(), view.fit(), view.attributes(), null, presenter);
         }
 
         private void listen(PictureSource source) {
-            subscription = source.onPicture(coalesced(pending, task -> Goldberry.ui().execute(task), this::refresh));
+            subscription =
+                    source.onPicture(coalesced(pending, task -> Goldberry.ui().execute(task), this::refresh));
         }
 
         /// What a source's listener does: hand `refresh` to `ui` once, and not

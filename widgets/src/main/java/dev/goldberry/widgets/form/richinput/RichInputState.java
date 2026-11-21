@@ -915,10 +915,7 @@ final class RichInputState extends State<RichInput> implements RichInputBox.Inpu
         for (var button : FormatButton.defaults()) {
             var command = button.command();
             var row = new Item(button.label(), () -> format(command));
-            var keys = acceleratorOf(command);
-            if (keys != null) {
-                row = row.accelerator(keys);
-            }
+            row = row.accelerator(acceleratorOf(command));
             if (command instanceof FormatCommand.Toggle) {
                 row = row.checked(on.contains(command));
             }
@@ -928,7 +925,7 @@ final class RichInputState extends State<RichInput> implements RichInputBox.Inpu
     }
 
     /// The keys that do what `command` does, as [EditKeys#format] reads them.
-    private static @Nullable String acceleratorOf(FormatCommand command) {
+    private static String acceleratorOf(FormatCommand command) {
         var shortcut = switch (command) {
             case FormatCommand.Toggle(var style) ->
                 switch (style) {

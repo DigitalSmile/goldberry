@@ -2,6 +2,7 @@ package dev.goldberry.i18n;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.math.RoundingMode;
 import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -155,7 +156,7 @@ public final class IcuMessage {
             case Long _, Integer _, Short _, Byte _ -> BigDecimal.valueOf(number.longValue());
             default -> {
                 var stripped = BigDecimal.valueOf(number.doubleValue()).stripTrailingZeros();
-                yield stripped.scale() < 0 ? stripped.setScale(0) : stripped;
+                yield stripped.scale() < 0 ? stripped.setScale(0, RoundingMode.UNNECESSARY) : stripped;
             }
         };
     }

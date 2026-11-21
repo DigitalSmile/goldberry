@@ -203,6 +203,11 @@ final class GoldberryRuntime {
         if (window.swallowedWhileBlocked(event)) {
             return;
         }
+        route(window, event);
+    }
+
+    /// Hands one event to the window it names.
+    private void route(Window window, BackendEvent event) {
         switch (event) {
             case BackendEvent.FrameDue _ -> window.paint();
             case BackendEvent.Exposed _ -> window.repaint();
@@ -250,7 +255,8 @@ final class GoldberryRuntime {
             case BackendEvent.TextDropped dropped -> window.handleTextDropped(dropped.text(), dropped.x(), dropped.y());
             case BackendEvent.FileDropCompleted done -> window.handleDropCompleted(done.x(), done.y());
             case BackendEvent.OpenUrl _ -> {
-                // Handled above, before the window was looked up.
+                // The application's: dispatch hands it over before it looks a
+                // window up, so it never reaches a window.
             }
         }
     }

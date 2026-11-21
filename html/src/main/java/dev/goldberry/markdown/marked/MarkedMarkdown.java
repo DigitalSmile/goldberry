@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 
 import org.jspecify.annotations.Nullable;
 
@@ -165,7 +166,7 @@ public final class MarkedMarkdown {
                 // Code is the innermost: nothing opens inside a code span, so
                 // a kind that opens while code is open closes the code first.
                 var codeAt = open.indexOf(Style.CODE);
-                if (codeAt >= 0 && codeAt < keep && !open.containsAll(kinds)) {
+                if (codeAt >= 0 && codeAt < keep && !Set.copyOf(open).containsAll(kinds)) {
                     keep = codeAt;
                 }
                 while (open.size() > keep) {

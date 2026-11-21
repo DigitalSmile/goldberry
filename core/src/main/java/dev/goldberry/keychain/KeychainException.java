@@ -1,5 +1,6 @@
 package dev.goldberry.keychain;
 
+import java.io.Serial;
 import java.util.Objects;
 
 /// A [Keychain] that could not do what it was asked, and why.
@@ -10,6 +11,7 @@ import java.util.Objects;
 /// application usually falls back to asking the user to sign in again.
 public final class KeychainException extends RuntimeException {
 
+    @Serial
     private static final long serialVersionUID = 1L;
 
     /// Why a keychain refused.

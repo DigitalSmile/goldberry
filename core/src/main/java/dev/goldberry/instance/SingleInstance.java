@@ -17,7 +17,10 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
+import java.util.HexFormat;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
@@ -62,6 +65,11 @@ public final class SingleInstance implements AutoCloseable {
     private static final int MAX_ARGUMENTS = 1024;
 
     private static final int MAX_ARGUMENT_BYTES = 1 << 20;
+
+    /// The longest socket path, in bytes, kept beside the lock: under every
+    /// platform's limit for a Unix-domain address (104 bytes on macOS, 108 on
+    /// Linux and Windows), terminator included.
+    static final int MAX_SOCKET_PATH_BYTES = 100;
 
     private final Path directory;
     private final FileChannel lockFile;
@@ -110,7 +118,7 @@ public final class SingleInstance implements AutoCloseable {
             var lockFile = FileChannel.open(
                     directory.resolve("instance.lock"), StandardOpenOption.CREATE, StandardOpenOption.WRITE);
             var lock = tryLock(lockFile);
-            var socket = directory.resolve("instance.sock");
+            var socket = socketFor(directory);
             if (lock == null) {
                 lockFile.close();
                 handOver(socket, handed);
@@ -135,6 +143,30 @@ public final class SingleInstance implements AutoCloseable {
             return channel.tryLock();
         } catch (OverlappingFileLockException e) {
             return null;
+        }
+    }
+
+    /// The socket for the claim on `directory`: beside the lock, or, where
+    /// that path is longer than a Unix-domain address may be (a long user name
+    /// under Windows' temporary directory, a deep data directory), a short
+    /// name in the temporary directory that only `directory` gives. Both
+    /// launches work it out alike, so the second finds the first.
+    static Path socketFor(Path directory) {
+        var beside = directory.resolve("instance.sock");
+        if (beside.toString().getBytes(StandardCharsets.UTF_8).length <= MAX_SOCKET_PATH_BYTES) {
+            return beside;
+        }
+        var name = directory.toAbsolutePath().normalize().toString();
+        return Path.of(System.getProperty("java.io.tmpdir"), "goldberry-" + digest(name) + ".sock");
+    }
+
+    /// The first 64 bits of `text`'s SHA-256, in hex.
+    private static String digest(String text) {
+        try {
+            var hash = MessageDigest.getInstance("SHA-256").digest(text.getBytes(StandardCharsets.UTF_8));
+            return HexFormat.of().formatHex(hash, 0, 8);
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException("every Java has SHA-256", e);
         }
     }
 

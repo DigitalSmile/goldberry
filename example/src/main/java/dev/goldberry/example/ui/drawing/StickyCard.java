@@ -1,7 +1,7 @@
 package dev.goldberry.example.ui.drawing;
 
+import java.util.Arrays;
 import java.util.EnumSet;
-import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 
@@ -144,7 +144,7 @@ record StickyCard() implements Widget.Stateful {
         @Override
         protected void dispose() {
             if (font != null) {
-                for (var opened : List.of(font, strong, italic, strongItalic, code)) {
+                for (var opened : Arrays.asList(font, strong, italic, strongItalic, code)) {
                     if (opened != null) {
                         opened.close();
                     }

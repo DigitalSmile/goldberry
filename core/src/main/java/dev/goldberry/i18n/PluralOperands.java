@@ -1,6 +1,7 @@
 package dev.goldberry.i18n;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.Objects;
 
 /// A number as CLDR's plural rules see it: not a value but a written number,
@@ -42,7 +43,7 @@ public record PluralOperands(double n, long i, int v, int w, long f, long t, int
         var exponent = Integer.parseInt(written.substring(compact + 1));
         var mantissa = new BigDecimal(written.substring(0, compact)).abs();
         var value = mantissa.movePointRight(exponent);
-        return decimal(value.scale() < 0 ? value.setScale(0) : value, exponent);
+        return decimal(value.scale() < 0 ? value.setScale(0, RoundingMode.UNNECESSARY) : value, exponent);
     }
 
     private static PluralOperands decimal(BigDecimal value, int exponent) {

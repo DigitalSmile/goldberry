@@ -366,4 +366,3 @@ stretched while it travels, and whatever is inside it moves with it.
 Unlike a browser, which animates only inside `startViewTransition()`, every
 layout change moves a named box this way. `auto` and `match-element` are not
 read.
-

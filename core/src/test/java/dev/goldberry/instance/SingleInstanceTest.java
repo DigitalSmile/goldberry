@@ -1,9 +1,12 @@
 package dev.goldberry.instance;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -35,6 +38,33 @@ class SingleInstanceTest {
             SingleInstance.acquire(directory, List.of());
             assertEquals(List.of(), heard.poll(10, TimeUnit.SECONDS), "an empty command line still arrives");
         }
+    }
+
+    @Test
+    @Timeout(20)
+    @DisplayName("hands over through a short socket name when the directory is too deep for a socket beside the lock")
+    void deepDirectory(@TempDir Path root) throws InterruptedException {
+        var directory = root.resolve("a".repeat(60)).resolve("dev.goldberry.test." + "b".repeat(36));
+        var socket = SingleInstance.socketFor(directory);
+        assertFalse(socket.startsWith(directory), "the socket moved out of the deep directory");
+        assertTrue(socket.getFileName().toString().matches("goldberry-[0-9a-f]{16}\\.sock"), socket::toString);
+        assertEquals(socket, SingleInstance.socketFor(directory), "both launches find the same socket");
+
+        var heard = new LinkedBlockingQueue<List<String>>();
+        try (var first = SingleInstance.acquire(directory, List.of()).orElseThrow()) {
+            first.onArguments(Runnable::run, heard::add);
+            assertTrue(SingleInstance.acquire(directory, List.of("tessera://invite/7"))
+                    .isEmpty());
+            assertEquals(List.of("tessera://invite/7"), heard.poll(10, TimeUnit.SECONDS));
+        }
+        assertFalse(Files.exists(socket), "closing removes the socket wherever it was");
+    }
+
+    @Test
+    @DisplayName("keeps the socket beside the lock when the path fits")
+    void shallowDirectory(@TempDir Path directory) {
+        assumeTrue(directory.resolve("instance.sock").toString().length() <= SingleInstance.MAX_SOCKET_PATH_BYTES);
+        assertEquals(directory.resolve("instance.sock"), SingleInstance.socketFor(directory));
     }
 
     @Test
