@@ -50,6 +50,9 @@ public final class PublishedModules {
             // Spell checking: Hunspell dictionaries read in Java by Lucene, which
             // comes with it as a dependency. No dictionary ships.
             new Library("spell", Inclusion.OPTIONAL),
+            // SVG: ThorVG in a library of its own, whose natives ride as
+            // `natives-<target>` classifiers, as the media library's do.
+            new Library("vector", Inclusion.OPTIONAL),
             // What an application's build runs over its compiled classes, and the
             // plugin that runs it: in the BOM, and in no application's run time.
             new Library("weaver", Inclusion.TOOL),

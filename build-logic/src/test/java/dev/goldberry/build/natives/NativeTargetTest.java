@@ -67,7 +67,10 @@ class NativeTargetTest {
                         Path.of("/repo/natives/build/native/linux-x64/install/lib/libgoldberry.so"),
                         linux.localLibrary(repository)),
                 () -> assertEquals(
-                        Path.of("/repo/media/build/media-natives/linux-x64/install/lib"), linux.localMedia(repository)));
+                        Path.of("/repo/media/build/media-natives/linux-x64/install/lib"), linux.localMedia(repository)),
+                () -> assertEquals(
+                        Path.of("/repo/vector/build/vector-natives/linux-x64/install/lib"),
+                        linux.localVector(repository)));
     }
 
     @Test
@@ -81,6 +84,10 @@ class NativeTargetTest {
                 () -> assertTrue(
                         Repository.read("media/build.gradle")
                                 .contains("layout.buildDirectory.dir(hostTarget.mediaInstallDir())"),
-                        "media/build.gradle installs libgoldberry-media somewhere NativeTarget.localMedia does not look"));
+                        "media/build.gradle installs libgoldberry-media somewhere NativeTarget.localMedia does not look"),
+                () -> assertTrue(
+                        Repository.read("vector/build.gradle")
+                                .contains("layout.buildDirectory.dir(hostTarget.vectorInstallDir())"),
+                        "vector/build.gradle installs libgoldberry-vector somewhere NativeTarget.localVector does not look"));
     }
 }

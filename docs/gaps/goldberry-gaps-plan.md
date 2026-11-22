@@ -257,7 +257,7 @@ log in the same commit as the work.
 | L-3 | W2.1 | done | 0691 | |
 | L-4 | W2.2 | done | 0693 | |
 | L-5 | W1.5 | done | 0682 | |
-| L-6 | W1.6 | asked (Lantern: is it `jlink`?) | | |
+| L-6 | — | answered: Lantern ships a native image, not a `jlink` image, so W1.6 is dropped. The image carries the classifier jar's library as a resource, from `-cp`, as the showcase's own image does | | |
 | L-7 | W1.2 | done | 0680 | |
 | L-8 | W1.2 | done | 0680 | |
 | L-9 | W2.3 | done | 0694 | |
@@ -282,7 +282,7 @@ log in the same commit as the work.
 | T-18 | W1.7 | done | 0678 | |
 | T-19 | W2.12 | done (Win32 half unverified) | 0701 | |
 | T-20 | W3.9 | in progress (`docs/drag-out.md`): decided D1 (b) the platform's drag from the threshold, D2–D8 as recommended. Phase 1 (API, router, window, headless), phase 2 (X11, XDND over SDL's hook, native ABI 27; no picture yet) and phase 3 (Wayland, `start_drag` on SDL's own data device with SDL's serial, native ABI 28; hand check on GNOME open) done; phase 4 (Windows, OLE `DoDragDrop` with COM objects in Java and a loop turn inside it) and phase 5 (macOS, an `NSDraggingSession` on SDL's view with a source class of the toolkit's own) built, not yet run on Windows or a Mac; phase 6 (the showcase's drag-out card, the guide section parked in `docs/snapshot/`) done. The Windows and macOS lanes are green on it (Snapshot #86). Open: hand drags on all four | 0714, 0716, 0717, 0718 | |
-| T-22 | W3.6 | todo | | |
+| T-22 | W3.6 | doing (`docs/vector-svg.md`): D1–D7 taken as recommended; phase 1 (`:vector`, `libgoldberry-vector` on ThorVG v1.1.4, 486 KB) done; phase 2 (`Svg`) next | 0740, 0741 | |
 | T-23 | — | parked (D11) | 0690 | |
 | T-24 | W3.3 | done: a page's `<style>`, `style=`, `bgcolor` and `<font color>` in a `StyleScope` of the view's own; `AuthorStyles` with `ADAPTED` the default (a text colour with no background of the mail's under it takes the theme's) | 0710 | |
 | T-25 | W3.7 | done (`docs/spell-checking.md`): CSS text decoration in full, the `dev.goldberry.text.spell` SPI and line service, `spellcheck`/`lang` passed down and `::spelling-error` on `text-input`, `text-area` and `rich-input`, the suggestion menu, `goldberry-spell` on Lucene's Hunspell (D1 (a)), and the showcase's Spelling card over SCOWL `en_US`. Open: hand checks of the menu on each desktop, a native-image run | 0733–0739 | |
@@ -665,3 +665,23 @@ log in the same commit as the work.
   SCOWL's `en_US`, its own pinned asset loaded in the background, and the
   parked guide section (ADR-0739). Phase 5 was committed as `b526ab5e`.
   Tessera's G-25 is answered. Next ADR 0740.
+- **2026-11-22, L-6 answered.** Lantern's runtime is a native image, not
+  `jlink`. `native-image` takes the classifier jar on `-cp` beside the modular
+  jars on `--module-path`, which is what `:example:nativeImage` does, and the
+  image carries `libgoldberry` as a resource that `NativeLibrary` unpacks on
+  first use. A module descriptor would change nothing there (no module
+  requires the natives, so resolution would drop it), so W1.6 is dropped and
+  no record is needed. W3.6 starts.
+- **2026-11-22, W3.6 planned.** `docs/vector-svg.md`, written from
+  `56c6f33a`. ThorVG v1.1.4 (`47658a80`) built here with the C API, the CPU
+  engine and the SVG, PNG and JPEG loaders, no threads and no file I/O: 640 KB
+  stripped on linux-x64; its `ARGB8888` is `PRGB32`. Its SIMD is `-mavx2` at
+  compile time with no dispatch, which is D6. D1–D7 are asked. Next ADR 0740.
+- **2026-11-22, W3.6 decided.** D1–D7 taken as recommended (ADR-0740):
+  device-pixel rasters, SVG wherever an image is, `currentColor` from CSS,
+  no `<text>`, `data:` URIs only, SIMD off on x64, the four targets. Next ADR
+  0741.
+- **2026-11-22, W3.6 phase 1 done.** `:vector` and `libgoldberry-vector`
+  (ADR-0741): ThorVG v1.1.4 built by a superbuild of its own, 486 KB on
+  linux-x64, loaded and checked, a document drawn through the bindings. SIMD
+  off on x64 costs about 35% on a heavy 1024² document. Next ADR 0742.

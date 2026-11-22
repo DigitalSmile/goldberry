@@ -68,5 +68,16 @@ goldberry-media's system decoders, which decode H.264, HEVC, AAC,
 AC-3 and E-AC-3, bundle nothing: they call the decoders the operating system
 has, under the licences those were installed under.
 
+The SVG renderer's natives ship in goldberry-vector's natives-<platform>
+classifier jars, which are also OPTIONAL. One shared library,
+libgoldberry-vector, STATICALLY LINKS:
+
+  ThorVG         MIT               https://github.com/thorvg/thorvg
+  LodePNG        Zlib              https://github.com/lvandeve/lodepng   (inside ThorVG)
+  jpgd           Public domain     https://github.com/richgel999/jpeg-compressor   (inside ThorVG)
+
+Each natives jar carries META-INF/vector-NOTICE.txt naming the commit that was
+built.
+
 Full licence texts and per-component attribution are in THIRD-PARTY-NOTICES.md
 and the licenses/ directory.

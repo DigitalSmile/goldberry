@@ -106,6 +106,21 @@ have no row above and no file in `licenses/`. They are used under the licences
 they were installed under, and the codec licences are the operating system
 vendor's or the distribution's.
 
+## Statically linked into `libgoldberry-vector`, in `goldberry-vector`'s `natives-<platform>` classifiers
+
+The SVG renderer, in a shared library of its own. It is **not** in
+`libgoldberry`: it ships in the `natives-<platform>` classifier jars of the
+optional `goldberry-vector`, which an application adds by name.
+
+| Component | Licence | Upstream | Notes |
+|---|---|---|---|
+| [ThorVG](licenses/thorvg.txt) | MIT | <https://github.com/thorvg/thorvg> | The SVG loader and the CPU rasterizer. Built without file I/O, threads, fonts or Lottie |
+| [LodePNG](licenses/thorvg.txt), inside ThorVG | Zlib | <https://github.com/lvandeve/lodepng> | Decodes a PNG a document embeds |
+| [jpgd](licenses/thorvg.txt), inside ThorVG | Public domain | <https://github.com/richgel999/jpeg-compressor> | Decodes a JPEG a document embeds |
+
+Each natives jar carries a `vector-NOTICE.txt` under `META-INF/` naming the
+commit that was built.
+
 ## Embedded in the published jars
 
 | Component | Licence | Upstream | Notes |

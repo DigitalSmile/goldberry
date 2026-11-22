@@ -1,0 +1,33 @@
+# What libgoldberry-vector exports: ThorVG's own C API, one symbol a line, and
+# the two functions of goldberry_vector.c. Everything else in the library is
+# local. Read by CMakeLists.txt, which forces each symbol out of its archive and
+# lists it in the platform's export dialect; a line that is not a C identifier
+# fails the configure step.
+#
+# The Java bindings under `dev.goldberry.vector.thorvg` name these and nothing
+# else, and ExportListTest holds the two to each other.
+
+# --- goldberry_vector.c ------------------------------------------------------
+goldberry_vector_abi
+goldberry_vector_versions
+
+# --- ThorVG: the engine ------------------------------------------------------
+tvg_engine_init
+tvg_engine_term
+
+# --- ThorVG: the CPU canvas --------------------------------------------------
+tvg_swcanvas_create
+tvg_swcanvas_set_target
+tvg_canvas_add
+tvg_canvas_draw
+tvg_canvas_sync
+tvg_canvas_destroy
+
+# --- ThorVG: paints and pictures ---------------------------------------------
+tvg_paint_duplicate
+tvg_paint_rel
+tvg_paint_set_transform
+tvg_picture_new
+tvg_picture_load_data
+tvg_picture_get_size
+tvg_picture_set_size

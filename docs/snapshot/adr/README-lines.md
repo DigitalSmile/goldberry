@@ -179,3 +179,5 @@ Appended to the index when the records move in, in this order.
 - [ADR-0737 A misspelled word's menu opens at once and fills in its suggestions](0737-a-misspelled-words-menu-opens-at-once-and-fills-in.md)
 - [ADR-0738 `goldberry-spell` reads Hunspell dictionaries in memory, behind one lock](0738-goldberry-spell-reads-hunspell-dictionaries-in-memory.md)
 - [ADR-0739 The showcase checks against SCOWL's `en_US`, loaded in the background](0739-the-showcase-checks-against-scowl-loaded-in-the-background.md)
+- [ADR-0740 SVG is drawn by ThorVG, in a module of its own](0740-svg-is-drawn-by-thorvg-in-a-module-of-its-own.md)
+- [ADR-0741 `libgoldberry-vector` is built by a superbuild of its own](0741-libgoldberry-vector-is-built-by-a-superbuild-of-its-own.md)

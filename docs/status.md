@@ -7050,6 +7050,14 @@ toolkit, and six entries arrived on it together. All six are closed.
   in the wrong theme, and neither reports an error. **The `Optional` is the design**
   — SDL says `UNKNOWN` on a desktop with no such setting, and "the desktop says
   light" and "the desktop does not say" are a theme and a default.
+- **`libgoldberry-vector`** (W3.6 phase 1, ADR-0741 parked, 2026-11-22). The
+  new optional `:vector` (`goldberry-vector`) and its library: ThorVG v1.1.4's
+  SVG loader and CPU rasterizer, built by `vector/src/main/cmake` and shipped as
+  `natives-<target>` classifiers (486 KB on linux-x64, SIMD off on x64),
+  loaded and checked by `VectorNatives`. CI does not build it yet.
+- **SVG on ThorVG, planned** (W3.6, ADR-0740 parked, 2026-11-22).
+  `docs/vector-svg.md`: rasters at device pixels, SVG wherever an image is,
+  `currentColor` from CSS, no `<text>`, `data:` URIs only, four targets.
 - **Spelling in the showcase** (W3.7 phase 6, ADR-0739 parked, 2026-11-22). The
   Forms screen's Spelling card checks against SCOWL's `en_US` (the showcase's
   own pinned asset, loaded in the background). W3.7 is done; hand checks of the

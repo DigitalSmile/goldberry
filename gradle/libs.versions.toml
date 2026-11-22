@@ -150,6 +150,14 @@ minimp3 = "ea99364f61c14656440e8d77e9c233ccf3124633"
 # The commit dav1d's tag names: the superbuild refuses a clone that is not at it,
 # because a tag can be moved. Moving the tag above means moving this too.
 dav1dCommit = "54706fc6bc0cdecab7e9593974a4039cc038fca7"
+# `goldberry-vector`'s engine: ThorVG, which draws SVG. Built by the vector
+# superbuild in vector/src/main/cmake into `libgoldberry-vector`, a shared
+# library of its own shipped as goldberry-vector's `natives-<target>`, so an
+# application that draws no SVG carries none of it. MIT; its bundled lodepng
+# (zlib) and jpgd (public domain) decode the PNG and JPEG a document embeds.
+thorvg = "v1.1.4"
+# The commit the tag names: the superbuild refuses a clone that is not at it.
+thorvgCommit = "47658a80842f3b3182aded036190edf459beabe7"
 
 [libraries]
 slf4j-api = { module = "org.slf4j:slf4j-api", version.ref = "slf4j" }

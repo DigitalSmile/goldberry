@@ -1,0 +1,340 @@
+import dev.goldberry.build.ToolResolver
+import dev.goldberry.build.natives.NativeTarget
+import dev.goldberry.build.toolchain.ToolLookup
+
+plugins {
+    id 'goldberry.java-conventions'
+    // Published as goldberry-vector, optional in the umbrella. It arrives
+    // together with its natives -- libgoldberry-vector as `natives-<target>`
+    // classifiers, below -- because a goldberry-vector with no renderer to load
+    // is a jar that fails on every machine that adds it.
+    id 'goldberry.publish'
+    // The host target, and the tests' native access.
+    id 'goldberry.native-tests'
+}
+
+description = 'Goldberry vector: SVG documents, drawn by ThorVG'
+
+// ============================================================================
+// goldberry-vector
+// https://goldberry.dev/docs/components/drawing.html#image
+//
+// The third module in the build that binds native code itself. Its library is
+// libgoldberry-vector: ThorVG's SVG loader and CPU rasterizer linked into one
+// shared object by a superbuild of its own (vector/src/main/cmake), so that an
+// application which draws no SVG carries none of it. Loaded by `VectorNatives`
+// and bound by hand in `…vector.thorvg`.
+//
+// Nothing in :core or :widgets depends on this module.
+// ============================================================================
+dependencies {
+    // Logging.
+    implementation project(':common')
+
+    // Pixels: a document is drawn into an `Image`. `api`, because one is what
+    // this module hands back.
+    api project(':core')
+
+    // `NativePlatform`, which the platform test holds this module's detection to.
+    testImplementation project(':natives')
+}
+
+// ============================================================================
+// The vector superbuild
+//
+// libgoldberry-vector for THIS machine, the local development path, as
+// :media has for its library. It is not part of `./gradlew build`: it needs
+// meson on top of CMake and Ninja, and a first run clones ThorVG. Run it on
+// purpose:
+//
+//   ./gradlew :vector:nativesBuild
+//
+// and the tests below find the result by themselves.
+// ============================================================================
+def hostTarget = nativeTests.host
+def hostTargetId = hostTarget.id()
+def superbuildSource = layout.projectDirectory.dir('src/main/cmake')
+def superbuildWorkDir = layout.buildDirectory.dir("vector-natives/${hostTargetId}/cmake")
+// `NativeTarget.vectorInstallDir()`, which is where :example's `run` looks too.
+def superbuildInstallDir = layout.buildDirectory.dir(hostTarget.vectorInstallDir())
+def catalogFile = rootProject.layout.projectDirectory.file('gradle/libs.versions.toml')
+
+// Outside build/, like :media's clones, so `clean` does not throw ThorVG away.
+def depsDir = providers.gradleProperty('goldberry.vector.depsDir')
+        .map { file(it) }
+        .orElse(layout.projectDirectory.dir(".deps/${hostTargetId}").asFile)
+
+// Every tool by absolute path, for the reason :natives gives.
+def tools = ToolLookup.from(providers)
+def resolveTool = { String name -> tools.fileOrNull(name) }
+
+def superbuildTools = [
+        cmake: resolveTool('cmake'),
+        ninja: resolveTool('ninja'),
+        meson: resolveTool('meson'),
+]
+
+def checkVectorToolchain = tasks.register('checkVectorToolchain') {
+    group = 'native'
+    description = 'Verifies that the tools the vector superbuild needs are installed.'
+    doLast {
+        def missing = superbuildTools.findAll { name, executable -> executable == null }.keySet()
+        if (!missing.isEmpty()) {
+            def hint = switch (ToolResolver.familyOf(System.getProperty('os.name', ''))) {
+                case ToolResolver.Family.MACOS -> 'brew install cmake ninja meson'
+                case ToolResolver.Family.WINDOWS -> 'install MSYS2 and, in its UCRT64 shell, pacman -S mingw-w64-ucrt-x86_64-{toolchain,cmake,ninja,meson}'
+                default -> 'sudo apt install cmake ninja-build meson    (Debian/Ubuntu)'
+            }
+            throw new GradleException("""\
+                Missing tools for the vector superbuild: ${missing.join(', ')}
+
+                  ${hint}
+
+                A tool installed somewhere unconventional can be named directly,
+                e.g. -Pgoldberry.meson=/path/to/meson.""".stripIndent())
+        }
+        logger.lifecycle("vector superbuild toolchain OK for ${hostTargetId}:\n" +
+                superbuildTools.collect { name, executable -> "  ${name.padRight(11)} ${executable}" }.join('\n'))
+    }
+}
+
+// SIMD as shipped (`auto`: off on x64, on on arm64), or forced for a
+// measurement: -Pgoldberry.vector.simd=on|off. A forced build is a flavour of
+// its own, so it never overwrites the library that ships.
+def simd = providers.gradleProperty('goldberry.vector.simd').getOrElse('auto')
+
+// One configure task and one build task per flavour of the library: the one
+// that ships, and the sanitizer build below, each with a work directory, an
+// install directory and a deps directory of its own.
+def registerSuperbuild = { String suffix, String flavour, workDir, installDir, deps, List<String> extraArguments ->
+    def configure = tasks.register("nativesConfigure${suffix}", Exec) {
+        group = 'native'
+        description = "Configures the libgoldberry-vector superbuild for ${hostTargetId}${flavour}."
+        dependsOn checkVectorToolchain
+
+        inputs.dir superbuildSource
+        inputs.file catalogFile
+        inputs.property 'targetId', hostTargetId
+        inputs.property 'extraArguments', extraArguments
+        outputs.file workDir.map { it.file('CMakeCache.txt') }
+
+        def arguments = [
+                '-S', superbuildSource.asFile.absolutePath,
+                '-B', workDir.get().asFile.absolutePath,
+                '-G', 'Ninja',
+                '-DCMAKE_BUILD_TYPE=Release',
+                "-DCMAKE_INSTALL_PREFIX=${installDir.get().asFile.absolutePath}".toString(),
+                "-DGOLDBERRY_TARGET_ID=${hostTargetId}".toString(),
+                "-DGOLDBERRY_VECTOR_DEPS_DIR=${deps.get().absolutePath}".toString(),
+        ] + extraArguments
+        [ninja: 'CMAKE_MAKE_PROGRAM', meson: 'GOLDBERRY_MESON']
+                .each { tool, variable ->
+                    if (superbuildTools[tool] != null) {
+                        arguments << "-D${variable}=${superbuildTools[tool].absolutePath}".toString()
+                    }
+                }
+        commandLine([superbuildTools.cmake?.absolutePath ?: 'cmake'] + arguments)
+
+        doFirst {
+            if (!new File(deps.get(), 'thorvg-src').isDirectory()) {
+                logger.lifecycle("""\
+                    goldberry-vector: first vector superbuild for ${hostTargetId}${flavour}.
+
+                    Cloning ThorVG into
+                      ${deps.get()}
+                    and compiling it -- a minute or so the first time.""".stripIndent())
+            }
+        }
+    }
+
+    tasks.register("nativesBuild${suffix}", Exec) {
+        group = 'native'
+        description = "Builds libgoldberry-vector for ${hostTargetId}${flavour}" +
+                (extraArguments.any { it.contains('SANITIZE') } ? '.' : ', with the size gate.')
+        dependsOn configure
+        inputs.dir superbuildSource
+        outputs.dir installDir
+        commandLine superbuildTools.cmake?.absolutePath ?: 'cmake',
+                '--build', workDir.get().asFile.absolutePath,
+                '--target', 'install'
+    }
+}
+
+if (simd == 'auto') {
+    registerSuperbuild('', '', superbuildWorkDir, superbuildInstallDir, depsDir, [])
+} else {
+    def flavourId = "${hostTargetId}-simd-${simd}"
+    registerSuperbuild('', " with SIMD ${simd}",
+            layout.buildDirectory.dir("vector-natives/${flavourId}/cmake"),
+            layout.buildDirectory.dir("vector-natives/${flavourId}/install"),
+            providers.provider { layout.projectDirectory.dir(".deps/${flavourId}").asFile },
+            ["-DGOLDBERRY_VECTOR_SIMD=${simd}".toString()])
+}
+
+// ============================================================================
+// The sanitizer build
+//
+// libgoldberry-vector with AddressSanitizer compiled into ThorVG and into our
+// own file: what the sanitizer lane runs malformed documents against, so that
+// a read past the end of one is reported where it happens. Linux only, with
+// GCC's runtime preloaded into the test JVM.
+//
+//   ./gradlew :vector:nativesBuildAsan [-Pgoldberry.vector.sanitize=address,undefined]
+// ============================================================================
+def sanitizers = providers.gradleProperty('goldberry.vector.sanitize').getOrElse('address')
+def sanitizerFlavour = sanitizers.split(',')
+        .collect { it.trim() == 'address' ? 'asan' : it.trim() == 'undefined' ? 'ubsan' : it.trim() }
+        .sort()
+        .join('-')
+def asanTargetId = "${hostTargetId}-${sanitizerFlavour}"
+def asanWorkDir = layout.buildDirectory.dir("vector-natives/${asanTargetId}/cmake")
+def asanInstallDir = layout.buildDirectory.dir("vector-natives/${asanTargetId}/install")
+def asanDepsDir = providers.gradleProperty('goldberry.vector.asanDepsDir')
+        .map { file(it) }
+        .orElse(layout.projectDirectory.dir(".deps/${asanTargetId}").asFile)
+
+registerSuperbuild('Asan', " with -fsanitize=${sanitizers}", asanWorkDir, asanInstallDir, asanDepsDir,
+        ["-DGOLDBERRY_VECTOR_SANITIZE=${sanitizers}".toString()])
+
+// ============================================================================
+// The natives jar: goldberry-vector's `natives-<target>`
+// https://goldberry.dev/docs/contributing/releasing.html#where-things-go
+//
+// What `VectorNatives` unpacks when no -Dgoldberry.vector.libdir is set: the
+// library and vector.properties under dev/goldberry/vector/natives/<target>/
+// -- the literal `VectorPlatform.resourceDirectory()` returns -- and
+// vector-NOTICE.txt under META-INF/, beside the licence texts every Goldberry
+// jar carries.
+//
+// One task per target. The host's reads the library the tests load (below);
+// any target reads `-Pgoldberry.vector.artifactsDir=<dir>/<id>` when CI hands
+// over what every runner built.
+// ============================================================================
+def libraryDirectory = providers.systemProperty('goldberry.vector.libdir')
+        .orElse(providers.gradleProperty('goldberry.vector.libdir'))
+        .orElse(superbuildInstallDir.map { it.dir('lib').asFile.absolutePath })
+def vectorTargets = NativeTarget.ALL.collect { it.id() }
+def vectorArtifactsDir = providers.gradleProperty('goldberry.vector.artifactsDir').map { file(it) }
+def taskSuffix = { String id -> id.split('-').collect { it.capitalize() }.join('') }
+def propertiesFileName = 'vector.properties'
+
+vectorTargets.each { target ->
+    tasks.register("nativesJar${taskSuffix(target)}", Jar) {
+        group = 'native'
+        description = "Packages libgoldberry-vector for ${target} as goldberry-vector's natives-${target} classifier."
+
+        archiveBaseName = 'goldberry-vector-natives'
+        archiveClassifier = target
+        destinationDirectory = layout.buildDirectory.dir('vector-natives-jars')
+
+        def sourceDir = vectorArtifactsDir.isPresent()
+                ? vectorArtifactsDir.map { new File(it, target) }
+                : (target == hostTargetId ? libraryDirectory.map { file(it) } : null)
+
+        if (sourceDir != null) {
+            from(sourceDir) {
+                exclude 'vector-NOTICE.txt'
+                into "dev/goldberry/vector/natives/${target}"
+            }
+            from(sourceDir) {
+                include 'vector-NOTICE.txt'
+                into 'META-INF'
+            }
+        }
+
+        // An empty natives jar fails on a user's machine; a missing one fails here.
+        doFirst {
+            if (sourceDir == null || !new File(sourceDir.get(), propertiesFileName).isFile()) {
+                throw new GradleException("No libgoldberry-vector build for ${target}. " +
+                        (target == hostTargetId
+                                ? 'Run ./gradlew :vector:nativesBuild first.'
+                                : "Build it on a ${target} runner and pass -Pgoldberry.vector.artifactsDir=<dir>."))
+            }
+        }
+    }
+}
+
+def hostNativesJar = tasks.named("nativesJar${taskSuffix(hostTargetId)}")
+
+// The natives ride the goldberry-vector publication as `natives-<target>`
+// classifiers, only when a run hands over builds with
+// -Pgoldberry.vector.artifactsDir. A snapshot carries the targets CI built; a
+// release refuses without all four, as goldberry-media's does.
+if (vectorArtifactsDir.isPresent()) {
+    def built = vectorTargets.findAll { new File(vectorArtifactsDir.get(), "${it}/${propertiesFileName}").isFile() }
+    def missing = vectorTargets - built
+    if (!project.version.toString().endsWith('-SNAPSHOT') && !missing.isEmpty()) {
+        throw new GradleException("A release of goldberry-vector needs libgoldberry-vector for every target; " +
+                "-Pgoldberry.vector.artifactsDir has none for ${missing.join(', ')}.")
+    }
+    if (!missing.isEmpty()) {
+        logger.warn("goldberry-vector: this snapshot carries natives for ${built.join(', ') ?: 'no target'}, " +
+                "not for ${missing.join(', ')}")
+    }
+    publishing.publications.withType(MavenPublication).configureEach { publication ->
+        built.each { target ->
+            publication.artifact(tasks.named("nativesJar${taskSuffix(target)}")) {
+                classifier = "natives-${target}"
+            }
+        }
+    }
+}
+
+tasks.register('cleanVectorDeps', Delete) {
+    group = 'native'
+    description = 'Discards the cached ThorVG source and its build.'
+    delete depsDir
+}
+
+// ============================================================================
+// Tests
+//
+// What needs the library skips without it, and says so;
+// `-Pgoldberry.vector.required=true` turns the skip into a failure for a job
+// whose purpose is to verify it.
+// ============================================================================
+tasks.withType(Test).configureEach {
+    // Not for the jar test below, whose whole point is that nothing names a
+    // directory and the library is found on the class path.
+    if (name != 'testNativesJar') {
+        systemProperty 'goldberry.vector.libdir', libraryDirectory.get()
+    }
+    var required = providers.systemProperty('goldberry.vector.required')
+            .orElse(providers.gradleProperty('goldberry.vector.required'))
+    if (required.present) {
+        systemProperty 'goldberry.vector.required', required.get()
+    }
+    // The library is an input, so a rebuilt one re-runs the tests rather than
+    // leaving them UP-TO-DATE and green against a library they never saw.
+    inputs.files(providers.provider {
+        var directory = file(libraryDirectory.get())
+        directory.isDirectory() ? fileTree(directory) : files()
+    }).withPropertyName('vectorNatives').optional()
+}
+
+// The tests tagged `natives-jar` load the library the way an application does:
+// from goldberry-vector's natives classifier on the class path, unpacked into a
+// temporary directory. A JVM of their own, because `VectorNatives` loads once
+// per process.
+tasks.named('test') {
+    useJUnitPlatform { excludeTags 'natives-jar' }
+}
+
+// Decided when the build is configured, because the jar task refuses to
+// package nothing.
+def hostNativesBuilt = new File(libraryDirectory.get(), propertiesFileName).isFile()
+def testNativesJar = tasks.register('testNativesJar', Test) {
+    group = 'verification'
+    description = 'Loads libgoldberry-vector from the host natives jar, as an application would.'
+    testClassesDirs = sourceSets.test.output.classesDirs
+    useJUnitPlatform { includeTags 'natives-jar' }
+    if (hostNativesBuilt) {
+        dependsOn hostNativesJar
+        classpath = sourceSets.test.runtimeClasspath + files(hostNativesJar.flatMap { it.archiveFile })
+    } else {
+        classpath = sourceSets.test.runtimeClasspath
+        onlyIf('the host vector natives have been built') { false }
+    }
+}
+tasks.named('check') { dependsOn testNativesJar }
+tasks.withType(JacocoReportBase).configureEach { dependsOn testNativesJar }

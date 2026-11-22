@@ -53,6 +53,8 @@ natives/.deps/
 # The media superbuild's FFmpeg and dav1d checkouts, kept outside build/ for the
 # reason natives/.deps is.
 media/.deps/
+# The vector superbuild's ThorVG checkout, for the same reason.
+vector/.deps/
 
 # The example is a separate build with its own outputs.
 example/build/

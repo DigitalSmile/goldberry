@@ -148,6 +148,16 @@ public record NativeTarget(String id, String library, String webview, boolean we
     }
 
     /**
+     * Where {@code :vector:nativesBuild} installs this target, relative to that
+     * project's build directory.
+     *
+     * @return {@code vector-natives/<id>/install}
+     */
+    public String vectorInstallDir() {
+        return "vector-natives/" + id + "/install";
+    }
+
+    /**
      * The libgoldberry a local {@code :natives:cmakeBuild} produces, in a
      * checkout rooted at {@code repository}.
      *
@@ -167,6 +177,17 @@ public record NativeTarget(String id, String library, String webview, boolean we
      */
     public Path localMedia(Path repository) {
         return repository.resolve("media/build").resolve(mediaInstallDir()).resolve("lib");
+    }
+
+    /**
+     * The directory a local {@code :vector:nativesBuild} installs
+     * {@code libgoldberry-vector} into, in a checkout rooted at {@code repository}.
+     *
+     * @param repository the directory holding {@code settings.gradle}
+     * @return the directory, whether or not it has been built
+     */
+    public Path localVector(Path repository) {
+        return repository.resolve("vector/build").resolve(vectorInstallDir()).resolve("lib");
     }
 
     private static String osToken(String osName) {

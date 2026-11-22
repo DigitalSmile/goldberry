@@ -58,6 +58,11 @@ rootProject.name = 'goldberry'
 // `dev.goldberry.text.spell` as a service. Java only; it ships no dictionary,
 // because their licences differ per language.
 //
+// :vector is `goldberry-vector`: SVG, drawn by ThorVG. Like :media it binds a
+// native library of its own, libgoldberry-vector, built by a superbuild in
+// vector/src/main/cmake and shipped as its `natives-<target>` classifiers, so
+// an application that draws no SVG carries none of it.
+//
 // :camera is `goldberry-camera`: SDL's cameras, also Java only. A camera is a
 // PictureSource of :media's, so `camera-view` draws through `video-view`'s
 // surface and :camera requires :media. A synthetic camera paints a test
@@ -93,6 +98,7 @@ include ':common',
         ':mic',
         ':camera',
         ':spell',
+        ':vector',
         ':emoji',
         ':gpu',
         ':bom',
