@@ -7,7 +7,7 @@ import org.slf4j.Logger;
 
 import dev.goldberry.gpu.GpuDevice;
 import dev.goldberry.gpu.GpuPower;
-import dev.goldberry.gpu.render.StagingBuffer;
+import dev.goldberry.gpu.render.staging.StagingBuffer;
 import dev.goldberry.log.Logs;
 import dev.goldberry.log.Startup;
 import dev.goldberry.natives.sdl.SdlException;

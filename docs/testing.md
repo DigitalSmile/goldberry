@@ -90,6 +90,7 @@ The `headless` backend renders to `BLImage` and pumps synthetic events through t
   | `GpuPresentProbe` | `:natives:gpuPresentProbe` | Window-surface and composited present, and the swapchain switch |
   | `GpuVideoProbe` | `:gpu:gpuVideoProbe` | A composited frame with a 4K video layer under the UI |
   | `VideoLayerProbe` | `:gpu:videoLayerProbe` | The video layer's upload of a new 4K picture each frame |
+  | `UploadPathProbe` | `:gpu:uploadPathProbe` | Painting into heap and mapped upload memory, and 1%, 10% and 100% of a 1080p and a 4K frame uploaded staged and in place, with the in-place gate for the driver (`docs/zero-copy-tiles.md`, phase 0); the benchmark lane runs it on lavapipe, Windows and macOS |
   | `RayTraceProbe` | `:gpu:rayTraceProbe` | Building a 132,000-triangle ray-tracing scene, and tracing it with shadows at 1080p and 4K, records copied out; `-Pgoldberry.raytracing.device=llvmpipe` for lavapipe |
   | `VideoPresentProbe` | `:media:videoPresentProbe` | A minute of 4K60 video in a window: dropped pictures and CPU time |
   | `AudioDriverProbe` | `:media:audioDriverProbe` | Playback through SDL's PulseAudio and PipeWire drivers: pull sizes, the sink's clock against the wall clock, and with `-Pgoldberry.probe.monitor=<sink>` a click loopback through the sink's monitor (a `LoopbackRecorder` process that always records through PulseAudio), which says how late each click is heard after the sink's clock. Needs a `libgoldberry` built with PipeWire (`docs/camera-and-mic.md`, D8) |

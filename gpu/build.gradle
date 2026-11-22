@@ -233,6 +233,13 @@ nativeTests.probe('gpuVideoProbe', 'dev.goldberry.gpu.render.GpuVideoProbe',
 nativeTests.probe('videoLayerProbe', 'dev.goldberry.gpu.video.VideoLayerProbe',
         'Measures the video layer\'s upload of a 4K picture each frame.')
 
+// The zero-copy plan's phase 0: painting into heap and mapped upload memory,
+// and a frame's damage uploaded staged and in place, 1080p and 4K, with D6's
+// gate for the driver it ran on.
+// https://goldberry.dev/docs/components/gpu.html#what-it-costs
+nativeTests.probe('uploadPathProbe', 'dev.goldberry.gpu.render.staging.UploadPathProbe',
+        'Measures painting into mapped upload memory and uploading damage staged and in place.')
+
 // The ray tracer's measurement: a 130,000-triangle scene built, and traced
 // with shadows at 1080p and 4K with the records copied out. Takes
 // -Pgoldberry.raytracing.device=llvmpipe for lavapipe.

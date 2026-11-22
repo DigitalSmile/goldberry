@@ -11,7 +11,7 @@ import java.util.function.Supplier;
 import org.jspecify.annotations.Nullable;
 
 import dev.goldberry.gpu.composite.ApiAccess;
-import dev.goldberry.gpu.render.StagingBuffer;
+import dev.goldberry.gpu.render.staging.StagingBuffer;
 import dev.goldberry.natives.sdl.SdlException;
 import dev.goldberry.natives.sdl.gpu.SdlGpuComputeCode;
 import dev.goldberry.natives.sdl.gpu.SdlGpuDevice;

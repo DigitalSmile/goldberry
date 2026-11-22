@@ -1,7 +1,8 @@
-package dev.goldberry.gpu.render;
+package dev.goldberry.gpu.render.staging;
 
 import java.nio.ByteBuffer;
 import java.util.List;
+import java.util.Objects;
 
 import org.jspecify.annotations.Nullable;
 
@@ -27,6 +28,13 @@ import dev.goldberry.natives.sdl.gpu.enums.SdlGpuTransferUsage;
 /// so a window that is resized a pixel at a time does not allocate a pixel at
 /// a time.
 ///
+/// **Aligned** means an image's regions are laid out the way the device's driver
+/// copies them from without copying them again first ([UploadAlignment]):
+/// rows padded to 256 bytes and regions at multiples of 512 on Direct3D 12,
+/// packed elsewhere. What [#stage(ByteBuffer, int, int, List)] answers is
+/// where each region went and how long its rows are, which the copy pass
+/// records.
+///
 /// The callers check what they stage: regions inside the image, an image long
 /// enough. What is staged is unmapped again before a stage returns, whether or
 /// not it threw, so the copy pass can record from [#buffer].
@@ -36,11 +44,21 @@ public final class StagingBuffer {
     public static final int MINIMUM_CAPACITY = 64 * 1024;
 
     private final SdlGpuDevice device;
+    private final UploadAlignment alignment;
     private @Nullable SdlGpuTransferBuffer buffer;
 
-    /// Staging memory for `device`, made at the first stage.
+    /// Staging memory for `device`, made at the first stage, aligned for its
+    /// driver.
     public StagingBuffer(SdlGpuDevice device) {
-        this.device = device;
+        this(device, UploadAlignment.of(device.driver()));
+    }
+
+    /// Staging memory for `device` aligned as `alignment` says, whatever its
+    /// driver: how a test runs Direct3D 12's layout on Vulkan, which takes
+    /// padded rows too.
+    public StagingBuffer(SdlGpuDevice device, UploadAlignment alignment) {
+        this.device = Objects.requireNonNull(device, "device");
+        this.alignment = Objects.requireNonNull(alignment, "alignment");
     }
 
     /// The size a buffer holding `needed` bytes grows to from `capacity`: at
@@ -62,37 +80,50 @@ public final class StagingBuffer {
         return current == null || current.isClosed() ? 0 : current.size();
     }
 
-    /// Copies `regions` of an image into fresh staging memory, each region's
-    /// rows packed one after another and the regions one after another. Row `y`
-    /// of the image starts `y × rowBytes` bytes past `image`'s position, which is
-    /// not moved.
+    /// How this staging memory lays out an image's regions.
+    public UploadAlignment alignment() {
+        return alignment;
+    }
+
+    /// Copies `regions` of an image into fresh staging memory, laid out under
+    /// [#alignment]. Row `y` of the image starts `y × rowBytes` bytes past
+    /// `image`'s position, which is not moved; each row of a region is
+    /// `region.width() × bytesPerBlock` bytes.
     ///
-    /// @return each region's byte offset in [#buffer]
+    /// @return where each region went, in the order given
     /// @throws dev.goldberry.natives.sdl.SdlException when SDL
     ///         refuses the memory
-    public int[] stage(ByteBuffer image, int rowBytes, int bytesPerPixel, List<SdlGpuRegion> regions) {
-        var total = 0L;
-        for (var region : regions) {
-            total += (long) region.width() * region.height() * bytesPerPixel;
-        }
-        var staging = map(total);
-        var offsets = new int[regions.size()];
+    public StagingLayout stage(ByteBuffer image, int rowBytes, int bytesPerBlock, List<SdlGpuRegion> regions) {
+        return stage(image, rowBytes, bytesPerBlock, regions, alignment);
+    }
+
+    /// Copies `regions` of an image into fresh staging memory as
+    /// [#stage(ByteBuffer, int, int, List)] does, laid out under `layout`
+    /// instead: [UploadAlignment#PACKED] for rows the copy pass cannot record
+    /// padded, such as a compressed format's rows of blocks.
+    ///
+    /// @return where each region went, in the order given
+    /// @throws dev.goldberry.natives.sdl.SdlException when SDL
+    ///         refuses the memory
+    public StagingLayout stage(
+            ByteBuffer image, int rowBytes, int bytesPerBlock, List<SdlGpuRegion> regions, UploadAlignment layout) {
+        var staged = StagingLayout.of(layout, bytesPerBlock, regions);
+        var staging = map(staged.size());
         var base = image.position();
-        var at = 0;
         try {
-            for (var i = 0; i < regions.size(); i++) {
-                var region = regions.get(i);
-                offsets[i] = at;
-                var row = region.width() * bytesPerPixel;
+            for (var placed : staged.regions()) {
+                var region = placed.region();
+                var row = region.width() * bytesPerBlock;
+                var at = placed.offset();
                 for (var y = region.y(); y < region.y() + region.height(); y++) {
-                    staging.put(at, image, base + y * rowBytes + region.x() * bytesPerPixel, row);
-                    at += row;
+                    staging.put(at, image, base + y * rowBytes + region.x() * bytesPerBlock, row);
+                    at += placed.rowBytes();
                 }
             }
         } finally {
             unmap();
         }
-        return offsets;
+        return staged;
     }
 
     /// Copies the remaining bytes of `source`, which is not moved, into fresh

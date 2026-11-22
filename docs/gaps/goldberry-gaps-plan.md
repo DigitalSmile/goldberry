@@ -288,7 +288,7 @@ log in the same commit as the work.
 | T-25 | W3.7 | todo | | |
 | T-26 | W2.13 | done | 0686 | |
 | T-29 | W3.8 | done: `GlobalShortcuts` (portal, X11 grab, `RegisterHotKey`, Carbon); Windows and macOS written, not run; the Windows release is polled while held, not hooked | 0711 | |
-| T-30 | W3.10 | planned and decided (`docs/zero-copy-tiles.md`): D1 (a), D2 (a), D3 D6 decides per driver, D4 (a), D5 `RasterTexture`, D6 the gate. Phases 0–4 not started | 0712 | |
+| T-30 | W3.10 | planned and decided (`docs/zero-copy-tiles.md`): D1 (a), D2 (a), D3 D6 decides per driver, D4 (a), D5 `RasterTexture`, D6 the gate. Phase 1 (Direct3D 12 staging without SDL's hidden copy) done; phase 0 measured here (D6 on for Vulkan), Direct3D 12 and Metal wait for the benchmark lane; phases 2–4 not started | 0712 | |
 | T-31 | W3.11 | done: plan written (`docs/web-target.md`, D1–D8 asked); no code until it is read | | |
 | T-32 | W2.8 | done: delete, clear, user agent; the private store waits for the shim to build its own views | 0699 | |
 
@@ -594,3 +594,18 @@ log in the same commit as the work.
   CameraFormat)` opens an exact mode. The parked chapters say what macOS needs, and
   `BookMarkupTest` inflates parked samples. The lanes already ran both
   modules' tests. ADR-0725. Left: the hand checks.
+- **2026-11-22, W3.10 phase 1.** Uploads are staged so that Direct3D 12 copies
+  them as they are: each row padded to exactly its packed length rounded up to
+  256 bytes and each region at a multiple of 512, packed on every other
+  driver (`gpu.render.staging`). SDL had been copying almost every partial UI
+  upload once more on Direct3D 12 drivers without the unrestricted-pitch
+  feature. ADR-0712 amended; status and log in `docs/zero-copy-tiles.md` §7.
+  Phase 0's benchmark is still to come. Next ADR 0731.
+- **2026-11-22, W3.10 phase 0.** `:gpu:uploadPathProbe` measures painting
+  into mapped upload memory and four upload paths. On the 1660 Ti and on
+  lavapipe, the in-place 4K whole-frame stage is 0.02 and 0.01 of staged, and
+  painting into kept-mapped memory is within 1% of heap, so D6 is on for
+  Vulkan. Findings: the raster stays mapped for its whole life, and Direct3D 12
+  copies whole-row bands in place. The benchmark lane runs the probe on
+  Windows and macOS in a new `upload-paths` job. ADR-0712 amended. Next ADR
+  0731.

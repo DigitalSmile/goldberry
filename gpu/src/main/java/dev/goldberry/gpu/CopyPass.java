@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
+import dev.goldberry.gpu.render.staging.UploadAlignment;
 import dev.goldberry.natives.sdl.gpu.SdlGpuCommandBuffer;
 import dev.goldberry.natives.sdl.gpu.SdlGpuRegion;
 import dev.goldberry.natives.sdl.gpu.SdlGpuTextureLocation;
@@ -100,9 +101,12 @@ public final class CopyPass {
 
     /// Uploads `regions` of an image the size of `destination` into it. Row `y`
     /// of the image starts `y × rowBytes` bytes past `source`'s position, which
-    /// is not moved; every region's rows are copied, packed, into staging
-    /// memory, then recorded. Empty regions are skipped; overlapping ones are
-    /// uploaded twice, which is correct and costs the overlap.
+    /// is not moved; every region's rows are copied into staging memory, then
+    /// recorded. They are staged the way the driver copies them as they are:
+    /// packed, or on Direct3D 12 padded to 256 bytes with each region at a
+    /// multiple of 512, so the driver does not copy them once more first.
+    /// Empty regions are skipped; overlapping ones are uploaded twice, which is
+    /// correct and costs the overlap.
     ///
     /// For a block-compressed format, regions are still in texels, but each
     /// starts on a block and ends on one or at the level's edge, and the image
@@ -157,8 +161,13 @@ public final class CopyPass {
         }
         var upload = device.upload();
         // Staged a row of blocks at a time, which for a plain format is a row
-        // of pixels.
-        var offsets = GpuDevice.call(() -> upload.stage(source, rowBytes, block, inBlocks));
+        // of pixels. A plain format's rows are staged as the driver copies
+        // them as they are, padded on Direct3D 12; a compressed format's rows
+        // of blocks stay packed, since a padded upload is recorded in texels.
+        var compressed = format.isCompressed();
+        var layout = compressed ? UploadAlignment.PACKED : upload.alignment();
+        var staged = GpuDevice.call(() -> upload.stage(source, rowBytes, block, inBlocks, layout))
+                .regions();
         var transfer = upload.buffer();
         // Cycling hands the texture fresh memory when the GPU still reads the
         // old, which is only right when every texel of every level, layer and
@@ -172,14 +181,14 @@ public final class CopyPass {
                 && nonEmpty.getFirst().height() == destination.height();
         for (var i = 0; i < nonEmpty.size(); i++) {
             var region = nonEmpty.get(i);
-            sdl.upload(
-                    transfer,
-                    offsets[i],
-                    sdlTexture,
-                    level,
-                    layer,
-                    new SdlGpuRegion(region.x(), region.y(), region.width(), region.height()),
-                    whole);
+            var texels = new SdlGpuRegion(region.x(), region.y(), region.width(), region.height());
+            var placed = staged.get(i);
+            if (compressed) {
+                sdl.upload(transfer, placed.offset(), sdlTexture, level, layer, texels, whole);
+            } else {
+                sdl.upload(
+                        transfer, placed.offset(), placed.pixelsPerRow(block), sdlTexture, level, layer, texels, whole);
+            }
         }
     }
 

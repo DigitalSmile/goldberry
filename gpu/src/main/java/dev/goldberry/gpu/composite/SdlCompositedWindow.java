@@ -9,7 +9,7 @@ import java.util.Optional;
 import org.jspecify.annotations.Nullable;
 
 import dev.goldberry.gpu.GpuDevice;
-import dev.goldberry.gpu.render.StagingBuffer;
+import dev.goldberry.gpu.render.staging.StagingBuffer;
 import dev.goldberry.natives.sdl.gpu.SdlGpuDevice;
 import dev.goldberry.natives.sdl.gpu.SdlGpuRegion;
 import dev.goldberry.natives.sdl.gpu.SdlGpuTexture;
@@ -106,13 +106,15 @@ final class SdlCompositedWindow implements CompositedWindow {
         try {
             var bytes = 0L;
             if (!regions.isEmpty()) {
-                var offsets = staging.stage(frame.pixels(), frame.stride(), 4, regions);
+                var staged = staging.stage(frame.pixels(), frame.stride(), 4, regions);
                 try (var pass = commands.beginCopyPass()) {
-                    for (var i = 0; i < regions.size(); i++) {
-                        var region = regions.get(i);
+                    for (var placed : staged.regions()) {
+                        var region = placed.region();
                         // A whole frame may take fresh texture memory; a partial
                         // one must keep what the texture holds around the damage.
-                        pass.upload(staging.buffer(), offsets[i], texture, region, whole);
+                        // The rows are as long as the staging laid them out:
+                        // padded on Direct3D 12, so it copies them as they are.
+                        pass.upload(staging.buffer(), placed.offset(), placed.pixelsPerRow(4), texture, region, whole);
                         bytes += texture.byteSize(region);
                     }
                 }

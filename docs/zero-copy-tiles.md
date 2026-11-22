@@ -44,7 +44,9 @@ Two more facts from those sources:
   driver reports `UnrestrictedBufferTextureCopyPitchSupported` (OPTIONS13), an
   upload whose row pitch is not a multiple of 256 bytes, or whose offset is not
   a multiple of 512, is copied row by row into a temporary upload buffer made
-  for that one upload. `StagingBuffer.stage` packs each region's rows at its own
+  for that one upload. (Phase 1 found the rule stricter: the pitch must be
+  *exactly* the region's packed row rounded up to 256, so a longer multiple of
+  256 is realigned too.) `StagingBuffer.stage` packs each region's rows at its own
   width and places regions back to back, so on such a driver nearly every UI
   region takes this path: three copies, one of them into a buffer allocated per
   region per frame. Not measured yet (§4, phase 0).
@@ -196,7 +198,7 @@ relies on. Taken with these numbers.
 
 ## 4. Phases
 
-### Phase 0 — measurements
+### Phase 0 — measurements (here 2026-11-22; Windows and macOS wait for a lane run)
 
 - A benchmark in `gpu/src/benchmark`, beside `GpuVideoProbe`, run by the
   benchmark lane: (i) Blend2D paints a fixed UI scene into heap memory and into
@@ -212,7 +214,71 @@ relies on. Taken with these numbers.
 
 Exit: the numbers in this document, and D6 answered per driver.
 
-### Phase 1 — Direct3D 12 staging without the hidden copy
+**Results, 2026-11-22.** `UploadPathProbe` (`:gpu:uploadPathProbe`, in
+`gpu/src/benchmark`), run here on the GTX 1660 Ti (driver 610.57, x11) and on
+lavapipe (Mesa 26.0.8, LLVM 21), 8 processors, 100 samples after 20. Medians in
+ms; "stage" is the UI thread's part, "copied" runs until the GPU's fence
+signalled.
+
+Painting (the scene is the paint benchmark's showcase frame, with translucent
+panels and six text cards):
+
+| Frame | Workers | 1660 Ti heap | kept mapped | lavapipe heap | kept mapped |
+|---|---|---|---|---|---|
+| 1920x1080 | 0 | 6.43 | 6.46 (+0.5%) | 6.67 | 6.56 (−1.6%) |
+| 1920x1080 | 4 | 2.88 | 2.80 (−2.9%) | 2.65 | 2.72 (+2.6%) |
+| 3840x2160 | 0 | 13.45 | 13.37 (−0.6%) | 13.30 | 13.23 (−0.5%) |
+| 3840x2160 | 4 | 4.91 | 4.91 (+0.1%) | 4.78 | 4.82 (+0.8%) |
+| 512x512, one translucent fill | 0 | 0.055 | 0.058 (+5.0%) | 0.055 | 0.056 (+2.4%) |
+
+The 4K upload of the whole frame:
+
+| Path | 1660 Ti stage | copied | lavapipe stage | copied |
+|---|---|---|---|---|
+| staged, packed (today) | 8.81 | 15.46 | 6.26 | 10.39 |
+| staged, 256/512 (phase 1's layout) | 8.58 | 15.06 | 5.83 | 9.75 |
+| in place | 0.17 | 6.80 | 0.07 | 3.54 |
+| in place, whole-row bands | 0.18 | 6.80 | 0.06 | 3.53 |
+
+At 10% damage of 4K the staged stage is 1.11 ms (1660 Ti) and 0.79 ms
+(lavapipe), against 0.06 and 0.07 in place. At 1% they're all below 0.13 ms.
+The full tables are in the log below.
+
+What the numbers say:
+
+- **D6 on Vulkan: on**, on both devices. (1) In place, the 4K whole-frame stage
+  is 0.02 (1660 Ti) and 0.01 (lavapipe) of staged, against a bar of 0.50.
+  (2) Painting into the mapped buffer is within 1% of heap at 4K, against a bar
+  of 5%: SDL's `HOST_CACHED` preference holds on both.
+- **The buffer stays mapped.** Mapping and unmapping it around every paint
+  costs about 0.04 ms (the shared arena's close is a handshake, plus two SDL
+  calls). That's nothing at frame scale, but it is most of the 1 MiB probe. So
+  phase 2 keeps the raster mapped for good, and the run-time probe times
+  memory that is already mapped. SDL has no rule against recording an upload
+  from a mapped transfer buffer: the refusal is `SdlGpuCommandBuffer`'s own,
+  and phase 2 needs a way past it for the raster.
+- **An early run read +64% for mapped memory**, from timing heap first and
+  mapped second. The probe now interleaves the three variants sample by
+  sample. A runtime probe has to do the same, or it will learn the JIT's
+  warm-up rather than the memory.
+- **Phase 1's layout costs nothing on Vulkan** (8.58 against 8.81 ms, 5.83
+  against 6.26), so padding there would be harmless. It stays packed anyway,
+  because there's nothing to gain.
+- **Direct3D 12 can only copy whole-row bands in place.** A region's pitch must
+  be exactly its own row rounded up to 256 (phase 1). Inside a frame-sized
+  buffer the pitch is the frame's stride, which is that only for a region the
+  frame's width. So in place on Direct3D 12 means each region widened to whole
+  rows, starting on a row whose offset is a multiple of 512. The bands copy
+  more (10% damage becomes 40% of the frame's bytes), but the stage stays
+  where in place's is: 0.20 ms at 4K and 10% on the 1660 Ti. Metal records
+  padded rows one at a time, so its in-place stage at 4K is 2160 commands. The
+  CI runs say what that costs.
+- **Windows and macOS: not yet measured.** The benchmark lane runs the probe on
+  `windows-2022` (Direct3D 12, on WARP if SDL takes it; that runner has never
+  had a GPU lane) and on `macos-15` (Metal), and the tables go into the run's
+  summary. The first run that reaches master answers D6 for both.
+
+### Phase 1 — Direct3D 12 staging without the hidden copy (done 2026-11-22)
 
 `StagingBuffer.stage` pads rows to 256 bytes and places regions at multiples of
 512 on `direct3d12`, and `CopyPass` passes the padded row length (Direct3D 12
@@ -277,8 +343,8 @@ and Tessera's G-30 answer in `answers-tessera.md`.
 
 | Phase | Status |
 |-------|--------|
-| 0 — measurements | not started |
-| 1 — D3D12 staging | not started |
+| 0 — measurements | done here (D6 on for Vulkan, the 1660 Ti and lavapipe); Direct3D 12 and Metal wait for the benchmark lane's first run |
+| 1 — D3D12 staging | done 2026-11-22; the Windows lane's upload numbers wait for phase 0's benchmark |
 | 2 — the in-place raster | not started |
 | 3 — the composited window | not started |
 | 4 — `RasterTexture` | not started |
@@ -301,3 +367,121 @@ and Tessera's G-30 answer in `answers-tessera.md`.
   in-place prototype on Metal and Direct3D 12 too (CI's macOS and Windows
   lanes), and the run-time probe is part of phase 2, not an option. All six
   decisions are recorded in ADR-0712 (parked). Next ADR 0713.
+- **2026-11-22, phase 1** (taken before phase 0, at the owner's request). The
+  staging moved to a package of its own, `gpu.render.staging`:
+  `UploadAlignment` (rows and regions per driver: `DIRECT3D12` 256/512,
+  `PACKED` elsewhere), `StagingLayout` and `StagedRegion` (where each region
+  goes and its row pitch, arithmetic only), and `StagingBuffer` laying an
+  upload out by its device's alignment. The composited window and
+  `CopyPass.upload(texture, source, rowBytes, regions)` record each region
+  with its pitch as `pixels_per_row`, through a new level-and-layer overload
+  of the native copy pass's padded upload; a compressed format's rows stay
+  packed. Reading SDL's source again showed the pitch must be *exactly* the
+  packed row rounded up to 256 (ADR-0712 amended). A whole 1080p or 4K frame
+  has such rows already, so only partial damage changes layout. Tests:
+  `UploadAlignmentTest`, `StagingLayoutTest` (fixed cases and 200 random
+  damage sets: aligned, fitting, no overlap) and `StagingBufferGpuTest`
+  (Direct3D 12's layout on Vulkan, which takes padded rows: regions, a whole
+  frame and mip level 1 read back identical to the packed path), green on
+  lavapipe and the 1660 Ti; `:gpu`, `:natives` checks and `:example:gpuTest`'s
+  goldens unchanged. Not shown yet: that the Windows lane's upload stage did not
+  grow, since no benchmark measures it before phase 0. Next ADR 0731.
+- **2026-11-22, phase 0** (after phase 1). `UploadPathProbe` measures painting
+  in heap memory, in a kept-mapped upload buffer and in one mapped around every
+  paint, interleaved. It measures four upload paths (staged packed, staged
+  256/512, in place, in place as whole-row bands) at 1%, 10% and 100% of 1080p
+  and 4K, and prints D6's verdict for the driver. `SdlGpuDeviceTest` pins the
+  fact §5 asked for: an upload buffer mapped without `cycle` has one address,
+  and keeps its bytes across a copy from it. That holds on the 1660 Ti and on
+  lavapipe. The benchmark lane runs the probe on lavapipe and, in a new
+  `upload-paths` job, on Windows and macOS. D6 is on for Vulkan. Direct3D 12
+  can copy only whole-row bands in place, and the buffer must stay mapped
+  (Results, above). Next ADR 0731. The runs, as printed:
+
+  ```text
+  GPU vulkan on NVIDIA GeForce GTX 1660 Ti (NVIDIA 610.57.4.0); padded rows recorded in one go: true; 8 processors
+
+  Painting, heap against mapped upload memory (median / p95 ms)
+
+  | Frame | Workers | Heap | Mapped, kept | Mapped each frame | Kept slower by |
+  |---|---|---|---|---|---|
+  | 1920x1080 | 0 | 6.432 / 9.002 | 6.463 / 8.451 | 6.582 / 7.729 | +0.5% |
+  | 1920x1080 | auto (4) | 2.884 / 4.267 | 2.800 / 3.988 | 2.928 / 4.413 | -2.9% |
+  | 3840x2160 | 0 | 13.447 / 14.492 | 13.368 / 14.471 | 13.475 / 14.829 | -0.6% |
+  | 3840x2160 | auto (4) | 4.906 / 5.376 | 4.909 / 5.347 | 4.993 / 5.366 | +0.1% |
+  | 512x512 | 0, one fill | 0.055 / 0.107 | 0.058 / 0.100 | 0.091 / 0.156 | +5.0% |
+
+  Uploading a frame's damage (median / p95 ms)
+
+  | Frame | Damage | Path | Bytes copied | Stage | Until copied |
+  |---|---|---|---|---|---|
+  | 1920x1080 | 1% | staged, packed | 0.1 MB | 0.093 / 0.152 | 0.144 / 0.375 |
+  | 1920x1080 | 1% | staged, 256/512 | 0.1 MB | 0.073 / 0.119 | 0.125 / 0.378 |
+  | 1920x1080 | 1% | in place | 0.1 MB | 0.049 / 0.081 | 0.107 / 0.542 |
+  | 1920x1080 | 1% | in place, bands | 0.8 MB | 0.035 / 0.062 | 0.201 / 0.637 |
+  | 1920x1080 | 10% | staged, packed | 0.8 MB | 0.260 / 0.364 | 0.483 / 1.327 |
+  | 1920x1080 | 10% | staged, 256/512 | 0.8 MB | 0.219 / 0.283 | 0.445 / 1.319 |
+  | 1920x1080 | 10% | in place | 0.8 MB | 0.042 / 0.074 | 0.222 / 0.693 |
+  | 1920x1080 | 10% | in place, bands | 3.3 MB | 0.079 / 0.164 | 0.701 / 1.609 |
+  | 1920x1080 | 100% | staged, packed | 8.3 MB | 2.462 / 3.308 | 4.093 / 5.748 |
+  | 1920x1080 | 100% | staged, 256/512 | 8.3 MB | 2.410 / 3.191 | 4.084 / 5.560 |
+  | 1920x1080 | 100% | in place | 8.3 MB | 0.159 / 0.349 | 1.669 / 2.814 |
+  | 1920x1080 | 100% | in place, bands | 8.3 MB | 0.151 / 0.351 | 1.670 / 2.829 |
+  | 3840x2160 | 1% | staged, packed | 0.3 MB | 0.125 / 0.190 | 0.247 / 0.623 |
+  | 3840x2160 | 1% | staged, 256/512 | 0.3 MB | 0.075 / 0.104 | 0.164 / 0.307 |
+  | 3840x2160 | 1% | in place | 0.3 MB | 0.021 / 0.035 | 0.103 / 0.265 |
+  | 3840x2160 | 1% | in place, bands | 3.3 MB | 0.062 / 0.102 | 0.674 / 1.633 |
+  | 3840x2160 | 10% | staged, packed | 3.3 MB | 1.113 / 1.357 | 1.817 / 2.538 |
+  | 3840x2160 | 10% | staged, 256/512 | 3.3 MB | 1.081 / 1.367 | 1.794 / 2.468 |
+  | 3840x2160 | 10% | in place | 3.3 MB | 0.058 / 0.120 | 0.662 / 1.615 |
+  | 3840x2160 | 10% | in place, bands | 13.3 MB | 0.204 / 0.537 | 2.622 / 3.841 |
+  | 3840x2160 | 100% | staged, packed | 33.2 MB | 8.814 / 11.247 | 15.464 / 18.206 |
+  | 3840x2160 | 100% | staged, 256/512 | 33.2 MB | 8.575 / 10.958 | 15.063 / 17.179 |
+  | 3840x2160 | 100% | in place | 33.2 MB | 0.171 / 0.806 | 6.797 / 7.864 |
+  | 3840x2160 | 100% | in place, bands | 33.2 MB | 0.182 / 0.948 | 6.798 / 8.096 |
+
+  D6 on vulkan: (1) the 4K whole-frame stage in place is 0.02 of staged, packed's (at most 0.50): passes; (2) painting at 4K into mapped memory is at worst +0.1% (at most +5%): passes. In place: on
+
+  GPU vulkan on llvmpipe (LLVM 21.1.8, 256 bits) (llvmpipe 26.0.8); padded rows recorded in one go: true; 8 processors
+
+  Painting, heap against mapped upload memory (median / p95 ms)
+
+  | Frame | Workers | Heap | Mapped, kept | Mapped each frame | Kept slower by |
+  |---|---|---|---|---|---|
+  | 1920x1080 | 0 | 6.666 / 8.025 | 6.562 / 7.836 | 6.686 / 7.857 | -1.6% |
+  | 1920x1080 | auto (4) | 2.647 / 3.430 | 2.717 / 4.041 | 2.673 / 3.853 | +2.6% |
+  | 3840x2160 | 0 | 13.304 / 14.512 | 13.233 / 14.141 | 13.425 / 14.096 | -0.5% |
+  | 3840x2160 | auto (4) | 4.775 / 5.454 | 4.815 / 5.257 | 4.881 / 5.324 | +0.8% |
+  | 512x512 | 0, one fill | 0.055 / 0.093 | 0.056 / 0.087 | 0.087 / 0.126 | +2.4% |
+
+  Uploading a frame's damage (median / p95 ms)
+
+  | Frame | Damage | Path | Bytes copied | Stage | Until copied |
+  |---|---|---|---|---|---|
+  | 1920x1080 | 1% | staged, packed | 0.1 MB | 0.088 / 0.161 | 0.128 / 0.212 |
+  | 1920x1080 | 1% | staged, 256/512 | 0.1 MB | 0.062 / 0.109 | 0.094 / 0.139 |
+  | 1920x1080 | 1% | in place | 0.1 MB | 0.047 / 0.054 | 0.069 / 0.093 |
+  | 1920x1080 | 1% | in place, bands | 0.8 MB | 0.039 / 0.062 | 0.096 / 0.177 |
+  | 1920x1080 | 10% | staged, packed | 0.8 MB | 0.171 / 0.315 | 0.288 / 0.476 |
+  | 1920x1080 | 10% | staged, 256/512 | 0.8 MB | 0.137 / 0.373 | 0.230 / 0.582 |
+  | 1920x1080 | 10% | in place | 0.8 MB | 0.030 / 0.049 | 0.107 / 0.162 |
+  | 1920x1080 | 10% | in place, bands | 3.3 MB | 0.038 / 0.069 | 0.283 / 0.500 |
+  | 1920x1080 | 100% | staged, packed | 8.3 MB | 1.600 / 1.901 | 2.617 / 3.047 |
+  | 1920x1080 | 100% | staged, 256/512 | 8.3 MB | 1.819 / 2.200 | 2.999 / 3.534 |
+  | 1920x1080 | 100% | in place | 8.3 MB | 0.084 / 0.129 | 1.248 / 1.479 |
+  | 1920x1080 | 100% | in place, bands | 8.3 MB | 0.071 / 0.109 | 1.059 / 1.242 |
+  | 3840x2160 | 1% | staged, packed | 0.3 MB | 0.099 / 0.149 | 0.173 / 0.252 |
+  | 3840x2160 | 1% | staged, 256/512 | 0.3 MB | 0.060 / 0.123 | 0.105 / 0.180 |
+  | 3840x2160 | 1% | in place | 0.3 MB | 0.016 / 0.031 | 0.060 / 0.083 |
+  | 3840x2160 | 1% | in place, bands | 3.3 MB | 0.022 / 0.035 | 0.236 / 0.309 |
+  | 3840x2160 | 10% | staged, packed | 3.3 MB | 0.787 / 1.089 | 1.428 / 2.075 |
+  | 3840x2160 | 10% | staged, 256/512 | 3.3 MB | 0.768 / 0.969 | 1.436 / 1.788 |
+  | 3840x2160 | 10% | in place | 3.3 MB | 0.072 / 0.121 | 0.749 / 0.975 |
+  | 3840x2160 | 10% | in place, bands | 13.3 MB | 0.107 / 0.168 | 1.717 / 2.098 |
+  | 3840x2160 | 100% | staged, packed | 33.2 MB | 6.263 / 7.936 | 10.394 / 12.788 |
+  | 3840x2160 | 100% | staged, 256/512 | 33.2 MB | 5.826 / 6.894 | 9.746 / 11.088 |
+  | 3840x2160 | 100% | in place | 33.2 MB | 0.068 / 0.102 | 3.536 / 4.112 |
+  | 3840x2160 | 100% | in place, bands | 33.2 MB | 0.060 / 0.103 | 3.527 / 5.122 |
+
+  D6 on vulkan: (1) the 4K whole-frame stage in place is 0.01 of staged, packed's (at most 0.50): passes; (2) painting at 4K into mapped memory is at worst +0.8% (at most +5%): passes. In place: on
+  ```

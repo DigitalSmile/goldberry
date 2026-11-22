@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.lang.foreign.MemorySegment;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Optional;
@@ -244,6 +245,42 @@ class SdlGpuDeviceTest {
             download.map(false).get(back);
             download.unmap();
             assertArrayEquals(bytes, back);
+        }
+    }
+
+    /// What painting in place rests on: an upload buffer mapped without
+    /// cycling is the same memory each time, and it still holds last frame's
+    /// pixels after the GPU copied from it. SDL's sources work that way on all
+    /// three drivers; its header does not promise it, so an SDL update that
+    /// changes it fails here rather than on a screen.
+    @Test
+    @DisplayName("maps an upload buffer at one address without cycling, keeping its bytes across a copy")
+    void mapsAnUploadBufferInPlace() {
+        var region = new SdlGpuRegion(0, 0, 32, 16);
+        var bytes = new byte[32 * 16 * 4];
+        new Random(12).nextBytes(bytes);
+        try (var texture = device.createTexture(SdlGpuTextureFormat.R8G8B8A8_UNORM, 32, 16, TARGET);
+                var upload = device.createTransferBuffer(SdlGpuTransferUsage.UPLOAD, bytes.length)) {
+            var first = upload.map(false);
+            var address = MemorySegment.ofBuffer(first).address();
+            first.put(bytes);
+            upload.unmap();
+            var again = upload.map(false);
+            assertEquals(address, MemorySegment.ofBuffer(again).address(), "mapped twice on " + device.driver());
+            upload.unmap();
+            var commands = device.acquireCommandBuffer();
+            try (var pass = commands.beginCopyPass()) {
+                pass.upload(upload, 0, texture, region, false);
+            }
+            try (var fence = commands.submitWithFence()) {
+                fence.await();
+            }
+            var after = upload.map(false);
+            assertEquals(address, MemorySegment.ofBuffer(after).address(), "after a copy on " + device.driver());
+            var kept = new byte[bytes.length];
+            after.get(kept);
+            upload.unmap();
+            assertArrayEquals(bytes, kept, "what was written before the copy");
         }
     }
 

@@ -1662,8 +1662,33 @@ public final class SdlGpuCommandBuffer {
                 SdlGpuTexture destination,
                 SdlGpuRegion region,
                 boolean cycle) {
+            upload(source, offset, pixelsPerRow, destination, 0, 0, region, cycle);
+        }
+
+        /// Records a copy of `region`'s pixels into mip level `level` of layer
+        /// `layer` of `destination`, as
+        /// [#upload(SdlGpuTransferBuffer, int, int, SdlGpuTexture, SdlGpuRegion, boolean)]
+        /// does for level 0 of layer 0: of depth slice `layer`, for a 3D
+        /// texture. The region is in the level's texels.
+        ///
+        /// @param cycle take fresh texture memory if the GPU still reads the old,
+        ///              rather than wait for it
+        /// @throws IllegalArgumentException when the level or layer does not
+        ///                                  exist, the region is outside the
+        ///                                  level, the rows are shorter than
+        ///                                  the region, or the rows do not fit
+        ///                                  `source`
+        public void upload(
+                SdlGpuTransferBuffer source,
+                int offset,
+                int pixelsPerRow,
+                SdlGpuTexture destination,
+                int level,
+                int layer,
+                SdlGpuRegion region,
+                boolean cycle) {
             requireOpen();
-            check(source, SdlGpuTransferUsage.UPLOAD, offset, destination, 0, 0, region);
+            check(source, SdlGpuTransferUsage.UPLOAD, offset, destination, level, layer, region);
             var format = destination.format();
             if (format.blockWidth() != 1 || format.blockHeight() != 1) {
                 throw new IllegalArgumentException(destination + " is block-compressed; its rows are packed");
@@ -1688,14 +1713,14 @@ public final class SdlGpuCommandBuffer {
                         upload.call(
                                 pass,
                                 transferInfo(arena, source, offset + row * rowBytes, destination, line),
-                                region(arena, destination, 0, 0, line),
+                                region(arena, destination, level, layer, line),
                                 cycle && row == 0);
                     }
                     return;
                 }
                 var info = transferInfo(arena, source, offset, destination, region);
                 info.set(JAVA_INT, Layouts.SDL_GPU_TEXTURE_TRANSFER_INFO.offsetOf("pixels_per_row"), pixelsPerRow);
-                upload.call(pass, info, region(arena, destination, 0, 0, region), cycle);
+                upload.call(pass, info, region(arena, destination, level, layer, region), cycle);
             }
         }
 

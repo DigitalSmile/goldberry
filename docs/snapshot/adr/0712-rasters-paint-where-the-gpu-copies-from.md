@@ -57,3 +57,43 @@ The owner took the plan's decisions with one change:
   a test rather than a screen.
 - Each composited window keeps a frame-sized buffer of pinned system memory in
   place of the heap buffer and the staging buffer it replaces.
+
+## Amendment, 2026-11-22: phase 1
+
+SDL 3.4.18's Direct3D 12 upload is stricter than the plan said. Without the
+unrestricted-pitch feature it copies the upload again unless the row pitch
+is **exactly** the region's packed row rounded up to 256 bytes (any other
+multiple of 256 is realigned as well) and the offset is a multiple of 512.
+The staging is laid out to that rule on `direct3d12` and stays packed on every
+other driver. It doesn't ask for the feature, which SDL doesn't expose: on a
+driver that has it, padded rows cost at most 255 bytes a row of staging
+memory and nothing else.
+
+A compressed format's rows of blocks stay packed, because a padded upload is
+recorded in texels and those uploads are one-offs at load time, not per frame.
+On Direct3D 12 they still take SDL's realignment, as before.
+
+## Amendment, 2026-11-22: phase 0's numbers
+
+Measured on the GTX 1660 Ti and on lavapipe (`docs/zero-copy-tiles.md`,
+phase 0). D6 is on for Vulkan on both:
+
+- (1) The 4K whole-frame upload stage in place is 0.17 and 0.07 ms, against
+  8.81 and 6.26 ms staged.
+- (2) Painting into the mapped buffer is within 1% of heap memory.
+
+Two things the decisions didn't say, now settled by the numbers:
+
+- **The raster stays mapped.** Mapping it around every paint costs about
+  0.04 ms, which is negligible in a frame but most of a mebibyte probe. SDL
+  doesn't forbid recording from a mapped transfer buffer, so the in-place
+  raster keeps its mapping for its whole life, and the run-time probe times
+  memory that is already mapped, interleaved with heap.
+- **On Direct3D 12, in place copies whole-row bands.** Its exact-pitch rule
+  (phase 1) holds for a region of a frame-sized buffer only when the region is
+  the frame's width, so each region is widened to whole rows starting at a
+  multiple of 512 bytes. That copies more on the GPU and nothing more on the
+  CPU.
+
+Direct3D 12 and Metal are measured by the benchmark lane's `upload-paths`
+job; D6 for them is recorded when it has run.

@@ -1,4 +1,4 @@
-package dev.goldberry.gpu.render;
+package dev.goldberry.gpu.render.staging;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
