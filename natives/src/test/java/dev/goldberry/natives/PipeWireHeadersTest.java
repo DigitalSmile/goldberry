@@ -45,9 +45,11 @@ class PipeWireHeadersTest {
         return Files.isRegularFile(own.resolve("CMakeLists.txt")) ? own : working.resolve("natives/src/main/cmake");
     }
 
+    /// The file's text with its line ends as LF, so a line is matched the same
+    /// way on Windows, where the checkout and CMake may hand back CRLF.
     private static String read(Path path) {
         try {
-            return Files.readString(path);
+            return Files.readString(path).replace("\r\n", "\n");
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
@@ -116,7 +118,9 @@ class PipeWireHeadersTest {
                 () -> assertTrue(libpipewire.contains("\nlibdir=/usr/lib64\n"), "the system's libdir: " + libpipewire),
                 () -> assertTrue(libpipewire.contains("\nRequires: libspa-0.2\n"), libpipewire),
                 () -> assertTrue(libpipewire.contains("-I${includedir}/pipewire-0.3"), libpipewire),
-                () -> assertTrue(libpipewire.contains("prefix=" + staging), libpipewire),
+                // The script is handed CMake's spelling of the path, forward
+                // slashes on Windows too, and writes it back the same way.
+                () -> assertTrue(libpipewire.contains("prefix=" + cmakePath(staging)), libpipewire),
                 () -> assertTrue(libspa.contains("-I${includedir}/spa-0.2"), libspa));
     }
 
