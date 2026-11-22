@@ -1,0 +1,32 @@
+plugins {
+    id 'goldberry.java-conventions'
+    // Published as goldberry-spell, optional in the umbrella.
+    id 'goldberry.publish'
+}
+
+description = 'Goldberry spell: spell checking for text fields, over Hunspell dictionaries read in Java'
+
+// ============================================================================
+// The spell checking engine
+// https://goldberry.dev/docs/components/forms.html#text-input
+//
+// :core holds what a field needs (`dev.goldberry.text.spell`: the checker
+// interface, the registry, the per-field service) and this module holds what
+// reads a dictionary: Lucene's Hunspell, a reimplementation in Java that reads
+// the same `.aff`/`.dic` files as the C library and is tested against its test
+// files. It is provided to :core as a `SpellCheckerProvider` service, so an
+// application that adds this module calls `SpellCheckers.load` and never names
+// a class from here. No dictionary ships: their licences differ per language,
+// and the application brings the ones it needs.
+// ============================================================================
+dependencies {
+    // Logging.
+    implementation project(':common')
+
+    // The interfaces this module implements: `api`, because a `HunspellChecker`
+    // is a `SpellChecker` an application may hold.
+    api project(':core')
+
+    // Hunspell in Java. lucene-core comes with it.
+    implementation libs.lucene.analysis.common
+}

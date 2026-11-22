@@ -53,6 +53,11 @@ rootProject.name = 'goldberry'
 // analysis (levels, spectra, envelopes) is plain Java; its widgets read a
 // SampleSource, so a synthetic one makes them golden-testable.
 //
+// :spell is `goldberry-spell`: the spell checking engine, Hunspell dictionaries
+// read by Lucene's pure-Java Hunspell, provided to :core's
+// `dev.goldberry.text.spell` as a service. Java only; it ships no dictionary,
+// because their licences differ per language.
+//
 // :camera is `goldberry-camera`: SDL's cameras, also Java only. A camera is a
 // PictureSource of :media's, so `camera-view` draws through `video-view`'s
 // surface and :camera requires :media. A synthetic camera paints a test
@@ -87,6 +92,7 @@ include ':common',
         ':media',
         ':mic',
         ':camera',
+        ':spell',
         ':emoji',
         ':gpu',
         ':bom',

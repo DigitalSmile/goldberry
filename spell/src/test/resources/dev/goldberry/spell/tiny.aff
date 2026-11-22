@@ -1,0 +1,11 @@
+# A dictionary written for goldberry-spell's tests: a handful of English words,
+# one suffix, one prefix, and replacement rules for a common slip.
+SET UTF-8
+TRY esianrtolcdugmphbyfvkwzESIANRTOLCDUGMPHBYFVKWZ'
+REP 2
+REP ie ei
+REP ei ie
+SFX S Y 1
+SFX S 0 s .
+PFX U Y 1
+PFX U 0 un .

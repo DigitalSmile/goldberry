@@ -120,6 +120,7 @@ dependencies {
     jacocoAggregation project(':html')
     jacocoAggregation project(':mic')
     jacocoAggregation project(':camera')
+    jacocoAggregation project(':spell')
     jacocoAggregation project(':emoji')
     jacocoAggregation project(':gpu')
     jacocoAggregation project(':weaver')

@@ -47,6 +47,9 @@ public final class PublishedModules {
             new Library("media", Inclusion.OPTIONAL),
             new Library("mic", Inclusion.OPTIONAL),
             new Library("camera", Inclusion.OPTIONAL),
+            // Spell checking: Hunspell dictionaries read in Java by Lucene, which
+            // comes with it as a dependency. No dictionary ships.
+            new Library("spell", Inclusion.OPTIONAL),
             // What an application's build runs over its compiled classes, and the
             // plugin that runs it: in the BOM, and in no application's run time.
             new Library("weaver", Inclusion.TOOL),

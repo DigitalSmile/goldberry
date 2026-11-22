@@ -261,10 +261,10 @@ where pictures change. Tests are written with the code, not after it.
 |----------|------|--------|
 | `docs/gaps/goldberry-gaps-plan.md` §8, §10 | T-25's row and the log | plan written |
 | `docs/gaps/answers-tessera.md` | T-25's answer when it lands | open |
-| `docs/snapshot/adr/` | ADR-0733 (D1–D9), ADR-0734 (phase 1), ADR-0735 (phase 2), ADR-0736 (phase 3), ADR-0737 (phase 4) | phase 4 done |
+| `docs/snapshot/adr/` | ADR-0733 (D1–D9), ADR-0734 (phase 1), ADR-0735 (phase 2), ADR-0736 (phase 3), ADR-0737 (phase 4), ADR-0738 (phase 5) | phase 5 done |
 | `docs/snapshot/changelog-breaking-changes.md` | `ComputedStyle.textDecoration()`'s type, one more component on `TextFlow`, `SpanPaint` and `MarkStyle` | done (phase 1) |
 | `docs/snapshot/` guide pieces | styling (`guide-styling-text-decoration.md`, done), forms (spell checking) | styling done |
-| `docs/status.md` | a line per phase | phase 4 |
+| `docs/status.md` | a line per phase | phase 5 |
 
 ## 7. Status and log
 
@@ -275,7 +275,7 @@ where pictures change. Tests are written with the code, not after it.
 | 2. SPI and service | done 2026-11-22 (ADR-0735) |
 | 3. Fields | done 2026-11-22 (ADR-0736) |
 | 4. Menu | done 2026-11-22 (ADR-0737) |
-| 5. `goldberry-spell` | todo |
+| 5. `goldberry-spell` | done 2026-11-22 (ADR-0738) |
 | 6. Showcase and guide | todo |
 
 - **2026-11-22.** Plan written from the tree at `67e807d7`. Found:
@@ -353,3 +353,19 @@ where pictures change. Tests are written with the code, not after it.
   the personal dictionary). Everything is green: `:core:check`,
   `:widgets:check` and `:example:test`, with no golden moved. ADR-0737 is
   parked. Next: phase 5, `goldberry-spell` on Lucene.
+- **2026-11-22, phase 4 committed** as `9295cf6f`.
+- **2026-11-22, phase 5 done.** `:spell` is published as `goldberry-spell`,
+  optional, with `lucene-analysis-common` 10.6.0 in the catalog. It is listed
+  in `PublishedModules`, jacoco aggregation, the umbrella's POM (checked) and
+  `ARCHITECTURE.md`'s module table. `HunspellChecker` loads from paths or
+  streams with `SortingStrategy.inMemory()`, so the plan's temporary-file risk
+  is gone, and one `ReentrantLock` guards Lucene's stemmer buffers.
+  Suggestions stop after 250 ms. `HunspellProvider` is the service, in
+  `module-info` and `META-INF/services`. Tests: `HunspellCheckerTest`, 27
+  cases over a UTF-8 English and a Latin-1 German dictionary written for
+  them. They cover affixes, capitals, proper nouns, `REP`-led suggestions, a
+  transposition, limits, a broken file, 16 virtual threads at once, and
+  `SpellCheckers.load` finding the provider with a field's `SpellCheck` over
+  it. `:spell:check` and `:build-logic:test` are green. The benchmark moves
+  to phase 6, where `en_US` gives meaningful numbers. ADR-0738 is parked.
+  Next: phase 6, the showcase and the guide.

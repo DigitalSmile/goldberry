@@ -7050,6 +7050,10 @@ toolkit, and six entries arrived on it together. All six are closed.
   in the wrong theme, and neither reports an error. **The `Optional` is the design**
   — SDL says `UNKNOWN` on a desktop with no such setting, and "the desktop says
   light" and "the desktop does not say" are a theme and a default.
+- **`goldberry-spell`** (W3.7 phase 5, ADR-0738 parked, 2026-11-22). The engine:
+  Lucene 10.6.0's Hunspell in Java, an optional module providing
+  `SpellCheckerProvider`; `SpellCheckers.load(locale, aff, dic)` reads any
+  Hunspell dictionary in memory. No dictionary ships.
 - **The spelling menu** (W3.7 phase 4, ADR-0737 parked, 2026-11-22). A field's
   menu on a misspelled word: up to five suggestions (filled in when they
   arrive), Add to dictionary, Ignore, then the stock rows; a right-click in a

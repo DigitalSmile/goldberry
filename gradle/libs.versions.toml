@@ -48,6 +48,9 @@ jmh = "1.37"
 # applications choose the implementation. Goldberry binds no backend of its own.
 # Logback is the showcase's choice, and reaches nothing else.
 slf4j = "2.0.20"
+# Hunspell dictionaries for goldberry-spell, read in Java (lucene-analysis-common
+# brings lucene-core). Apache 2.0, the toolkit's own licence.
+lucene = "10.6.0"
 logback = "1.6.5"
 
 # --- Native dependencies ------------------------------------------------------
@@ -150,6 +153,7 @@ dav1dCommit = "54706fc6bc0cdecab7e9593974a4039cc038fca7"
 
 [libraries]
 slf4j-api = { module = "org.slf4j:slf4j-api", version.ref = "slf4j" }
+lucene-analysis-common = { module = "org.apache.lucene:lucene-analysis-common", version.ref = "lucene" }
 logback-classic = { module = "ch.qos.logback:logback-classic", version.ref = "logback" }
 
 junit-bom = { module = "org.junit:junit-bom", version.ref = "junit" }
