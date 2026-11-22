@@ -63,10 +63,10 @@ final class TextSelecting {
             // A widget took the press: the gesture is its own.
             return;
         }
-        var selection = target == null ? null : target.textSelection();
-        if (target != null && selection != null && selection.selectable(target)) {
+        if (target != null && target.textSelection().selectable(target)) {
             // A selectable box wins over the control it is in: words inside a
             // focusable scroll are still selected by dragging across them.
+            var selection = target.textSelection();
             if (active != null && active != selection) {
                 clear(active);
             }
