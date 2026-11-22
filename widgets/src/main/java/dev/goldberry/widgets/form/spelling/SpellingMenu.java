@@ -39,8 +39,10 @@ public final class SpellingMenu {
         boolean replace(int start, int end, String with);
     }
 
-    /// The word the menu is open on, as offsets into the field's whole text.
-    private record Target(SpellCheck check, int start, int end, String word) {}
+    /// The word the menu is open on, as offsets into the field's whole text,
+    /// with what its two last rows do. The rows hold the actions rather than the
+    /// check, which the field owns and closes.
+    private record Target(int start, int end, String word, Runnable addToDictionary, Runnable ignore) {}
 
     private final Runnable refresh;
     private @Nullable Target target;
@@ -73,9 +75,15 @@ public final class SpellingMenu {
         if (found == null) {
             return;
         }
-        var aimed = new Target(check, lineStart + found.start(), lineStart + found.end(), found.word());
+        var word = found.word();
+        var aimed = new Target(
+                lineStart + found.start(),
+                lineStart + found.end(),
+                word,
+                () -> check.addToDictionary(word),
+                () -> check.ignore(word));
         target = aimed;
-        check.suggest(aimed.word(), SUGGESTIONS, list -> {
+        check.suggest(word, SUGGESTIONS, list -> {
             if (target == aimed) {
                 suggestions = list;
                 refresh.run();
@@ -108,10 +116,8 @@ public final class SpellingMenu {
                 }));
             }
         }
-        rows.add(new Item(
-                Labels.text(ToolkitLabel.ADD_TO_DICTIONARY), () -> aimed.check().addToDictionary(aimed.word())));
-        rows.add(new Item(
-                Labels.text(ToolkitLabel.IGNORE_SPELLING), () -> aimed.check().ignore(aimed.word())));
+        rows.add(new Item(Labels.text(ToolkitLabel.ADD_TO_DICTIONARY), aimed.addToDictionary()));
+        rows.add(new Item(Labels.text(ToolkitLabel.IGNORE_SPELLING), aimed.ignore()));
         return List.copyOf(rows);
     }
 }

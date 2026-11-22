@@ -1,6 +1,8 @@
 package dev.goldberry.widgets.form.spelling;
 
 import static dev.goldberry.widgets.TestLoop.later;
+import static dev.goldberry.widgets.TestLoop.popups;
+import static dev.goldberry.widgets.TestLoop.when;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -13,6 +15,7 @@ import java.util.Locale;
 import java.util.Queue;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -34,6 +37,7 @@ import dev.goldberry.render.backend.headless.HeadlessWindow;
 import dev.goldberry.render.event.BackendEvent;
 import dev.goldberry.render.model.LogicalSize;
 import dev.goldberry.text.spell.SpellCheck;
+import dev.goldberry.text.spell.SpellChecker;
 import dev.goldberry.text.spell.SpellCheckers;
 import dev.goldberry.text.spell.WordListChecker;
 import dev.goldberry.widget.Widget;
@@ -181,13 +185,15 @@ class SpellingMenuTest {
     class InAWindow {
 
         private HeadlessBackend backend;
+        private Watched watched;
 
         @BeforeEach
         void setUp() {
             RendererRequirement.enforce();
             backend = new HeadlessBackend();
             GoldberryTestAccess.install(backend);
-            SpellCheckers.install(checker);
+            watched = new Watched(checker);
+            SpellCheckers.install(watched);
         }
 
         @AfterEach
@@ -202,17 +208,14 @@ class SpellingMenuTest {
             var values = new ArrayList<String>();
             var area = new TextArea("the quikc fox", values::add).spellcheck(true);
 
+            // The menu opens saying it is finding suggestions. When the suggestion
+            // comes it takes the first row's place, and the menu, drawn again, puts
+            // the focus on it: the first row that can run.
             Goldberry.launch(new TestApp(
                     new Column(area),
-                    () -> later(200, () -> {
-                        rightClick(50, 16);
-                        // The menu opens saying it is finding suggestions. When the
-                        // suggestion comes it takes the first row's place, and the menu,
-                        // drawn again, puts the focus on it: the first row that can run.
-                        later(300, () -> {
-                            press(Key.ENTER);
-                            later(200, Goldberry::stop);
-                        });
+                    () -> onTheSuggestion(() -> {
+                        press(Key.ENTER);
+                        when(() -> !values.isEmpty(), Goldberry::stop);
                     })));
 
             assertEquals("the quick fox", values.getLast());
@@ -224,19 +227,40 @@ class SpellingMenuTest {
         void addFromTheMenu() {
             var area = new TextArea("the quikc fox", value -> {}).spellcheck(true);
 
+            // The suggestion, then Add to dictionary.
             Goldberry.launch(new TestApp(
                     new Column(area),
-                    () -> later(200, () -> {
-                        rightClick(50, 16);
-                        // The suggestion, then Add to dictionary.
-                        later(300, () -> {
-                            press(Key.DOWN);
-                            press(Key.ENTER);
-                            later(200, Goldberry::stop);
-                        });
+                    () -> onTheSuggestion(() -> {
+                        press(Key.DOWN);
+                        press(Key.ENTER);
+                        when(() -> SpellCheckers.personal(Locale.US).contains("quikc"), Goldberry::stop);
                     })));
 
             assertTrue(SpellCheckers.personal(Locale.US).contains("quikc"));
+        }
+
+        /// Right-clicks "quikc" once the field knows it is misspelled, and runs
+        /// `then` once the open menu has been drawn with its suggestion.
+        ///
+        /// Each wait is for an event, not a time. The field checks and suggests on
+        /// virtual threads of its own, and such a thread has handed its answer to
+        /// the UI thread by the time it ends, so a step waits for the thread to end
+        /// and then goes once round the UI thread, behind the answer. The menu
+        /// takes the suggestion then, and the frame it presents after that is the
+        /// one the focus has moved in.
+        private void onTheSuggestion(Runnable then) {
+            when(
+                    () -> window().presentCount() > 0 && Watched.done(watched.checked),
+                    () -> later(0, () -> {
+                        rightClick(50, 16);
+                        when(
+                                () -> Watched.done(watched.suggested),
+                                () -> later(0, () -> {
+                                    var menu = popups(backend).getLast();
+                                    var drawn = menu.presentCount();
+                                    when(() -> menu.presentCount() > drawn, then);
+                                }));
+                    }));
         }
 
         private HeadlessWindow window() {
@@ -259,6 +283,46 @@ class SpellingMenuTest {
     }
 
     // --- helpers --------------------------------------------------------------
+
+    /// The checker the window's field checks with, saying which thread checked
+    /// "quikc" and which one made its suggestions.
+    private static final class Watched implements SpellChecker {
+
+        private final SpellChecker words;
+        private volatile @Nullable Thread checked;
+        private volatile @Nullable Thread suggested;
+
+        Watched(SpellChecker words) {
+            this.words = words;
+        }
+
+        /// Whether the work `thread` did has been handed back: it has ended, or it
+        /// is the thread asking, which is the UI thread when nothing ran apart.
+        static boolean done(@Nullable Thread thread) {
+            return thread != null && (thread == Thread.currentThread() || !thread.isAlive());
+        }
+
+        @Override
+        public Locale locale() {
+            return words.locale();
+        }
+
+        @Override
+        public boolean isCorrect(String word) {
+            var correct = words.isCorrect(word);
+            if (word.equals("quikc")) {
+                checked = Thread.currentThread();
+            }
+            return correct;
+        }
+
+        @Override
+        public List<String> suggest(String word, int limit) {
+            var found = words.suggest(word, limit);
+            suggested = Thread.currentThread();
+            return found;
+        }
+    }
 
     private record TestApp(Widget root, Runnable started) implements Application {
 

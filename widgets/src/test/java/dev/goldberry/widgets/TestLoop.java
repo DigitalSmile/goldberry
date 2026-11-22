@@ -1,12 +1,13 @@
 package dev.goldberry.widgets;
 
 import java.util.List;
+import java.util.function.BooleanSupplier;
 
 import dev.goldberry.Goldberry;
 import dev.goldberry.render.backend.headless.HeadlessBackend;
 import dev.goldberry.render.backend.headless.HeadlessPopup;
 
-/// The two moves a test makes when it drives the **real** frame loop.
+/// The moves a test makes when it drives the **real** frame loop.
 ///
 /// ## What these tests are
 ///
@@ -24,6 +25,9 @@ import dev.goldberry.render.backend.headless.HeadlessPopup;
 /// Their `TestApp`s are **not** here, and deliberately: they differ in root
 /// widget, in window size and in stylesheets, which is each test's own business.
 public final class TestLoop {
+
+    /// How often [#when] asks.
+    private static final long POLL_MILLIS = 10;
 
     private TestLoop() {}
 
@@ -47,6 +51,27 @@ public final class TestLoop {
                     return null;
                 })
                 .thenRun(action);
+    }
+
+    /// Runs `then` on the UI thread once `ready` says so, asking it again every
+    /// few milliseconds until it does.
+    ///
+    /// For a step that waits on something the toolkit does in its own time, such
+    /// as a check on a virtual thread landing, rather than on a guess at how long
+    /// that takes, which is what a slow runner breaks. There is no limit here: the
+    /// test's `@Timeout` is the bound, and a condition that never holds fails as
+    /// a timeout.
+    ///
+    /// @param ready asked on the UI thread
+    /// @param then  what to run, on the UI thread
+    public static void when(BooleanSupplier ready, Runnable then) {
+        later(POLL_MILLIS, () -> {
+            if (ready.getAsBoolean()) {
+                then.run();
+            } else {
+                when(ready, then);
+            }
+        });
     }
 
     /// Every popup window `backend` is currently showing, in the order it opened
