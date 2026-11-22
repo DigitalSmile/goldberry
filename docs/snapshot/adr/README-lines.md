@@ -165,3 +165,5 @@ Appended to the index when the records move in, in this order.
 - [ADR-0722 A camera is a picture source, copied out of the driver](0722-a-camera-is-a-picture-source-copied-out-of-the-driver.md)
 - [ADR-0723 A camera decodes Motion JPEG with the rasterizer's decoder](0723-a-camera-decodes-motion-jpeg-with-the-rasterizer-s-decoder.md)
 - [ADR-0724 Linux builds PipeWire in, and patches SDL's PipeWire camera](0724-linux-builds-pipewire-in-and-patches-sdl-s-pipewire-camera.md)
+- [ADR-0725 The showcase lists capture devices on open, records throwaway clips, and parked samples are inflated](0725-the-showcase-lists-capture-devices-on-open-records-throwaway-clips-and-parked-samples-are-inflated.md)
+- [ADR-0726 A popup fits each new description, and a tree can change its root](0726-a-popup-fits-each-new-description-and-a-tree-can-change-its-root.md)

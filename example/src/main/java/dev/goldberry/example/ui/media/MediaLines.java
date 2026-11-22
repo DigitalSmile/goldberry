@@ -28,7 +28,7 @@ public final class MediaLines {
     private MediaLines() {}
 
     /// A label and its value, on one line.
-    static Widget line(String label, String value) {
+    public static Row line(String label, String value) {
         return new Row(
                 List.of(
                         new Text(label, Attributes.NONE.classes("caption", "media-label")),
@@ -37,12 +37,12 @@ public final class MediaLines {
     }
 
     /// Buttons that belong together, wrapping when the card is narrow.
-    static Widget actions(List<? extends Widget> buttons) {
+    public static Widget actions(List<? extends Widget> buttons) {
         return new Row(List.copyOf(buttons), Attributes.NONE.classes("media-actions"));
     }
 
     /// A line of secondary text.
-    static Text caption(String text) {
+    public static Text caption(String text) {
         return new Text(text, Attributes.NONE.classes("caption"));
     }
 

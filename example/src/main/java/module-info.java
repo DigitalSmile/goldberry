@@ -44,6 +44,11 @@ module dev.goldberry.example {
     /// the module's widget catalog, and the screen drives a `MediaPlayer`.
     requires dev.goldberry.media;
 
+    // The Capture screen: the microphone's and the camera's widgets.
+    requires dev.goldberry.mic;
+
+    requires dev.goldberry.camera;
+
     /// `goldberry-gpu`: the GPU screen's `canvas3d` and the cube it draws with.
     /// It is also what composites the showcase's
     /// windows, which being on the module path was enough for.

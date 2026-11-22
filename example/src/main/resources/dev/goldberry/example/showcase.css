@@ -167,12 +167,10 @@
   flex-shrink: 0;
 }
 
-/* A line of prose stops at about seventy characters. A paragraph that ran the
-   width of a maximized window was a line the eye could not find its way back
-   along, which is most of what "long text is hard to read" was. */
-.screen-intro > .prose {
-  max-width: 760px;
-}
+/* The summary runs the width of the header, out to the Docs link above it.
+   It is one or two sentences, held under 280 characters, so even a wide
+   window gives it two lines at most; a cap at 760px left it ending well short
+   of the link on every wide screen. */
 
 .screen-head {
   flex-direction: row;

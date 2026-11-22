@@ -268,7 +268,7 @@ log in the same commit as the work.
 | T-02 | W3.1 | done: phases 1–7 (marks, `Editor` with marks, `rich-input`, the formatting bar and link editor, mentions, Markdown and HTML, the showcase's Rich input screen); the guide is parked until release (`docs/rich-text-input.md` §5) | 0703–0708 | |
 | T-03 | W2.6 | done | 0697 | |
 | T-04 | W2.5 | done | 0696 | |
-| T-05 | W3.4 | in progress (`docs/camera-and-mic.md`): D1–D9 taken (a), D8 on a measurement; phase 1 (the SDL surface, native ABI 29), phase 2 (`goldberry-mic`: recording, the synthetic source, levels and spectra) and phase 3 (`level-meter`, `waveform-view`, `spectrum-view`) and phase 4 (`goldberry-camera`, `camera-view`, planes drawn on the CPU), phase 4b (Motion JPEG through the rasterizer's decoder) and phase 5 (PipeWire compiled in and checked, SDL's PipeWire camera patched, cameras try it first) done; phase 6 (the showcase and the platforms) open | 0719, 0720, 0721, 0722, 0723, 0724 | |
+| T-05 | W3.4 | in progress (`docs/camera-and-mic.md`): D1–D9 taken (a), D8 on a measurement; phase 1 (the SDL surface, native ABI 29), phase 2 (`goldberry-mic`: recording, the synthetic source, levels and spectra) and phase 3 (`level-meter`, `waveform-view`, `spectrum-view`) and phase 4 (`goldberry-camera`, `camera-view`, planes drawn on the CPU), phase 4b (Motion JPEG through the rasterizer's decoder) and phase 5 (PipeWire compiled in and checked, SDL's PipeWire camera patched, cameras try it first) and phase 6 (the showcase's Capture screen, the parked guide with the macOS usage strings, the lanes) done. Open: hand checks on all four desktops | 0719, 0720, 0721, 0722, 0723, 0724, 0725 | |
 | T-06 | — | declined (D9) | 0689 | |
 | T-07 | W2.7 | done | 0698 | |
 | T-08 | W1.11 | done | 0684 | |
@@ -585,3 +585,12 @@ log in the same commit as the work.
   superbuild now patches it (`patches/sdl3-pipewire-camera.patch`, Linux
   only), and cameras try `pipewire,v4l2`. The C922 streams through PipeWire
   in every mode, MJPG 720p and 1080p at 30. ADR-0724. Next ADR 0725.
+- **2026-11-22, W3.4 phase 6.** Phases 4b and 5 committed (`a50b0dca`). The
+  showcase has a Capture screen after Video: a Microphone card (level meter,
+  spectrum, waveform) and a Camera card (`camera-view`, mirror and mode
+  pickers, what the camera offers), each with a test signal first in its
+  picker and the system's devices, listed as the screen opens, after it; each
+  records a throwaway clip and plays it back. `Cameras.open(CameraInfo,
+  CameraFormat)` opens an exact mode. The parked chapters say what macOS needs, and
+  `BookMarkupTest` inflates parked samples. The lanes already ran both
+  modules' tests. ADR-0725. Left: the hand checks.

@@ -36,7 +36,8 @@ tokens on `:root` in the application layer. The showcase opens at Medium
 - **The showcase's own type** follows the ranks. A screen's heading is
   `title`. Prose is `body`, no longer borrowed from `heading`. A card's title is
   body at the strong weight in the text's own ink, not a muted caption. A card's
-  summary is body in the muted ink. An intro paragraph stops at 760px.
+  summary is body in the muted ink. An intro paragraph stops at 760px
+  (amended 2026-11-22: no longer; see below).
 - **Walls are wider:** `Wall.COLUMN_WIDTH` went from 360 to 440, and cards have
   20px of padding.
 
@@ -48,3 +49,12 @@ tokens on `:root` in the application layer. The showcase opens at Medium
 - `ShowcaseTypographyTest` resolves through the Medium sheet and checks that
   an unclassed `text` inherits 15px, and that the three sizes step 13, 15, 17.
 - The guide's screen pictures show the larger type.
+
+## Amendment, 2026-11-22
+
+A screen header's summary runs the full width of the header, out to the Docs
+link above it. The owner found the 760px stop left the line ending well short
+of the link on wide screens. A summary is held under 280 characters
+(`Summaries.LIMIT`), so a wide window gives it two lines at most, and the reason
+for the cap (a paragraph the eye cannot track across a maximized window) does
+not arise. Home's guide paragraph, which is longer prose, keeps its 760px.

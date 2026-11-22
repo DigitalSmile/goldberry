@@ -6,8 +6,10 @@ import java.util.List;
 import java.util.Set;
 
 import dev.goldberry.assets.BundledFont;
+import dev.goldberry.camera.view.CameraStyles;
 import dev.goldberry.css.Stylesheet;
 import dev.goldberry.css.Theme;
+import dev.goldberry.example.capture.CaptureDevices;
 import dev.goldberry.example.model.ShowcaseActions;
 import dev.goldberry.example.model.ShowcaseModel;
 import dev.goldberry.example.ui.AppMenu;
@@ -16,6 +18,7 @@ import dev.goldberry.html.view.HtmlStyles;
 import dev.goldberry.icon.Icon;
 import dev.goldberry.markdown.view.MarkdownStyles;
 import dev.goldberry.media.view.MediaStyles;
+import dev.goldberry.mic.view.MicStyles;
 import dev.goldberry.platform.Capability;
 import dev.goldberry.text.font.Font;
 import dev.goldberry.widget.Widget;
@@ -46,6 +49,11 @@ public final class ShowcaseScene implements AutoCloseable {
     /// module's test task pins its library away.
     public static final Set<Capability> CAPABILITIES =
             Set.copyOf(EnumSet.complementOf(EnumSet.of(Capability.WEB_VIEW)));
+
+    /// The devices a picture of the Capture screen lists: none, because the
+    /// build machine's microphones and cameras are not something a golden may
+    /// photograph either.
+    public static final CaptureDevices DEVICES = CaptureDevices.none("a picture of the gallery lists no devices");
 
     private final Showcase showcase = new Showcase();
     private final ShowcaseModel model = showcase.model();
@@ -86,7 +94,8 @@ public final class ShowcaseScene implements AutoCloseable {
                         actions,
                         new AppMenu.Handlers(() -> {}, () -> {}, () -> {}, () -> {}, () -> {}, () -> {}, () -> {}),
                         plus),
-                CAPABILITIES);
+                CAPABILITIES,
+                DEVICES);
     }
 
     /// The stylesheets the window loads for `theme`, at the model's density.
@@ -100,6 +109,8 @@ public final class ShowcaseScene implements AutoCloseable {
         // And the module's other half, which the HTML screen is entirely made of.
         sheets.add(HtmlStyles.stylesheet());
         sheets.add(MediaStyles.stylesheet());
+        sheets.add(MicStyles.stylesheet());
+        sheets.add(CameraStyles.stylesheet());
         sheets.addAll(ShowcaseStyles.sheets());
         sheets.add(model.shell().readingSize().stylesheet());
         return sheets;

@@ -76,8 +76,26 @@ about devices plugged in and taken away; both are heard while the
 application's window loop runs, on its thread. A program with no window lists
 the devices again instead.
 
-On macOS the application's bundle needs an `NSMicrophoneUsageDescription`
-string, or the system ends the process the first time it records.
+### On macOS
+
+macOS records for an application only once the user has allowed it, and asks
+the first time a recording opens. The question quotes a sentence from the
+application's `Info.plist`:
+
+```xml
+<key>NSMicrophoneUsageDescription</key>
+<string>Records your voice for voice messages.</string>
+```
+
+Without the key the system does not ask: it ends the process the first time
+it records. The bundle is the application's own. The toolkit's Gradle plugin
+writes none, so the key goes into whatever `Info.plist` the packaging writes;
+`jpackage` takes a whole one from its `--resource-dir`. A program started
+from a terminal has no bundle of its own, so macOS asks on the terminal's
+behalf and remembers the answer for the terminal.
+
+A user who refused allows it again in System Settings, under Privacy &
+Security, then Microphone.
 
 ## Levels, spectra and outlines
 

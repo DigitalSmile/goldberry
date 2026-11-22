@@ -427,7 +427,7 @@ A `canvas3d` can be drawn at a scale of its box and brought up to it: the
 setting a game's options screen calls render scale. Fewer pixels drawn is
 frame rate bought for sharpness.
 
-```kdl
+```kdl,ignore
 canvas3d renderer="cube" continuous=#true depth="d16" render-scale=0.67 upscale="fsr1"
 ```
 

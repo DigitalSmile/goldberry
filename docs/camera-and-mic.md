@@ -15,7 +15,7 @@ on 2026-11-21**, D8 on the condition that a measurement showed playback was
 fine on PipeWire; it did once the sink counts
 two pulls on Linux (§3, D8). ADR-0719, parked in `docs/snapshot/adr/`, records
 all nine and phase 1. On 2026-11-22 the owner took D4 (d) instead of (a), after
-a measurement. **Phases 1–5 and 4b are done**; phase 6 is next.
+a measurement. **Phases 1–6 and 4b are done**; the hand checks on the four desktops are left.
 
 ## 1. Where things stand
 
@@ -346,7 +346,7 @@ Taken by the owner on 2026-11-22. As built (the log has what changed):
   streamed through SDL (see the log). The superbuild patches the driver on
   Linux, and the hint stays.
 
-### Phase 6 — the showcase, the platforms, the guide
+### Phase 6 — the showcase, the platforms, the guide (done, hand checks left)
 
 - A capture card on the showcase's Media section: a level meter, a spectrum
   and a camera view with a device picker.
@@ -355,6 +355,26 @@ Taken by the owner on 2026-11-22. As built (the log has what changed):
 - The guide sections parked in `docs/snapshot/`, with the macOS usage strings.
 - Hand checks: a USB camera and a headset microphone on X11, Wayland (PipeWire),
   Windows and macOS, plugged in and out while open.
+- As built: the showcase has no Media section (Audio and Video are two screens
+  around their players), so the cards are a **Capture** screen of their own
+  after Video, in `dev.goldberry.example.ui.capture`. Each card's picker offers
+  a test signal first (a 440 Hz tone, the synthetic test card), advanced by a
+  ticker on the window's loop, then the devices, listed as the screen opens
+  (a `CaptureDevices` on `GalleryContext`; none in pictures). Nothing records
+  until Start, and leaving the screen closes what was opened. The microphone
+  card has all three widgets; the camera card a mirror picker, a mode picker
+  over every mode the camera offers (`Cameras.open(CameraInfo, CameraFormat)`
+  is new), and what the camera is and offers. Each card records a throwaway
+  clip and plays it back: sound kept up to 30 s and played from a temporary
+  float WAV through a `MediaPlayer`; pictures copied up to 30 s or 256 MB and
+  pushed back on the loop's clock. The links point at the media chapter until
+  the two parked chapters move.
+- The lanes needed no change: both run `./gradlew build` with the library
+  required. The camera goldens need the media natives as well and skip
+  without them, so off a developer's Linux machine they skip.
+- `BookMarkupTest` inflates the parked `kdl` samples now, which found a
+  parked `canvas3d` sample of another batch that would have failed at
+  release.
 
 ## 5. Risks
 
@@ -415,7 +435,7 @@ Taken by the owner on 2026-11-22. As built (the log has what changed):
 | 4 `goldberry-camera` | done: `PictureView` converts planes on the CPU; the module, `Camera` sealed over a device's and a synthetic one, mode choice, the pool, permission followed, `camera-view` with states and mirror; three goldens; ADR-0722; the chapter parked |
 | 4b MJPG | done: every mode openable, MJPG decoded on the capture thread into a BGRA pool, standard Huffman tables inserted, dropped frames counted; ADR-0723 |
 | 5 PipeWire | done: required row in `LinuxDependencies`, a fatal superbuild check for V4L2 and both PipeWire drivers, the headers in every `libgoldberry` workflow, SDL's PipeWire camera patched, cameras try `pipewire,v4l2`; ADR-0724 |
-| 6 showcase, platforms, guide | not started |
+| 6 showcase, platforms, guide | done: the Capture screen (a Microphone and a Camera card, a test signal first, devices listed on open, camera modes picked, throwaway clips recorded and played back), `mic.css` and `camera.css` in the showcase, parked samples inflated, the macOS usage strings parked; the lanes unchanged; ADR-0725. **Left: the hand checks on four desktops** |
 
 - **2026-11-21.** Written from the tree at `258b836f`. D1–D9 asked. Next ADR
   0719.
@@ -541,3 +561,62 @@ Taken by the owner on 2026-11-22. As built (the log has what changed):
   the daemon's socket exists, and it does here. `SdlPatchTest` holds the
   declaration, the patch and the fetched source. `THIRD-PARTY-NOTICES.md`
   marks SDL altered.
+- **2026-11-22, phases 4b and 5 committed, phase 6.** Phases 4b and 5 are
+  `a50b0dca`. The plan's "Media section" does not exist, so the capture cards
+  are a Capture screen after Video (31 screens). `MicrophoneCard` and
+  `CameraCard` each take a `Supplier` of the device list, so a test hands in
+  one that refuses; their pickers put a test signal before the devices
+  (`DeviceChoice`, keyed by place, chosen by object, so a hot-plug moves the
+  key); a `Ticker` advances the synthetic sources on the loop. Nothing opens
+  while a card is built, so the golden is the same everywhere. Found on the
+  way: the showcase never loaded `mic.css` or `camera.css` (no meter track, no
+  camera backdrop); `MicrophoneException` had no public constructor; a card
+  test that mounts the meters needs `HeadlessRuntime`, since the redraw posts
+  to `Goldberry.ui()`, and `UiExecutor.drain()` runs it. Tests: 15 in
+  `ui.capture` (the picker, both cards on test signals and on a refusing
+  system, a golden of a second of the tone), and `CaptureLiveTest`'s two, which
+  recorded this machine's default microphone and opened the C922 for a call
+  through the cards. `BookMarkupTest` now inflates the parked `kdl` samples
+  too; its first run caught a parked `canvas3d` sample with no renderer
+  (fenced `kdl,ignore` now). The parked chapters have an `### On macOS` each
+  with the usage string. The Windows and macOS lanes already run both modules'
+  tests; nothing changed there. ADR-0725. Next ADR 0726. Left: the hand checks
+  (a USB camera and a headset on X11, Wayland, Windows and macOS, plugged in
+  and out while open).
+- **2026-11-22, phase 6 extended.** The owner asked for three more things:
+  throwaway clips played back on the same screen, a camera's modes shown and
+  picked, and the devices listed as the screen opens. Built: `CaptureDevices`
+  on `Screen` and `GalleryContext` (the system's in the window,
+  `CaptureDevices.none` in `ShowcaseScene`, the text-scale test, the shell
+  test and the frame-budget benchmark), so pictures stay the same everywhere;
+  `Cameras.open(CameraInfo, CameraFormat)` in `goldberry-camera`; a mode
+  picker and three lines of what the camera is and offers; the test card in
+  two sizes; and in a new `dev.goldberry.example.capture`, `AudioClip` (a
+  float WAV), `AudioClipRecorder`, `VideoClip`, `VideoClipRecorder` and the
+  picture copies. A clip's sound plays through a `MediaPlayer` of the card's
+  own, its outline lit as it plays; its pictures are pushed into a
+  `PushedPictures` a `picture-view` draws, unmirrored. Seen on the way: a
+  golden taken right after a press catches the buttons' colours mid-ease;
+  advance the clock first. Tests: 36 in the two capture packages, two goldens
+  (a second of the tone with a clip, the test card's card with a mode and a
+  clip), one exact-mode test in `:camera`; `CaptureLiveTest` now keeps and
+  plays a clip from the default microphone and from the C922. ADR-0725
+  amended in place (it was not committed) and renamed for its new title.
+- **2026-11-22, bigger cards, metrics, and a popup fix.** The owner asked for
+  bigger cards, metrics of the microphone and the camera, and reported an
+  exception on opening the mode picker. The exception was the toolkit's: a
+  `select` whose list is taller than the screen opens it inside a viewport,
+  and re-describes it on every build, which `Popup.content` handed to
+  `ElementTree.update` as the bare list. The first rebuild with the list open
+  threw. `Popup.content` now fits the new description as the popup was opened,
+  and `ElementTree` can `describe` (update or replace) its root; a
+  `SelectLoopTest` reproduces it through the real loop (ADR-0726). The Capture
+  screen is a wall of wide columns with taller pictures and readings, and each
+  card shows metrics from a `RateMeter` read on the window's clock, so the
+  goldens show what the test's clock says, not the machine's. Next ADR 0727.
+- **2026-11-22, the camera's driver shown.** The owner asked why the camera
+  was V4L2 and not PipeWire. It was PipeWire: a probe printed
+  `driver=pipewire` and `C922 Pro Stream Webcam (V4L2)`, the name PipeWire
+  gives the node its V4L2 plugin serves. `Cameras.driver()` is new in
+  `goldberry-camera` (through `CameraBackend.driver()`), and the camera card has
+  a Driver line saying which driver and what it is. ADR-0725 amended in place.

@@ -286,6 +286,41 @@ class ElementTreeTest {
         }
 
         @Test
+        @DisplayName("describing the root as the same kind of widget updates it in place")
+        void describeUpdates() {
+            var tree = new ElementTree(new Counter("first"));
+            var root = tree.root();
+            var state = stateOf(root);
+
+            assertTrue(tree.canUpdateTo(new Counter("second")));
+            tree.describe(new Counter("second"));
+
+            assertSame(root, tree.root());
+            assertSame(state, stateOf(tree.root()));
+            assertEquals(List.of("first"), state.updatedFrom);
+        }
+
+        @Test
+        @DisplayName("describing the root as another kind of widget replaces the tree and disposes the old")
+        void describeReplaces() {
+            var tree = new ElementTree(new Counter("counted"));
+            var before = tree.root();
+            var state = stateOf(before);
+
+            assertFalse(tree.canUpdateTo(new Row(new Counter("inner"))));
+            assertThrows(IllegalArgumentException.class, () -> tree.update(new Row(new Counter("inner"))));
+            tree.describe(new Row(new Counter("inner")));
+
+            assertNotSame(before, tree.root());
+            assertEquals(1, state.disposed, "the old root's state must be disposed");
+            assertFalse(before.isMounted());
+            assertEquals(
+                    "inner:0",
+                    labelOf(tree.root().children().getFirst().children().getFirst()));
+            assertFalse(tree.needsBuild(), "the new root is built at once");
+        }
+
+        @Test
         @DisplayName("keyed children keep their state when reordered")
         void reorderingKeepsState() {
             var tree = new ElementTree(new Row(List.of(new Counter("a", "a"), new Counter("b", "b")), null));

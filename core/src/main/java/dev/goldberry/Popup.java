@@ -321,13 +321,21 @@ public final class Popup implements AutoCloseable {
     /// Reconciled from the root rather than rebuilt, so the keyboard keeps its
     /// place and nothing flickers.
     ///
+    /// A popup opened with a [Host.Fit] shows what the fit answered, which for a
+    /// list taller than the screen is the list inside a viewport. The new
+    /// description is fitted the same way before it is reconciled, so the
+    /// viewport and its scroll position stay; a description that no longer
+    /// needs one is shown bare.
+    ///
     /// @param content the new description — the same kind of widget the popup was
-    ///                opened with, see [dev.goldberry.widget.ElementTree#update]
+    ///                opened with
     public void content(Widget content) {
         if (!isOpen()) {
             return;
         }
-        tree.update(Objects.requireNonNull(content, "content"));
+        Objects.requireNonNull(content, "content");
+        var described = measurer == null || tree.canUpdateTo(content) ? content : measurer.fit(tree, content);
+        tree.describe(described);
         resizeToContent();
         window.repaint();
     }
@@ -392,6 +400,13 @@ public final class Popup implements AutoCloseable {
         /// @return the size the content wants now, or null if it cannot be taken
         @Nullable
         LogicalSize measure(ElementTree tree, RenderTree render);
+
+        /// What to show for `content`, a new description of a popup whose `tree`
+        /// shows something else: the answer of the `Fit` it was opened with.
+        /// `content` itself for a popup opened with none.
+        default Widget fit(ElementTree tree, Widget content) {
+            return content;
+        }
     }
 
     private @Nullable Measurer measurer;

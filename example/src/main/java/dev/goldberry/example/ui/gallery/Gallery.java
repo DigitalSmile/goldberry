@@ -14,6 +14,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import dev.goldberry.example.ui.application.ApplicationChapter;
+import dev.goldberry.example.ui.capture.CaptureChapter;
 import dev.goldberry.example.ui.charts.ChartsChapter;
 import dev.goldberry.example.ui.collections.CollectionsChapter;
 import dev.goldberry.example.ui.content.HtmlChapter;
@@ -98,6 +99,7 @@ public final class Gallery {
             new GalleryTab("gpu", "GPU", GRAPHICS, "cpu", Fit.SCROLLED, GpuChapter::new),
             new GalleryTab("audio", "Audio", GRAPHICS, "music", Fit.SCROLLED, AudioChapter::new),
             new GalleryTab("video", "Video", GRAPHICS, "video", Fit.SCROLLED, VideoChapter::new),
+            new GalleryTab(CaptureChapter.NAME, "Capture", GRAPHICS, "mic", Fit.SCROLLED, CaptureChapter::new),
             new GalleryTab("markdown", "Markdown", CONTENT, "file-text", Fit.FILLS, MarkdownChapter::new),
             new GalleryTab("html", "HTML", CONTENT, "code", Fit.FILLS, HtmlChapter::new),
             new GalleryTab("web", "Web view", CONTENT, "globe", Fit.FILLS, WebChapter::new),

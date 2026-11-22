@@ -1523,18 +1523,43 @@ final class HostedWindow implements WindowHost {
         // gets a viewport when it outgrows the screen.
         var floor = minimumWidth;
         var refit = fit;
-        opened.ifPresent(popup -> popup.measuredBy((liveTree, liveRender) -> {
-            var measured = measure(liveTree, liveRender, floor);
-            if (refit == null) {
-                return measured;
+        opened.ifPresent(popup -> popup.measuredBy(new Popup.Measurer() {
+
+            @Override
+            public LogicalSize measure(ElementTree liveTree, RenderTree liveRender) {
+                var measured = HostedWindow.this.measure(liveTree, liveRender, floor);
+                if (refit == null) {
+                    return measured;
+                }
+                var shown = liveTree.root().widget();
+                var answer = refit.fit(shown, measured, placeableArea());
+                if (answer == shown) {
+                    return measured;
+                }
+                // The content outgrew the screen: the viewport is a new root.
+                liveTree.describe(answer);
+                return HostedWindow.this.measure(liveTree, liveRender, floor);
             }
-            var shown = liveTree.root().widget();
-            var answer = refit.fit(shown, measured, placeableArea());
-            if (answer == shown) {
-                return measured;
+
+            /// Measures `content` on a tree of its own, opened from where the
+            /// live one was, and asks the fit what to show for that size.
+            @Override
+            public Widget fit(ElementTree liveTree, Widget content) {
+                if (refit == null) {
+                    return content;
+                }
+                var probe = new ElementTree(content, HostedWindow.this);
+                probe.openedFrom(liveTree.openedFrom());
+                var probeRender = RenderTree.create();
+                try {
+                    var measured = HostedWindow.this.measure(probe, probeRender, floor);
+                    return Objects.requireNonNull(
+                            refit.fit(content, measured, placeableArea()), "a Fit answered with no content at all");
+                } finally {
+                    probe.unmount();
+                    probeRender.close();
+                }
             }
-            liveTree.update(answer);
-            return measure(liveTree, liveRender, floor);
         }));
         return opened;
     }

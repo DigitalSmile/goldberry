@@ -2,12 +2,14 @@ package dev.goldberry.example.ui;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 
 import dev.goldberry.Goldberry;
 import dev.goldberry.bind.Subscription;
 import dev.goldberry.bind.runtime.Models;
 import dev.goldberry.css.Theme;
+import dev.goldberry.example.capture.CaptureDevices;
 import dev.goldberry.example.model.ShowcaseActions;
 import dev.goldberry.example.model.ShowcaseModel;
 import dev.goldberry.example.ui.gallery.Documents;
@@ -80,6 +82,8 @@ import dev.goldberry.widgets.core.scroll.ScrollAxis;
 ///                   rebuilds when it moves
 /// @param capabilities what the screens say this build can do; see
 ///                 [GalleryContext#capabilities()]
+/// @param devices      where the Capture screen gets its devices; see
+///                     [GalleryContext#devices()]
 public record Screen(
         ShowcaseModel model,
         ShowcaseActions actions,
@@ -88,11 +92,26 @@ public record Screen(
         Runnable startTour,
         Runnable openSearch,
         AppMenu menu,
-        Set<Capability> capabilities)
+        Set<Capability> capabilities,
+        CaptureDevices devices)
         implements Widget.Stateful {
 
     public Screen {
         capabilities = Set.copyOf(capabilities);
+        Objects.requireNonNull(devices, "devices");
+    }
+
+    /// The window's screen over the system's devices, saying `capabilities`.
+    public Screen(
+            ShowcaseModel model,
+            ShowcaseActions actions,
+            KdlInflater<Widget> inflater,
+            Icon plus,
+            Runnable startTour,
+            Runnable openSearch,
+            AppMenu menu,
+            Set<Capability> capabilities) {
+        this(model, actions, inflater, plus, startTour, openSearch, menu, capabilities, CaptureDevices.system());
     }
 
     /// The window's screen, saying what the loaded library answers.
@@ -159,7 +178,8 @@ public record Screen(
                     documents,
                     widget().plus(),
                     widget().startTour(),
-                    widget().capabilities());
+                    widget().capabilities(),
+                    widget().devices());
             var model = widget().model();
             for (var path : FOLLOWED) {
                 watching.add(Models.observable(model.shell(), path).subscribe(value -> setState(() -> {})));

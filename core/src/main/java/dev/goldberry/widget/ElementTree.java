@@ -38,7 +38,7 @@ public final class ElementTree {
     /// more than any legitimate settle and small enough to stop quickly.
     private static final int MAX_PASSES = 10;
 
-    private final Element root;
+    private Element root;
     private final Set<Element> dirty = new LinkedHashSet<>();
 
     /// The window every element in this tree is being built into, or null.
@@ -210,6 +210,39 @@ public final class ElementTree {
                             + "; that is a different tree, not a new description of this one");
         }
         this.root.update(root);
+    }
+
+    /// Whether [#update] takes `root`: a widget of the same type and key as the
+    /// root now.
+    public boolean canUpdateTo(Widget root) {
+        return this.root.canUpdateTo(Objects.requireNonNull(root, "root"));
+    }
+
+    /// Describes the tree again with `root`: [#update] when it is the same kind
+    /// of widget as the root now, and otherwise [#replace].
+    ///
+    /// What a popup needs whose content can change shape. A list that outgrows
+    /// the screen is shown inside a viewport, and one that shrinks again is
+    /// shown bare, so the next description is not always the same type as the
+    /// last.
+    public void describe(Widget root) {
+        Objects.requireNonNull(root, "root");
+        if (this.root.canUpdateTo(root)) {
+            this.root.update(root);
+        } else {
+            replace(root);
+        }
+    }
+
+    /// Replaces the whole tree with one built from `root`: every state under the
+    /// old root is disposed, and the new one is built at once. Settings held by
+    /// the tree itself (the window, the element it was opened from) are kept.
+    public void replace(Widget root) {
+        Objects.requireNonNull(root, "root");
+        this.root.unmount();
+        dirty.clear();
+        this.root = new Element(this, null, root);
+        this.root.rebuild();
     }
 
     /// Tears the tree down, disposing every state.

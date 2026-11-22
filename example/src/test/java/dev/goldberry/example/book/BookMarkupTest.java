@@ -67,6 +67,25 @@ class BookMarkupTest {
                 }));
     }
 
+    /// The same promise for the pages parked until the release, so a sample
+    /// that would fail is found when it is written rather than when it moves
+    /// into the book: the microphone's and the camera's chapters name nodes
+    /// only `:mic` and `:camera` inflate, and the showcase has both.
+    @TestFactory
+    @DisplayName("a parked kdl sample inflates")
+    Stream<DynamicTest> everyParkedSampleInflates() {
+        var inflater = Widgets.inflater();
+        var samples = BookSamples.parkedKdl();
+        assertTrue(
+                samples.stream().anyMatch(sample -> sample.chapter().equals("components-camera.md")),
+                "the parked camera chapter has no kdl sample to check");
+        return samples.stream()
+                .map(sample -> DynamicTest.dynamicTest(sample.chapter() + ":" + sample.line(), () -> {
+                    List<Widget> widgets = inflate(inflater, sample);
+                    assertFalse(widgets.isEmpty(), () -> sample.chapter() + ":" + sample.line() + " builds no widget");
+                }));
+    }
+
     /// Inflates `sample`, or aborts the sample's test where that needs the native
     /// library and this build has none. The same three errors
     /// `RendererRequirement` treats as "no library": the first touch of a

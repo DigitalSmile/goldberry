@@ -1,0 +1,64 @@
+/* The rules of the Capture screen, `dev.goldberry.example.ui.capture`, loaded
+   after `showcase.css` by `ShowcaseStyles`. */
+
+/* The microphone's three readings in a well of their own, so a silent
+   spectrum, which draws nothing, still reads as a place where one goes. */
+.capture-readings {
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 8px;
+  background: var(--gb-surface-sunken);
+}
+
+/* The spectrum is the tallest reading; the meter and the outline keep the
+   sizes `mic.css` gives them. */
+#microphone-spectrum {
+  height: 160px;
+}
+
+#microphone-level {
+  height: 12px;
+}
+
+#microphone-waveform {
+  height: 72px;
+}
+
+/* The camera's picture at about 16:9 of a column, so the test card and a
+   call's 1280×720 fill it with little letterbox. */
+#camera-picture {
+  height: 360px;
+}
+
+/* A card's throwaway clip, under its live readings. */
+.capture-clip {
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+#camera-clip-picture {
+  height: 360px;
+  border-radius: 8px;
+  background: #000000;
+  overflow: hidden;
+}
+
+#microphone-clip-outline {
+  height: 72px;
+}
+
+/* The metrics: a label and its number per line, in a well like the readings',
+   so they read as instruments rather than prose. */
+.capture-metrics {
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px;
+  border-radius: 8px;
+  background: var(--gb-surface-sunken);
+}
+
+.capture-metrics .media-label {
+  min-width: 96px;
+}

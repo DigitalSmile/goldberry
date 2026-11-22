@@ -40,6 +40,11 @@ dependencies {
     // It carries the operating system's own decoders too, for the H.264, HEVC,
     // AAC, AC-3 and E-AC-3 samples the published natives do not build.
     implementation project(':media')
+    // The Capture screen: a microphone and a camera, each with its widgets.
+    // Both are Java over libgoldberry's SDL, so they bring no natives of
+    // their own.
+    implementation project(':mic')
+    implementation project(':camera')
     // The GPU: the GPU screen's
     // `canvas3d` and its cube, whose shaders `:gpu:compileShaders` compiles
     // into this module's resources. Being on the module path is also what lets

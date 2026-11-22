@@ -17,6 +17,7 @@ import dev.goldberry.Host;
 import dev.goldberry.Overlay;
 import dev.goldberry.Popup;
 import dev.goldberry.bind.runtime.Models;
+import dev.goldberry.camera.view.CameraStyles;
 import dev.goldberry.css.Stylesheet;
 import dev.goldberry.example.brand.ShowcaseCursors;
 import dev.goldberry.example.brand.ShowcaseIcon;
@@ -44,6 +45,7 @@ import dev.goldberry.input.key.Shortcut;
 import dev.goldberry.log.Startup;
 import dev.goldberry.markdown.view.MarkdownStyles;
 import dev.goldberry.media.view.MediaStyles;
+import dev.goldberry.mic.view.MicStyles;
 import dev.goldberry.render.model.LogicalSize;
 import dev.goldberry.widget.Widget;
 import dev.goldberry.widget.attr.Attributes;
@@ -266,6 +268,10 @@ public final class Showcase implements Application {
         sheets.add(HtmlStyles.stylesheet());
         // And the media module's, for `audio-player` and `media-player`.
         sheets.add(MediaStyles.stylesheet());
+        // And the microphone's and the camera's, for the Capture screen's
+        // meters and camera-view.
+        sheets.add(MicStyles.stylesheet());
+        sheets.add(CameraStyles.stylesheet());
         sheets.addAll(styles);
         // The reading size last: it is the type scale's tokens, and it has to
         // win over the theme's and anything this window's sheets said.

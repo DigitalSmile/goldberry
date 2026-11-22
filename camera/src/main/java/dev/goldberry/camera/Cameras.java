@@ -71,6 +71,18 @@ public final class Cameras implements AutoCloseable {
         return cameras;
     }
 
+    /// The system driver the cameras are reached through, as SDL names it:
+    /// `pipewire` or `v4l2` on Linux, `mediafoundation` on Windows,
+    /// `coremedia` on macOS. Empty where it does not say.
+    ///
+    /// Worth showing beside a camera's name. Through PipeWire a USB camera is
+    /// named after PipeWire's node, `C922 Pro Stream Webcam (V4L2)`, where the
+    /// suffix is the PipeWire plugin serving it, not the driver.
+    public Optional<String> driver() {
+        ensureOpen();
+        return backend.driver();
+    }
+
     /// The camera to open when the application has not chosen: the first
     /// facing the user, else the first. Empty with no camera.
     public Optional<CameraInfo> preferred() {
@@ -108,6 +120,27 @@ public final class Cameras implements AutoCloseable {
         ensureOpen();
         var mode =
                 spec.choose(camera.formats()).orElseThrow(() -> new CameraException(camera.name() + " offers no mode"));
+        return openIn(camera, mode);
+    }
+
+    /// Opens `camera` in exactly `mode`, one of its [CameraInfo#formats()]: a
+    /// mode a person picked from the list, rather than the one nearest a
+    /// spec.
+    ///
+    /// @throws IllegalArgumentException when `camera` does not offer `mode`
+    /// @throws CameraException          when it cannot be opened, or has gone
+    ///                                  away
+    public Camera open(CameraInfo camera, CameraFormat mode) {
+        Objects.requireNonNull(camera, "camera");
+        Objects.requireNonNull(mode, "mode");
+        if (!camera.formats().contains(mode)) {
+            throw new IllegalArgumentException(camera.name() + " does not offer " + mode);
+        }
+        ensureOpen();
+        return openIn(camera, mode);
+    }
+
+    private Camera openIn(CameraInfo camera, CameraFormat mode) {
         try {
             var stream = backend.open(camera.id(), mode);
             var holder = new DeviceCamera[1];

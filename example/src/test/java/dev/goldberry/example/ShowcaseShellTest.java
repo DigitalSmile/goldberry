@@ -110,6 +110,7 @@ class ShowcaseShellTest {
                         "gpu",
                         "audio",
                         "video",
+                        "capture",
                         "markdown",
                         "html",
                         "web",
@@ -356,7 +357,16 @@ class ShowcaseShellTest {
                     model.named(),
                     dev.goldberry.widgets.Icons.strict().bind("palette", plus).bind("plus", plus),
                     showcase.models().toArray());
-            var screen = new Screen(model, actions, inflater, plus, () -> {}, () -> {}, menu(new Presses()));
+            var screen = new Screen(
+                    model,
+                    actions,
+                    inflater,
+                    plus,
+                    () -> {},
+                    () -> {},
+                    menu(new Presses()),
+                    ShowcaseScene.CAPABILITIES,
+                    ShowcaseScene.DEVICES);
 
             // `#root` and not the tree's root: `Screen` is stateful, so the
             // element at the top is the widget and the column it builds is under

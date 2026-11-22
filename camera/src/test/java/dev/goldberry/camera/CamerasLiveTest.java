@@ -3,6 +3,7 @@ package dev.goldberry.camera;
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assumptions.assumeFalse;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
@@ -36,6 +37,7 @@ class CamerasLiveTest {
     @DisplayName("lists what the system has, and takes NV12 pictures from the preferred camera")
     void pictures() {
         try (var cameras = Cameras.open()) {
+            assertTrue(cameras.driver().isPresent(), "SDL started a driver and did not name it");
             var listed = cameras.list();
             assumeFalse(
                     System.getProperty("os.name", "").toLowerCase(Locale.ROOT).startsWith("mac"),

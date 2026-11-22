@@ -5,6 +5,7 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Consumer;
 
@@ -33,6 +34,11 @@ final class FakeCameraBackend implements CameraBackend {
     @Override
     public List<CameraInfo> devices() {
         return List.copyOf(devices);
+    }
+
+    @Override
+    public Optional<String> driver() {
+        return Optional.of("fake");
     }
 
     @Override

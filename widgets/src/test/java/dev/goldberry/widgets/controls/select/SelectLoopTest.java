@@ -11,6 +11,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
+import java.util.stream.IntStream;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -32,6 +33,8 @@ import dev.goldberry.render.backend.headless.HeadlessWindow;
 import dev.goldberry.render.event.BackendEvent;
 import dev.goldberry.render.model.LogicalRect;
 import dev.goldberry.render.model.LogicalSize;
+import dev.goldberry.widget.BuildContext;
+import dev.goldberry.widget.State;
 import dev.goldberry.widget.Widget;
 import dev.goldberry.widget.attr.Attributes;
 import dev.goldberry.widgets.Controls;
@@ -128,6 +131,69 @@ class SelectLoopTest {
     /// below the field's bottom — which is the one assertion that tells a
     /// placement bug from an anchor bug, because it is stated in the window's own
     /// coordinates and reads the position the backend was actually given.
+    /// A select's owner that rebuilds when told, which rebuilds the select and so
+    /// re-describes its open list.
+    private record Owner(Widget select, AtomicReference<Runnable> rebuild) implements Widget.Stateful {
+
+        @Override
+        public State<?> createState() {
+            return new State<Owner>() {
+                private int builds;
+
+                @Override
+                protected void initState() {
+                    widget().rebuild().set(() -> setState(() -> builds++));
+                }
+
+                @Override
+                public Widget build(BuildContext context) {
+                    return new Column(List.of(widget().select()), Attributes.NONE.classes("built-" + builds));
+                }
+            };
+        }
+    }
+
+    /// The defect of a list too tall for the screen, which opened inside a
+    /// viewport and then threw the first time its owner rebuilt: the select
+    /// re-describes the open list on every build, and the description was the
+    /// bare list while the popup showed the viewport, a tree of another type.
+    @Test
+    @Timeout(20)
+    @DisplayName("a list taller than the screen stays open in its viewport while its owner rebuilds")
+    void tallListSurvivesARebuild() {
+        backend.workArea(LogicalRect.of(0, 0, 800, 400));
+        var options = IntStream.range(0, 120)
+                .mapToObj(at -> new Option("o" + at, "Option " + at))
+                .toArray(Option[]::new);
+        var rebuild = new AtomicReference<Runnable>();
+        var heights = new ArrayList<Float>();
+
+        Goldberry.launch(new TestApp(
+                new Owner(new Select("o3", value -> {}, options).withAttributes(Attributes.NONE.id("long")), rebuild),
+                host -> later(200, () -> {
+                    var anchor = host.anchor("long").orElseThrow().bounds();
+                    click(main(), anchor.left() + 20, anchor.top() + 8);
+                    later(300, () -> {
+                        popups(backend)
+                                .forEach(popup -> heights.add(popup.size().height()));
+                        rebuild.get().run();
+                        later(300, () -> {
+                            rebuild.get().run();
+                            later(300, () -> {
+                                popups(backend)
+                                        .forEach(popup ->
+                                                heights.add(popup.size().height()));
+                                Goldberry.stop();
+                            });
+                        });
+                    });
+                })));
+
+        assertEquals(2, heights.size(), "the list was not open both before and after the rebuilds: " + heights);
+        assertTrue(heights.getFirst() <= 400, "the list is taller than the work area: " + heights);
+        assertEquals(heights.getFirst(), heights.getLast(), 0.5f, "the list changed height when re-described");
+    }
+
     @Test
     @Timeout(20)
     @DisplayName("a combobox's list opens below the field, not inside it")

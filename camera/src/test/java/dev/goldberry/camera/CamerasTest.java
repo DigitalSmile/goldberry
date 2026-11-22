@@ -50,6 +50,7 @@ class CamerasTest {
         backend.devices.add(FakeCameraBackend.camera(2, "Lid", CameraPosition.FRONT, VGA));
         try (var cameras = new Cameras(backend)) {
             assertEquals(2, cameras.list().size());
+            assertEquals(Optional.of("fake"), cameras.driver(), "the backend's driver");
             assertEquals("Lid", cameras.preferred().orElseThrow().name());
             backend.devices.remove(1);
             assertEquals("Desk", cameras.preferred().orElseThrow().name());
@@ -81,6 +82,26 @@ class CamerasTest {
                             CameraException.class, () -> cameras.open(backend.devices.get(2), CameraSpec.CALL)));
             backend.refuses = true;
             assertThrows(CameraException.class, () -> cameras.open(backend.devices.getFirst(), CameraSpec.CALL));
+        }
+    }
+
+    @Test
+    @DisplayName(
+            "open exactly the mode picked, Motion JPEG where an uncompressed one is as near, and refuse one not offered")
+    void exactMode() {
+        var compressedVga = new CameraFormat(64, 48, 30, 1, true);
+        var camera = FakeCameraBackend.camera(1, "Cam", CameraPosition.UNKNOWN, VGA, compressedVga);
+        backend.devices.add(camera);
+        try (var cameras = new Cameras(backend);
+                var picked = cameras.open(camera, compressedVga)) {
+            assertAll(
+                    () -> assertEquals(compressedVga, picked.format()),
+                    () -> assertEquals(compressedVga, backend.opened.getFirst().mode),
+                    () -> assertThrows(
+                            IllegalArgumentException.class,
+                            () -> cameras.open(camera, CameraFormat.of(1280, 720, 30))));
+            backend.refuses = true;
+            assertThrows(CameraException.class, () -> cameras.open(camera, VGA));
         }
     }
 

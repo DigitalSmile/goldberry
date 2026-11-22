@@ -1,6 +1,7 @@
 package dev.goldberry.camera.backend;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.function.Consumer;
 
 import dev.goldberry.camera.CameraFormat;
@@ -15,6 +16,10 @@ public interface CameraBackend extends AutoCloseable {
 
     /// The cameras there are now.
     List<CameraInfo> devices();
+
+    /// The system driver the cameras are reached through: `pipewire`, `v4l2`,
+    /// `mediafoundation`, `coremedia`; empty where it does not say.
+    Optional<String> driver();
 
     /// Opens camera `id` in `mode`: an uncompressed mode's frames converted to
     /// NV12, a compressed one's lent as the camera's Motion JPEG.

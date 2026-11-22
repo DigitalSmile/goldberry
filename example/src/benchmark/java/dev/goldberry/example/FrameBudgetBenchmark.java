@@ -14,12 +14,14 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import dev.goldberry.Goldberry;
 import dev.goldberry.RendererRequirement;
 import dev.goldberry.assets.BundledAssets;
 import dev.goldberry.assets.BundledFont;
 import dev.goldberry.css.Stylesheet;
 import dev.goldberry.css.Theme;
 import dev.goldberry.css.cascade.CascadeLayer;
+import dev.goldberry.example.capture.CaptureDevices;
 import dev.goldberry.example.model.ShowcaseActions;
 import dev.goldberry.example.model.ShowcaseModel;
 import dev.goldberry.example.ui.AppMenu;
@@ -279,7 +281,9 @@ class FrameBudgetBenchmark {
                 new AppMenu(
                         actions,
                         new AppMenu.Handlers(() -> {}, () -> {}, () -> {}, () -> {}, () -> {}, () -> {}, () -> {}),
-                        plus)));
+                        plus),
+                Goldberry.capabilities(),
+                CaptureDevices.none("a measured screen lists no devices")));
     }
 
     private WidgetRenderer rendererFor() {

@@ -33,6 +33,7 @@ public final class ShowcaseStyles {
             "drawing",
             "content",
             "media",
+            "capture",
             "gpu",
             "styling",
             "input",

@@ -1,8 +1,10 @@
 package dev.goldberry.example.ui.gallery;
 
+import java.util.Objects;
 import java.util.Set;
 
 import dev.goldberry.Goldberry;
+import dev.goldberry.example.capture.CaptureDevices;
 import dev.goldberry.example.model.ShowcaseActions;
 import dev.goldberry.example.model.ShowcaseModel;
 import dev.goldberry.icon.Icon;
@@ -26,19 +28,36 @@ import dev.goldberry.platform.Capability;
 ///                     `Goldberry.capabilities()`, and a picture of a screen
 ///                     pins it, because the build machine is not something a
 ///                     golden may photograph
+/// @param devices      where the Capture screen gets microphones and cameras:
+///                     the system's in the window, none in a picture, for the
+///                     same reason as the capabilities
 public record GalleryContext(
         ShowcaseModel model,
         ShowcaseActions actions,
         Documents documents,
         Icon plus,
         Runnable startTour,
-        Set<Capability> capabilities) {
+        Set<Capability> capabilities,
+        CaptureDevices devices) {
 
     public GalleryContext {
         capabilities = Set.copyOf(capabilities);
+        Objects.requireNonNull(devices, "devices");
     }
 
-    /// A context that reports what the loaded library answers.
+    /// A context over the system's devices, reporting `capabilities`.
+    public GalleryContext(
+            ShowcaseModel model,
+            ShowcaseActions actions,
+            Documents documents,
+            Icon plus,
+            Runnable startTour,
+            Set<Capability> capabilities) {
+        this(model, actions, documents, plus, startTour, capabilities, CaptureDevices.system());
+    }
+
+    /// A context that reports what the loaded library answers, over the
+    /// system's devices.
     public GalleryContext(
             ShowcaseModel model, ShowcaseActions actions, Documents documents, Icon plus, Runnable startTour) {
         this(model, actions, documents, plus, startTour, Goldberry.capabilities());

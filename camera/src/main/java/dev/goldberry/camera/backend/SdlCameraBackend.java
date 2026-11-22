@@ -2,6 +2,7 @@ package dev.goldberry.camera.backend;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.function.Consumer;
 
 import dev.goldberry.camera.CameraFormat;
@@ -43,6 +44,11 @@ public final class SdlCameraBackend implements CameraBackend {
     @Override
     public List<CameraInfo> devices() {
         return cameras.cameras().stream().map(SdlCameraBackend::info).toList();
+    }
+
+    @Override
+    public Optional<String> driver() {
+        return cameras.driver();
     }
 
     @Override

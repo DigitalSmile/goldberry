@@ -63,6 +63,17 @@ uncompressed only at 10, opens the compressed mode for `CameraSpec.CALL`, and
 640×480 at 30 uncompressed for `CameraSpec.PREVIEW`. `CameraInfo.formats()`
 lists every mode, and `CameraFormat.compressed()` says which need decoding.
 
+A settings screen that lists the modes for a person to pick opens exactly the
+one picked:
+
+```java
+var mode = camera.formats().get(picked);
+var opened = cameras.open(camera, mode);
+```
+
+A mode the camera does not offer is refused with an
+`IllegalArgumentException`.
+
 Pictures are taken newest first, on a thread of the camera's own: NV12 planes
 from an uncompressed mode, BGRA pictures from a compressed one. A picture
 stays as it is until two more have been shown after it, so a view that draws
@@ -76,6 +87,12 @@ drives the laptop cameras only it can serve and lets two applications share a
 camera, and through V4L2 otherwise. Setting `SDL_CAMERA_DRIVER` in the
 environment (`v4l2` or `pipewire`) picks one.
 
+`Cameras.driver()` names the driver in use: `pipewire` or `v4l2` on Linux,
+`mediafoundation` on Windows, `coremedia` on macOS. Through PipeWire a camera
+is named after PipeWire's node, so a USB camera is listed as
+`C922 Pro Stream Webcam (V4L2)`. The suffix names the PipeWire plugin that
+serves the camera, not the driver the application reaches it through.
+
 | Status | Means |
 |---|---|
 | `Asking` | The system is asking the user; no pictures yet |
@@ -84,8 +101,27 @@ environment (`v4l2` or `pipewire`) picks one.
 | `Lost` | The camera was unplugged or stopped; final |
 | `Closed` | Closed; final |
 
-On macOS the application's bundle needs an `NSCameraUsageDescription`
-string, and the first camera opened asks the user.
+### On macOS
+
+macOS lets an application use a camera only once the user has allowed it, and
+asks the first time one opens. Until the user answers, the camera is
+`Asking` and a `camera-view` says so; an answer makes it `Active` or `Denied`.
+The question quotes a sentence from the application's `Info.plist`:
+
+```xml
+<key>NSCameraUsageDescription</key>
+<string>Shows your camera in calls.</string>
+```
+
+Without the key the system does not ask: it ends the process when the camera
+opens. As with the microphone, the bundle is the application's own: the
+toolkit's Gradle plugin writes none, and `jpackage` takes a whole
+`Info.plist` from its `--resource-dir`. A program started from a terminal is
+asked about on the terminal's behalf. An application that records its calls'
+sound as well needs both keys.
+
+A user who refused allows it again in System Settings, under Privacy &
+Security, then Camera.
 
 ## `camera-view`
 

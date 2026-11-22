@@ -12,9 +12,11 @@ import org.junit.jupiter.api.DynamicTest;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestFactory;
 
+import dev.goldberry.Goldberry;
 import dev.goldberry.RendererRequirement;
 import dev.goldberry.css.Stylesheet;
 import dev.goldberry.css.Theme;
+import dev.goldberry.example.capture.CaptureDevices;
 import dev.goldberry.example.model.ShowcaseActions;
 import dev.goldberry.example.model.ShowcaseModel;
 import dev.goldberry.example.ui.AppMenu;
@@ -126,7 +128,9 @@ class GalleryTextScaleTest {
                 new AppMenu(
                         actions,
                         new AppMenu.Handlers(() -> {}, () -> {}, () -> {}, () -> {}, () -> {}, () -> {}, () -> {}),
-                        plus));
+                        plus),
+                Goldberry.capabilities(),
+                CaptureDevices.none("a measured screen lists no devices"));
     }
 
     /// The sheets `Showcase.stylesheets()` adds, so a screen is audited against

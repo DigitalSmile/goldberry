@@ -74,8 +74,30 @@ final class BookSamples {
         }
     }
 
+    /// Every `kdl` sample not marked `ignore` in the pages parked for the next
+    /// release, in `docs/snapshot/` beside the book. Its records are left out,
+    /// as the log's are.
+    static List<Sample> parkedKdl() {
+        var parked = source().getParent().getParent().resolve("docs/snapshot");
+        try (Stream<Path> files = Files.list(parked)) {
+            return files.filter(Files::isRegularFile)
+                    .filter(path -> path.toString().endsWith(".md"))
+                    .sorted()
+                    .flatMap(page -> samples(parked, page).stream())
+                    .filter(sample -> sample.language().equals("kdl") && !sample.ignored())
+                    .toList();
+        } catch (IOException e) {
+            throw new UncheckedIOException("cannot list " + parked, e);
+        }
+    }
+
     private static List<Sample> samples(Path page) {
-        var chapter = source().relativize(page).toString().replace('\\', '/');
+        return samples(source(), page);
+    }
+
+    /// The samples in `page`, each named by the page's path under `root`.
+    private static List<Sample> samples(Path root, Path page) {
+        var chapter = root.relativize(page).toString().replace('\\', '/');
         List<String> lines;
         try {
             lines = Files.readAllLines(page);
