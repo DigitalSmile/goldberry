@@ -327,6 +327,15 @@ module dev.goldberry.core {
     // shaping text on a `canvas` asks the same question a paragraph does.
     exports dev.goldberry.text.bidi;
 
+    // Spell checking: the checker an engine provides, the registry an
+    // application installs dictionaries in, and the service a field checks its
+    // lines with. Exported because the application loads the dictionaries and
+    // keeps the personal one; the engine is a module of its own, found as a
+    // service.
+    exports dev.goldberry.text.spell;
+
+    uses dev.goldberry.text.spell.SpellCheckerProvider;
+
     // The backend SPI, and the one backend that needs no platform under it.
     // `sdl3` is what makes this module `requires` the natives module; `headless`
     // deliberately does not, so tests of everything above the SPI need no native

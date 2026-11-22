@@ -311,3 +311,6 @@ Everything below is measured against 2026.2 (tag commit d3eacfdc).
 - `text-decoration: underline red` and the other declarations that named a
   style, a colour or a thickness used to be dropped whole, and are now drawn
   as written. <!-- ADR-0734 -->
+- `PseudoElement` has two more constants, `SPELLING_ERROR` and
+  `GRAMMAR_ERROR`; an exhaustive `switch` over it names two more cases.
+  <!-- ADR-0735 -->

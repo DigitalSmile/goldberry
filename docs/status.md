@@ -7050,6 +7050,12 @@ toolkit, and six entries arrived on it together. All six are closed.
   in the wrong theme, and neither reports an error. **The `Optional` is the design**
   — SDL says `UNKNOWN` on a desktop with no such setting, and "the desktop says
   light" and "the desktop does not say" are a theme and a default.
+- **Spell checking's service** (W3.7 phase 2, ADR-0735 parked, 2026-11-22).
+  `dev.goldberry.text.spell` in `:core`: `SpellChecker` and its provider
+  service, the `SpellCheckers` registry, `PersonalDictionary`, `WordScanner`
+  and `SpellCheck`, the per-field service that checks lines off the UI thread
+  and keeps its answers by the line's text. `::spelling-error` is a pseudo-element.
+  No engine yet. The fields draw nothing yet (phase 3).
 - **`text-decoration` in full** (W3.7 phase 1, ADR-0734 parked, 2026-11-22).
   `text-decoration-style` (`solid` `double` `dotted` `dashed` `wavy`),
   `-color`, `-thickness` and `text-underline-offset`, and the shorthand in any

@@ -174,3 +174,4 @@ Appended to the index when the records move in, in this order.
 - [ADR-0732 A raster texture waits on the frame that copies it](0732-a-raster-texture-waits-on-the-frame-that-copies-it.md)
 - [ADR-0733 Spelling is checked by Lucene's Hunspell, in a module of its own](0733-spelling-is-checked-by-lucenes-hunspell-in-a-module-of-its-own.md)
 - [ADR-0734 A text decoration is drawn as the box that declared it says](0734-a-text-decoration-is-drawn-as-the-box-that-declared-it-says.md)
+- [ADR-0735 A field's spelling is checked per line, by its text, off the UI thread](0735-a-fields-spelling-is-checked-per-line-by-its-text.md)

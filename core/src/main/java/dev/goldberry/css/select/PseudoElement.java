@@ -4,8 +4,8 @@ import java.util.Locale;
 
 import org.jspecify.annotations.Nullable;
 
-/// The pseudo-elements a stylesheet can write: `::placeholder` and
-/// `::selection`.
+/// The pseudo-elements a stylesheet can write: `::placeholder`,
+/// `::selection`, `::spelling-error` and `::grammar-error`.
 ///
 /// ```css
 /// text-input::placeholder { color: var(--gb-text-muted) }
@@ -31,11 +31,19 @@ public enum PseudoElement {
 
     /// The wash behind selected text. It takes `background`; the text keeps
     /// its own colour, so a selection stays readable.
-    SELECTION;
+    SELECTION,
+
+    /// A word a spell checker did not know. It takes `color`, `background` and
+    /// the `text-decoration` properties; the theme draws a wavy underline.
+    SPELLING_ERROR,
+
+    /// A stretch a grammar checker would flag. Reserved: CSS names it beside
+    /// `::spelling-error`, and nothing stands for it yet.
+    GRAMMAR_ERROR;
 
     /// The name as it is written after `::`.
     public String cssName() {
-        return name().toLowerCase(Locale.ROOT);
+        return name().toLowerCase(Locale.ROOT).replace('_', '-');
     }
 
     /// The pseudo-element called `name`, or null for one outside the set.

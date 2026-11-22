@@ -118,6 +118,9 @@ application. A field checks with the checker for its `lang=` (an attribute
 that is new on fields). Without one it uses `Labels`' locale, then the
 default locale. A missing language checks nothing and is logged once.
 
+*Amended in phase 2:* `Labels` carries no locale, so a field with no
+`lang=` uses the default locale.
+
 ### D7. The personal dictionary (taken: (a))
 
 **(a) Recommended.** *Add to dictionary* adds the word to an in-memory
@@ -253,10 +256,10 @@ where pictures change. Tests are written with the code, not after it.
 |----------|------|--------|
 | `docs/gaps/goldberry-gaps-plan.md` §8, §10 | T-25's row and the log | plan written |
 | `docs/gaps/answers-tessera.md` | T-25's answer when it lands | open |
-| `docs/snapshot/adr/` | ADR-0733 (D1–D9), ADR-0734 (phase 1) | phase 1 done |
+| `docs/snapshot/adr/` | ADR-0733 (D1–D9), ADR-0734 (phase 1), ADR-0735 (phase 2) | phase 2 done |
 | `docs/snapshot/changelog-breaking-changes.md` | `ComputedStyle.textDecoration()`'s type, one more component on `TextFlow`, `SpanPaint` and `MarkStyle` | done (phase 1) |
 | `docs/snapshot/` guide pieces | styling (`guide-styling-text-decoration.md`, done), forms (spell checking) | styling done |
-| `docs/status.md` | a line per phase | phase 1 |
+| `docs/status.md` | a line per phase | phase 2 |
 
 ## 7. Status and log
 
@@ -264,7 +267,7 @@ where pictures change. Tests are written with the code, not after it.
 |-------|--------|
 | 0. Plan | done (this document, ADR-0733) |
 | 1. CSS text decoration | done 2026-11-22 (ADR-0734) |
-| 2. SPI and service | todo |
+| 2. SPI and service | done 2026-11-22 (ADR-0735) |
 | 3. Fields | todo |
 | 4. Menu | todo |
 | 5. `goldberry-spell` | todo |
@@ -295,3 +298,18 @@ where pictures change. Tests are written with the code, not after it.
   ADR-0733 (the decisions) and ADR-0734 (phase 1) are parked, and the guide
   piece is `docs/snapshot/guide-styling-text-decoration.md`. Next: phase 2,
   the SPI.
+- **2026-11-22, phase 1 committed** as `7c131331`.
+- **2026-11-22, phase 2 done.** `dev.goldberry.text.spell` is exported from
+  `:core`: `SpellChecker`, the `SpellCheckerProvider` service, `SpellCheckers`
+  (lookup by locale, then language, then the language elsewhere),
+  `PersonalDictionary`, `WordScanner`, `Misspelling`, and `SpellCheck`, which
+  keeps its answers by the line's text with one background batch out at a
+  time. `PseudoElement` gained `SPELLING_ERROR` and `GRAMMAR_ERROR`.
+  `WordListChecker` is in `:core`'s test fixtures for the phases that
+  follow. D6 changed: `Labels` carries no locale, so a field with no `lang`
+  uses the default locale. The theme's `::spelling-error` rule waits for
+  phase 3, which adds the part that stands for it. Tests: `WordScannerTest`
+  (a table of 17 lines), `SpellCheckTest` (immediate, and queued with both
+  threads drained by hand), `SpellCheckersTest`. `:core:check` and the
+  module-path run of `:example` are green. ADR-0735 is parked. Next: phase 3,
+  the fields.
