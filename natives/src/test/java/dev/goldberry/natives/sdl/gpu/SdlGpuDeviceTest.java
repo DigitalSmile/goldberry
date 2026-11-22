@@ -285,6 +285,39 @@ class SdlGpuDeviceTest {
     }
 
     @Test
+    @DisplayName("records an upload from a buffer mapped persistently, and refuses one mapped the ordinary way")
+    void uploadsFromAPersistentMapping() {
+        var region = new SdlGpuRegion(0, 0, 16, 8);
+        var bytes = new byte[16 * 8 * 4];
+        new Random(13).nextBytes(bytes);
+        try (var texture = device.createTexture(SdlGpuTextureFormat.R8G8B8A8_UNORM, 16, 8, TARGET);
+                var persistent = device.createTransferBuffer(SdlGpuTransferUsage.UPLOAD, bytes.length);
+                var ordinary = device.createTransferBuffer(SdlGpuTransferUsage.UPLOAD, bytes.length);
+                var download = device.createTransferBuffer(SdlGpuTransferUsage.DOWNLOAD, bytes.length)) {
+            persistent.mapPersistently().put(bytes);
+            assertTrue(persistent.isPersistentlyMapped());
+            ordinary.map(false);
+            assertFalse(ordinary.isPersistentlyMapped());
+            var commands = device.acquireCommandBuffer();
+            try (var pass = commands.beginCopyPass()) {
+                assertThrows(IllegalStateException.class, () -> pass.upload(ordinary, 0, texture, region, false));
+                pass.upload(persistent, 0, texture, region, false);
+                pass.download(texture, region, download, 0);
+            }
+            try (var fence = commands.submitWithFence()) {
+                fence.await();
+            }
+            var back = new byte[bytes.length];
+            download.map(false).get(back);
+            download.unmap();
+            assertArrayEquals(bytes, back);
+            assertThrows(IllegalStateException.class, download::mapPersistently, "only an upload buffer");
+            persistent.unmap();
+            assertFalse(persistent.isPersistentlyMapped());
+        }
+    }
+
+    @Test
     @DisplayName("round-trips 16-bit planes, as a 10-bit video's luma will travel")
     void roundTripsSixteenBitPlanes() {
         var region = new SdlGpuRegion(0, 0, 8, 8);

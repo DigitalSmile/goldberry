@@ -4,6 +4,7 @@ import java.nio.ByteBuffer;
 import java.util.EnumSet;
 import java.util.List;
 
+import dev.goldberry.gpu.render.mapped.CopyShape;
 import dev.goldberry.natives.sdl.gpu.SdlGpuDevice;
 import dev.goldberry.natives.sdl.gpu.SdlGpuFence;
 import dev.goldberry.natives.sdl.gpu.SdlGpuRegion;
@@ -73,7 +74,9 @@ final class UploadCost {
     Row measure(Path path, int width, int height, Damage damage) {
         var stride = UploadAlignment.DIRECT3D12.pitch((long) width * 4);
         var regions = damage.regions(width, height);
-        var recorded = path == Path.IN_PLACE_BANDS ? Damage.bands(regions, width, stride) : regions;
+        var recorded = path == Path.IN_PLACE_BANDS
+                ? CopyShape.BANDS.copies(regions, width, stride, UploadAlignment.DIRECT3D12)
+                : regions;
         var whole = damage == Damage.WHOLE;
         var bytes = 0L;
         for (var region : recorded) {

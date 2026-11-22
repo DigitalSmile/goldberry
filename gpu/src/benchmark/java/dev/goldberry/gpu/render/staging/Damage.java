@@ -1,6 +1,5 @@
 package dev.goldberry.gpu.render.staging;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import dev.goldberry.natives.sdl.gpu.SdlGpuRegion;
@@ -37,27 +36,6 @@ enum Damage {
             }
             case WHOLE -> List.of(new SdlGpuRegion(0, 0, width, height));
         };
-    }
-
-    /// `regions` widened to whole rows of a frame `width` wide whose rows are
-    /// `stride` bytes apart, each band starting on a row whose offset is a
-    /// multiple of 512: what Direct3D 12 copies straight out of a frame-sized
-    /// buffer, since a region's pitch there must be its own row rounded up to
-    /// 256, which only a full-width region's is.
-    static List<SdlGpuRegion> bands(List<SdlGpuRegion> regions, int width, int stride) {
-        var bands = new ArrayList<SdlGpuRegion>(regions.size());
-        // Rows `step` apart start at multiples of 512 bytes.
-        var step = 512 / gcd(stride, 512);
-        for (var region : regions) {
-            var top = region.y() / step * step;
-            var bottom = region.y() + region.height();
-            bands.add(new SdlGpuRegion(0, top, width, bottom - top));
-        }
-        return bands;
-    }
-
-    private static int gcd(int a, int b) {
-        return b == 0 ? a : gcd(b, a % b);
     }
 
     @Override

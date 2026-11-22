@@ -2037,8 +2037,9 @@ public final class SdlGpuCommandBuffer {
             if (buffer.usage() != usage) {
                 throw new IllegalArgumentException(buffer + " is not an " + usage + " buffer");
             }
-            if (buffer.isMapped()) {
-                throw new IllegalStateException(buffer + " is mapped; SDL copies only unmapped buffers");
+            if (buffer.isMapped() && !buffer.isPersistentlyMapped()) {
+                throw new IllegalStateException(
+                        buffer + " is mapped; a copy reads only unmapped buffers, or one mapped persistently");
             }
             texture.requireSubresource(level, layer);
             var levelWidth = texture.levelWidth(level);

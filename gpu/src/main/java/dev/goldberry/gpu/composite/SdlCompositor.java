@@ -7,6 +7,8 @@ import org.slf4j.Logger;
 
 import dev.goldberry.gpu.GpuDevice;
 import dev.goldberry.gpu.GpuPower;
+import dev.goldberry.gpu.render.mapped.InPlaceGate;
+import dev.goldberry.gpu.render.mapped.InPlaceProbe;
 import dev.goldberry.gpu.render.staging.StagingBuffer;
 import dev.goldberry.log.Logs;
 import dev.goldberry.log.Startup;
@@ -44,6 +46,7 @@ public final class SdlCompositor implements Compositor {
     private @Nullable GpuDevice api;
     private @Nullable StagingBuffer staging;
     private @Nullable UiComposite composite;
+    private InPlaceProbe.@Nullable Decision inPlace;
     private @Nullable String unavailable;
     private final @Nullable GpuPower power;
     private boolean closed;
@@ -101,6 +104,12 @@ public final class SdlCompositor implements Compositor {
         return Optional.ofNullable(device);
     }
 
+    /// Whether composited frames are painted in place on the device, as its
+    /// check at creation decided; empty without a device.
+    Optional<InPlaceProbe.Decision> inPlace() {
+        return Optional.ofNullable(inPlace);
+    }
+
     /// Why there is no device, or empty when there is one or none was asked for
     /// yet. Public for the offscreen GPU, as [#api] is.
     public Optional<String> unavailable() {
@@ -124,15 +133,22 @@ public final class SdlCompositor implements Compositor {
             staging = new StagingBuffer(made);
             composite = new UiComposite(made);
             api = ApiAccess.device(made);
+            var fresh = made;
+            var decision = Startup.time(
+                    "GPU upload memory checked",
+                    () -> InPlaceProbe.decide(fresh, DeviceOptions.inPlace(), InPlaceGate.DEFAULT));
+            inPlace = decision;
             device = made;
             LOG.info(
-                    "[GPU] device ready in {} ms: {} on {}{}{}, taking {}; windows and GPU layers use it",
+                    "[GPU] device ready in {} ms: {} on {}{}{}, taking {}; painting in place {};"
+                            + " windows and GPU layers use it",
                     (System.nanoTime() - started) / 1_000_000,
                     made.driver(),
                     adapterName(made),
                     options.preferLowPower() ? "" : " (the high-performance GPU preferred)",
                     options.debugMode() ? " with validation" : "",
-                    made.shaderFormats());
+                    made.shaderFormats(),
+                    decision.describe());
             return true;
         } catch (SdlException | IllegalStateException | IllegalArgumentException e) {
             unavailable = "no GPU device (" + e.getMessage() + ")";
@@ -146,6 +162,7 @@ public final class SdlCompositor implements Compositor {
             staging = null;
             composite = null;
             api = null;
+            inPlace = null;
             return false;
         }
     }
@@ -212,5 +229,6 @@ public final class SdlCompositor implements Compositor {
         composite = null;
         staging = null;
         api = null;
+        inPlace = null;
     }
 }

@@ -288,7 +288,7 @@ log in the same commit as the work.
 | T-25 | W3.7 | todo | | |
 | T-26 | W2.13 | done | 0686 | |
 | T-29 | W3.8 | done: `GlobalShortcuts` (portal, X11 grab, `RegisterHotKey`, Carbon); Windows and macOS written, not run; the Windows release is polled while held, not hooked | 0711 | |
-| T-30 | W3.10 | planned and decided (`docs/zero-copy-tiles.md`): D1 (a), D2 (a), D3 D6 decides per driver, D4 (a), D5 `RasterTexture`, D6 the gate. Phase 1 (Direct3D 12 staging without SDL's hidden copy) done; phase 0 measured here (D6 on for Vulkan), Direct3D 12 and Metal wait for the benchmark lane; phases 2–4 not started | 0712 | |
+| T-30 | W3.10 | planned and decided (`docs/zero-copy-tiles.md`): D1 (a), D2 (a), D3 D6 decides per driver, D4 (a), D5 `RasterTexture`, D6 the gate. Phase 1 (Direct3D 12 staging without SDL's hidden copy) done; phase 0 done (D6 on for Vulkan and Metal, off on WARP); run-time check at 1.5×; phase 2 (the in-place raster) done; phases 3–4 not started | 0712 | |
 | T-31 | W3.11 | done: plan written (`docs/web-target.md`, D1–D8 asked); no code until it is read | | |
 | T-32 | W2.8 | done: delete, clear, user agent; the private store waits for the shim to build its own views | 0699 | |
 
@@ -609,3 +609,14 @@ log in the same commit as the work.
   copies whole-row bands in place. The benchmark lane runs the probe on
   Windows and macOS in a new `upload-paths` job. ADR-0712 amended. Next ADR
   0731.
+- **2026-11-22, W3.10 phase 0 on CI.** Benchmarks #1 on `04aff3e0`: D6 is on
+  for Metal (paravirtual device) and off, narrowly, on Direct3D 12's WARP
+  (painting +7.5%, within the runner's noise). Phase 1's hidden copy is
+  confirmed on WARP. In place, Metal and Direct3D 12 copy whole-row bands and
+  Vulkan copies rectangles. Asked: the run-time probe's threshold (1.5 times
+  heap proposed). Next ADR 0731.
+- **2026-11-22, W3.10 phase 2.** The run-time check is set at 1.5× (ADR-0712
+  amended). The in-place raster is built in `gpu.render.mapped`: a
+  persistently mapped buffer, uploads behind a fence the next paint waits on,
+  a copy shape per driver, and the check at device creation, logged. Nothing
+  paints in it until phase 3. Next ADR 0731.

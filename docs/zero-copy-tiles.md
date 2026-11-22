@@ -196,9 +196,24 @@ whether the buffer is cached. A one-off probe at device creation (paint a
 mapped megabyte, compare with heap) makes the choice at run time, which D3
 relies on. Taken with these numbers.
 
+**Taken, 2026-11-22: 1.5×, as proposed below.** The owner first asked why
+the 5% bar shouldn't simply stay. The answer: a check at start-up can't
+measure 5% reliably, so the same machine would get the in-place path on one
+launch and not the next. Kept: the 5% bar for the benchmark's per-driver
+judgement. The run-time check is `InPlaceGate.DEFAULT`.
+
+**Asked, 2026-11-22, after phase 0.** The run-time probe can't apply the 5%
+bar. A shared 4-core runner moved ±5–13% between rows of one run, and a
+start-up probe has milliseconds, not a hundred samples. Proposed: the probe
+times a translucent fill over a mebibyte, heap and kept-mapped interleaved,
+nine pairs, and switches the in-place path off when the mapped median is more
+than 1.5 times the heap median. Write-combined memory is several times slower
+to read, so 1.5 still catches it. The 5% bar stays what phase 0's benchmark
+judges a driver by.
+
 ## 4. Phases
 
-### Phase 0 — measurements (here 2026-11-22; Windows and macOS wait for a lane run)
+### Phase 0 — measurements (done 2026-11-22)
 
 - A benchmark in `gpu/src/benchmark`, beside `GpuVideoProbe`, run by the
   benchmark lane: (i) Blend2D paints a fixed UI scene into heap memory and into
@@ -273,10 +288,59 @@ What the numbers say:
   where in place's is: 0.20 ms at 4K and 10% on the 1660 Ti. Metal records
   padded rows one at a time, so its in-place stage at 4K is 2160 commands. The
   CI runs say what that costs.
-- **Windows and macOS: not yet measured.** The benchmark lane runs the probe on
-  `windows-2022` (Direct3D 12, on WARP if SDL takes it; that runner has never
-  had a GPU lane) and on `macos-15` (Metal), and the tables go into the run's
-  summary. The first run that reaches master answers D6 for both.
+- **Windows and macOS, the benchmark lane's first run** (Benchmarks #1 on
+  `04aff3e0`, 2026-11-22). SDL found a device on every runner. On
+  `windows-2022` that was `direct3d12` on WARP (the Microsoft Basic Render
+  Driver, a software device, 4 processors). On `macos-15` it was `metal` on
+  the Apple paravirtual device (3 processors). Medians in ms:
+
+  | | WARP stage | copied | Metal stage | copied |
+  |---|---|---|---|---|
+  | 4K 100%, staged (each driver's own layout) | 2.46 | 5.71 | 2.38 | 4.34 |
+  | 4K 100%, in place | 0.11 | 3.36 | 0.05 | 1.58 |
+  | 4K 10%, staged | 0.26 | 0.75 | 0.46 | 1.16 |
+  | 4K 10%, in place, rectangles | 1.06 | 1.75 | 1.07 | 6.90 |
+  | 4K 10%, in place, bands | 0.11 | 1.38 | 0.04 | 1.05 |
+  | 1080p 10%, staged packed | 0.67 | 1.25 | 0.10 | 0.58 |
+  | 1080p 10%, staged 256/512 | 0.23 | 0.54 | 0.61 | 4.36 |
+
+  | Painting, kept mapped against heap | 1080p, 0 | 1080p, workers | 4K, 0 | 4K, workers | 1 MiB fill |
+  |---|---|---|---|---|---|
+  | WARP | +5.2% | −4.9% | +7.5% | +1.9% | −13.2% |
+  | Metal | −0.1% | −2.5% | −0.8% | +0.7% | −4.7% |
+
+- **D6 per driver.**
+  - **Vulkan: on.** That covers the 1660 Ti and lavapipe here, and CI's
+    lavapipe (in place 0.01 of staged, painting +0.2%).
+  - **Metal: on** on the paravirtual device: in place 0.02 of staged, painting
+    +0.7%. SDL's write-combined upload storage paints like heap memory there.
+  - **Direct3D 12 on WARP: off, narrowly.** (1) passes at 0.04. (2) fails
+    because single-threaded painting at 4K reads +7.5%. The other rows on the
+    same runner swing from −13% to +5%, so that is within the runner's noise.
+    WARP's "upload heap" is cached system memory anyway, because WARP draws on
+    the CPU. On hardware Direct3D 12 the upload heap is write-combined, where
+    reads are far slower. Nothing here measured that; the run-time probe
+    decides there.
+- **Phase 1 is confirmed on WARP.** At 1080p the probe's rectangles are 480
+  pixels wide, 1920 bytes, which is not a multiple of 256. Laid out 256/512,
+  their stage drops from 0.67 to 0.23 ms at 10% and from 0.19 to 0.13 ms at
+  1%. At 4K they're 960 and 384 pixels wide, already multiples of 256 in
+  bytes, so the two layouts tie there (0.28 against 0.26 ms). WARP has no
+  unrestricted pitch, and SDL's hidden copy was real.
+- **The shape copied in place depends on the driver.** On Metal, padded rows
+  are recorded one at a time. On Direct3D 12 a region must be the frame's
+  width. On both, rectangles copied in place are slower than staging at
+  partial damage (about 1.06 against 0.26 to 0.46 ms at 4K and 10%), and
+  whole-row bands are the fastest of all four paths (0.04 to 0.11 ms). On
+  Vulkan rectangles copy a quarter of the bytes bands do and record as fast,
+  so Vulkan keeps rectangles. Phase 2 picks the shape by driver: rectangles
+  where padded rows are recorded in one go and the pitch may be anything
+  (Vulkan), bands elsewhere.
+- **The run-time probe can't hold D6's 5% on a shared machine.** A 4-core
+  runner moved ±5–13% between rows of the same run. A start-up probe measures
+  for a few milliseconds, so it would flip on noise. The case it exists for,
+  write-combined memory, reads several times slower, not 5% slower. Phase 2
+  needs a threshold the owner agrees to (asked below, under D6).
 
 ### Phase 1 — Direct3D 12 staging without the hidden copy (done 2026-11-22)
 
@@ -286,7 +350,7 @@ takes padded rows, as `uploadsPaddedRows()` says). Exit: a unit test of the
 offsets and pitches; the Windows lane's benchmark shows the upload stage did not
 grow; gallery goldens unchanged.
 
-### Phase 2 — the in-place raster
+### Phase 2 — the in-place raster (done 2026-11-22)
 
 An internal `MappedRaster` in `gpu.render`: an upload transfer buffer sized to
 the frame (stride padded to 256), mapped once, wrapped as a `PixelBuffer`; the
@@ -295,6 +359,30 @@ probe at device creation that picks the path per driver (D3, D6). Exit:
 tests on lavapipe that the texture holds what was painted, region by region,
 and that a paint waits for an unfinished copy (a fence that has not signalled
 holds it); identical pixels to the staged path.
+
+**As built.** The package is `gpu.render.mapped`, since `gpu.render` holds
+shaders.
+
+- **`MappedRaster`** is an upload buffer mapped persistently for as long as it
+  stays open. `SdlGpuTransferBuffer.mapPersistently` adds the one mapping a
+  copy pass may record from while it's mapped. `lend()` hands back the pixels
+  once the last copy's fence has signalled. `upload(texture, damage)` records
+  the copies in a command buffer of its own and submits it with a fence.
+- **`InPlaceLayout`** picks the stride and **`CopyShape`** per driver, from
+  phase 0:
+  - Vulkan: packed rows, rectangles.
+  - Metal: packed rows, so a band is one command, and bands.
+  - Direct3D 12: rows padded to 256 bytes, and bands on rows at multiples of
+    512 bytes.
+
+  Bands are joined where they overlap or touch.
+- **`InPlaceGate`** (1.5×, nine pairs after one discarded) and
+  **`InPlaceProbe`** are the check. `SdlCompositor` runs it when it makes the
+  device and logs the decision: `painting in place on (1.09× heap)`. A check
+  SDL refuses the memory for is off.
+- **`goldberry.gpu.inPlace=on|off|auto`** lets a run decide instead.
+
+The device-ready line on lavapipe reads 22–33 ms with the check included.
 
 ### Phase 3 — the composited window paints in place
 
@@ -343,9 +431,9 @@ and Tessera's G-30 answer in `answers-tessera.md`.
 
 | Phase | Status |
 |-------|--------|
-| 0 — measurements | done here (D6 on for Vulkan, the 1660 Ti and lavapipe); Direct3D 12 and Metal wait for the benchmark lane's first run |
+| 0 — measurements | done 2026-11-22: D6 on for Vulkan and Metal, off on WARP (narrowly); the run-time check's threshold taken as 1.5× |
 | 1 — D3D12 staging | done 2026-11-22; the Windows lane's upload numbers wait for phase 0's benchmark |
-| 2 — the in-place raster | not started |
+| 2 — the in-place raster | done 2026-11-22 (`gpu.render.mapped`); nothing paints in it until phase 3 |
 | 3 — the composited window | not started |
 | 4 — `RasterTexture` | not started |
 
@@ -485,3 +573,39 @@ and Tessera's G-30 answer in `answers-tessera.md`.
 
   D6 on vulkan: (1) the 4K whole-frame stage in place is 0.01 of staged, packed's (at most 0.50): passes; (2) painting at 4K into mapped memory is at worst +0.8% (at most +5%): passes. In place: on
   ```
+- **2026-11-22, phase 0 on CI.** The user pushed `04aff3e0` and ran
+  Benchmarks #1. All three jobs were green, and SDL found a device on each
+  runner. Windows got `direct3d12` on WARP, the first device that runner has
+  shown. macOS got `metal` on the paravirtual device. D6 is on for Vulkan and
+  Metal. It is off on WARP by painting at +7.5%, which is within that
+  runner's noise. Phase 1's hidden copy is confirmed on WARP (1080p at 10%:
+  0.67 to 0.23 ms). Rectangles copied in place lose to staging on Metal and
+  Direct3D 12 (1.06 ms), and whole-row bands win on both (0.04 to 0.11 ms), so
+  phase 2 picks the shape by driver. Asked: the run-time probe's threshold
+  (under D6). The tables are under Results. Next ADR 0731.
+- **2026-11-22, phase 2.** The owner took 1.5× for the run-time check (D6).
+  Built in `gpu.render.mapped`:
+  - `MappedRaster`, which stays mapped for its life, uploads behind a fence,
+    and waits on that fence when it lends its pixels.
+  - `InPlaceLayout` and `CopyShape`, with joined, aligned bands on Metal and
+    Direct3D 12 and rectangles on Vulkan.
+  - `InPlaceGate` and `InPlaceProbe`, run by `SdlCompositor` at device
+    creation and logged.
+  - `goldberry.gpu.inPlace` (its guide row parked in
+    `docs/snapshot/guide-gpu-in-place.md`).
+
+  In `:natives`, `SdlGpuTransferBuffer.mapPersistently` maps a buffer a copy
+  pass may record from while it is mapped; an ordinary mapping is still
+  refused.
+
+  Tests without a GPU: `CopyShapeTest` (300 random damage sets: covered,
+  512-aligned, no overlap), `InPlaceLayoutTest`, `InPlaceGateTest`, and
+  `MappedRasterTest`. The last shows, with a fake fence, that a paint and a
+  close wait for an unsignalled copy.
+
+  On the device: `MappedRasterGpuTest`, three layouts × three frames, reads
+  back what was painted, and a Blend2D frame painted by workers matches the
+  staged path byte for byte. `SdlGpuDeviceTest` gets a persistent-mapping
+  case. Both lanes are green on the 1660 Ti and on lavapipe, and
+  `:example:gpuTest`'s goldens are unchanged. The benchmark's bands now come
+  from `CopyShape`. Next: phase 3, the composited window. Next ADR 0731.

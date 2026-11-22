@@ -28,6 +28,7 @@ public final class SdlGpuTransferBuffer extends SdlGpuResource {
     private final SdlGpuTransferUsage usage;
     private final int size;
     private @Nullable Arena mapping;
+    private boolean persistent;
 
     SdlGpuTransferBuffer(SdlGpuDevice device, MemorySegment handle, SdlGpuTransferUsage usage, int size) {
         super(device, handle);
@@ -71,6 +72,33 @@ public final class SdlGpuTransferBuffer extends SdlGpuResource {
         return pointer.reinterpret(size, arena, null).asByteBuffer().order(ByteOrder.nativeOrder());
     }
 
+    /// Maps an upload buffer for as long as it stays open, without cycling: the
+    /// memory a raster is painted in and copied from, frame after frame. A copy
+    /// pass records uploads from it while it is mapped, which SDL allows and
+    /// [#map]'s mapping does not, so the painter never pays to map it again.
+    ///
+    /// The caller keeps the GPU's reads and its own writes apart: a copy
+    /// recorded from it reads the memory when the GPU runs it, so the next
+    /// write waits for that copy's fence.
+    ///
+    /// @throws IllegalStateException when it is already mapped, or is not an
+    ///                               upload buffer
+    /// @throws SdlException          when SDL refuses
+    public ByteBuffer mapPersistently() {
+        if (usage != SdlGpuTransferUsage.UPLOAD) {
+            throw new IllegalStateException(this + " is not an upload buffer");
+        }
+        var mapped = map(false);
+        persistent = true;
+        return mapped;
+    }
+
+    /// Whether it is mapped by [#mapPersistently], so a copy may read it while
+    /// mapped.
+    public boolean isPersistentlyMapped() {
+        return persistent && mapping != null;
+    }
+
     /// Unmaps the buffer. Every [ByteBuffer] [#map] returned stops working.
     /// Does nothing when it is not mapped.
     public void unmap() {
@@ -79,6 +107,7 @@ public final class SdlGpuTransferBuffer extends SdlGpuResource {
             return;
         }
         mapping = null;
+        persistent = false;
         arena.close();
         device().calls().resources().unmapGPUTransferBuffer().call(device().handle(), handle());
     }

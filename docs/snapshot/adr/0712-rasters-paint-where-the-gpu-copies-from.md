@@ -95,5 +95,38 @@ Two things the decisions didn't say, now settled by the numbers:
   multiple of 512 bytes. That copies more on the GPU and nothing more on the
   CPU.
 
-Direct3D 12 and Metal are measured by the benchmark lane's `upload-paths`
-job; D6 for them is recorded when it has run.
+The benchmark lane's first run (2026-11-22) measured the other two drivers:
+
+- **Metal, on the Apple paravirtual device: on.** In place is 0.02 of
+  staged, and painting is +0.7%.
+- **Direct3D 12, on WARP: off, narrowly.** In place is 0.04 of staged, but
+  single-threaded painting at 4K read +7.5%, within that shared runner's
+  noise. WARP's upload heap is cached system memory. Hardware Direct3D 12,
+  whose upload heap is write-combined, was not measured; the run-time probe
+  decides there.
+
+Two consequences:
+
+- **The shape copied in place is per driver.** On Metal, padded rows are
+  recorded one at a time, and on Direct3D 12 a region must be the frame's
+  width. On both, rectangles copied in place are slower than staging at
+  partial damage, and whole-row bands are the fastest path. Vulkan keeps
+  rectangles.
+- **The run-time probe needs its own threshold.** D6's 5% is what a
+  benchmark judges a driver by; a start-up probe can't hold it on a shared
+  machine. The proposal is in the plan, under D6, and waits for the owner.
+
+## Amendment, 2026-11-22: the run-time check's threshold
+
+D6's second number is applied at run time as **1.5 times**, not 5%. The
+mapped memory's median, over nine pairs of a translucent fill on a mebibyte
+interleaved with heap memory, must be within one and a half times heap's.
+
+A check at start-up has about a millisecond, and a shared machine moved the
+same paint by 5 to 13% between rows of one run. A 5% bar would switch the
+path on for one launch and off for the next. The memory the check exists to
+catch, write-combined or uncached, reads several times slower, so 1.5 times
+still stops it.
+
+The 5% bar stays what the benchmark judges a driver by. `goldberry.gpu.inPlace`
+lets a run decide instead: `on`, `off` or `auto`.
