@@ -30,6 +30,7 @@ permission notices to travel with it.
 | [HarfBuzz](licenses/harfbuzz.txt) | MIT ("Old MIT") | <https://harfbuzz.github.io> | Text shaping |
 | [md4c](licenses/md4c.txt) | MIT | <https://github.com/mity/md4c> | Markdown parser and the HTML5 entity table, behind `goldberry-html` |
 | [libwebp](licenses/libwebp.txt) | BSD-3-Clause | <https://github.com/webmproject/libwebp> | WebP decoding — the `webpdecoder` target only, no encoder and no animation demuxer |
+| [PipeWire](licenses/pipewire.txt) | MIT | <https://pipewire.org> | Linux only, and headers only: SDL's PipeWire audio and camera drivers compile its inline SPA and PipeWire helpers in and load `libpipewire-0.3` from the user's system at run time. The headers are the build machine's, or the catalog's release where the build machine's are older than SDL asks |
 | [webview/webview](licenses/webview.txt) | MIT | <https://github.com/webview/webview> | the `web-view` widget, behind the **separate and optional** `libgoldberry-webview` |
 
 webview/webview is the only entry here that is not inside `libgoldberry`, and

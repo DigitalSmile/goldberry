@@ -391,7 +391,7 @@ tasks.named('jar') {
 def catalogFile = rootProject.layout.projectDirectory.file('gradle/libs.versions.toml')
 def workflowsDir = rootProject.layout.projectDirectory.dir('.github/workflows')
 
-def refNames = ['BLEND2D', 'ASMJIT', 'YOGA', 'HARFBUZZ', 'SDL3', 'MD4C', 'LIBWEBP']
+def refNames = ['BLEND2D', 'ASMJIT', 'YOGA', 'HARFBUZZ', 'SDL3', 'MD4C', 'LIBWEBP', 'PIPEWIRE']
 
 tasks.register('checkPinnedRefs') {
     group = 'verification'

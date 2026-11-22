@@ -113,6 +113,13 @@ webview = "0.12.0"
 # This is the version webview 0.12.0 pins and therefore tests against, which is
 # why it is a 2022 date rather than the newest available.
 webview2 = "1.0.1150.38"
+# PipeWire's headers, and nothing else: SDL compiles its PipeWire audio and
+# camera drivers against libpipewire-0.3 >= 0.3.44 and loads the library at run
+# time. Fetched only where the system's PipeWire is older than that -- AlmaLinux
+# 8, the release container's base, ships 0.3.6 -- and staged with .pc files
+# that keep the system's library. 1.6.2 is the release the camera's live checks
+# were built against.
+pipewire = "1.6.2"
 # `goldberry-media`'s engine: the reference decoders, bound directly,
 # https://goldberry.dev/docs/components/media.html#the-module.
 # Built by the media superbuild in media/src/main/cmake, NOT by the

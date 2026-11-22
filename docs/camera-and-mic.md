@@ -401,9 +401,11 @@ Taken by the owner on 2026-11-22. As built (the log has what changed):
   sizes; PipeWire's quantum differs from Pulse's. `SdlAudioSink`'s drain
   estimate measures pulls rather than assuming them, which is why it is expected
   to hold.
-- **AlmaLinux 8's PipeWire** is 0.3.x and SDL loads it dynamically, so the
-  headers are what matter at build time; an old daemon at run time falls back
-  to the next driver.
+- **AlmaLinux 8's PipeWire** is 0.3.6, below SDL's 0.3.44, which this risk
+  first missed (Snapshot #88). SDL loads the library dynamically, so only the
+  headers matter at build time: the superbuild stages the catalog's PipeWire
+  headers where the system's are too old (ADR-0727). An old daemon at run time
+  falls back to the next driver.
 - **The camera portal is not SDL's.** `answers-tessera.md` G-05 promises
   "cameras behind the portal work too". SDL's PipeWire camera connects to the
   session's daemon itself; nothing in `SDL_camera_pipewire.c` asks
@@ -434,7 +436,7 @@ Taken by the owner on 2026-11-22. As built (the log has what changed):
 | 3 mic widgets | done: `level-meter`, `waveform-view`, `spectrum-view` over exported leaves, `mic.css`, six goldens; ADR-0721; the sections parked with the chapter |
 | 4 `goldberry-camera` | done: `PictureView` converts planes on the CPU; the module, `Camera` sealed over a device's and a synthetic one, mode choice, the pool, permission followed, `camera-view` with states and mirror; three goldens; ADR-0722; the chapter parked |
 | 4b MJPG | done: every mode openable, MJPG decoded on the capture thread into a BGRA pool, standard Huffman tables inserted, dropped frames counted; ADR-0723 |
-| 5 PipeWire | done: required row in `LinuxDependencies`, a fatal superbuild check for V4L2 and both PipeWire drivers, the headers in every `libgoldberry` workflow, SDL's PipeWire camera patched, cameras try `pipewire,v4l2`; ADR-0724 |
+| 5 PipeWire | done: required row in `LinuxDependencies`, a fatal superbuild check for V4L2 and both PipeWire drivers, the headers in every `libgoldberry` workflow, SDL's PipeWire camera patched, cameras try `pipewire,v4l2`; ADR-0724. The release container's 0.3.6 is below SDL's floor, so the pinned headers are staged there; ADR-0727 |
 | 6 showcase, platforms, guide | done: the Capture screen (a Microphone and a Camera card, a test signal first, devices listed on open, camera modes picked, throwaway clips recorded and played back), `mic.css` and `camera.css` in the showcase, parked samples inflated, the macOS usage strings parked; the lanes unchanged; ADR-0725. **Left: the hand checks on four desktops** |
 
 - **2026-11-21.** Written from the tree at `258b836f`. D1–D9 asked. Next ADR
@@ -620,3 +622,25 @@ Taken by the owner on 2026-11-22. As built (the log has what changed):
   gives the node its V4L2 plugin serves. `Cameras.driver()` is new in
   `goldberry-camera` (through `CameraBackend.driver()`), and the camera card has
   a Driver line saying which driver and what it is. ADR-0725 amended in place.
+- **2026-11-22, Snapshot #88 and Qodana #92 on `b8e75f60`.** The first CI
+  run on phases 1 to 6 was red in three places:
+  - **libgoldberry on both Linux arches** stopped at the camera check.
+    AlmaLinux 8's `pipewire-devel` is 0.3.6, SDL wants 0.3.44, and the
+    §5 risk had assumed otherwise. `pipewire = "1.6.2"` is now in the
+    catalog. Where the system's PipeWire is older than the floor, the
+    superbuild stages that release's headers with `.pc` files that keep the
+    system's libdir (`pipewire_headers.cmake`), so SDL still loads the
+    system's library (ADR-0727). Built in the cached `manylinux_2_28_x86_64`
+    image with linux.yml's packages and Configure: both PipeWire drivers
+    were defined.
+  - **Linux Java** had no library, as always. `SdlRecordingStreamTest` and
+    `SdlCamerasTest` skipped in `@BeforeEach`, but their `@AfterEach` still
+    called `Sdl.get()`, so seven tests failed. `SdlMicrophonesTest` in `:mic`
+    had the same teardown, behind `:natives`. Each now undoes only what it
+    set.
+  - **Qodana: six Highs.** `Camera` and `YuvConverter` are in the profile's
+    owned types (CameraView borrows the app's camera, and PlanesOnCpu caches
+    its converter). `@Serial` is on both camera exceptions.
+    `MirroredPictures` returns `Optional.of` the picture it just made.
+
+  Next ADR 0728.

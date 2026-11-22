@@ -40,6 +40,10 @@ class SdlMicrophonesTest {
     @TempDir
     Path directory;
 
+    /// Whether [#diskDriver] got as far as setting the hints. A skipped set-up
+    /// has nothing to undo, and without the library `Sdl.get()` throws.
+    private boolean hinted;
+
     @BeforeEach
     void diskDriver() throws IOException {
         NativeLibraryRequirement.enforce();
@@ -52,10 +56,14 @@ class SdlMicrophonesTest {
         Files.write(input, samples.array());
         Sdl.get().setHint("SDL_AUDIO_DRIVER", "disk");
         Sdl.get().setHint("SDL_AUDIO_DISK_INPUT_FILE", input.toString());
+        hinted = true;
     }
 
     @AfterEach
     void defaultDriver() {
+        if (!hinted) {
+            return;
+        }
         Sdl.get().setHint("SDL_AUDIO_DRIVER", "");
         Sdl.get().setHint("SDL_AUDIO_DISK_INPUT_FILE", "");
     }

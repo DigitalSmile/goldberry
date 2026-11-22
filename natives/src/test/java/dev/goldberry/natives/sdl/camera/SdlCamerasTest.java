@@ -23,15 +23,23 @@ import dev.goldberry.natives.sdl.SdlSubsystem;
 @DisplayName("SdlCameras, on SDL's dummy camera driver")
 class SdlCamerasTest {
 
+    /// Whether [#dummyDriver] got as far as setting the hint. A skipped set-up
+    /// has nothing to undo, and without the library `Sdl.get()` throws.
+    private boolean hinted;
+
     @BeforeEach
     void dummyDriver() {
         NativeLibraryRequirement.enforce();
         assumeFalse(Sdl.get().wasInit().contains(SdlSubsystem.CAMERA), "something else holds the camera subsystem");
         Sdl.get().setHint(Sdl.CAMERA_DRIVER_HINT, "dummy");
+        hinted = true;
     }
 
     @AfterEach
     void defaultDriver() {
+        if (!hinted) {
+            return;
+        }
         // Back to the order the toolkit set when the library loaded.
         Sdl.get().setHint(Sdl.CAMERA_DRIVER_HINT, Sdl.defaultCameraDrivers().orElse(""));
     }

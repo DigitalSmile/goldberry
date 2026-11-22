@@ -20,6 +20,7 @@ code is present in every binary artifact Goldberry distributes:
   HarfBuzz       MIT license       https://harfbuzz.github.io
   md4c           MIT license       https://github.com/mity/md4c
   libwebp        BSD-3-Clause      https://github.com/webmproject/libwebp
+  PipeWire       MIT license       https://pipewire.org        (headers, on Linux)
 
 The OPTIONAL sibling library `libgoldberry-webview` compiles in one more, and
 brings no browser engine of its own (the operating system's is used):

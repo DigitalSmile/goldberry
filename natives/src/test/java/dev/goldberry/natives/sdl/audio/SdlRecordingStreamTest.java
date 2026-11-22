@@ -44,6 +44,10 @@ class SdlRecordingStreamTest {
     @TempDir
     Path directory;
 
+    /// Whether [#diskDriver] got as far as setting the hints. A skipped set-up
+    /// has nothing to undo, and without the library `Sdl.get()` throws.
+    private boolean hinted;
+
     @BeforeEach
     void diskDriver() throws IOException {
         NativeLibraryRequirement.enforce();
@@ -56,10 +60,14 @@ class SdlRecordingStreamTest {
         Files.write(input, samples.array());
         Sdl.get().setHint(AUDIO_DRIVER, "disk");
         Sdl.get().setHint(INPUT_FILE, input.toString());
+        hinted = true;
     }
 
     @AfterEach
     void defaultDriver() {
+        if (!hinted) {
+            return;
+        }
         Sdl.get().setHint(AUDIO_DRIVER, "");
         Sdl.get().setHint(INPUT_FILE, "");
     }

@@ -2,7 +2,8 @@
 
 - **Status:** Accepted, as phase 5 of `docs/camera-and-mic.md` (W3.4,
   Tessera's T-05). Builds ADR-0719's D8 (a). The first patch the superbuild
-  carries on SDL.
+  carries on SDL. Amended by ADR-0727: AlmaLinux 8's PipeWire is below SDL's
+  floor, and the release container stages pinned headers.
 - **Date:** 2026-11-22
 - **Relates to:** ADR-0719 (D8 taken on a measurement), ADR-0488 (the Linux
   build fails without the audio headers), ADR-0723 (Motion JPEG)
@@ -18,8 +19,9 @@ SDL compiles its PipeWire audio and camera drivers from one pkg-config check,
 `libpipewire-0.3 >= 0.3.44`. Without the headers both drop out and the
 configure succeeds. This happened twice on the machine the work was done on:
 a configure without the locally unpacked headers on `PKG_CONFIG_PATH` quietly
-built a library with no PipeWire. AlmaLinux 8's `pipewire-devel` (0.3.x) and
-Ubuntu 22.04's `libpipewire-0.3-dev` (0.3.48) both meet the floor.
+built a library with no PipeWire. Ubuntu 22.04's `libpipewire-0.3-dev` (0.3.48)
+meets the floor. This ADR said AlmaLinux 8's `pipewire-devel` did too. It is
+0.3.6 and does not (ADR-0727).
 
 SDL starts the first camera driver in its list that starts, whether or not it
 lists a camera. Its own order is V4L2, then PipeWire, and V4L2 starts wherever

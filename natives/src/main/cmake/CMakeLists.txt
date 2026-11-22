@@ -119,11 +119,15 @@ goldberry_pin(webview GOLDBERRY_WEBVIEW_REF)
 # a platform branch is one nothing reviews.
 goldberry_pin(webview2 GOLDBERRY_WEBVIEW2_REF)
 
+# PipeWire's headers, fetched on Linux only, and only where the system's
+# PipeWire is older than SDL asks for -- see the SDL section below.
+goldberry_pin(pipewire GOLDBERRY_PIPEWIRE_REF)
+
 message(STATUS "Goldberry pins: blend2d ${GOLDBERRY_BLEND2D_REF}, asmjit ${GOLDBERRY_ASMJIT_REF}, "
     "yoga ${GOLDBERRY_YOGA_REF}, harfbuzz ${GOLDBERRY_HARFBUZZ_REF}, "
     "sdl3 ${GOLDBERRY_SDL3_REF}, md4c ${GOLDBERRY_MD4C_REF}, "
     "libwebp ${GOLDBERRY_LIBWEBP_REF}, webview ${GOLDBERRY_WEBVIEW_REF}, "
-    "webview2 ${GOLDBERRY_WEBVIEW2_REF}")
+    "webview2 ${GOLDBERRY_WEBVIEW2_REF}, pipewire ${GOLDBERRY_PIPEWIRE_REF}")
 
 set(GOLDBERRY_TARGET_ID "host" CACHE STRING "Distribution target id, e.g. linux-x64")
 
@@ -465,6 +469,51 @@ set(SDL_TEST_LIBRARY OFF CACHE BOOL "" FORCE)
 set(SDL_TESTS OFF CACHE BOOL "" FORCE)
 set(SDL_EXAMPLES OFF CACHE BOOL "" FORCE)
 set(SDL_INSTALL OFF CACHE BOOL "" FORCE)
+
+# --- PipeWire's headers, where the system's are older than SDL asks ----------
+#
+# SDL's PipeWire audio and camera drivers need libpipewire-0.3 >= 0.3.44 to
+# compile and nothing at all to link: SDL loads the library at run time. The
+# release container's AlmaLinux 8 ships 0.3.6, so SDL compiled both out and the
+# camera check after the configure stopped the build. Where the system's
+# PipeWire is that old, the pinned release's headers are staged under the build
+# directory with .pc files that keep the system's libdir, ahead of SDL's own
+# pkg-config check; SDL still reads the system's libpipewire-0.3.so for the name
+# to load. A system with no PipeWire at all is not covered on purpose: the check
+# after the configure names the package to install. pipewire_headers.cmake says
+# how the headers are laid out.
+set(GOLDBERRY_SDL_PIPEWIRE_FLOOR "0.3.44")
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND PKG_CONFIG_FOUND)
+    pkg_check_modules(GOLDBERRY_SYSTEM_PIPEWIRE QUIET libpipewire-0.3)
+    if(GOLDBERRY_SYSTEM_PIPEWIRE_FOUND
+            AND GOLDBERRY_SYSTEM_PIPEWIRE_VERSION VERSION_LESS GOLDBERRY_SDL_PIPEWIRE_FLOOR)
+        # SOURCE_SUBDIR names a directory that does not exist, as asmjit's does:
+        # download the tree, add nothing from it to this build.
+        FetchContent_Declare(pipewire
+            GIT_REPOSITORY https://github.com/PipeWire/pipewire.git
+            GIT_TAG ${GOLDBERRY_PIPEWIRE_REF}
+            GIT_SHALLOW TRUE
+            GIT_PROGRESS TRUE
+            SOURCE_SUBDIR goldberry-headers-only)
+        FetchContent_MakeAvailable(pipewire)
+        include("${CMAKE_CURRENT_LIST_DIR}/pipewire_headers.cmake")
+        goldberry_stage_pipewire_headers(
+            SOURCE_DIR "${pipewire_SOURCE_DIR}"
+            DESTINATION "${CMAKE_BINARY_DIR}/pipewire-headers"
+            SYSTEM_LIBDIR "${GOLDBERRY_SYSTEM_PIPEWIRE_LIBDIR}"
+            OUT_VERSION _goldberry_pipewire_headers)
+        if(DEFINED ENV{PKG_CONFIG_PATH} AND NOT "$ENV{PKG_CONFIG_PATH}" STREQUAL "")
+            set(ENV{PKG_CONFIG_PATH} "${CMAKE_BINARY_DIR}/pipewire-headers/lib/pkgconfig:$ENV{PKG_CONFIG_PATH}")
+        else()
+            set(ENV{PKG_CONFIG_PATH} "${CMAKE_BINARY_DIR}/pipewire-headers/lib/pkgconfig")
+        endif()
+        message(STATUS
+            "Goldberry: the system's PipeWire is ${GOLDBERRY_SYSTEM_PIPEWIRE_VERSION}, older than the "
+            "${GOLDBERRY_SDL_PIPEWIRE_FLOOR} SDL compiles against; SDL gets PipeWire "
+            "${_goldberry_pipewire_headers}'s headers and loads the system's library from "
+            "${GOLDBERRY_SYSTEM_PIPEWIRE_LIBDIR} at run time")
+    endif()
+endif()
 
 
 # ============================================================================

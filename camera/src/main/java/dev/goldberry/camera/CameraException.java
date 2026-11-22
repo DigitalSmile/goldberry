@@ -1,5 +1,7 @@
 package dev.goldberry.camera;
 
+import java.io.Serial;
+
 import org.jspecify.annotations.Nullable;
 
 /// A camera could not be listed or opened.
@@ -7,6 +9,7 @@ import org.jspecify.annotations.Nullable;
 /// Read more: [Media](https://goldberry.dev/docs/components/media.html).
 public final class CameraException extends RuntimeException {
 
+    @Serial
     private static final long serialVersionUID = 1L;
 
     public CameraException(String message) {

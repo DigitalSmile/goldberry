@@ -45,12 +45,13 @@ final class MirroredPictures implements PictureSource {
             return Optional.ofNullable(mirrored);
         }
         from = picture;
-        mirrored = switch (picture) {
+        Picture made = switch (picture) {
             case VideoPlanes planes when planes.format() == PixelFormat.NV12 -> mirror(planes);
             case VideoPicture bgraPicture -> mirror(bgraPicture);
             default -> picture;
         };
-        return Optional.ofNullable(mirrored);
+        mirrored = made;
+        return Optional.of(made);
     }
 
     @Override
