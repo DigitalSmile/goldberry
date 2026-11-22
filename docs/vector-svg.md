@@ -232,6 +232,8 @@ Exit: an SVG becomes an `Image` at any size.
   the error naming `goldberry-vector` without it.
 - `ImageCache` keys rasters by pixel size; `image` asks at its box's device
   size (D1).
+  As built: the frame draws an SVG image at the device size, so `ImageCache`
+  keeps one decode per source and `ScalableRasters` the sizes (ADR-0743).
 - CSS `url()` (`StyleImages`, `background-image`, `list-style-image`, border
   images) at the painted size.
 - `html-view` and `markdown-view` image sources.
@@ -298,7 +300,7 @@ Exit: Snapshot green on all jobs, with the vector library on four targets.
 |----------|------|--------|
 | `docs/gaps/goldberry-gaps-plan.md` §8, §10 | T-22's row and the log | plan written |
 | `docs/gaps/answers-tessera.md` | G-22's answer when it lands | |
-| `docs/snapshot/adr/` | ADR-0740 (D1–D7), ADR-0741 (phase 1), ADR-0742 (phase 2), then one per phase | doing |
+| `docs/snapshot/adr/` | ADR-0740 (D1–D7), ADR-0741 (phase 1), ADR-0742 (phase 2), ADR-0743 (phase 3), then one per phase | doing |
 | `docs/snapshot/` guide pieces | `components-vector.md` | |
 | `docs/status.md` | a line per phase | doing |
 | `THIRD-PARTY-NOTICES.md`, `NOTICE`, `licenses/` | ThorVG, LodePNG, jpgd | done (phase 1) |
@@ -310,8 +312,8 @@ Exit: Snapshot green on all jobs, with the vector library on four targets.
 | 0. Plan | done (this document, ADR-0740) |
 | 1. The library | done 2026-11-22 (ADR-0741) |
 | 2. `Svg` | done 2026-11-22 (ADR-0742) |
-| 3. SVG wherever an image is | todo (next) |
-| 4. `svg-view` | todo |
+| 3. SVG wherever an image is | done 2026-11-22 (ADR-0743) |
+| 4. `svg-view` | todo (next) |
 | 5. CI, native image, robustness | todo |
 | 6. Showcase and guide | todo |
 
@@ -349,3 +351,19 @@ Exit: Snapshot green on all jobs, with the vector library on four targets.
   in a square) with the 2× and 1.5× sweep. The phase 1 draw test now runs in
   the engine's lock, since the cleaner's thread may release a picture at any
   time. `:vector` requires `:widgets` for `Fit`. Next ADR 0743.
+- **2026-11-22, phase 3 done.** SVG wherever an image is (ADR-0743). Read in
+  the code: every place an image is drawn ends in `Frame.drawImage` with a
+  source rectangle, and every loader passes `Image`s. So rather than each
+  loader asking a provider for a `ScalableImage` and `ImageCache` keying by
+  size, an SVG decodes to an `Image` that carries its document, and the frame
+  draws it from a raster of the device pixels it covers (`ScalableRasters`,
+  64 MiB, drawn at once under 2 ms and otherwise on a virtual thread with the
+  document's last raster drawn until it arrives, as D1 asks). `ImageFormat.SVG`
+  sniffs past the prologue; `ScalableImage` and `VectorDecoder` are in `:core`,
+  `SvgDecoder` in `:vector`; `PictureArrivals` is the one signal for every late
+  picture, and a painted box is repainted on one. Tests: the sniff on documents
+  and look-alikes, `:core` with a decoder of its own (a one-pixel checkerboard,
+  sharp at 2×, larger, cropped, kept, refused), the raster cache's bound, and
+  with ThorVG an `image` at 1× and 2×, a CSS background at two sizes and a
+  Markdown picture each drawing an edge on a device pixel; with the frame's
+  hook switched off, eight of them fail. Next ADR 0744.

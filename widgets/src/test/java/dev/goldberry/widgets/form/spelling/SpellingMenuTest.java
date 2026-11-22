@@ -246,8 +246,11 @@ class SpellingMenuTest {
         /// virtual threads of its own, and such a thread has handed its answer to
         /// the UI thread by the time it ends, so a step waits for the thread to end
         /// and then goes once round the UI thread, behind the answer. The menu
-        /// takes the suggestion then, and the frame it presents after that is the
-        /// one the focus has moved in.
+        /// takes the suggestion then and asks for a frame, and the focus has moved
+        /// once that frame is drawn. It may be drawn already by the time the step
+        /// looks, so the step waits for no frame to be pending, not for one more:
+        /// a menu with nothing left to draw draws nothing, and a wait for its next
+        /// frame never ends.
         private void onTheSuggestion(Runnable then) {
             when(
                     () -> window().presentCount() > 0 && Watched.done(watched.checked),
@@ -257,8 +260,7 @@ class SpellingMenuTest {
                                 () -> Watched.done(watched.suggested),
                                 () -> later(0, () -> {
                                     var menu = popups(backend).getLast();
-                                    var drawn = menu.presentCount();
-                                    when(() -> menu.presentCount() > drawn, then);
+                                    when(() -> menu.presentCount() > 0 && !menu.isFramePending(), then);
                                 }));
                     }));
         }

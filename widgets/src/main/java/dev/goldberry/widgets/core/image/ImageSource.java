@@ -25,8 +25,10 @@ import dev.goldberry.render.model.PhysicalRect;
 /// belongs on a virtual thread (every other). Each answers a [#key()] the shared
 /// cache is keyed on, so two views of the same file decode it once.
 ///
-/// **An SVG is not decoded here.** There is no vector decoder; an SVG source
-/// fails with the decoder's message and the view shows its error state.
+/// **An SVG is decoded when `goldberry-vector` is on the module path**, into an
+/// image that carries its document and is drawn at the device pixels its box
+/// covers. Without it, an SVG source fails with a message naming the module and
+/// the view shows its error state.
 ///
 /// Read more: [Canvas, images and QR codes](https://goldberry.dev/docs/components/drawing.html#image).
 public sealed interface ImageSource {

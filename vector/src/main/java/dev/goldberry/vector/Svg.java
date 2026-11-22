@@ -9,6 +9,7 @@ import java.util.Optional;
 
 import dev.goldberry.image.Image;
 import dev.goldberry.image.ImageDecodeException;
+import dev.goldberry.image.ScalableImage;
 import dev.goldberry.render.PixelBuffer;
 import dev.goldberry.render.model.LogicalSize;
 import dev.goldberry.render.model.PhysicalSize;
@@ -34,6 +35,10 @@ import dev.goldberry.widgets.core.image.Fit;
 /// so a document is sharp at every size and every display scale, which is what
 /// SVG is for. An image is a value; this is a handle, so close it, or let the
 /// collector release it.
+///
+/// An application rarely needs one: with this module on the path,
+/// `Image.decode` reads SVG bytes into an image that carries its document, and
+/// every place an image is drawn draws it at the device pixels it covers.
 ///
 /// ## `currentColor`
 ///
@@ -66,7 +71,7 @@ import dev.goldberry.widgets.core.image.Fit;
 /// documents take turns.
 ///
 /// Read more: [Images](https://goldberry.dev/docs/components/drawing.html#image).
-public final class Svg implements AutoCloseable {
+public final class Svg implements ScalableImage, AutoCloseable {
 
     /// The largest document parsed: 16 MiB.
     public static final int MAX_DOCUMENT_BYTES = 16 << 20;
@@ -157,6 +162,7 @@ public final class Svg implements AutoCloseable {
     /// The size the document gives itself, in its user units, which are CSS
     /// pixels: its `width` and `height`, or its view box's where it names none,
     /// or the bounds of what it draws where it names neither.
+    @Override
     public LogicalSize naturalSize() {
         return naturalSize;
     }
@@ -180,6 +186,7 @@ public final class Svg implements AutoCloseable {
     /// @throws IllegalArgumentException when `size` is empty, over [#MAX_SIDE] on
     ///                                  a side or over [#MAX_PIXELS]
     /// @throws IllegalStateException    when this document is closed
+    @Override
     public Image render(PhysicalSize size) {
         var buffer = allocate(size);
         ThorvgEngine.call(library -> {

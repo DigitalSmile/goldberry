@@ -618,10 +618,11 @@ public final class RenderObject implements AutoCloseable {
     /// pictures had arrived, so the next update can tell whether one more has.
     private long picturesSeen = -1;
 
-    /// Whether `box` draws a picture a stylesheet named, in its background or its
-    /// border.
+    /// Whether `box` may draw a picture that arrives later: one a stylesheet
+    /// named, in its background or its border, or one its painter draws, whose
+    /// raster for the size it is drawn at may still be on its way.
     private static boolean namesPictures(Box box) {
-        return box.fill().hasPictures() || box.decoration().borderImage().isDrawn();
+        return box.fill().hasPictures() || box.decoration().borderImage().isDrawn() || box.painting() != null;
     }
 
     /// Whether this node's raster needs redrawing — see [#contentChanged].
@@ -829,7 +830,8 @@ public final class RenderObject implements AutoCloseable {
         // A box that names a picture draws more once the picture has arrived,
         // and its box is the same value before and after: the address is what
         // the cascade carries, not the pixels. So it counts as changed whenever
-        // a picture has arrived since it was last updated.
+        // a picture has arrived since it was last updated. A painted box too: a
+        // raster of a scalable image it draws arrives the same way.
         var pictures = StyleImages.generation();
         var pictureArrived = picturesSeen != pictures && namesPictures(box);
         picturesSeen = pictures;

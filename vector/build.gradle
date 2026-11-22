@@ -42,6 +42,9 @@ dependencies {
     // The golden-image helpers.
     testImplementation testFixtures(project(':core'))
 
+    // The content views, whose pictures an SVG is drawn in like any other.
+    testImplementation project(':html')
+
     // `NativePlatform`, which the platform test holds this module's detection to.
     testImplementation project(':natives')
 }

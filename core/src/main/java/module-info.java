@@ -98,6 +98,12 @@ module dev.goldberry.core {
 
     uses dev.goldberry.css.image.StyleImages;
 
+    // SVG: the decoder `goldberry-vector` provides. A document is drawn by a
+    // native library an application adds on purpose, so it arrives as a
+    // service; without one, SVG bytes are refused with the artifact's name.
+    exports dev.goldberry.image.spi;
+    uses dev.goldberry.image.spi.VectorDecoder;
+
     // `@media`: the condition a rule applies under and the window facts it is
     // asked about. Exported because a rule carries one and a test or a tool
     // reading a parsed sheet meets it.

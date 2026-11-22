@@ -1,13 +1,10 @@
 package dev.goldberry.css.image;
 
-import java.util.List;
 import java.util.ServiceLoader;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.atomic.AtomicLong;
 
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
@@ -15,6 +12,7 @@ import org.slf4j.Logger;
 import dev.goldberry.bind.Subscription;
 import dev.goldberry.image.Image;
 import dev.goldberry.image.ImageAddress;
+import dev.goldberry.image.scalable.PictureArrivals;
 import dev.goldberry.log.Logs;
 
 /// The state behind [StyleImages]' static half: the provider, what is on its
@@ -35,10 +33,6 @@ final class Registry {
     /// asked about on every frame would be a file read and a warning per frame.
     private static final Set<String> FAILED = ConcurrentHashMap.newKeySet();
 
-    private static final AtomicLong GENERATION = new AtomicLong();
-
-    private static final List<Runnable> LISTENERS = new CopyOnWriteArrayList<>();
-
     private static volatile @Nullable StyleImages provider;
 
     private Registry() {}
@@ -52,15 +46,14 @@ final class Registry {
         return found;
     }
 
+    /// Shared with the rasters of scalable images: an arrival of either is a
+    /// picture a box may now draw.
     static long generation() {
-        return GENERATION.get();
+        return PictureArrivals.generation();
     }
 
     static Subscription onArrival(Runnable listener) {
-        LISTENERS.add(listener);
-        return () -> {
-            var _ = LISTENERS.remove(listener);
-        };
+        return PictureArrivals.onArrival(listener);
     }
 
     static @Nullable StyleImage resolve(CssImage.Url url, double scale) {
@@ -129,10 +122,7 @@ final class Registry {
                     failed(key, failure, required);
                 }
                 // A failed 2x variant is news too: the 1x picture is asked for next.
-                GENERATION.incrementAndGet();
-                for (var listener : LISTENERS) {
-                    listener.run();
-                }
+                PictureArrivals.arrived();
             });
         }
         return Attempt.PENDING;

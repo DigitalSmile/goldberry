@@ -61,9 +61,12 @@ import dev.goldberry.widgets.markup.Wiring;
 /// "figure" and nothing else is worse than one it skips. `decorative` is the
 /// other honest answer, and it removes the node from the semantics entirely.
 ///
-/// ## Not built
+/// ## SVG
 ///
-/// There is no vector decoder: an SVG fails to decode and shows the error state.
+/// With `goldberry-vector` on the module path an SVG source is drawn sharp at
+/// every size and display scale: its natural size is the document's, and the
+/// pixels are drawn for the box. Without it, an SVG fails to decode and shows
+/// the error state.
 ///
 /// Read more: [Canvas, images and QR codes](https://goldberry.dev/docs/components/drawing.html#image).
 ///

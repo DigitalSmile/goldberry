@@ -7050,6 +7050,13 @@ toolkit, and six entries arrived on it together. All six are closed.
   in the wrong theme, and neither reports an error. **The `Optional` is the design**
   — SDL says `UNKNOWN` on a desktop with no such setting, and "the desktop says
   light" and "the desktop does not say" are a theme and a default.
+- **SVG wherever an image is** (W3.6 phase 3, ADR-0743 parked, 2026-11-22).
+  With `goldberry-vector` on the path, `Image.decode` reads SVG (sniffed past
+  its prologue) into an image that carries its document, and `Frame.drawImage`
+  draws it from a raster of the device pixels it covers: `image`, CSS
+  backgrounds and border images, HTML and Markdown pictures and canvas
+  painters are sharp at any size and scale. Without it, SVG is refused naming
+  `dev.goldberry:goldberry-vector`.
 - **`Svg`** (W3.6 phase 2, ADR-0742 parked, 2026-11-22). `goldberry-vector`'s
   document type: parsed once by ThorVG, drawn at any pixel size into an
   `Image` (premultiplied BGRA, no conversion), placed by the document's own

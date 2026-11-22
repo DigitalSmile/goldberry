@@ -65,10 +65,18 @@ final class Decoding {
     /// Decodes `bytes` into the memory `target` hands back for the decoded
     /// size; see [Image#decodeInto].
     static PhysicalSize into(ByteBuffer bytes, ChannelOrder order, Function<PhysicalSize, PixelTarget> target) {
-        var argb = switch (ImageFormat.of(bytes)) {
+        var format = ImageFormat.of(bytes);
+        if (format == ImageFormat.SVG) {
+            // Drawn at its natural size by the vector decoder, then copied: a
+            // document has no pixels to decode straight into.
+            var image = Image.decode(bytes);
+            copy(image, order, targetFor(image.size(), target));
+            return image.size();
+        }
+        var argb = switch (format) {
             case GIF -> gif(bytes);
             case WEBP -> webp(bytes);
-            case PNG, JPEG, QOI, UNKNOWN -> null;
+            case PNG, JPEG, QOI, SVG, UNKNOWN -> null;
         };
         if (argb != null) {
             var size = new PhysicalSize(argb.width(), argb.height());
@@ -106,6 +114,31 @@ final class Decoding {
             for (var x = 0; x < row.length; x++) {
                 var pixel = Image.premultiply(argb.pixels()[y * row.length + x]);
                 row[x] = swap ? swapRedAndBlue(pixel) : pixel;
+            }
+            pixels.slice(base + y * into.stride(), row.length * 4)
+                    .order(ByteOrder.LITTLE_ENDIAN)
+                    .asIntBuffer()
+                    .put(0, row);
+        }
+    }
+
+    /// Copies `image`, premultiplied BGRA already, into `into` in `order`.
+    private static void copy(Image image, ChannelOrder order, PixelTarget into) {
+        var from = image.pixels();
+        var source = from.pixels();
+        var pixels = into.pixels();
+        var base = pixels.position();
+        var row = new int[image.width()];
+        var swap = order.swapsRedAndBlue();
+        for (var y = 0; y < image.height(); y++) {
+            source.slice(y * from.stride(), row.length * 4)
+                    .order(ByteOrder.LITTLE_ENDIAN)
+                    .asIntBuffer()
+                    .get(0, row);
+            if (swap) {
+                for (var x = 0; x < row.length; x++) {
+                    row[x] = swapRedAndBlue(row[x]);
+                }
             }
             pixels.slice(base + y * into.stride(), row.length * 4)
                     .order(ByteOrder.LITTLE_ENDIAN)

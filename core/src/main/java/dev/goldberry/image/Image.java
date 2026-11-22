@@ -10,10 +10,14 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
 
+import org.jspecify.annotations.Nullable;
+
 import dev.goldberry.Goldberry;
 import dev.goldberry.image.gif.GifDecoder;
 import dev.goldberry.image.gif.GifFormatException;
 import dev.goldberry.image.png.PngEncoder;
+import dev.goldberry.image.scalable.ScalableRasters;
+import dev.goldberry.image.scalable.VectorDecoders;
 import dev.goldberry.natives.blend2d.BlendDecodedImage;
 import dev.goldberry.natives.blend2d.BlendImage;
 import dev.goldberry.natives.blend2d.BlendScaledImage;
@@ -96,9 +100,18 @@ public final class Image {
     /// write to it.
     private final PixelBuffer readable;
 
+    /// The document these pixels are a raster of, or null for a picture that is
+    /// only pixels.
+    private final @Nullable ScalableImage scalable;
+
     private Image(PixelBuffer pixels) {
+        this(pixels, null);
+    }
+
+    private Image(PixelBuffer pixels, @Nullable ScalableImage scalable) {
         this.pixels = pixels;
         this.readable = pixels.asReadOnly();
+        this.scalable = scalable;
     }
 
     /// Decodes PNG, JPEG, QOI, GIF or WebP bytes.
@@ -115,6 +128,12 @@ public final class Image {
     /// worth fetching a library for, and GIF is a nine-page format worth writing.
     ///
     /// An **animated** GIF decodes to its first frame. See [GifDecoder].
+    ///
+    /// **SVG** is a sixth, read by the [dev.goldberry.image.spi.VectorDecoder]
+    /// `goldberry-vector` provides: the image is a raster at the document's
+    /// natural size that carries the document, and is drawn from rasters made
+    /// for the device pixels it covers (see [#of(ScalableImage)]). Without the
+    /// module, SVG bytes are an [ImageDecodeException] that names it.
     ///
     /// **It decodes on the thread that calls it**, and a large JPEG takes tens of
     /// milliseconds. So a `canvas` painter does not call it: the painter runs on
@@ -147,6 +166,9 @@ public final class Image {
         // the rasterizer's and it would refuse them. The magic bytes, never a
         // file name: that is what "the format comes from the bytes" means.
         var format = ImageFormat.of(bytes);
+        if (format == ImageFormat.SVG) {
+            return decodeSvg(bytes);
+        }
         if (format == ImageFormat.GIF) {
             return decodeGif(bytes);
         }
@@ -208,6 +230,20 @@ public final class Image {
     public static PhysicalSize decodeInto(ByteBuffer bytes, ByteBuffer destination, int stride, ChannelOrder order) {
         var into = new PixelTarget(destination, stride);
         return decodeInto(bytes, order, size -> into);
+    }
+
+    /// An SVG, through the vector decoder an application adds.
+    private static Image decodeSvg(ByteBuffer bytes) {
+        var decoder = VectorDecoders.find()
+                .orElseThrow(() -> new ImageDecodeException("these bytes are an SVG document, and drawing one needs "
+                        + VectorDecoders.ARTIFACT + " (and its natives for this platform) on the module path"));
+        ScalableImage document;
+        try {
+            document = decoder.decode(bytes);
+        } catch (IllegalStateException e) {
+            throw new ImageDecodeException("an SVG document cannot be drawn here: " + e.getMessage(), e);
+        }
+        return of(document);
     }
 
     /// A GIF, through the toolkit's own decoder.
@@ -415,6 +451,43 @@ public final class Image {
             throw new IllegalArgumentException("an image needs a positive size, and " + pixels.size() + " has none");
         }
         return new Image(pixels);
+    }
+
+    /// An image of `document`: a raster at its natural size, one pixel to a
+    /// logical pixel and rounded up, carrying the document.
+    ///
+    /// Wherever it is drawn, it is drawn from a raster of the document made for
+    /// the device pixels it covers, so it stays sharp at any size and any
+    /// display scale. [#scaled] and [#cropped] answer pixels only.
+    ///
+    /// @throws ImageDecodeException when the document cannot be drawn at its
+    ///                              natural size
+    public static Image of(ScalableImage document) {
+        Objects.requireNonNull(document, "document");
+        var natural = document.naturalSize();
+        var size = new PhysicalSize(
+                Math.max(1, (int) Math.ceil(natural.width())), Math.max(1, (int) Math.ceil(natural.height())));
+        Image raster;
+        var started = System.nanoTime();
+        try {
+            raster = document.render(size);
+        } catch (IllegalArgumentException | IllegalStateException e) {
+            throw new ImageDecodeException(
+                    "an SVG document of natural size " + natural + " cannot be drawn at " + size + ": "
+                            + e.getMessage(),
+                    e);
+        }
+        ScalableRasters.shared().measured(document, System.nanoTime() - started, size.pixelCount());
+        if (raster.pixels().format() != FORMAT || !raster.size().equals(size)) {
+            throw new ImageDecodeException("a scalable image answered " + raster + " for " + size);
+        }
+        return new Image(raster.pixels, document);
+    }
+
+    /// The document these pixels are a raster of, for an image of SVG; empty for
+    /// one that is only pixels.
+    public Optional<ScalableImage> scalable() {
+        return Optional.ofNullable(scalable);
     }
 
     /// The size in pixels — the image's own, which is not a logical size: a
@@ -667,6 +740,6 @@ public final class Image {
 
     @Override
     public String toString() {
-        return "Image[" + width() + "x" + height() + "]";
+        return "Image[" + width() + "x" + height() + (scalable == null ? "" : ", scalable") + "]";
     }
 }

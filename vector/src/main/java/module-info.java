@@ -32,4 +32,9 @@ module dev.goldberry.vector {
     /// `Svg`, a parsed document drawn at any size, and what this module can do on
     /// this machine: whether its library loaded, and which ThorVG it holds.
     exports dev.goldberry.vector;
+
+    /// SVG wherever an image is decoded: `Image.decode`, the `image` widget, CSS
+    /// `url()` and the content views, all through `:core`'s decoder service.
+    provides dev.goldberry.image.spi.VectorDecoder with
+            dev.goldberry.vector.decode.SvgDecoder;
 }

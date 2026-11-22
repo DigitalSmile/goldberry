@@ -15,6 +15,7 @@ import dev.goldberry.css.Corners;
 import dev.goldberry.css.compositing.BlendMode;
 import dev.goldberry.css.value.Affine;
 import dev.goldberry.image.Image;
+import dev.goldberry.image.scalable.ScalableRasters;
 import dev.goldberry.natives.blend2d.BlendContext;
 import dev.goldberry.natives.blend2d.BlendFont;
 import dev.goldberry.natives.blend2d.BlendGlyphBuffer;
@@ -885,6 +886,11 @@ public final class Frame {
     /// 100&times;100 box is asking for it to be scaled down, and one drawing it
     /// into a 200&times;200 box at 200% is asking for it to stay pixel-exact.
     ///
+    /// An image with a [dev.goldberry.image.ScalableImage] behind it, an SVG, is
+    /// drawn from a raster of the document made for the device pixels the
+    /// rectangle covers, with `source` scaled to match; its own pixels are the
+    /// natural-size raster.
+    ///
     /// @param source the region of the image to draw, which must lie inside it
     /// @param alpha 0 to 1
     /// @throws IllegalArgumentException if `source` runs outside the image, or is
@@ -916,6 +922,28 @@ public final class Frame {
         if (!(width > 0) || !(height > 0)) {
             throw new IllegalArgumentException(
                     "an image is drawn into a positive rectangle, and " + width + "x" + height + " is not one");
+        }
+
+        // An image of a document is drawn from a raster made for the device
+        // pixels the rectangle covers, so an SVG is as sharp at 300% and at a
+        // box four times its natural size as at its own. The raster may be one
+        // this frame made, which nothing else holds: kept until `end`, since a
+        // threaded context reads it after the blit returns.
+        var document = image.scalable().orElse(null);
+        if (document != null) {
+            var factor = scale.factor();
+            var drawn = ScalableRasters.shared()
+                    .draw(
+                            image,
+                            document,
+                            source,
+                            width * factor * Math.hypot(matrix.a(), matrix.b()),
+                            height * factor * Math.hypot(matrix.c(), matrix.d()));
+            if (drawn.image() != image) {
+                image = drawn.image();
+                source = drawn.source();
+                drawnPixels.add(image.pixels().pixels());
+            }
         }
 
         var buffer = image.pixels();

@@ -17,14 +17,16 @@ import java.util.Objects;
 /// goes to, and the only honest basis is the bytes: a file with the wrong
 /// extension decodes anyway, and a `Content-Type` nobody set does not matter.
 ///
-/// It reads at most twelve bytes and decodes nothing, so asking is free.
+/// It reads at most twelve bytes for the binary formats and decodes nothing,
+/// so asking is free. [#SVG] is text, which has no signature: it reads past the
+/// prologue an editor writes, at most 64 KiB, to the root element.
 ///
 /// ## Naming a format and routing it are different things
 ///
 /// [#PNG], [#JPEG] and [#QOI] are the rasterizer's own and are listed here
 /// anyway, because this answers *what these bytes are* and that question has an
 /// answer whoever decodes them. Only [#GIF] and [#WEBP] change where the bytes
-/// go.
+/// go, and [#SVG], which goes to the vector decoder an application adds.
 ///
 /// ## [#UNKNOWN] is not an error
 ///
@@ -56,6 +58,12 @@ public enum ImageFormat {
     /// anything about. Listed for [#PNG]'s reason: this names what the bytes are.
     QOI,
 
+    /// An SVG document: a root `<svg>` element, after an optional byte order
+    /// mark, XML declaration, comments and doctype. Drawn by the
+    /// [dev.goldberry.image.spi.VectorDecoder] `goldberry-vector` provides, and
+    /// refused, naming that artifact, when nothing does.
+    SVG,
+
     /// Something else — a format nothing here lists. The rasterizer is asked, and
     /// it has the final word.
     UNKNOWN;
@@ -81,6 +89,9 @@ public enum ImageFormat {
         // then the form type. Both halves are needed: a WAV is RIFF too.
         if (length >= 12 && matches(bytes, at, 'R', 'I', 'F', 'F') && matches(bytes, at + 8, 'W', 'E', 'B', 'P')) {
             return WEBP;
+        }
+        if (SvgSniff.isSvg(bytes)) {
+            return SVG;
         }
         return UNKNOWN;
     }
