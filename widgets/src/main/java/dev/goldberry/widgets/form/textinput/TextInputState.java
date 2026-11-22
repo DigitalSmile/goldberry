@@ -1,6 +1,7 @@
 package dev.goldberry.widgets.form.textinput;
 
 import java.time.Duration;
+import java.util.List;
 
 import org.jspecify.annotations.Nullable;
 
@@ -24,6 +25,7 @@ import dev.goldberry.widgets.form.parts.Composing;
 import dev.goldberry.widgets.form.parts.MaxLength;
 import dev.goldberry.widgets.form.parts.Preedit;
 import dev.goldberry.widgets.form.spelling.FieldSpelling;
+import dev.goldberry.widgets.form.spelling.SpellingMenu;
 
 /// What a [TextInput] holds: the text, the history, the blink and how far it has
 /// scrolled.
@@ -148,6 +150,9 @@ final class TextInputState extends State<TextInput> implements TextEditor, TextC
 
     /// The spell check `spellcheck` and `lang` call for; never for a password.
     private final FieldSpelling spelling = new FieldSpelling(this::recheck);
+
+    /// The menu's rows for a misspelled word.
+    private final SpellingMenu spellingMenu = new SpellingMenu(this::refreshMenu);
 
     @Override
     protected void initState() {
@@ -774,9 +779,43 @@ final class TextInputState extends State<TextInput> implements TextEditor, TextC
             return false;
         }
         if (menu == null) {
-            menu = new TextMenu(host, this);
+            menu = new TextMenu(host, this, () -> spellingMenu.rows(this::replaceWord), List::of);
         }
+        caretToPointer(anchor);
+        spellingMenu.aim(spelling.current(), edit.text(), edit.caret());
         return menu.open(anchor);
+    }
+
+    private void refreshMenu() {
+        var open = menu;
+        if (open != null) {
+            open.refresh();
+        }
+    }
+
+    /// A suggestion chosen from the menu: the word replaced, one undo step.
+    private boolean replaceWord(int start, int end, String with) {
+        if (widget().readOnly() || widget().disabled() || end > edit.text().length()) {
+            return false;
+        }
+        return apply(new TextEdit(edit.text(), start, end).insert(with), EditHistory.Kind.OTHER, true);
+    }
+
+    /// A right-click on the field, while it checks its spelling and nothing is
+    /// selected, puts the caret where the pointer is: the menu is then about
+    /// the word under it. The window takes the press to open the menu, so this
+    /// is the field's one chance to see where it was.
+    private void caretToPointer(LogicalRect anchor) {
+        var self = fieldBounds;
+        if (spelling.current() == null
+                || edit.hasSelection()
+                || self == null
+                || !anchor.size().isEmpty()
+                || !self.contains(anchor.origin())) {
+            return;
+        }
+        pointerAt(anchor.origin().x() - self.origin().x(), false, 1);
+        released();
     }
 
     @Override

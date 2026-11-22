@@ -32,6 +32,7 @@ import dev.goldberry.widgets.form.parts.Composing;
 import dev.goldberry.widgets.form.parts.MaxLength;
 import dev.goldberry.widgets.form.parts.Preedit;
 import dev.goldberry.widgets.form.spelling.FieldSpelling;
+import dev.goldberry.widgets.form.spelling.SpellingMenu;
 
 /// What a [TextArea] holds — `text-input`'s state, with a column to remember.
 ///
@@ -142,6 +143,12 @@ final class TextAreaState extends State<TextArea> implements AreaEditor, TextCom
     /// The spell check `spellcheck` and `lang` call for, built again when they
     /// or the installed checkers change.
     private final FieldSpelling spelling = new FieldSpelling(this::recheck);
+
+    /// The menu's rows for a misspelled word.
+    private final SpellingMenu spellingMenu = new SpellingMenu(this::refreshMenu);
+
+    /// Where the area was in the window on the last frame, or null before one.
+    private @Nullable LogicalRect where;
 
     @Override
     protected void initState() {
@@ -840,9 +847,52 @@ final class TextAreaState extends State<TextArea> implements AreaEditor, TextCom
             return false;
         }
         if (menu == null) {
-            menu = new TextMenu(host, this);
+            menu = new TextMenu(host, this, () -> spellingMenu.rows(this::replaceWord), List::of);
         }
+        caretToPointer(anchor);
+        spellingMenu.aim(spelling.current(), edit.text(), edit.caret());
         return menu.open(anchor);
+    }
+
+    private void refreshMenu() {
+        var open = menu;
+        if (open != null) {
+            open.refresh();
+        }
+    }
+
+    /// A suggestion chosen from the menu: the word replaced, one undo step.
+    private boolean replaceWord(int start, int end, String with) {
+        if (widget().readOnly() || widget().disabled() || end > edit.text().length()) {
+            return false;
+        }
+        return apply(new TextEdit(edit.text(), start, end).insert(with), EditHistory.Kind.OTHER, true);
+    }
+
+    @Override
+    public void located(LogicalRect self) {
+        where = self;
+    }
+
+    /// A right-click on the area, while it checks its spelling and nothing is
+    /// selected, puts the caret where the pointer is: the menu is then about
+    /// the word under it, as a browser's is. The window takes the press to open
+    /// the menu, so this is the area's one chance to see where it was.
+    private void caretToPointer(LogicalRect anchor) {
+        var self = where;
+        if (spelling.current() == null
+                || edit.hasSelection()
+                || self == null
+                || !anchor.size().isEmpty()
+                || !self.contains(anchor.origin())) {
+            return;
+        }
+        pointerAt(
+                anchor.origin().x() - self.origin().x(),
+                anchor.origin().y() - self.origin().y(),
+                false,
+                1);
+        released();
     }
 
     @Override

@@ -15,6 +15,7 @@ import dev.goldberry.input.event.PreeditEvent;
 import dev.goldberry.input.event.TextEvent;
 import dev.goldberry.input.handler.ContextMenuOwner;
 import dev.goldberry.input.handler.Handles;
+import dev.goldberry.input.handler.Located;
 import dev.goldberry.input.handler.Measured;
 import dev.goldberry.input.hit.Extent;
 import dev.goldberry.layout.Insets;
@@ -175,7 +176,13 @@ record TextAreaBox(
         @Nullable ScrollBar scrollbar,
         AreaEditor editor,
         @Nullable SpellCheck spelling)
-        implements Widget.Leaf, Styled, Paints, Handles, Measured, Semantics, ContextMenuOwner {
+        implements Widget.Leaf, Styled, Paints, Handles, Measured, Located, Semantics, ContextMenuOwner {
+
+    /// Where it is in the window, for the menu a right-click opens on a word.
+    @Override
+    public void located(LogicalRect self, LogicalRect clip) {
+        editor.located(self);
+    }
 
     /// Its own menu: Cut, Copy, Paste and Select all, opened by the state.
     @Override

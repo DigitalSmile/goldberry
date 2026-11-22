@@ -81,7 +81,20 @@ public enum ToolkitLabel {
     APPLY("goldberry.apply", "Apply"),
 
     /// The link editor's button that takes a link off.
-    REMOVE_LINK("goldberry.removeLink", "Remove link");
+    REMOVE_LINK("goldberry.removeLink", "Remove link"),
+
+    /// The text menu's row that adds a misspelled word to the personal
+    /// dictionary.
+    ADD_TO_DICTIONARY("goldberry.addToDictionary", "Add to dictionary"),
+
+    /// The text menu's row that stops flagging a misspelled word in this field.
+    IGNORE_SPELLING("goldberry.ignoreSpelling", "Ignore"),
+
+    /// The text menu's row shown when the checker has nothing near a word.
+    NO_SUGGESTIONS("goldberry.noSuggestions", "No suggestions"),
+
+    /// The text menu's row shown while suggestions are being looked for.
+    FINDING_SUGGESTIONS("goldberry.findingSuggestions", "Finding suggestions…");
 
     private final String key;
     private final String english;

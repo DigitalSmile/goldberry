@@ -320,3 +320,8 @@ Everything below is measured against 2026.2 (tag commit d3eacfdc).
 - `::spelling-error` is a rule in the theme: a field that checks its spelling
   draws a wavy underline in `--gb-danger` under a misspelled word. Nothing
   checks unless `spellcheck=#true` is said. <!-- ADR-0736 -->
+- `ToolkitLabel` has four more constants (`ADD_TO_DICTIONARY`,
+  `IGNORE_SPELLING`, `NO_SUGGESTIONS`, `FINDING_SUGGESTIONS`); an exhaustive
+  `switch` over it names them. <!-- ADR-0737 -->
+- In a field that checks its spelling, a right-click with nothing selected
+  moves the caret to the pointer before the menu opens. <!-- ADR-0737 -->

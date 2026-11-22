@@ -51,6 +51,7 @@ import dev.goldberry.widgets.form.edit.TextCommands;
 import dev.goldberry.widgets.form.edit.TextMenu;
 import dev.goldberry.widgets.form.spelling.FieldSpelling;
 import dev.goldberry.widgets.form.spelling.SpellingInk;
+import dev.goldberry.widgets.form.spelling.SpellingMenu;
 import dev.goldberry.widgets.menu.Item;
 
 /// What a [RichInput] holds: an [Editor] over its marked text, and what the
@@ -117,6 +118,9 @@ final class RichInputState extends State<RichInput> implements RichInputBox.Inpu
 
     /// The spell check `spellcheck` and `lang` call for.
     private final FieldSpelling spelling = new FieldSpelling(this::recheck);
+
+    /// The menu's rows for a misspelled word.
+    private final SpellingMenu spellingMenu = new SpellingMenu(this::refreshMenu);
 
     /// Whether the press began with the middle button: a paste, so the drag
     /// after it selects nothing.
@@ -953,10 +957,62 @@ final class RichInputState extends State<RichInput> implements RichInputBox.Inpu
         }
         var open = menu;
         if (open == null) {
-            open = new TextMenu(window, this, this::formatRows);
+            open = new TextMenu(window, this, () -> spellingMenu.rows(this::replaceWord), this::formatRows);
             menu = open;
         }
+        var current = editor;
+        if (current != null) {
+            caretToPointer(current, anchor);
+            spellingMenu.aim(spelling.current(), current.text(), current.edit().caret());
+        }
         return open.open(anchor);
+    }
+
+    /// A right-click on the field, while it checks its spelling and nothing is
+    /// selected, puts the caret where the pointer is, so the menu is about the
+    /// word under it.
+    private void caretToPointer(Editor current, LogicalRect anchor) {
+        var self = located;
+        if (spelling.current() == null
+                || current.edit().hasSelection()
+                || self == null
+                || !anchor.size().isEmpty()
+                || !self.contains(anchor.origin())) {
+            return;
+        }
+        var x = anchor.origin().x() - self.origin().x() - edges.left();
+        var y = anchor.origin().y() - self.origin().y() - edges.top() + current.scrollTop();
+        current.pointerAt(x, y, false, 1);
+        var _ = current.pointerReleased();
+        changed();
+    }
+
+    private void refreshMenu() {
+        var open = menu;
+        if (open != null) {
+            open.refresh();
+        }
+    }
+
+    /// A suggestion chosen from the menu: the word replaced with the marks its
+    /// first letter had, so a misspelled bold word comes back bold. One undo
+    /// step.
+    private boolean replaceWord(int start, int end, String with) {
+        var current = editor;
+        if (current == null || widget().readOnly() || widget().disabled()) {
+            return false;
+        }
+        var replacement = MarkedText.of(with);
+        for (var mark : current.value().marks()) {
+            if (mark.start() <= start && mark.end() > start && mark.kind() instanceof MarkKind.Style) {
+                replacement = replacement.mark(0, with.length(), mark.kind());
+            }
+        }
+        var replaced = current.replace(start, end, replacement);
+        if (replaced) {
+            changed();
+        }
+        return replaced;
     }
 
     /// The Format submenu: every formatting command, ticked where it is on.

@@ -45,6 +45,10 @@ public final class TextMenu {
     /// is drawn, so a row that shows a state shows the current one.
     private final Supplier<List<Widget>> more;
 
+    /// The rows a field puts before the stock ones, asked for the same way: a
+    /// misspelled word's suggestions.
+    private final Supplier<List<Widget>> before;
+
     private @Nullable ShownMenu shown;
     private @Nullable Subscription watching;
 
@@ -59,8 +63,18 @@ public final class TextMenu {
     ///
     /// @param more the rows, asked for each time the menu is drawn
     public TextMenu(Host host, TextCommands commands, Supplier<List<Widget>> more) {
+        this(host, commands, List::of, more);
+    }
+
+    /// A menu with rows of the field's own before the stock ones, under which
+    /// a separator goes, and after them.
+    ///
+    /// @param before the rows above, asked for each time the menu is drawn
+    /// @param more   the rows below, asked for the same way
+    public TextMenu(Host host, TextCommands commands, Supplier<List<Widget>> before, Supplier<List<Widget>> more) {
         this.host = Objects.requireNonNull(host, "host");
         this.commands = Objects.requireNonNull(commands, "commands");
+        this.before = Objects.requireNonNull(before, "before");
         this.more = Objects.requireNonNull(more, "more");
     }
 
@@ -70,7 +84,7 @@ public final class TextMenu {
     public boolean open(LogicalRect anchor) {
         Objects.requireNonNull(anchor, "anchor");
         close();
-        var opened = Menus.show(host, anchor, menu(commands, more.get()));
+        var opened = Menus.show(host, anchor, menu(commands, before.get(), more.get()));
         if (opened.isEmpty()) {
             return false;
         }
@@ -98,7 +112,16 @@ public final class TextMenu {
             shown = null;
             return;
         }
-        current.update(menu(commands, more.get()));
+        current.update(menu(commands, before.get(), more.get()));
+    }
+
+    /// Draws the open menu's rows again, as they stand now: suggestions that
+    /// arrived after it opened. Nothing when it is not open.
+    public void refresh() {
+        var current = shown;
+        if (current != null && current.isOpen()) {
+            current.update(menu(commands, before.get(), more.get()));
+        }
     }
 
     private void stopWatching() {
@@ -118,8 +141,21 @@ public final class TextMenu {
     /// The rows, as `commands` stands now, and `more` after them under a
     /// separator when there are any.
     public static Menu menu(TextCommands commands, List<Widget> more) {
+        return menu(commands, List.of(), more);
+    }
+
+    /// The rows, as `commands` stands now, with `before` above them and `more`
+    /// below, each under or over a separator when there are any.
+    public static Menu menu(TextCommands commands, List<Widget> before, List<Widget> more) {
         Objects.requireNonNull(commands, "commands");
+        Objects.requireNonNull(before, "before");
         Objects.requireNonNull(more, "more");
+        if (!before.isEmpty()) {
+            var rows = new ArrayList<Widget>(before);
+            rows.add(new Separator());
+            rows.addAll(menu(commands, more).children());
+            return new Menu(rows, null);
+        }
         if (!more.isEmpty()) {
             var rows = new ArrayList<Widget>(menu(commands).children());
             rows.add(new Separator());

@@ -261,10 +261,10 @@ where pictures change. Tests are written with the code, not after it.
 |----------|------|--------|
 | `docs/gaps/goldberry-gaps-plan.md` §8, §10 | T-25's row and the log | plan written |
 | `docs/gaps/answers-tessera.md` | T-25's answer when it lands | open |
-| `docs/snapshot/adr/` | ADR-0733 (D1–D9), ADR-0734 (phase 1), ADR-0735 (phase 2), ADR-0736 (phase 3) | phase 3 done |
+| `docs/snapshot/adr/` | ADR-0733 (D1–D9), ADR-0734 (phase 1), ADR-0735 (phase 2), ADR-0736 (phase 3), ADR-0737 (phase 4) | phase 4 done |
 | `docs/snapshot/changelog-breaking-changes.md` | `ComputedStyle.textDecoration()`'s type, one more component on `TextFlow`, `SpanPaint` and `MarkStyle` | done (phase 1) |
 | `docs/snapshot/` guide pieces | styling (`guide-styling-text-decoration.md`, done), forms (spell checking) | styling done |
-| `docs/status.md` | a line per phase | phase 3 |
+| `docs/status.md` | a line per phase | phase 4 |
 
 ## 7. Status and log
 
@@ -274,7 +274,7 @@ where pictures change. Tests are written with the code, not after it.
 | 1. CSS text decoration | done 2026-11-22 (ADR-0734) |
 | 2. SPI and service | done 2026-11-22 (ADR-0735) |
 | 3. Fields | done 2026-11-22 (ADR-0736) |
-| 4. Menu | todo |
+| 4. Menu | done 2026-11-22 (ADR-0737) |
 | 5. `goldberry-spell` | todo |
 | 6. Showcase and guide | todo |
 
@@ -336,3 +336,20 @@ where pictures change. Tests are written with the code, not after it.
   picture showed the wave under the word alone. `:example:test` passed with
   no golden retaken, and `:core:check` and `:widgets:check` are green.
   ADR-0736 is parked. Next: phase 4, the menu.
+- **2026-11-22, phase 3 committed** as `e1be5f68`.
+- **2026-11-22, phase 4 done.** `TextMenu` takes rows before its stock
+  ones and can `refresh()`. `SpellingMenu` (in `form.spelling`) aims at the
+  misspelling the caret holds, asks for suggestions off the UI thread, and
+  shows "Finding suggestions…" until they come. The redrawn menu then focuses
+  the best suggestion. Then *Add to dictionary* and *Ignore*, with four new
+  `ToolkitLabel`s. Found while testing: the window takes a secondary press to
+  open the menu, so a right-click never moved the caret in `text-input` or
+  `text-area`. Now a field that checks maps the menu's pointer anchor through
+  where it was located (`Located` is new on `text-area`) and puts the caret
+  there when nothing is selected. A suggestion is one undo step, and in
+  `rich-input` it keeps its first letter's style marks. Tests:
+  `SpellingMenuTest`, six cases alone and two through the headless launcher
+  (right-click, the suggestion replaces the word; Down, Enter, the word joins
+  the personal dictionary). Everything is green: `:core:check`,
+  `:widgets:check` and `:example:test`, with no golden moved. ADR-0737 is
+  parked. Next: phase 5, `goldberry-spell` on Lucene.

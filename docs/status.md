@@ -7050,6 +7050,11 @@ toolkit, and six entries arrived on it together. All six are closed.
   in the wrong theme, and neither reports an error. **The `Optional` is the design**
   — SDL says `UNKNOWN` on a desktop with no such setting, and "the desktop says
   light" and "the desktop does not say" are a theme and a default.
+- **The spelling menu** (W3.7 phase 4, ADR-0737 parked, 2026-11-22). A field's
+  menu on a misspelled word: up to five suggestions (filled in when they
+  arrive), Add to dictionary, Ignore, then the stock rows; a right-click in a
+  checking field moves the caret under the pointer; a suggestion is one undo
+  step and keeps a rich word's style.
 - **Fields check their spelling** (W3.7 phase 3, ADR-0736 parked, 2026-11-22).
   `spellcheck=#true`/`lang=` on any node (`Attributes.spelling`, passed down
   the tree); `text-input`, `text-area` and `rich-input` draw `::spelling-error`

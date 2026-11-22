@@ -126,6 +126,9 @@ interface AreaEditor {
     /// there is one.
     void released();
 
+    /// Where the area is in the window this frame.
+    void located(LogicalRect self);
+
     /// A frame is being rendered — where a drag held at the edge takes its step.
     ///
     /// Before [#laidOut], so the step is laid out and drawn in the frame that took
