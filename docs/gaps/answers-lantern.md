@@ -161,7 +161,13 @@ Goldberry finds the library there.
 what keeps Lantern's class-path part? If it is, Goldberry will compile a real
 descriptor into each classifier jar.
 
-**Landed.** —
+**Landed.** Nothing to build: Lantern ships a native image, not a `jlink`
+image. Give `native-image` the modular jars on `--module-path` and the
+classifier jar on `-cp`. The image carries `libgoldberry` as a resource and
+unpacks it on first use, so the class-path part never reaches the user. The
+showcase's own `nativeImage` task is built that way. A descriptor would not
+help, because no module requires the natives and resolution would drop them.
+Tests keep the natives as `testRuntimeOnly`, which is the usual arrangement.
 
 ## G-7. A click is synthesised for the primary button only
 
