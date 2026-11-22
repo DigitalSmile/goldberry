@@ -16,7 +16,8 @@ public interface CameraBackend extends AutoCloseable {
     /// The cameras there are now.
     List<CameraInfo> devices();
 
-    /// Opens camera `id` in `mode`, its frames converted to NV12.
+    /// Opens camera `id` in `mode`: an uncompressed mode's frames converted to
+    /// NV12, a compressed one's lent as the camera's Motion JPEG.
     ///
     /// @throws CameraLostException when the camera cannot be opened
     CameraStream open(int id, CameraFormat mode);

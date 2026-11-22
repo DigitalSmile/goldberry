@@ -9,6 +9,7 @@ import dev.goldberry.camera.CameraInfo;
 import dev.goldberry.camera.CameraPosition;
 import dev.goldberry.natives.sdl.SdlException;
 import dev.goldberry.natives.sdl.camera.SdlCamera;
+import dev.goldberry.natives.sdl.camera.SdlCameraFrame;
 import dev.goldberry.natives.sdl.camera.SdlCameraInfo;
 import dev.goldberry.natives.sdl.camera.SdlCameraPixelFormat;
 import dev.goldberry.natives.sdl.camera.SdlCameraSpec;
@@ -16,9 +17,10 @@ import dev.goldberry.natives.sdl.camera.SdlCameras;
 import dev.goldberry.natives.sdl.device.SdlDeviceEvent;
 import dev.goldberry.natives.sdl.device.SdlDeviceWatch;
 
-/// The desktop's backend: SDL's cameras, opened in NV12 so SDL's camera thread
-/// converts what the camera sends, and its device events, which reach a watch
-/// only while the window loop pumps.
+/// The desktop's backend: SDL's cameras, an uncompressed mode opened in NV12
+/// so SDL's camera thread converts what the camera sends, a compressed one in
+/// Motion JPEG, which SDL hands through as the camera sent it; and its device
+/// events, which reach a watch only while the window loop pumps.
 public final class SdlCameraBackend implements CameraBackend {
 
     private final SdlCameras cameras;
@@ -47,6 +49,7 @@ public final class SdlCameraBackend implements CameraBackend {
     public CameraStream open(int id, CameraFormat mode) {
         Objects.requireNonNull(mode, "mode");
         // The device's own colorspace, so SDL's conversion to NV12 keeps it.
+        // A JPEG says its own; SDL reports it as the mode's.
         var colorspace = cameras.cameras().stream()
                 .filter(camera -> camera.id() == id)
                 .flatMap(camera -> camera.formats().stream())
@@ -54,13 +57,9 @@ public final class SdlCameraBackend implements CameraBackend {
                 .mapToInt(SdlCameraSpec::colorspace)
                 .findFirst()
                 .orElse(0);
+        var format = mode.compressed() ? SdlCameraPixelFormat.MJPG : SdlCameraPixelFormat.NV12;
         var asked = new SdlCameraSpec(
-                SdlCameraPixelFormat.NV12.value(),
-                colorspace,
-                mode.width(),
-                mode.height(),
-                mode.rateNumerator(),
-                mode.rateDenominator());
+                format.value(), colorspace, mode.width(), mode.height(), mode.rateNumerator(), mode.rateDenominator());
         try {
             return new Stream(cameras.open(id, asked));
         } catch (SdlException e) {
@@ -114,10 +113,10 @@ public final class SdlCameraBackend implements CameraBackend {
                 && spec.height() == mode.height()
                 && spec.framerateNumerator() == mode.rateNumerator()
                 && spec.framerateDenominator() == mode.rateDenominator()
-                && !spec.pixelFormat().map(SdlCameraPixelFormat::compressed).orElse(false);
+                && spec.pixelFormat().map(SdlCameraPixelFormat::compressed).orElse(false) == mode.compressed();
     }
 
-    /// SDL's camera, its frames read in place as NV12.
+    /// SDL's camera, its frames read in place: NV12 planes, or Motion JPEG.
     private record Stream(SdlCamera camera) implements CameraStream {
 
         @Override
@@ -136,26 +135,37 @@ public final class SdlCameraBackend implements CameraBackend {
                 return false;
             }
             try (var frame = acquired.get()) {
-                if (frame.pixelFormat().orElse(null) != SdlCameraPixelFormat.NV12) {
-                    throw new CameraLostException("the camera sent " + frame.format() + " frames, not NV12");
-                }
-                var layout = frame.layout();
-                var colour = camera.format()
-                        .map(spec -> Colorimetry.of(spec.colorspace()))
-                        .orElse(Colorimetry.UNSAID);
-                sink.accept(new Nv12Frame(
-                        frame.pixels(),
-                        frame.width(),
-                        frame.height(),
-                        layout.offsets().get(0),
-                        layout.strides().get(0),
-                        layout.offsets().get(1),
-                        layout.strides().get(1),
-                        colour.matrix(),
-                        colour.fullRange(),
-                        frame.timestampNanos()));
+                sink.accept(lent(frame));
             }
             return true;
+        }
+
+        private LentFrame lent(SdlCameraFrame frame) {
+            return switch (frame.pixelFormat().orElse(null)) {
+                case NV12 -> {
+                    var layout = frame.layout();
+                    var colour = camera.format()
+                            .map(spec -> Colorimetry.of(spec.colorspace()))
+                            .orElse(Colorimetry.UNSAID);
+                    yield new Nv12Frame(
+                            frame.pixels(),
+                            frame.width(),
+                            frame.height(),
+                            layout.offsets().get(0),
+                            layout.strides().get(0),
+                            layout.offsets().get(1),
+                            layout.strides().get(1),
+                            colour.matrix(),
+                            colour.fullRange(),
+                            frame.timestampNanos());
+                }
+                // SDL reports a compressed frame's length as its pitch, which
+                // is the extent the frame's buffer has.
+                case MJPG -> new JpegFrame(frame.pixels(), frame.width(), frame.height(), frame.timestampNanos());
+                case null, default ->
+                    throw new CameraLostException("the camera sent frames in SDL format "
+                            + Integer.toHexString(frame.format()) + ", neither NV12 nor Motion JPEG");
+            };
         }
 
         @Override

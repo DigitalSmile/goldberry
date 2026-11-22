@@ -5,7 +5,7 @@ import java.util.List;
 import java.util.Optional;
 
 /// What an application asks a camera for: a size and a frame rate. The camera
-/// opens the uncompressed mode nearest to it ([#choose]).
+/// opens the mode nearest to it ([#choose]).
 ///
 /// @param width           pixels across wanted
 /// @param height          pixels down wanted
@@ -26,22 +26,23 @@ public record CameraSpec(int width, int height, double framesPerSecond) {
         }
     }
 
-    /// The mode of `formats` this spec opens: the uncompressed one nearest in
-    /// size and rate, a rate below the one asked counting twice as much as a
-    /// size away from it, and the larger of two as near. Empty when every mode
-    /// is compressed.
+    /// The mode of `formats` this spec opens: the one nearest in size and
+    /// rate, a rate below the one asked counting twice as much as a size away
+    /// from it. Of two as near, an uncompressed mode, which costs no decoding;
+    /// then the larger; then the rate nearer the one asked, so a call at 30 is
+    /// not decoded at 60. Empty when there is no mode.
     ///
-    /// So a camera that gives 1280×720 only at 10 fps uncompressed opens
-    /// 640×480 at 30 for [#CALL]: a third of the rate is further from a call
-    /// than half the size.
+    /// So a camera that sends 1280×720 at 30 only as Motion JPEG, and
+    /// uncompressed only at 10, opens the Motion JPEG mode for [#CALL]; one
+    /// that offers 640×480 at 30 both ways opens it uncompressed for
+    /// [#PREVIEW].
     public Optional<CameraFormat> choose(List<CameraFormat> formats) {
         return formats.stream()
-                .filter(format -> !format.compressed())
                 .min(Comparator.comparingDouble(this::distance)
+                        .thenComparing(CameraFormat::compressed)
                         .thenComparing(
                                 Comparator.comparingLong(CameraFormat::pixels).reversed())
-                        .thenComparing(Comparator.comparingDouble(CameraFormat::framesPerSecond)
-                                .reversed()));
+                        .thenComparingDouble(this::rateGap));
     }
 
     /// How far `format` is from this, in natural logs of size and rate.
@@ -50,5 +51,12 @@ public record CameraSpec(int width, int height, double framesPerSecond) {
         var rate = format.framesPerSecond();
         var slower = rate <= 0 ? 0 : Math.max(0, Math.log(framesPerSecond / rate));
         return size + 2 * slower;
+    }
+
+    /// How far `format`'s rate is from this one's either way, in a natural
+    /// log; a mode that gives no rate is the furthest.
+    double rateGap(CameraFormat format) {
+        var rate = format.framesPerSecond();
+        return rate <= 0 ? Double.MAX_VALUE : Math.abs(Math.log(rate / framesPerSecond));
     }
 }

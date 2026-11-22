@@ -5,9 +5,11 @@ import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SymbolLookup;
 import java.lang.foreign.ValueLayout;
 import java.util.Collection;
+import java.util.Optional;
 import java.util.Set;
 
 import dev.goldberry.natives.NativeLibrary;
+import dev.goldberry.natives.NativePlatform;
 import dev.goldberry.natives.sdl.calls.SdlCoreCalls;
 
 /// BindingRegistry for SDL3's lifecycle, error and version calls.
@@ -47,6 +49,9 @@ public final class Sdl {
 
     private Sdl(SymbolLookup lookup) {
         this.sdlCoreCalls = SdlCoreCalls.bind(lookup);
+        // Set once, at the normal priority: an application's own setHint later,
+        // or the environment variable of the same name, still decides.
+        defaultCameraDrivers().ifPresent(order -> setHint(CAMERA_DRIVER_HINT, order));
     }
 
     /// The SDL bindings, loading `libgoldberry` on first call.
@@ -110,6 +115,31 @@ public final class Sdl {
     /// when a window is created, so it is set around one creation and cleared
     /// after it.
     public static final String X11_WINDOW_VISUALID_HINT = "SDL_VIDEO_X11_WINDOW_VISUALID";
+
+    /// The hint naming the camera drivers SDL tries, in order:
+    /// `SDL_CAMERA_DRIVER`, a comma list. The first that starts is used,
+    /// whether or not it lists a camera.
+    public static final String CAMERA_DRIVER_HINT = "SDL_CAMERA_DRIVER";
+
+    /// The camera drivers the toolkit has SDL try on this platform, set when
+    /// the library is first loaded; empty where SDL's own order is kept.
+    public static Optional<String> defaultCameraDrivers() {
+        return cameraDrivers(NativePlatform.current().os());
+    }
+
+    /// The same, on `os`.
+    ///
+    /// On Linux PipeWire first, then V4L2. SDL's own order is the other way
+    /// round, and V4L2 starts wherever the kernel has video nodes, so PipeWire
+    /// would never be asked, and a camera only PipeWire serves (a laptop's
+    /// MIPI camera behind libcamera) would never be listed. Where no PipeWire
+    /// daemon runs, its driver does not start and V4L2 does.
+    static Optional<String> cameraDrivers(NativePlatform.OperatingSystem os) {
+        return switch (os) {
+            case LINUX -> Optional.of("pipewire,v4l2");
+            case MACOS, WINDOWS -> Optional.empty();
+        };
+    }
 
     /// Sets an SDL hint.
     ///

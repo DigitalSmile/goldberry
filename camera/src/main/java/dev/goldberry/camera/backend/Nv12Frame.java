@@ -30,7 +30,8 @@ public record Nv12Frame(
         int chromaStride,
         VideoFrame.ColorMatrix matrix,
         boolean fullRange,
-        long timestampNanos) {
+        long timestampNanos)
+        implements LentFrame {
 
     public Nv12Frame {
         Objects.requireNonNull(bytes, "bytes");

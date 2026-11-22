@@ -136,6 +136,34 @@ class PlatformIntegrationBuildTest {
     }
 
     @Test
+    @DisplayName("a configure in which SDL loses V4L2 or PipeWire stops, with no waiver")
+    void camerasStopTheConfigure() {
+        assumeReadable();
+
+        // SDL drops its PipeWire audio and camera drivers together, quietly,
+        // when libpipewire-0.3's headers are missing; a camera only PipeWire
+        // serves is then never listed.
+        var start = cmakeLists.indexOf("_sdl_driver IN ITEMS");
+        assertTrue(start >= 0, "the superbuild does not check SDL's camera drivers");
+        var block = cmakeLists.substring(start, cmakeLists.indexOf("endforeach()", start));
+        assertTrue(
+                block.contains("SDL_CAMERA_DRIVER_V4L2")
+                        && block.contains("SDL_CAMERA_DRIVER_PIPEWIRE")
+                        && block.contains("SDL_AUDIO_DRIVER_PIPEWIRE"),
+                "V4L2 and both PipeWire drivers must be checked: " + block);
+        assertTrue(
+                block.contains("${_sdl_driver} 1"),
+                "the match must end at the value, or SDL_CAMERA_DRIVER_PIPEWIRE_DYNAMIC satisfies it alone");
+        assertTrue(block.contains("message(FATAL_ERROR"), "a lost camera driver must stop the configure");
+        assertTrue(
+                !block.contains("GOLDBERRY_REQUIRE_PLATFORM_INTEGRATION"),
+                "the degraded-platform flag must not waive the camera drivers");
+        assertTrue(
+                block.contains("libpipewire-0.3-dev") && block.contains("pipewire-devel"),
+                "the failure has to name the package to install, on both package managers");
+    }
+
+    @Test
     @DisplayName("SDL's answer is read from this configure, not from the header the last one generated")
     void sdlAnswerIsReadFromThisConfigure() {
         assumeReadable();

@@ -51,16 +51,30 @@ open when the application has not chosen: the first facing the user, else the
 first. `onChange` hears cameras plugged in and taken away while the
 application's window loop runs.
 
-A camera opens in the **uncompressed** mode nearest to what was asked. Most
-USB cameras send their largest sizes and fastest rates only compressed, as
-Motion JPEG; those modes are listed and not opened. A rate slower than the one
-asked counts twice as much as a size away from it, so a camera that sends
-1280×720 uncompressed only at 10 frames a second opens 640×480 at 30 for
-`CameraSpec.CALL`.
+A camera opens in the mode nearest to what was asked. A rate slower than the
+one asked counts twice as much as a size away from it. Of two modes as near,
+an uncompressed one wins, then the larger, then the rate nearer the one asked.
 
-Pictures come as NV12 planes, newest first, taken on a thread of the camera's
-own. A picture stays as it is until two more have been shown after it; a view
-that draws slowly never holds the camera up.
+Most USB cameras send their largest sizes and fastest rates only compressed,
+as Motion JPEG. A camera opened in such a mode decodes each frame on its own
+thread, which costs a few milliseconds a frame: about 5 at 1280×720 and 12 at
+1920×1080. So a camera that sends 1280×720 at 30 only compressed, and
+uncompressed only at 10, opens the compressed mode for `CameraSpec.CALL`, and
+640×480 at 30 uncompressed for `CameraSpec.PREVIEW`. `CameraInfo.formats()`
+lists every mode, and `CameraFormat.compressed()` says which need decoding.
+
+Pictures are taken newest first, on a thread of the camera's own: NV12 planes
+from an uncompressed mode, BGRA pictures from a compressed one. A picture
+stays as it is until two more have been shown after it, so a view that draws
+slowly never holds the camera up. A compressed frame that arrives cut short or
+corrupt is dropped while the camera goes on, and `droppedFrames()` counts it.
+Frames that leave out their Huffman tables, as many USB cameras' do, are given
+JPEG's standard ones.
+
+On Linux the cameras are listed through PipeWire where it runs, which also
+drives the laptop cameras only it can serve and lets two applications share a
+camera, and through V4L2 otherwise. Setting `SDL_CAMERA_DRIVER` in the
+environment (`v4l2` or `pipewire`) picks one.
 
 | Status | Means |
 |---|---|

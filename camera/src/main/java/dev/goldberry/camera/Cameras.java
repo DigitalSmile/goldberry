@@ -32,8 +32,8 @@ import dev.goldberry.log.Logs;
 /// keeps the system's cameras listed; closing it does not close the cameras
 /// opened through it.
 ///
-/// A camera opens in the uncompressed mode nearest to what was asked
-/// ([CameraSpec#choose]); compressed modes are listed and not opened.
+/// A camera opens in the mode nearest to what was asked ([CameraSpec#choose]),
+/// uncompressed where that is as near, and its Motion JPEG otherwise.
 ///
 /// Read more: [Media](https://goldberry.dev/docs/components/media.html).
 public final class Cameras implements AutoCloseable {
@@ -98,17 +98,16 @@ public final class Cameras implements AutoCloseable {
         return open(preferred().orElseThrow(() -> new CameraException("there is no camera")), spec);
     }
 
-    /// Opens `camera` in the uncompressed mode nearest to `spec`.
+    /// Opens `camera` in the mode nearest to `spec`.
     ///
-    /// @throws CameraException when it has no uncompressed mode, cannot be
-    ///         opened, or has gone away
+    /// @throws CameraException when it offers no mode, cannot be opened, or
+    ///         has gone away
     public Camera open(CameraInfo camera, CameraSpec spec) {
         Objects.requireNonNull(camera, "camera");
         Objects.requireNonNull(spec, "spec");
         ensureOpen();
-        var mode = spec.choose(camera.formats())
-                .orElseThrow(
-                        () -> new CameraException(camera.name() + " offers no uncompressed mode: " + camera.formats()));
+        var mode =
+                spec.choose(camera.formats()).orElseThrow(() -> new CameraException(camera.name() + " offers no mode"));
         try {
             var stream = backend.open(camera.id(), mode);
             var holder = new DeviceCamera[1];

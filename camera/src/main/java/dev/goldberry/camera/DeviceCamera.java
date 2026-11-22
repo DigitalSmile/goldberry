@@ -4,6 +4,7 @@ import java.time.Duration;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.LockSupport;
 import java.util.function.Consumer;
 
@@ -13,14 +14,20 @@ import org.slf4j.Logger;
 import dev.goldberry.camera.backend.CameraFeed;
 import dev.goldberry.camera.backend.CameraLostException;
 import dev.goldberry.camera.backend.CameraStream;
+import dev.goldberry.camera.backend.JpegFrame;
+import dev.goldberry.camera.backend.LentFrame;
 import dev.goldberry.camera.backend.Nv12Frame;
 import dev.goldberry.camera.backend.PlanePool;
+import dev.goldberry.camera.mjpeg.MjpegDecoder;
+import dev.goldberry.image.ImageDecodeException;
 import dev.goldberry.log.Logs;
 import dev.goldberry.media.picture.Picture;
 
 /// A camera the system lists, opened: a capture thread of its own takes each
-/// new frame as the camera lends it, copies it into a [PlanePool] and gives it
-/// back at once, so a slow view never holds a driver buffer.
+/// new frame as the camera lends it, copies it into a [PlanePool] (or, in a
+/// compressed mode, decodes its Motion JPEG into BGRA with an [MjpegDecoder])
+/// and gives it back at once, so a slow view never holds a driver buffer. A
+/// frame that does not decode is dropped and counted; the camera stays active.
 ///
 /// The thread also asks the camera's permission while it is unanswered, so a
 /// camera allowed or refused moves on whether or not a window loop delivers
@@ -40,6 +47,8 @@ final class DeviceCamera implements Camera {
     private final Thread thread;
     private final long idleNanos;
     private @Nullable PlanePool pool;
+    private @Nullable MjpegDecoder decoder;
+    private final AtomicLong dropped = new AtomicLong();
     private volatile @Nullable String lost;
     private volatile boolean stopping;
     private boolean streamClosed;
@@ -87,6 +96,11 @@ final class DeviceCamera implements Camera {
     @Override
     public Optional<Picture> shownPicture() {
         return feed.shown();
+    }
+
+    @Override
+    public long droppedFrames() {
+        return dropped.get();
     }
 
     @Override
@@ -171,17 +185,49 @@ final class DeviceCamera implements Camera {
         }
     }
 
-    /// Copies a lent frame and shows the copy.
-    private void copy(Nv12Frame frame) {
+    /// Shows a lent frame: planes copied, Motion JPEG decoded.
+    private void copy(LentFrame frame) {
+        var pts = frame.timestampNanos() != 0 ? frame.timestampNanos() : System.nanoTime();
+        switch (frame) {
+            case Nv12Frame planes -> feed.show(planes(planes).copy(planes, pts));
+            case JpegFrame jpeg -> decode(jpeg, pts);
+        }
+    }
+
+    /// The pool for frames the size `frame` is: the size the camera sends,
+    /// which SDL keeps to the mode asked; a pool of another size would refuse
+    /// it.
+    private PlanePool planes(Nv12Frame frame) {
         var current = pool;
         if (current == null || current.width() != frame.width() || current.height() != frame.height()) {
-            // The size the camera sends, which SDL keeps to the mode asked; a
-            // pool of another size would refuse it.
             current = new PlanePool(frame.width(), frame.height());
             pool = current;
         }
-        var pts = frame.timestampNanos() != 0 ? frame.timestampNanos() : System.nanoTime();
-        feed.show(current.copy(frame, pts));
+        return current;
+    }
+
+    private void decode(JpegFrame frame, long pts) {
+        var current = decoder;
+        if (current == null) {
+            current = new MjpegDecoder();
+            decoder = current;
+        }
+        try {
+            feed.show(current.decode(frame.bytes(), pts));
+        } catch (ImageDecodeException e) {
+            // A camera's frame can arrive cut short or corrupt; the next one is
+            // usually whole. Said once, then counted.
+            var count = dropped.incrementAndGet();
+            if (count == 1) {
+                LOG.warn("camera {} sent a frame that does not decode, dropped: {}", info.name(), e.getMessage());
+            } else {
+                LOG.debug("camera {} dropped frame {}: {}", info.name(), count, e.getMessage());
+            }
+            return;
+        }
+        if (current.givenTables() == 1 && current.decoded() == 1) {
+            LOG.debug("camera {} sends no Huffman tables; the standard ones are put in", info.name());
+        }
     }
 
     private synchronized void end(CameraStatus status) {

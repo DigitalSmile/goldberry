@@ -38,7 +38,7 @@ class SdlCameraLiveTest {
     }
 
     @Test
-    @Timeout(value = 20, unit = TimeUnit.SECONDS)
+    @Timeout(value = 20, unit = TimeUnit.SECONDS, threadMode = Timeout.ThreadMode.SEPARATE_THREAD)
     @DisplayName("lends NV12 frames laid out as SdlFrameLayout says, and takes each back")
     void framesInNv12() {
         try (var cameras = SdlCameras.open()) {

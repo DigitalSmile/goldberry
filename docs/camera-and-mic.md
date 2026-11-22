@@ -14,7 +14,8 @@ phases with exit criteria, risks, and a log. **The owner took (a) for D1–D9
 on 2026-11-21**, D8 on the condition that a measurement showed playback was
 fine on PipeWire; it did once the sink counts
 two pulls on Linux (§3, D8). ADR-0719, parked in `docs/snapshot/adr/`, records
-all nine and phase 1. **Phases 1–4 are done**; phase 5 is next.
+all nine and phase 1. On 2026-11-22 the owner took D4 (d) instead of (a), after
+a measurement. **Phases 1–5 and 4b are done**; phase 6 is next.
 
 ## 1. Where things stand
 
@@ -25,9 +26,9 @@ Read from the tree on 2026-11-21 (master at `258b836f`) and from the SDL
 |------|-------|
 | Audio out | `natives.sdl.audio.SdlAudioStream` opens `SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK` through `SDL_OpenAudioDeviceStream`, f32 interleaved, and is exported to `dev.goldberry.media` only. `media.audio.SdlAudioSink` falls back to `SilentAudioSink` when no device opens. Nine `SDL_*Audio*` symbols are on `goldberry.symbols`; **no recording, no device list, no `SDL_GetAudioStreamData`** |
 | Camera | Nothing bound. `SDL_INIT_CAMERA` is the one camera row in `goldberry_shim.c`'s table. SDL **compiles** its camera subsystem: here `SDL_CAMERA_DRIVER_V4L2` and the dummy driver; on Windows Media Foundation, on macOS CoreMedia (`SDL_build_config.h`). This machine has a Logitech C922 (V4L2 and PipeWire both list it, 218 modes): uncompressed YUY2 reaches 1280×720 at 10 fps and 1920×1080 at 5 fps, while 1080p30 and 720p60 are MJPG only. (A shell in the agent's sandbox sees no `/dev/video*`; the JVM does.) |
-| PipeWire | **Off.** `SDL_PIPEWIRE` defaults on for Unix, but this machine and the AlmaLinux 8 release container have no `libpipewire-0.3` headers, so neither `SDL_AUDIO_DRIVER_PIPEWIRE` nor `SDL_CAMERA_DRIVER_PIPEWIRE` is defined. The superbuild checks ALSA and Pulse against SDL's own config (fatal, no waiver, ADR-0488) and checks nothing for PipeWire |
+| PipeWire | **Off** (on since phase 5). `SDL_PIPEWIRE` defaults on for Unix, but this machine and the AlmaLinux 8 release container have no `libpipewire-0.3` headers, so neither `SDL_AUDIO_DRIVER_PIPEWIRE` nor `SDL_CAMERA_DRIVER_PIPEWIRE` is defined. The superbuild checks ALSA and Pulse against SDL's own config (fatal, no waiver, ADR-0488) and checks nothing for PipeWire |
 | Pictures | `media.picture.VideoPlanes` (NV12, I420, P010, I010, I420A; direct buffers, strides, matrix, range), `PictureSource` (`shownPicture`, `untilNextPicture`, `onPicture`), `PushedPictures` (W2.7) and `media.view.PictureView`. All in `:media`. **`VideoSurface` draws `VideoPlanes` on the GPU only**: a CPU-presented window and every offscreen golden show nothing for them, as `PushedPictures`' note says. A player avoids it by converting with libyuv (`YuvConverter`, in `libgoldberry-media`) when its view says `PictureForm.CONVERTED` through `MediaPlayer.attachView`; `PictureSource` has no such negotiation. **No packed YUY2** in `PixelFormat`, the format most USB cameras give uncompressed |
-| JPEG | No decoder anywhere in the tree (`core.image` has PNG, GIF, WebP through libwebp, Lottie, QR) |
+| JPEG | **Corrected 2026-11-22:** the rasterizer inside `libgoldberry` decodes JPEG (with PNG and QOI), and `core.image` reaches it through `Image.decode` and `Image.decodeInto(bytes, destination, stride, ChannelOrder)`, which writes BGRA into the caller's memory. This row first said there was no decoder, and D4 was weighed on that. `libgoldberry-media`'s libyuv is built without its MJPG path (`mjpeg_decoder.cc` and `convert_jpeg.cc` are filtered out, since it needs libjpeg) |
 | Events | `SdlEventWatch` (an `SDL_AddEventWatch` upcall, already counted by `ForeignSurfaceTest`) runs a handler as each event is pushed. `Sdl3Backend` polls; it does not look at audio or camera device events |
 | Module wiring | `:html` is the template for an optional module that ships Java only and uses symbols on `libgoldberry`'s export list (`exports … to` by name in `natives/module-info.java`). `:media` is the template for one with natives of its own |
 | Packaging | The Gradle plugin builds no `.app` and writes no `Info.plist`; a macOS application's usage strings are its own |
@@ -112,7 +113,7 @@ today.
   a new upcall shape, and application code on SDL's device thread.
 - (c) Pull only; every application writes the thread.
 
-### D4. Camera formats, and MJPG (taken: (a))
+### D4. Camera formats, and MJPG (taken: (a), then (d))
 
 Most USB cameras give 1080p30 only as MJPG, and 720p or less uncompressed (YUY2).
 
@@ -126,6 +127,35 @@ Most USB cameras give 1080p30 only as MJPG, and 720p or less uncompressed (YUY2)
   at 30 fps.
 - (c) libjpeg-turbo into `libgoldberry-media`. Fast, but it ties the camera to
   `:media`'s natives jar and adds a library to its superbuild.
+
+**Revisited 2026-11-22, after phase 4: a fourth option, measured; taken the
+same day (ADR-0723).** §1 said the tree had no JPEG decoder. It has one: the rasterizer's,
+in `libgoldberry`, through `Image.decodeInto`. And (c)'s objection no longer
+holds, since phase 4 already ties the camera to `:media` and its natives
+(D1, D2).
+
+- **(d) Decode MJPG with the rasterizer's decoder.** Open an MJPG mode as it
+  is (SDL hands the frames through), decode each on the capture thread into a
+  three-slot pool of BGRA, and show it as a `VideoPicture`. No new native code.
+  Proposed as phase 4b.
+
+Measured on the C922 here (a throwaway probe, not committed): 90 frames in
+each mode, decoded three times over, the third timed, on one thread, into a
+reused buffer.
+
+| MJPG mode | Frames delivered | Frames carrying Huffman tables | Decode, median | p95 | max | Failures |
+|---|---|---|---|---|---|---|
+| 1280×720, offered at 60 fps | 17.0 fps | 90 of 90 | 4.7 ms | 5.1 ms | 5.4 ms | 0 |
+| 1920×1080, offered at 30 fps | 27.9 fps | 90 of 90 | 11.6 ms | 12.3 ms | 12.7 ms | 0 |
+
+So 1080p30 costs about a third of one core, and 720p about a sixth: well
+inside a 33 ms frame, and libjpeg-turbo is not needed. The 720p mode gave 17
+fps, not 60; the probe only copied frames, so that is the camera's own rate,
+most likely its exposure in the room's light. Even so it beats what this
+camera gives uncompressed (1280×720 at 10, 1920×1080 at 5). The C922 puts the
+Huffman tables in every frame; many UVC cameras leave them out and rely on the
+standard tables, which (d) would insert when a frame has none. The decoded
+pixels were not compared against a second decoder.
 
 ### D5. Who owns a camera frame (taken: (a))
 
@@ -281,11 +311,40 @@ Each phase ends green on `:natives`, the module's own tests, `BoundaryTest`,
 - `dev.goldberry.camera.view`: `camera-view` over `PictureView` (D1), mirror,
   fit, and its states; goldens over the synthetic camera.
 
-### Phase 5 — PipeWire
+### Phase 4b — MJPG through the rasterizer's decoder (done, D4 (d))
+
+Taken by the owner on 2026-11-22. As built (the log has what changed):
+
+- `CameraFormat` keeps `compressed`, and MJPG modes become openable.
+  `CameraSpec.choose` prefers an uncompressed mode that meets the spec and
+  takes MJPG where only MJPG reaches the size or rate asked.
+- The backend opens an MJPG mode in MJPG and lends the frame's bytes; the
+  capture thread decodes them with `Image.decodeInto` into a three-slot BGRA
+  pool and shows a `VideoPicture`. A frame that does not decode is dropped and
+  counted, and the camera stays active.
+- A frame with no DHT segment gets the standard Huffman tables (JPEG Annex
+  K.3) inserted before its scan, as a UVC camera that omits them expects.
+- Planned: `SyntheticCamera` gains a JPEG mode. Built instead: the decode path
+  is tested with no device through the fake backend, on `DeviceCamera`'s own capture thread, over
+  frames Pillow (libjpeg) encoded (`tools/media/mjpeg_fixtures.py`); the live
+  test opens the C922 for a call, which picks 1280×720 in MJPG.
+- ADR-0723 for D4 (d); the parked camera chapter, `answers-tessera.md` G-05
+  and §5's risk rewritten.
+
+### Phase 5 — PipeWire (done)
 
 - The superbuild's check (D8), `pipewire-devel` in the Linux and media
   containers, `libpipewire-0.3-dev` in the docs' prerequisite lists, the camera
   hint. `:media`'s audio tests on a PipeWire session before it lands.
+- As built: the "media containers" build no SDL (`media.yml` builds
+  `libgoldberry-media` only), so the headers went into every workflow that
+  builds `libgoldberry`: the manylinux release job and the web-view job in
+  `linux.yml`, and `showcase.yml`, `nightly.yml`, `benchmarks.yml`. The docs'
+  prerequisite list is `LinuxDependencies`, which `checkToolchain` prints and
+  the guide points at; it has no list of its own.
+- **SDL's PipeWire camera is patched.** With `pipewire,v4l2` the C922 never
+  streamed through SDL (see the log). The superbuild patches the driver on
+  Linux, and the hint stays.
 
 ### Phase 6 — the showcase, the platforms, the guide
 
@@ -303,8 +362,21 @@ Each phase ends green on `:natives`, the module's own tests, `BoundaryTest`,
   runs here (`SdlCameraLiveTest` skips elsewhere); CI's tests are carried by the
   synthetic camera.
 - **Uncompressed is slow on USB 2 cameras** (D4): the C922 gives 640×480 at
-  30 fps or 1280×720 at 10 fps without MJPG. A call grid at 720p30 needs the
-  JPEG decoder item.
+  30 fps or 1280×720 at 10 fps without MJPG. Answered by phase 4b, which
+  decodes MJPG with the rasterizer (measured: 4.7 ms a 720p frame, 11.6 ms a
+  1080p one).
+- **MJPG without Huffman tables** (phase 4b). Many UVC cameras send frames
+  that rely on JPEG's standard tables, and the rasterizer refuses such a frame
+  (tested). The C922 sends the tables; phase 4b inserts them where a frame has
+  none, tested on a frame stripped of them, which decodes to the same pixels.
+- **SDL's PipeWire camera did not stream** (phase 5, found and patched). SDL
+  3.4.18 never answers PipeWire's format with `SPA_PARAM_Buffers`, so PipeWire
+  1.6 refuses the stream ("use input buffers: Invalid argument"), the
+  permission stays pending, and `SDL_CloseCamera` hangs on an untimed wait.
+  Upstream main has a timed wait but the same empty parameter callback. The
+  superbuild carries a patch (`patches/sdl3-pipewire-camera.patch`), and an
+  SDL bump must rebase or drop it; the configure stops when it no longer
+  applies.
 - **PipeWire moves playback** (D8 (a)). `:media`'s A/V sync assumes SDL's pull
   sizes; PipeWire's quantum differs from Pulse's. `SdlAudioSink`'s drain
   estimate measures pulls rather than assuming them, which is why it is expected
@@ -341,7 +413,8 @@ Each phase ends green on `:natives`, the module's own tests, `BoundaryTest`,
 | 2 `goldberry-mic` | done: the module (published, optional), recording, the synthetic source, levels, FFT, spectrum, envelope; ADR-0720; the guide chapter parked |
 | 3 mic widgets | done: `level-meter`, `waveform-view`, `spectrum-view` over exported leaves, `mic.css`, six goldens; ADR-0721; the sections parked with the chapter |
 | 4 `goldberry-camera` | done: `PictureView` converts planes on the CPU; the module, `Camera` sealed over a device's and a synthetic one, mode choice, the pool, permission followed, `camera-view` with states and mirror; three goldens; ADR-0722; the chapter parked |
-| 5 PipeWire | not started |
+| 4b MJPG | done: every mode openable, MJPG decoded on the capture thread into a BGRA pool, standard Huffman tables inserted, dropped frames counted; ADR-0723 |
+| 5 PipeWire | done: required row in `LinuxDependencies`, a fatal superbuild check for V4L2 and both PipeWire drivers, the headers in every `libgoldberry` workflow, SDL's PipeWire camera patched, cameras try `pipewire,v4l2`; ADR-0724 |
 | 6 showcase, platforms, guide | not started |
 
 - **2026-11-21.** Written from the tree at `258b836f`. D1–D9 asked. Next ADR
@@ -408,3 +481,63 @@ Each phase ends green on `:natives`, the module's own tests, `BoundaryTest`,
   selector. 35 tests, `CamerasLiveTest` taking pictures from the C922. The
   parked guide's "`VideoPlanes` are drawn on the GPU only" corrected.
   ADR-0722. Next ADR 0723.
+- **2026-11-22, phase 4 committed; MJPG measured.** Phase 4 is `7461a17d`.
+  Asked what kept MJPG out: only D4, which was weighed on §1's claim that
+  the tree had no JPEG decoder. The rasterizer in `libgoldberry` has one,
+  reached through `Image.decodeInto`, and phase 4 had already tied the camera
+  to `:media`'s natives, which was (c)'s objection. A probe on the C922 (not
+  committed) decoded 90 MJPG frames a mode with no failure: 4.7 ms median a
+  1280×720 frame and 11.6 ms a 1920×1080 one, every frame carrying its Huffman
+  tables; the camera delivered 17 fps at 720p (offered 60) and 27.9 at 1080p.
+  §1 corrected, D4 (d) and phase 4b written up as a proposal, §5's risks
+  updated. No ADR until D4 (d) is taken; next ADR still 0723.
+- **2026-11-22, phases 4b and 5.** The owner took D4 (d) and asked for 4b and
+  5 together. **4b:** `CameraSpec.choose` takes every mode, a tie going to an
+  uncompressed mode, then the larger, then the rate nearer the one asked (so
+  the C922's call is 1280×720 at 30 in MJPG, not at 60). The backend asks SDL
+  for `MJPG` and lends a sealed `LentFrame` (`Nv12Frame` or `JpegFrame`). The
+  capture thread decodes into a `BgraPool` with `MjpegDecoder` (new unexported
+  `dev.goldberry.camera.mjpeg`), and the pool names a slot before taking it, so
+  a failed frame takes none. A bad frame is dropped and counted
+  (`Camera.droppedFrames()`). `JpegHeader` finds the first scan, and
+  `StandardHuffmanTables` (Annex K.3) goes in before it where there is no DHT.
+  `MirroredPictures` flips BGRA too. The fixtures come from Pillow
+  (`tools/media/mjpeg_fixtures.py`). The inserted tables equal libjpeg's byte
+  for byte, and a frame stripped of them decodes to the same pixels while the
+  rasterizer alone refuses it. 16 new camera tests, `CamerasLiveTest` taking MJPG
+  pictures from the C922 with none dropped. ADR-0723. **5:** `libpipewire-0.3`
+  is a required `LinuxDependencies` row, and the superbuild stops without
+  `SDL_CAMERA_DRIVER_V4L2`, `SDL_CAMERA_DRIVER_PIPEWIRE` or
+  `SDL_AUDIO_DRIVER_PIPEWIRE`. `pipewire-devel` or `libpipewire-0.3-dev` is in
+  `linux.yml` (both jobs), `showcase.yml`, `nightly.yml` and `benchmarks.yml`.
+  Found on the way: the local library had lost PipeWire again on an earlier
+  configure without `PKG_CONFIG_PATH`; `checkToolchain` now says so. **The
+  camera hint was tried and dropped.** With `pipewire,v4l2` both live tests
+  hung: SDL 3.4.18's PipeWire camera lists the C922's 218 modes, but PipeWire
+  1.6.2 refuses its stream (`error use input buffers: -22`), because SDL never
+  sends `SPA_PARAM_Buffers`. The stream never reaches `STREAMING`, the only
+  place SDL approves a camera, so the permission stays pending, and
+  `SDL_CloseCamera` hangs on 3.4.18's untimed `WaitDevice`. GStreamer's
+  `pipewiresrc` streams the same node. Upstream main has a timed wait and the
+  same empty `on_stream_param_changed`. The owner was asked (V4L2 first, an
+  SDL patch, or a V4L2-then-PipeWire fallback) and did not answer, so the
+  recommended V4L2 first was built at first. The live tests now time out on
+  a thread of their own, since a same-thread `@Timeout` let the hang run 13
+  minutes. ADR-0724. Next ADR 0725.
+- **2026-11-22, the patch.** The owner chose the patch.
+  `patches/sdl3-pipewire-camera.patch` sends `SPA_PARAM_Buffers` from
+  `on_stream_param_changed` (2–16 buffers, one block, `MemPtr` or `MemFd`), as
+  PipeWire's capture example does. It makes `WaitDevice` a one-second wait, as
+  SDL's main branch has it, and approves a camera only while it is pending,
+  since the state callback holds the loop's lock and takes the device's. Two
+  more PipeWire symbols are loaded at run time. `apply_patch.cmake` is the
+  patch step: it resets the touched files to the pinned ref, then applies,
+  and stops the configure when the patch no longer applies. All three
+  behaviours were tried by hand. Linux only, and the patch's hash is in the
+  declaration. Probed on the C922 through PipeWire: 640×480 NV12 at 30.1 fps,
+  1280×720 YUY2 at 9.9, 1280×720 MJPG at 30.0, 1920×1080 MJPG at 30.0; first
+  frame 430–650 ms after opening; close about 2.4 s. The hint `pipewire,v4l2`
+  is back, set once at load. `CameraDriverOrderTest` asserts `pipewire` where
+  the daemon's socket exists, and it does here. `SdlPatchTest` holds the
+  declaration, the patch and the fetched source. `THIRD-PARTY-NOTICES.md`
+  marks SDL altered.

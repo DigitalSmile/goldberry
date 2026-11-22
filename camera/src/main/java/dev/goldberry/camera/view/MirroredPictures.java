@@ -5,22 +5,27 @@ import java.util.Optional;
 
 import org.jspecify.annotations.Nullable;
 
+import dev.goldberry.camera.backend.BgraPool;
 import dev.goldberry.camera.backend.PlanePool;
 import dev.goldberry.media.codec.PixelFormat;
 import dev.goldberry.media.picture.Picture;
 import dev.goldberry.media.picture.PictureSource;
+import dev.goldberry.media.picture.VideoPicture;
 import dev.goldberry.media.picture.VideoPlanes;
 
-/// A source's NV12 pictures, mirrored left for right, for the one view that
-/// asked: the camera's own pictures, which a call sends, stay as they are.
+/// A source's pictures, mirrored left for right, for the one view that asked:
+/// the camera's own pictures, which a call sends, stay as they are.
 ///
 /// Each picture is mirrored once, when a view first asks for it, into a pool
 /// of three, so the borrowing rule holds for the copies as for the originals.
-/// A picture in another layout is shown as it is.
+/// NV12 planes (an uncompressed camera's) and BGRA pictures (a Motion JPEG
+/// camera's, decoded) are mirrored; a picture in another layout is shown as it
+/// is.
 final class MirroredPictures implements PictureSource {
 
     private final PictureSource source;
     private @Nullable PlanePool pool;
+    private @Nullable BgraPool bgra;
     private byte[] row = new byte[0];
     private @Nullable Picture from;
     private @Nullable Picture mirrored;
@@ -40,8 +45,11 @@ final class MirroredPictures implements PictureSource {
             return Optional.ofNullable(mirrored);
         }
         from = picture;
-        mirrored =
-                picture instanceof VideoPlanes planes && planes.format() == PixelFormat.NV12 ? mirror(planes) : picture;
+        mirrored = switch (picture) {
+            case VideoPlanes planes when planes.format() == PixelFormat.NV12 -> mirror(planes);
+            case VideoPicture bgraPicture -> mirror(bgraPicture);
+            default -> picture;
+        };
         return Optional.ofNullable(mirrored);
     }
 
@@ -78,8 +86,30 @@ final class MirroredPictures implements PictureSource {
         return current.written(slot, planes.matrix(), planes.fullRange(), planes.ptsNanos());
     }
 
+    private VideoPicture mirror(VideoPicture picture) {
+        var width = picture.width();
+        var height = picture.height();
+        var current = bgra;
+        if (current == null || !current.fits(width, height)) {
+            current = new BgraPool(width, height);
+            bgra = current;
+        }
+        var rowBytes = width * 4;
+        if (row.length < rowBytes) {
+            row = new byte[rowBytes];
+        }
+        var from = picture.pixels();
+        var to = current.next();
+        for (var y = 0; y < height; y++) {
+            from.get(y * picture.stride(), row, 0, rowBytes);
+            reverse(row, rowBytes, 4);
+            to.put(y * current.stride(), row, 0, rowBytes);
+        }
+        return current.written(picture.ptsNanos(), picture.opaque());
+    }
+
     /// Reverses the first `length` bytes of `row` in units of `unit` bytes:
-    /// one for luma, two for a U and V pair.
+    /// one for luma, two for a U and V pair, four for a BGRA pixel.
     static void reverse(byte[] row, int length, int unit) {
         for (int left = 0, right = length - unit; left < right; left += unit, right -= unit) {
             for (var offset = 0; offset < unit; offset++) {

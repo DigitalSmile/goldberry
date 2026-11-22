@@ -268,7 +268,7 @@ log in the same commit as the work.
 | T-02 | W3.1 | done: phases 1–7 (marks, `Editor` with marks, `rich-input`, the formatting bar and link editor, mentions, Markdown and HTML, the showcase's Rich input screen); the guide is parked until release (`docs/rich-text-input.md` §5) | 0703–0708 | |
 | T-03 | W2.6 | done | 0697 | |
 | T-04 | W2.5 | done | 0696 | |
-| T-05 | W3.4 | in progress (`docs/camera-and-mic.md`): D1–D9 taken (a), D8 on a measurement; phase 1 (the SDL surface, native ABI 29), phase 2 (`goldberry-mic`: recording, the synthetic source, levels and spectra) and phase 3 (`level-meter`, `waveform-view`, `spectrum-view`) and phase 4 (`goldberry-camera`, `camera-view`, planes drawn on the CPU) done; phases 5–6 (PipeWire in CI, the showcase and the platforms) open | 0719, 0720, 0721, 0722 | |
+| T-05 | W3.4 | in progress (`docs/camera-and-mic.md`): D1–D9 taken (a), D8 on a measurement; phase 1 (the SDL surface, native ABI 29), phase 2 (`goldberry-mic`: recording, the synthetic source, levels and spectra) and phase 3 (`level-meter`, `waveform-view`, `spectrum-view`) and phase 4 (`goldberry-camera`, `camera-view`, planes drawn on the CPU), phase 4b (Motion JPEG through the rasterizer's decoder) and phase 5 (PipeWire compiled in and checked, SDL's PipeWire camera patched, cameras try it first) done; phase 6 (the showcase and the platforms) open | 0719, 0720, 0721, 0722, 0723, 0724 | |
 | T-06 | — | declined (D9) | 0689 | |
 | T-07 | W2.7 | done | 0698 | |
 | T-08 | W1.11 | done | 0684 | |
@@ -568,3 +568,20 @@ log in the same commit as the work.
   `:media`'s `PictureView` now converts planes on the CPU where no GPU shows
   them, so a pushed call tile draws in a CPU window too. Run against the C922
   here. ADR-0722. Next ADR 0723.
+- **2026-11-22, W3.4 MJPG measured.** Phase 4 committed (`7461a17d`). The
+  plan's claim that the tree had no JPEG decoder was wrong: the rasterizer in
+  `libgoldberry` decodes JPEG. On the C922 it decoded MJPG at 4.7 ms a 720p
+  frame and 11.6 ms a 1080p one, so `docs/camera-and-mic.md` proposes D4 (d)
+  and a phase 4b that opens MJPG modes. Waits for the owner.
+- **2026-11-22, W3.4 phases 4b and 5.** The owner took D4 (d). A camera opens
+  its Motion JPEG modes, decoded on its thread by the rasterizer's decoder into
+  a pool of BGRA pictures, with the standard Huffman tables put in where a
+  frame has none; a call on the C922 opens 1280×720 at 30 instead of 640×480.
+  ADR-0723. PipeWire: `libpipewire-0.3` is a required row in
+  `LinuxDependencies`, the superbuild stops when SDL loses V4L2 or either
+  PipeWire driver, and every Linux workflow installs the headers. SDL 3.4's
+  PipeWire camera sent no buffer parameters, so PipeWire 1.6 refused its
+  stream, the permission never came, and closing the camera hung. The
+  superbuild now patches it (`patches/sdl3-pipewire-camera.patch`, Linux
+  only), and cameras try `pipewire,v4l2`. The C922 streams through PipeWire
+  in every mode, MJPG 720p and 1080p at 30. ADR-0724. Next ADR 0725.

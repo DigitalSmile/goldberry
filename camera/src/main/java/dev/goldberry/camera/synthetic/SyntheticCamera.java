@@ -133,6 +133,12 @@ public final class SyntheticCamera implements Camera {
         return feed.onStatus(listener);
     }
 
+    /// None: the card is painted, never decoded.
+    @Override
+    public long droppedFrames() {
+        return 0;
+    }
+
     /// Pictures taken so far.
     public synchronized long frames() {
         return frames;

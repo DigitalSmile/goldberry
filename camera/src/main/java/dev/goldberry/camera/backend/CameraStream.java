@@ -10,7 +10,8 @@ public interface CameraStream extends AutoCloseable {
     Permission permission();
 
     /// Hands the newest frame to `sink`, if one has arrived since the last
-    /// call, and gives it back to the camera when `sink` returns.
+    /// call, and gives it back to the camera when `sink` returns. A frame that
+    /// `sink` cannot use is the sink's to drop: it is given back all the same.
     ///
     /// @return whether there was a frame
     /// @throws CameraLostException when the camera stopped
@@ -33,7 +34,8 @@ public interface CameraStream extends AutoCloseable {
     @FunctionalInterface
     interface FrameSink {
 
-        /// `frame`, valid for the call.
-        void accept(Nv12Frame frame);
+        /// `frame`, valid for the call: NV12 planes, or a Motion JPEG frame
+        /// when the camera was opened in a compressed mode.
+        void accept(LentFrame frame);
     }
 }

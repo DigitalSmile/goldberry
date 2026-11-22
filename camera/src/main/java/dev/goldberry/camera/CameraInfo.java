@@ -21,7 +21,7 @@ public record CameraInfo(int id, String name, CameraPosition position, List<Came
         formats = List.copyOf(formats);
     }
 
-    /// The modes a camera opens: the uncompressed ones.
+    /// The modes whose frames need no decoding.
     public List<CameraFormat> uncompressed() {
         return formats.stream().filter(format -> !format.compressed()).toList();
     }

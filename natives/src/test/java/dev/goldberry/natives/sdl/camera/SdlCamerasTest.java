@@ -23,18 +23,17 @@ import dev.goldberry.natives.sdl.SdlSubsystem;
 @DisplayName("SdlCameras, on SDL's dummy camera driver")
 class SdlCamerasTest {
 
-    private static final String CAMERA_DRIVER = "SDL_CAMERA_DRIVER";
-
     @BeforeEach
     void dummyDriver() {
         NativeLibraryRequirement.enforce();
         assumeFalse(Sdl.get().wasInit().contains(SdlSubsystem.CAMERA), "something else holds the camera subsystem");
-        Sdl.get().setHint(CAMERA_DRIVER, "dummy");
+        Sdl.get().setHint(Sdl.CAMERA_DRIVER_HINT, "dummy");
     }
 
     @AfterEach
     void defaultDriver() {
-        Sdl.get().setHint(CAMERA_DRIVER, "");
+        // Back to the order the toolkit set when the library loaded.
+        Sdl.get().setHint(Sdl.CAMERA_DRIVER_HINT, Sdl.defaultCameraDrivers().orElse(""));
     }
 
     @Test

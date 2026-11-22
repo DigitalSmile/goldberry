@@ -20,7 +20,10 @@ import org.junit.jupiter.api.Timeout;
 
 import dev.goldberry.camera.backend.CameraStream;
 import dev.goldberry.camera.backend.DeviceEvent;
+import dev.goldberry.camera.mjpeg.MjpegFixtures;
+import dev.goldberry.media.picture.VideoPicture;
 import dev.goldberry.media.picture.VideoPlanes;
+import dev.goldberry.natives.NativeLibraryRequirement;
 
 /// Cameras listed and opened over a backend the test drives: the mode chosen,
 /// frames copied out of what the camera lends, the permission asked, and a
@@ -58,18 +61,54 @@ class CamerasTest {
     }
 
     @Test
-    @DisplayName("open the uncompressed mode nearest the spec, and refuse a camera that only compresses")
+    @DisplayName("open the mode nearest the spec, uncompressed where it is as near, and Motion JPEG otherwise")
     void mode() {
         var compressed = new CameraFormat(1280, 720, 30, 1, true);
-        backend.devices.add(FakeCameraBackend.camera(1, "Cam", CameraPosition.UNKNOWN, compressed, VGA));
+        var compressedVga = new CameraFormat(64, 48, 30, 1, true);
+        backend.devices.add(FakeCameraBackend.camera(1, "Cam", CameraPosition.UNKNOWN, compressed, compressedVga, VGA));
         backend.devices.add(FakeCameraBackend.camera(2, "Jpeg", CameraPosition.UNKNOWN, compressed));
+        backend.devices.add(FakeCameraBackend.camera(3, "None", CameraPosition.UNKNOWN));
         try (var cameras = new Cameras(backend);
-                var camera = cameras.open(backend.devices.getFirst(), CameraSpec.CALL)) {
-            assertEquals(VGA, camera.format());
-            assertEquals(VGA, backend.opened.getFirst().mode);
-            assertThrows(CameraException.class, () -> cameras.open(backend.devices.get(1), CameraSpec.CALL));
+                var vga = cameras.open(backend.devices.getFirst(), new CameraSpec(64, 48, 30));
+                var call = cameras.open(backend.devices.getFirst(), CameraSpec.CALL);
+                var jpeg = cameras.open(backend.devices.get(1), CameraSpec.PREVIEW)) {
+            assertAll(
+                    () -> assertEquals(VGA, vga.format()),
+                    () -> assertEquals(VGA, backend.opened.getFirst().mode),
+                    () -> assertEquals(compressed, call.format()),
+                    () -> assertEquals(compressed, jpeg.format(), "a camera that only compresses opens"),
+                    () -> assertThrows(
+                            CameraException.class, () -> cameras.open(backend.devices.get(2), CameraSpec.CALL)));
             backend.refuses = true;
             assertThrows(CameraException.class, () -> cameras.open(backend.devices.getFirst(), CameraSpec.CALL));
+        }
+    }
+
+    @Test
+    @DisplayName("decode Motion JPEG frames into pictures, and drop and count one that does not decode")
+    void motionJpeg() {
+        NativeLibraryRequirement.enforce();
+        var mode = new CameraFormat(64, 48, 30, 1, true);
+        backend.devices.add(FakeCameraBackend.camera(1, "Jpeg", CameraPosition.UNKNOWN, mode));
+        try (var cameras = new Cameras(backend);
+                var camera = cameras.open(CameraSpec.PREVIEW)) {
+            var stream = backend.opened.getFirst();
+            stream.queueJpeg(MjpegFixtures.bytes(MjpegFixtures.CARD));
+            await(() -> camera.shownPicture().isPresent());
+            var first =
+                    assertInstanceOf(VideoPicture.class, camera.shownPicture().orElseThrow());
+
+            stream.queueJpeg(new byte[] {(byte) 0xFF, (byte) 0xD8, 1, 2, 3});
+            await(() -> camera.droppedFrames() == 1);
+            stream.queueJpeg(MjpegFixtures.bytes(MjpegFixtures.CARD_WITHOUT_TABLES));
+            await(() -> camera.shownPicture().orElseThrow() != first);
+            var second =
+                    assertInstanceOf(VideoPicture.class, camera.shownPicture().orElseThrow());
+            assertAll(
+                    () -> assertEquals(64, first.width()),
+                    () -> assertEquals(48, second.height()),
+                    () -> assertEquals(new CameraStatus.Active(), camera.status(), "a bad frame does not stop it"),
+                    () -> assertEquals(1, camera.droppedFrames()));
         }
     }
 

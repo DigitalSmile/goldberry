@@ -3,16 +3,20 @@ package dev.goldberry.camera.view;
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.nio.ByteBuffer;
 import java.time.Duration;
+import java.util.List;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import dev.goldberry.camera.synthetic.SyntheticCamera;
+import dev.goldberry.media.codec.PixelFormat;
+import dev.goldberry.media.codec.VideoFrame;
 import dev.goldberry.media.picture.PushedPictures;
 import dev.goldberry.media.picture.VideoPicture;
 import dev.goldberry.media.picture.VideoPlanes;
@@ -51,11 +55,38 @@ class MirroredPicturesTest {
     }
 
     @Test
+    @DisplayName("show a BGRA picture left for right a pixel at a time, keeping its alpha")
+    void mirrorsBgra() {
+        var pixels = ByteBuffer.allocateDirect(2 * 3 * 4);
+        for (var index = 0; index < pixels.capacity(); index++) {
+            pixels.put(index, (byte) index);
+        }
+        var pushed = new PushedPictures();
+        pushed.push(new VideoPicture(3, 2, 12, pixels, 7, false));
+        var flipped = (VideoPicture) new MirroredPictures(pushed).shownPicture().orElseThrow();
+        var row = new byte[12];
+        flipped.pixels().get(12, row);
+        assertAll(
+                () -> assertArrayEquals(new byte[] {20, 21, 22, 23, 16, 17, 18, 19, 12, 13, 14, 15}, row),
+                () -> assertEquals(7, flipped.ptsNanos()),
+                () -> assertFalse(flipped.opaque()),
+                () -> assertEquals(12, pixels.get(12), "the source's picture is untouched"));
+    }
+
+    @Test
     @DisplayName("show a picture in another layout as it is")
     void others() {
         var pushed = new PushedPictures();
-        var bgra = new VideoPicture(2, 2, 8, ByteBuffer.allocateDirect(16), 0);
-        pushed.push(bgra);
-        assertSame(bgra, new MirroredPictures(pushed).shownPicture().orElseThrow());
+        var i420 = new VideoPlanes(
+                PixelFormat.I420,
+                2,
+                2,
+                List.of(ByteBuffer.allocateDirect(4), ByteBuffer.allocateDirect(1), ByteBuffer.allocateDirect(1)),
+                List.of(2, 1, 1),
+                VideoFrame.ColorMatrix.BT709,
+                false,
+                0);
+        pushed.push(i420);
+        assertSame(i420, new MirroredPictures(pushed).shownPicture().orElseThrow());
     }
 }

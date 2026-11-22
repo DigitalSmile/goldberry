@@ -430,12 +430,34 @@ set(SKIP_INSTALL_ALL ON CACHE BOOL "" FORCE)
 # SDL3 -- the desktop backend
 #
 # Windowing, input, per-monitor DPI, clipboard, cursors, popups, tray, SDL_GPU.
+#
+# One patch, on Linux only, where the file it touches is compiled:
+# patches/sdl3-pipewire-camera.patch. SDL's PipeWire camera never answers the
+# negotiated format with buffer parameters, so PipeWire 1.6 refuses its stream
+# ("use input buffers: Invalid argument"), the camera's permission is never
+# granted, and closing it waits for ever. The patch sends the parameters, as
+# PipeWire's own capture example does, makes the wait timed, as SDL's main
+# branch already has, and approves a camera once. Drop it when upstream sends
+# the parameters itself; apply_patch.cmake stops the configure when a bump
+# moves the lines under it. The patch's hash is part of the declaration, so a
+# changed patch reapplies.
 # ============================================================================
+set(_sdl3_patch_arguments "")
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    find_package(Git REQUIRED)
+    set(_sdl3_patch "${CMAKE_CURRENT_LIST_DIR}/patches/sdl3-pipewire-camera.patch")
+    file(SHA256 "${_sdl3_patch}" _sdl3_patch_hash)
+    set(_sdl3_patch_arguments PATCH_COMMAND
+        "${CMAKE_COMMAND}" "-DGIT=${GIT_EXECUTABLE}" "-DPATCH=${_sdl3_patch}"
+        "-DPATCH_HASH=${_sdl3_patch_hash}"
+        -P "${CMAKE_CURRENT_LIST_DIR}/apply_patch.cmake")
+endif()
 FetchContent_Declare(sdl3
     GIT_REPOSITORY https://github.com/libsdl-org/SDL.git
     GIT_TAG ${GOLDBERRY_SDL3_REF}
     GIT_SHALLOW TRUE
-    GIT_PROGRESS TRUE)
+    GIT_PROGRESS TRUE
+    ${_sdl3_patch_arguments})
 
 set(SDL_STATIC ON CACHE BOOL "" FORCE)
 set(SDL_SHARED OFF CACHE BOOL "" FORCE)
@@ -624,6 +646,30 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
                     "goldberry-media would play every source without sound.\n"
                     "  Debian/Ubuntu:       sudo apt install libasound2-dev libpulse-dev\n"
                     "  RHEL/Fedora/Alma:    sudo dnf install -y alsa-lib-devel pulseaudio-libs-devel\n"
+                    "Then delete the build directory and configure again: SDL caches what it found.")
+            endif()
+        endforeach()
+
+        # --- Cameras and PipeWire: required, and checked against SDL's answer --
+        #
+        # goldberry-camera lists the cameras through SDL. V4L2 needs nothing but
+        # the kernel's headers; PipeWire needs libpipewire-0.3's, and SDL compiles
+        # its PipeWire audio and camera drivers from the one pkg-config check
+        # (libpipewire-0.3 >= 0.3.44), loading the library at run time. Without
+        # the headers both drop out and the configure succeeds: playback stays on
+        # Pulse, which pipewire-pulse serves, but a camera only PipeWire serves
+        # (a laptop's MIPI camera behind libcamera) is never listed. Fatal and not
+        # waivable, as the audio drivers are, for the same reason: the release
+        # container meets no other check.
+        foreach(_sdl_driver IN ITEMS SDL_CAMERA_DRIVER_V4L2 SDL_CAMERA_DRIVER_PIPEWIRE SDL_AUDIO_DRIVER_PIPEWIRE)
+            # `1` at the end: the `_DYNAMIC` names share the prefix.
+            if(NOT _sdl_build_config_text MATCHES "\n#define ${_sdl_driver} 1")
+                message(FATAL_ERROR
+                    "SDL configured itself without ${_sdl_driver}:\n"
+                    "  ${_sdl_build_config}\n"
+                    "This libgoldberry would not list the cameras PipeWire serves.\n"
+                    "  Debian/Ubuntu:       sudo apt install libpipewire-0.3-dev\n"
+                    "  RHEL/Fedora/Alma:    sudo dnf install -y pipewire-devel\n"
                     "Then delete the build directory and configure again: SDL caches what it found.")
             endif()
         endforeach()

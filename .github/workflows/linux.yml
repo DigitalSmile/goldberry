@@ -146,7 +146,7 @@ jobs:
               libX11-devel libxcb-devel libXext-devel libXrandr-devel \
               libXcursor-devel libXi-devel libXfixes-devel libXtst-devel \
               libXScrnSaver-devel libxkbcommon-devel libxkbfile-devel \
-              alsa-lib-devel pulseaudio-libs-devel \
+              alsa-lib-devel pulseaudio-libs-devel pipewire-devel \
               dbus-devel systemd-devel ibus-devel \
               && break
             [ "$attempt" -lt 3 ] || exit 1
@@ -279,7 +279,7 @@ jobs:
             libx11-dev libxext-dev libxrandr-dev libxcursor-dev libxi-dev \
             libxfixes-dev libxss-dev libxtst-dev libwayland-dev wayland-protocols \
             libdecor-0-dev libxkbcommon-dev libegl1-mesa-dev libgles2-mesa-dev \
-            libasound2-dev libpulse-dev libdbus-1-dev libudev-dev libibus-1.0-dev \
+            libasound2-dev libpulse-dev libpipewire-0.3-dev libdbus-1-dev libudev-dev libibus-1.0-dev \
             libwebkit2gtk-4.1-dev
           pip3 install cmake ninja
 

@@ -3,16 +3,16 @@ package dev.goldberry.camera;
 /// One mode a camera offers: a size and a frame rate, and whether its frames
 /// come compressed.
 ///
-/// A compressed mode (Motion JPEG, which most USB cameras use for their
-/// largest sizes and fastest rates) is listed and not opened: pictures are
-/// taken in the camera's uncompressed modes.
+/// A compressed mode is Motion JPEG, which most USB cameras use for their
+/// largest sizes and fastest rates: a camera opened in one decodes each frame
+/// on its own thread, which costs a few milliseconds a frame (about 5 at
+/// 1280×720, 12 at 1920×1080), where an uncompressed mode costs a copy.
 ///
 /// @param width           pixels across
 /// @param height          pixels down
 /// @param rateNumerator   frames…
 /// @param rateDenominator …per this many seconds
-/// @param compressed      whether frames come compressed, so a camera does
-///                        not open this mode
+/// @param compressed      whether frames come compressed, as Motion JPEG
 ///
 /// Read more: [Media](https://goldberry.dev/docs/components/media.html).
 public record CameraFormat(int width, int height, int rateNumerator, int rateDenominator, boolean compressed) {

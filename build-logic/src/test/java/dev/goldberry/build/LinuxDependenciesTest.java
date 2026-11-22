@@ -156,6 +156,19 @@ class LinuxDependenciesTest {
         }
 
         @Test
+        @DisplayName("requires PipeWire's headers, without which SDL lists no camera behind it")
+        void requiresPipewire() {
+            // SDL's PipeWire audio and camera drivers come from one pkg-config
+            // check and drop out together, quietly. Playback survives on Pulse;
+            // a camera that only PipeWire serves is never listed.
+            var pipewire = LinuxDependencies.byModule("libpipewire-0.3");
+            assertEquals(Necessity.NEEDED, pipewire.necessity());
+            assertEquals("pipewire-devel", pipewire.dnfPackage());
+            assertTrue(LinuxDependencies.required().contains(pipewire));
+            assertFalse(pipewire.backsACapability(), "the degraded-platform flag must not waive it");
+        }
+
+        @Test
         @DisplayName("requires D-Bus, without which a shipped API answers nothing for ever")
         void requiresDbus() {
             // The G32 row. src/core/linux/SDL_system_theme.c IS SDL's theme
@@ -420,7 +433,7 @@ class LinuxDependenciesTest {
             // guard it meets is the superbuild's check of SDL_build_config.h. That
             // check is fatal: a list without these fails the release.
             var text = workflow(DNF_WORKFLOW);
-            for (var module : List.of("alsa", "libpulse")) {
+            for (var module : List.of("alsa", "libpulse", "libpipewire-0.3")) {
                 var dnf = LinuxDependencies.byModule(module).dnfPackage();
                 assertTrue(installs(text, dnf), DNF_WORKFLOW + " must install " + dnf);
             }

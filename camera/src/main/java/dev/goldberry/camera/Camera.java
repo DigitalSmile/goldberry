@@ -5,8 +5,10 @@ import java.util.function.Consumer;
 import dev.goldberry.camera.synthetic.SyntheticCamera;
 import dev.goldberry.media.picture.PictureSource;
 
-/// A camera taking pictures: a [PictureSource] of NV12 planes, newest first,
-/// which a `camera-view` or any `picture-view` draws.
+/// A camera taking pictures: a [PictureSource], newest first, which a
+/// `camera-view` or any `picture-view` draws. An uncompressed mode's pictures
+/// are NV12 planes; a compressed (Motion JPEG) mode's are decoded into BGRA
+/// `VideoPicture`s on the camera's thread.
 ///
 /// ```java
 /// try (var cameras = Cameras.open();
@@ -33,6 +35,11 @@ public sealed interface Camera extends PictureSource, AutoCloseable permits Devi
 
     /// Where it is now.
     CameraStatus status();
+
+    /// How many frames the camera sent that could not be shown: a Motion JPEG
+    /// frame cut short or corrupt, which is dropped while the camera goes on.
+    /// Zero for a camera in an uncompressed mode.
+    long droppedFrames();
 
     /// Tells `listener` each time the status changes, until the subscription
     /// is closed.

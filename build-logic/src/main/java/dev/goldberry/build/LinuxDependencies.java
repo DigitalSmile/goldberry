@@ -268,6 +268,15 @@ public final class LinuxDependencies {
                     Necessity.NEEDED, "SDL3 audio output on ALSA, which goldberry-media plays through"),
             new Dependency("libpulse", "libpulse-dev", "pulseaudio-libs-devel",
                     Necessity.NEEDED, "SDL3 audio output on PulseAudio and PipeWire, which goldberry-media plays through"),
+            // NEEDED since goldberry-camera. SDL compiles one PipeWire driver for
+            // audio and one for cameras from the same headers, and dlopen()s
+            // libpipewire-0.3 at run time, so the shipped library needs no
+            // PipeWire installed. Without the headers both drop out quietly:
+            // playback stays on Pulse (which pipewire-pulse serves anyway), but
+            // the cameras V4L2 cannot drive -- a laptop's MIPI camera behind
+            // libcamera -- are not listed at all.
+            new Dependency("libpipewire-0.3", "libpipewire-0.3-dev", "pipewire-devel",
+                    Necessity.NEEDED, "SDL3 audio and cameras on PipeWire, which goldberry-camera lists"),
             new Dependency("libdrm", "libdrm-dev", "libdrm-devel",
                     Necessity.OPTIONAL, "SDL3 KMS/DRM"),
             new Dependency("gbm", "libgbm-dev", "mesa-libgbm-devel",

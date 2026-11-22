@@ -17,7 +17,7 @@ nothing.
 | G-02 | Rich-text input | `rich-input` over marked text, with the formatting bar, links, mentions, and Markdown and HTML conversions; the showcase's Rich input screen shows every option | on master; guide at release |
 | G-03 | Rich-text display with entities | Hit-testing, run clicks, selection, spoilers on `RichText` | on master, not yet in a snapshot |
 | G-04 | Sticky section headers | Sections in `ListView` | on master, not yet in a snapshot |
-| G-05 | Camera and microphone | `goldberry-camera` and `goldberry-mic` | landed; PipeWire in the shipped natives next |
+| G-05 | Camera and microphone | `goldberry-camera` and `goldberry-mic` | landed, Motion JPEG and Linux's PipeWire cameras included |
 | G-06 | Encoders | **Declined**: bring your own | declined, ADR-0689 |
 | G-07 | Video tile from pushed frames | Works today through `PictureRenderer`; `PictureView` over a `PictureSource` | answered; on master, not yet in a snapshot |
 | G-08 | Web view JS bridge | Init script, `eval`, `postMessage` | on master, not yet in a snapshot |
@@ -234,8 +234,26 @@ preferred one in its nearest uncompressed mode, and the `Camera` is a
 does. `new CameraView(camera)` draws it with its states (asking, refused,
 stopped, off, none) and a self-view mirror that leaves the sent pictures
 alone. Pushed planes now draw in a window with no GPU as well: `PictureView`
-converts them on the CPU. MJPG modes are not opened, so a USB 2 camera gives
-a call 640×480 at 30. ADR-0722. Linux's shipped natives get PipeWire next.
+converts them on the CPU. ADR-0722.
+
+Then Motion JPEG and PipeWire (2026-11-22, same state). A camera opens its
+compressed modes too, so `CameraSpec.CALL` gets a USB 2 camera's 1280×720 at
+30, not 640×480. Each frame is decoded on the camera's thread by the JPEG
+decoder already inside `libgoldberry`, about 5 ms a 720p frame, and frames
+that leave out their Huffman tables get the standard ones. **A compressed
+mode's pictures are BGRA `VideoPicture`s, not `VideoPlanes`**, so a call's
+encoder that reads a camera's bytes takes both; `CameraFormat.compressed()`
+says which a camera gives, and asking for a size the camera sends
+uncompressed keeps planes. `Camera.droppedFrames()` counts a frame that does
+not decode. ADR-0723. Linux's `libgoldberry` now has SDL's PipeWire audio and
+camera drivers compiled in, checked by the build, and playback goes through
+PipeWire where it is the server. Cameras try PipeWire before V4L2, so a laptop
+camera only PipeWire serves (libcamera) is listed and two applications can
+share one. That took a patch to SDL: its PipeWire camera never sent PipeWire
+the buffer parameters PipeWire 1.6 needs, so no camera ever streamed. A camera
+listed through PipeWire is named by its node, for example "C922 Pro Stream
+Webcam (V4L2)". `SDL_CAMERA_DRIVER=v4l2` in the environment picks V4L2.
+ADR-0724.
 
 ## G-06. Encoders and public codec access
 

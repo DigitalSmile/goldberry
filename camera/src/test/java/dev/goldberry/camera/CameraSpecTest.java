@@ -19,6 +19,8 @@ class CameraSpecTest {
     private static final List<CameraFormat> C922 = List.of(
             new CameraFormat(1920, 1080, 30, 1, true),
             new CameraFormat(1280, 720, 60, 1, true),
+            new CameraFormat(1280, 720, 30, 1, true),
+            new CameraFormat(640, 480, 30, 1, true),
             new CameraFormat(1920, 1080, 5, 1, false),
             new CameraFormat(1280, 720, 10, 1, false),
             new CameraFormat(960, 720, 15, 1, false),
@@ -26,9 +28,22 @@ class CameraSpecTest {
             new CameraFormat(320, 240, 30, 1, false));
 
     @Test
-    @DisplayName("opens an uncompressed mode, preferring the rate to the size for a call")
+    @DisplayName("opens Motion JPEG for a call the uncompressed modes are too slow for, at the rate asked")
     void call() {
-        assertEquals(Optional.of(new CameraFormat(640, 480, 30, 1, false)), CameraSpec.CALL.choose(C922));
+        assertEquals(Optional.of(new CameraFormat(1280, 720, 30, 1, true)), CameraSpec.CALL.choose(C922));
+    }
+
+    @Test
+    @DisplayName("opens an uncompressed mode where it is as near as a compressed one")
+    void uncompressedWhenAsNear() {
+        assertEquals(Optional.of(new CameraFormat(640, 480, 30, 1, false)), CameraSpec.PREVIEW.choose(C922));
+    }
+
+    @Test
+    @DisplayName("prefers the rate to the size among uncompressed modes, as before")
+    void rateBeforeSize() {
+        var uncompressed = C922.stream().filter(format -> !format.compressed()).toList();
+        assertEquals(Optional.of(new CameraFormat(640, 480, 30, 1, false)), CameraSpec.CALL.choose(uncompressed));
     }
 
     @Test
@@ -45,11 +60,13 @@ class CameraSpecTest {
     }
 
     @Test
-    @DisplayName("finds nothing in a camera that only compresses, and refuses a spec it cannot meet")
+    @DisplayName("opens a camera that only compresses, finds nothing in one with no mode, and refuses a bad spec")
     void refuses() {
         assertAll(
                 () -> assertEquals(
-                        Optional.empty(), CameraSpec.CALL.choose(List.of(new CameraFormat(1280, 720, 30, 1, true)))),
+                        Optional.of(new CameraFormat(1280, 720, 30, 1, true)),
+                        CameraSpec.CALL.choose(List.of(new CameraFormat(1280, 720, 30, 1, true)))),
+                () -> assertEquals(Optional.empty(), CameraSpec.CALL.choose(List.of())),
                 () -> assertThrows(IllegalArgumentException.class, () -> new CameraSpec(0, 480, 30)),
                 () -> assertThrows(IllegalArgumentException.class, () -> new CameraSpec(640, 480, 0)),
                 () -> assertThrows(IllegalArgumentException.class, () -> new CameraFormat(640, 480, -1, 1, false)));

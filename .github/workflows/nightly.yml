@@ -102,7 +102,7 @@ jobs:
             libxfixes-dev libxss-dev libxtst-dev libwayland-dev wayland-protocols \
             libdecor-0-dev \
             libxkbcommon-dev xkb-data libegl1-mesa-dev libgles2-mesa-dev \
-            libasound2-dev libpulse-dev libdbus-1-dev libudev-dev \
+            libasound2-dev libpulse-dev libpipewire-0.3-dev libdbus-1-dev libudev-dev \
             libibus-1.0-dev \
             libwebkit2gtk-4.1-dev
 

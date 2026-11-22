@@ -14,6 +14,8 @@ import dev.goldberry.camera.backend.CameraBackend;
 import dev.goldberry.camera.backend.CameraLostException;
 import dev.goldberry.camera.backend.CameraStream;
 import dev.goldberry.camera.backend.DeviceEvent;
+import dev.goldberry.camera.backend.JpegFrame;
+import dev.goldberry.camera.backend.LentFrame;
 import dev.goldberry.camera.backend.Nv12Frame;
 import dev.goldberry.media.codec.VideoFrame;
 
@@ -58,12 +60,13 @@ final class FakeCameraBackend implements CameraBackend {
         closed = true;
     }
 
-    /// A stream whose frames the test queues: each a solid luma value.
+    /// A stream whose frames the test queues: an NV12 frame of one luma value,
+    /// or the bytes of a Motion JPEG frame.
     final class Stream implements CameraStream {
 
         final int id;
         final CameraFormat mode;
-        private final Deque<Integer> queued = new ArrayDeque<>();
+        private final Deque<LentFrame> queued = new ArrayDeque<>();
         volatile boolean closed;
         volatile @Nullable String fails;
 
@@ -74,7 +77,14 @@ final class FakeCameraBackend implements CameraBackend {
 
         /// Queues a frame whose every luma byte is `luma`.
         synchronized void queue(int luma) {
-            queued.add(luma);
+            queued.add(frame(mode.width(), mode.height(), luma));
+        }
+
+        /// Queues a Motion JPEG frame of `jpeg`'s bytes, lent read-only from a
+        /// direct buffer as SDL lends one.
+        synchronized void queueJpeg(byte[] jpeg) {
+            var bytes = ByteBuffer.allocateDirect(jpeg.length).put(0, jpeg);
+            queued.add(new JpegFrame(bytes.asReadOnlyBuffer(), mode.width(), mode.height(), 0));
         }
 
         @Override
@@ -88,14 +98,14 @@ final class FakeCameraBackend implements CameraBackend {
             if (failure != null) {
                 throw new CameraLostException(failure);
             }
-            Integer luma;
+            LentFrame frame;
             synchronized (this) {
-                luma = queued.poll();
+                frame = queued.poll();
             }
-            if (luma == null) {
+            if (frame == null) {
                 return false;
             }
-            sink.accept(frame(mode.width(), mode.height(), luma));
+            sink.accept(frame);
             return true;
         }
 

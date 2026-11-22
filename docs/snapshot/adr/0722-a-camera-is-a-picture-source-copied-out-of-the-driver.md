@@ -1,7 +1,8 @@
 # ADR-0722: A camera is a picture source, copied out of the driver
 
 - **Status:** Accepted, as phase 4 of `docs/camera-and-mic.md` (W3.4,
-  Tessera's T-05). Builds ADR-0719's D1, D2, D4, D5, D6 and D7.
+  Tessera's T-05). Builds ADR-0719's D1, D2, D4, D5, D6 and D7. Decision 4
+  and the MJPG consequence amended by ADR-0723, which opens Motion JPEG modes.
 - **Date:** 2026-11-22
 - **Relates to:** ADR-0719 (the plan's decisions and the SDL surface),
   ADR-0720 (the microphone's module, the same shape), ADR-0698 (pictures an
