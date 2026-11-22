@@ -1,3 +1,15 @@
 /* The rules of the screens in `dev.goldberry.example.ui.gpu`, loaded after
    `showcase.css` by `ShowcaseStyles`. A rule every screen shares belongs in
    `showcase.css`; a rule about one screen's cards belongs here. */
+
+/* The board of raster tiles: as tall as the cubes' canvases, the button and
+   what the last draw said beside each other under it. */
+#gpu-board {
+  width: 100%;
+  height: 240px;
+}
+
+.gpu-board-controls {
+  gap: 12px;
+  align-items: center;
+}

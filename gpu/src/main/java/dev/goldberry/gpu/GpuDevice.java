@@ -11,6 +11,9 @@ import java.util.function.Supplier;
 import org.jspecify.annotations.Nullable;
 
 import dev.goldberry.gpu.composite.ApiAccess;
+import dev.goldberry.gpu.render.mapped.InPlaceCopy;
+import dev.goldberry.gpu.render.mapped.InPlaceGate;
+import dev.goldberry.gpu.render.mapped.InPlaceProbe;
 import dev.goldberry.gpu.render.staging.StagingBuffer;
 import dev.goldberry.natives.sdl.SdlException;
 import dev.goldberry.natives.sdl.gpu.SdlGpuComputeCode;
@@ -60,6 +63,31 @@ public final class GpuDevice {
             protected SdlGpuTexture unwrap(GpuTexture texture) {
                 return texture.sdl(texture.device());
             }
+
+            @Override
+            protected SdlGpuDevice unwrap(GpuDevice device) {
+                return device.sdl();
+            }
+
+            @Override
+            protected InPlaceProbe.Decision decision(GpuDevice device) {
+                return device.inPlace();
+            }
+
+            @Override
+            protected void decide(GpuDevice device, InPlaceProbe.Decision decision) {
+                device.inPlace = Objects.requireNonNull(decision, "decision");
+            }
+
+            @Override
+            protected InPlaceCopy copy(CopyPass pass, GpuTexture destination) {
+                Objects.requireNonNull(pass, "pass");
+                Objects.requireNonNull(destination, "destination");
+                var sdlPass = pass.sdl();
+                var texture = destination.sdl(pass.device());
+                var completion = pass.completion();
+                return new InPlaceCopy(sdlPass, texture, completion::awaitIfSubmitted);
+            }
         });
     }
 
@@ -68,6 +96,9 @@ public final class GpuDevice {
     private final Set<ShaderFormat> shaderFormats;
     private @Nullable StagingBuffer upload;
     private @Nullable GpuFeatures features;
+    /// Whether rasters are painted in place here: the compositor's decision,
+    /// or this device's own check, made the first time it is asked.
+    private InPlaceProbe.@Nullable Decision inPlace;
 
     private GpuDevice(SdlGpuDevice sdl, Thread owner) {
         this.sdl = sdl;
@@ -385,6 +416,17 @@ public final class GpuDevice {
             throw new IllegalStateException(this + " is closed");
         }
         return sdl;
+    }
+
+    /// Whether rasters are painted in place on this device, decided the first
+    /// time it is asked unless the compositor said already.
+    InPlaceProbe.Decision inPlace() {
+        var current = inPlace;
+        if (current == null) {
+            current = InPlaceProbe.decide(sdl(), InPlaceProbe.Mode.fromProperty(), InPlaceGate.DEFAULT);
+            inPlace = current;
+        }
+        return current;
     }
 
     /// The staging memory uploads pass through, made the first time one does.

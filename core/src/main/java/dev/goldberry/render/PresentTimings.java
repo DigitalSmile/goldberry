@@ -10,7 +10,8 @@ package dev.goldberry.render;
 /// Read more: [What a frame costs](https://goldberry.dev/docs/performance/index.html#the-frame-loop).
 ///
 /// @param uploadNanos  copying the frame's damage into staging memory and
-///                     recording its upload
+///                     recording its upload; for a frame painted where the
+///                     GPU copies from, recording and submitting that copy
 /// @param acquireNanos waiting for the swapchain texture: the display's pacing,
 ///                     not work
 /// @param submitNanos  recording the composite and submitting it

@@ -18,6 +18,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 
 import dev.goldberry.gpu.render.staging.UploadAlignment;
+import dev.goldberry.natives.sdl.gpu.SdlGpuCommandBuffer;
 import dev.goldberry.natives.sdl.gpu.SdlGpuRegion;
 import dev.goldberry.natives.sdl.gpu.SdlGpuTexture;
 import dev.goldberry.render.model.PhysicalSize;
@@ -38,7 +39,7 @@ class MappedRasterTest {
         int finished;
 
         @Override
-        public void finish() {
+        public boolean finish() {
             entered.countDown();
             try {
                 signalled.await();
@@ -47,6 +48,25 @@ class MappedRasterTest {
                 throw new IllegalStateException(e);
             }
             finished++;
+            return true;
+        }
+    }
+
+    /// A copy in a caller's frame, which says it has not been submitted until
+    /// the test submits it.
+    private static final class FrameCopy implements MappedRaster.PendingCopy {
+        boolean submitted;
+        int asked;
+        int waited;
+
+        @Override
+        public boolean finish() {
+            asked++;
+            if (!submitted) {
+                return false;
+            }
+            waited++;
+            return true;
         }
     }
 
@@ -72,6 +92,18 @@ class MappedRasterTest {
         public MappedRaster.PendingCopy copy(
                 SdlGpuTexture texture, List<SdlGpuRegion> regions, int rowBytes, boolean all) {
             return submit(regions, rowBytes, all);
+        }
+
+        @Override
+        public void record(
+                SdlGpuCommandBuffer.CopyPass pass,
+                SdlGpuTexture texture,
+                List<SdlGpuRegion> regions,
+                int rowBytes,
+                boolean all) {
+            copies.add(regions);
+            whole.add(all);
+            stride = rowBytes;
         }
 
         @Override
@@ -174,6 +206,31 @@ class MappedRasterTest {
         assertTrue(recorder.closed.get());
         raster.close();
         assertThrows(IllegalStateException.class, raster::lend);
+    }
+
+    @Test
+    @DisplayName("paints while the caller's frame is still recording, and waits for that frame once it is submitted")
+    void aFrameStillRecording() {
+        var recorder = new Recorder();
+        try (var raster = raster(BANDS, recorder)) {
+            var copy = new FrameCopy();
+            var copied = raster.upload(
+                    SIZE.width(), SIZE.height(), List.of(new SdlGpuRegion(3, 4, 5, 6)), (regions, stride, whole) -> {
+                        recorder.copies.add(regions);
+                        return copy;
+                    });
+            assertEquals(List.of(new SdlGpuRegion(0, 4, 100, 6)), copied, "what was copied is answered");
+            raster.lend();
+            assertEquals(1, copy.asked);
+            assertEquals(0, copy.waited, "the GPU has not begun: nothing to wait for");
+            assertTrue(raster.copyInFlight(), "and it is still owed a wait");
+            copy.submitted = true;
+            raster.lend();
+            assertEquals(1, copy.waited, "the submitted frame is waited for");
+            assertFalse(raster.copyInFlight());
+            raster.lend();
+            assertEquals(2, copy.asked, "and asked no more once it has finished");
+        }
     }
 
     @Test

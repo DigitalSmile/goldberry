@@ -468,3 +468,53 @@ FSR 1 expects a picture whose values are what the display shows, as a
 | `render-scale` | number, 0.5 to 2 | `1` | The size drawn at over the box's size, per axis. Anything outside is refused |
 | `upscale` | `linear`, `fsr1` | `linear` | How the picture is brought to the box. Anything else is refused |
 | `sharpness` | number, 0 to 1 | `0.87` | How much `fsr1` sharpens; `linear` ignores it |
+
+## Raster textures
+
+A `RasterTexture` is a texture kept in step with a raster the toolkit's
+painter draws: a board's tiles, a chart, a sheet of labels, drawn by a
+`Canvas3dRenderer` like any other texture. It owns the texture, the raster
+and what has been painted since the last upload.
+
+```java
+tile = RasterTexture.create(device, new PhysicalSize(256, 256));
+tile.paint(List.of(PhysicalRect.of(0, 0, 64, 64)), frame -> drawSquare(frame));
+frame.copyPass(tile::upload);
+frame.copyPass(copy -> copy.copy(tile.texture().view(0, 0), 0, 0, target.colour().view(0, 0), x, y, 256, 256));
+```
+
+**What is painted is what goes up.** `paint(regions, painter)` runs the
+painter once per region, clipped to it, and remembers the regions;
+`upload(copy)` copies exactly those into the texture and forgets them. A new
+raster is transparent and damaged whole, so its first upload fills the
+texture. `paint(regions, scale, painter)` draws at a scale, so a painter can
+work in units of its own whatever the tile's size in pixels. `damage()` says
+what the next upload copies.
+
+**Where the raster lives.** On a device whose upload memory reads like
+ordinary memory, the raster is painted in that memory, and an upload is a copy
+the GPU makes out of it, with nothing copied on the CPU. Elsewhere the raster
+is ordinary memory and an upload stages its damage, as `CopyPass.upload`
+does. `inPlace()` says which. The device decides once, at start-up, by timing
+a paint in each; `goldberry.gpu.inPlace=on` or `off` decides instead, and
+`RasterTexture.staged(device, size)` always stages.
+
+**A paint waits for the frame of the last upload.** Painted in place, pixels
+the GPU is still copying must not change, so `paint` waits for that frame to
+have run, which it has, in all but a GPU-bound frame, by the time the next
+paint comes. Before the frame is submitted, a paint does not wait; the frame
+may then copy what was painted since, and the next upload copies it either
+way. A frame discarded with an upload in it loses that damage.
+
+**One thread**, the device's. Close a raster texture once the frame of its
+last upload has been submitted or discarded; closing waits for that frame and
+releases the texture with it.
+
+### A composited window paints in place too
+
+The same memory serves the window. Where the device's check says so, a
+composited window lends the frame loop a frame in upload memory to paint into,
+and its present copies the damage straight out of it; the UI frame is no
+longer copied on the CPU at all. The `hud`'s upload reading is that copy's
+recording. Nothing changes for an application, and `goldberry.gpu.inPlace=off`
+puts every window back on the staged path.

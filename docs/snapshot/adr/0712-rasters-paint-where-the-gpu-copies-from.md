@@ -130,3 +130,10 @@ still stops it.
 
 The 5% bar stays what the benchmark judges a driver by. `goldberry.gpu.inPlace`
 lets a run decide instead: `on`, `off` or `auto`.
+
+## Amendment, 2026-11-22: phases 3 and 4
+
+Built. A composited window lends its frame from upload memory where the
+device's check says so (ADR-0731), and `RasterTexture` keeps an application's
+texture in step with its raster, its copy recorded in the application's frame
+and the next paint waiting on that frame (ADR-0732). D1 to D6 stand as taken.

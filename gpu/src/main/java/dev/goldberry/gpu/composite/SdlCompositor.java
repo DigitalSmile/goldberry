@@ -8,6 +8,7 @@ import org.slf4j.Logger;
 import dev.goldberry.gpu.GpuDevice;
 import dev.goldberry.gpu.GpuPower;
 import dev.goldberry.gpu.render.mapped.InPlaceGate;
+import dev.goldberry.gpu.render.mapped.InPlaceLayout;
 import dev.goldberry.gpu.render.mapped.InPlaceProbe;
 import dev.goldberry.gpu.render.staging.StagingBuffer;
 import dev.goldberry.log.Logs;
@@ -76,8 +77,11 @@ public final class SdlCompositor implements Compositor {
             // Claimed in VSYNC; the window sets the mode it was asked for,
             // `goldberry.backend.vsync=false`'s at launch among them.
             var claimed = gpu.claimWindow(window);
+            var decision = inPlace;
+            var layout =
+                    decision != null && decision.on() ? InPlaceLayout.of(gpu.driver(), gpu.uploadsPaddedRows()) : null;
             return new Claim.Claimed(
-                    new SdlCompositedWindow(gpu, requireApi(), claimed, requireStaging(), requireComposite()));
+                    new SdlCompositedWindow(gpu, requireApi(), claimed, requireStaging(), requireComposite(), layout));
         } catch (SdlException | IllegalStateException e) {
             return new Claim.Refused(gpu.driver() + " would not claim the window: " + e.getMessage());
         }
@@ -132,12 +136,14 @@ public final class SdlCompositor implements Compositor {
             made.setAllowedFramesInFlight(FRAMES_IN_FLIGHT);
             staging = new StagingBuffer(made);
             composite = new UiComposite(made);
-            api = ApiAccess.device(made);
+            var wrapped = ApiAccess.device(made);
+            api = wrapped;
             var fresh = made;
             var decision = Startup.time(
                     "GPU upload memory checked",
                     () -> InPlaceProbe.decide(fresh, DeviceOptions.inPlace(), InPlaceGate.DEFAULT));
             inPlace = decision;
+            ApiAccess.inPlace(wrapped, decision);
             device = made;
             LOG.info(
                     "[GPU] device ready in {} ms: {} on {}{}{}, taking {}; painting in place {};"

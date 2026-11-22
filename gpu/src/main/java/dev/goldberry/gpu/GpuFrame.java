@@ -59,6 +59,9 @@ public final class GpuFrame implements AutoCloseable {
     private final GpuDevice device;
     private final SdlGpuCommandBuffer commands;
     private final List<TransferState> readbacks = new ArrayList<>();
+    /// When this frame has run, for a copy that reads memory painted again
+    /// later; made the first time a copy pass asks for it.
+    private @Nullable FrameCompletion completion;
     private State state = State.RECORDING;
     private @Nullable String openPass;
 
@@ -81,7 +84,7 @@ public final class GpuFrame implements AutoCloseable {
         Objects.requireNonNull(body, "body");
         requireRecording("copyPass");
         var pass = GpuDevice.call(commands::beginCopyPass);
-        var copy = new CopyPass(device, pass);
+        var copy = new CopyPass(device, this, pass);
         openPass = "a copy pass";
         try (pass) {
             body.accept(copy);
@@ -466,12 +469,17 @@ public final class GpuFrame implements AutoCloseable {
     public void submit() {
         requireRecording("submit");
         try {
-            if (readbacks.isEmpty()) {
+            var waiting = completion;
+            var holders = readbacks.size() + (waiting == null ? 0 : 1);
+            if (holders == 0) {
                 commands.submit();
             } else {
-                var fence = new SharedFence(commands.submitWithFence(), readbacks.size());
+                var fence = new SharedFence(commands.submitWithFence(), holders);
                 for (var readback : readbacks) {
                     readback.submitted(fence);
+                }
+                if (waiting != null) {
+                    waiting.submitted(fence);
                 }
             }
             state = State.SUBMITTED;
@@ -512,7 +520,23 @@ public final class GpuFrame implements AutoCloseable {
         }
     }
 
+    /// When this frame has run on the GPU: the one completion every copy
+    /// recorded into it shares.
+    FrameCompletion completion() {
+        requireOpen("completion");
+        var current = completion;
+        if (current == null) {
+            current = new FrameCompletion();
+            completion = current;
+        }
+        return current;
+    }
+
     private void discardReadbacks() {
+        var waiting = completion;
+        if (waiting != null) {
+            waiting.discarded();
+        }
         for (var readback : readbacks) {
             readback.discarded();
         }

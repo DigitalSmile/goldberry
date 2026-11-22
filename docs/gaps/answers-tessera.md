@@ -37,7 +37,7 @@ nothing.
 | G-25 | Spellcheck | Hunspell | planned |
 | G-26 | Pluralization | `dev.goldberry.i18n` with CLDR plurals | on master, not yet in a snapshot |
 | G-29 | Global hotkeys | `GlobalShortcuts` on all four platforms | planned |
-| G-30 | Shared GPU memory for Board tiles | Zero-copy rasters; a design document first | planned |
+| G-30 | Shared GPU memory for Board tiles | `RasterTexture`: tiles painted where the GPU copies from | on master, not yet in a snapshot |
 | G-31 | Goldberry on the web | A plan document (TeaVM or a compiler of our own) | planned |
 | G-32 | Web view store, cookies, user agent | Delete, clear and user agent built; the private store still planned | partly on master, not yet in a snapshot |
 
@@ -543,7 +543,40 @@ because it differs per driver.
 **Today.** Tiles as textures in a `Canvas3dRenderer`, uploaded by damaged
 region with `CopyPass.upload(texture, buffer, regions)`.
 
-**Landed.** —
+**Landed.** On Goldberry's master, not yet in a snapshot (ADR-0712, ADR-0731,
+ADR-0732). Real zero-copy, the GPU sampling Blend2D's memory, is out of reach
+through SDL 3.4 on every driver: it gives no native handles and imports no
+memory. What landed is the next best thing, **no copy on the CPU**: a tile is
+painted straight into memory the GPU copies from, and only its damaged
+regions are copied into the texture, by the GPU.
+
+```java
+// init: one per tile
+tile = RasterTexture.create(device, new PhysicalSize(256, 256));
+
+// render: paint what changed, upload it, draw the texture as any other
+tile.paint(List.of(changed), frame -> drawTile(frame));
+frame.copyPass(tile::upload);
+frame.renderPass(target.colour(), Load.clear(0, 0, 0, 1), pass -> { /* sample tile.texture() */ });
+```
+
+- `tile.inPlace()` says which path the tile took. The device decides once at
+  start-up by timing a paint in its upload memory against ordinary memory. On
+  Vulkan (NVIDIA, lavapipe) and Metal it paints in place. Where the memory
+  reads slowly it stages, as before, with the same API.
+  `goldberry.gpu.inPlace=on|off` overrides the check, and
+  `RasterTexture.staged(device, size)` always stages.
+- The next `paint` waits for the frame that copied the last upload. That frame
+  has normally long finished, so the wait costs nothing in steady state, and
+  there's no fence for Board to handle.
+- `paint(regions, scale, painter)` draws in units of the tile's own, whatever
+  its size in pixels.
+- The composited window does the same for the UI itself. A Board window over
+  a `canvas3d` no longer copies its frame on the CPU at all: the upload stage
+  at 4K fell from 6.8 to 0.25 ms on a GTX 1660 Ti.
+
+The showcase's GPU screen has a board of 24 such tiles. A move repaints two
+of them, and the card says how many went up and how.
 
 ## G-31. Goldberry on the web
 

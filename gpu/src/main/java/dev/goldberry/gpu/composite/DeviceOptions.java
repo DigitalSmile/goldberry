@@ -30,13 +30,13 @@ final class DeviceOptions {
 
     /// Paints composited frames in place (`on`), staged (`off`), or as the
     /// device's check at start-up says (`auto`, the default).
-    static final String IN_PLACE_PROPERTY = "goldberry.gpu.inPlace";
+    static final String IN_PLACE_PROPERTY = InPlaceProbe.PROPERTY;
 
     private DeviceOptions() {}
 
     /// What the in-place property asks for.
     static InPlaceProbe.Mode inPlace() {
-        return InPlaceProbe.Mode.parse(System.getProperty(IN_PLACE_PROPERTY));
+        return InPlaceProbe.Mode.fromProperty();
     }
 
     /// The options the system properties give, with `power` in place of the

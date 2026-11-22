@@ -30,12 +30,32 @@ import dev.goldberry.render.model.PixelFormat;
 public final class CopyPass {
 
     private final GpuDevice device;
+    private final GpuFrame frame;
     private final SdlGpuCommandBuffer.CopyPass sdl;
     private boolean ended;
 
-    CopyPass(GpuDevice device, SdlGpuCommandBuffer.CopyPass sdl) {
+    CopyPass(GpuDevice device, GpuFrame frame, SdlGpuCommandBuffer.CopyPass sdl) {
         this.device = device;
+        this.frame = frame;
         this.sdl = sdl;
+    }
+
+    /// The SDL pass, checked open and on its thread, for a copy recorded from
+    /// memory of the module's own: a raster texture painted in place.
+    SdlGpuCommandBuffer.CopyPass sdl() {
+        requireOpen();
+        return sdl;
+    }
+
+    /// The device it records for.
+    GpuDevice device() {
+        return device;
+    }
+
+    /// When the frame this pass is in has run on the GPU.
+    FrameCompletion completion() {
+        requireOpen();
+        return frame.completion();
     }
 
     /// Uploads the whole of `destination` from `source`, tightly packed rows

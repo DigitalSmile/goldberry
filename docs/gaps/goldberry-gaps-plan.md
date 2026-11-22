@@ -288,7 +288,7 @@ log in the same commit as the work.
 | T-25 | W3.7 | todo | | |
 | T-26 | W2.13 | done | 0686 | |
 | T-29 | W3.8 | done: `GlobalShortcuts` (portal, X11 grab, `RegisterHotKey`, Carbon); Windows and macOS written, not run; the Windows release is polled while held, not hooked | 0711 | |
-| T-30 | W3.10 | planned and decided (`docs/zero-copy-tiles.md`): D1 (a), D2 (a), D3 D6 decides per driver, D4 (a), D5 `RasterTexture`, D6 the gate. Phase 1 (Direct3D 12 staging without SDL's hidden copy) done; phase 0 done (D6 on for Vulkan and Metal, off on WARP); run-time check at 1.5×; phase 2 (the in-place raster) done; phases 3–4 not started | 0712 | |
+| T-30 | W3.10 | done (`docs/zero-copy-tiles.md`): D1 (a), D2 (a), D3 D6 decides per driver, D4 (a), D5 `RasterTexture`, D6 the gate, run-time check at 1.5×. Phases 0–4 done: Direct3D 12 staging without SDL's hidden copy, the in-place raster, the composited window painting in place (4K upload 6.8 → 0.25 ms on the 1660 Ti), and `RasterTexture` in the exported `dev.goldberry.gpu.raster` with a showcase card; Metal and Direct3D 12 in place written, measured by the benchmark lane, not run as a window | 0712, 0731, 0732 | |
 | T-31 | W3.11 | done: plan written (`docs/web-target.md`, D1–D8 asked); no code until it is read | | |
 | T-32 | W2.8 | done: delete, clear, user agent; the private store waits for the shim to build its own views | 0699 | |
 
@@ -620,3 +620,11 @@ log in the same commit as the work.
   persistently mapped buffer, uploads behind a fence the next paint waits on,
   a copy shape per driver, and the check at device creation, logged. Nothing
   paints in it until phase 3. Next ADR 0731.
+- **2026-11-22, W3.10 phases 3 and 4.** A composited window lends its frame
+  from upload memory where the device's check says so, and its present copies
+  the damage out of it ahead of the composite (ADR-0731): the upload span at
+  4K, whole frame, fell from 6.77 to 0.25 ms on the 1660 Ti and from 8.60 to
+  0.08 ms on lavapipe. `RasterTexture` is exported in `dev.goldberry.gpu.raster`:
+  its copy is recorded in the application's frame and the next paint waits on
+  that frame (ADR-0732). The GPU screen has a board of raster tiles. G-30
+  answered in `answers-tessera.md`. W3.10 is done. Next ADR 0733.

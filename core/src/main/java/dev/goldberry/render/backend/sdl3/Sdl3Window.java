@@ -241,9 +241,12 @@ sealed class Sdl3Window implements BackendWindow permits Sdl3Popup {
         return true;
     }
 
-    /// The window surface, while this window presents through it. Empty while it
-    /// is composited: the frame loop then paints into a buffer of its own,
-    /// which it keeps between frames, so partial repaint goes on working.
+    /// The window surface, while this window presents through it. While it is
+    /// composited, the compositor's own frame where it paints in place, in
+    /// memory the GPU copies from, and otherwise empty: the frame loop then
+    /// paints into a buffer of its own, which it keeps between frames. Either
+    /// way partial repaint goes on working, since both are the same buffer
+    /// frame after frame at one size.
     ///
     /// Where a window enters the composited mode, because this is the one call
     /// made before a frame is painted: the surface is given up and the window
@@ -264,9 +267,19 @@ sealed class Sdl3Window implements BackendWindow permits Sdl3Popup {
                     COMPOSITE_HOLD_NANOS / 1_000_000_000L);
             leaveComposited(null);
         }
-        if (composited != null) {
-            acquired = null;
-            return Optional.empty();
+        acquired = null;
+        var gpu = composited;
+        if (gpu != null) {
+            var size = physicalSize();
+            if (size.isEmpty()) {
+                return Optional.empty();
+            }
+            try {
+                return gpu.lendFrame(size);
+            } catch (RuntimeException e) {
+                LOG.warn("the GPU failed lending \"{}\" a frame: it presents on the CPU from now on", title, e);
+                leaveComposited("its GPU frame could not be lent: " + e.getMessage());
+            }
         }
         try {
             var surface = video().acquireSurface(handle);
@@ -393,12 +406,15 @@ sealed class Sdl3Window implements BackendWindow permits Sdl3Popup {
             lastPresent = gpu.lastPresent();
         } catch (RuntimeException e) {
             LOG.warn("the GPU failed presenting \"{}\": it presents on the CPU from now on", title, e);
+            // Copied out first: the frame may be the compositor's own, whose
+            // memory goes with it.
+            var kept = detached(frame);
             leaveComposited("its GPU present failed: " + e.getMessage());
             try {
                 video().present(
                                 handle,
-                                frame.pixels().duplicate(),
-                                frame.stride(),
+                                kept.pixels().duplicate(),
+                                kept.stride(),
                                 new SdlVideo.SdlSize(size.width(), size.height()),
                                 new int[] {0, 0, size.width(), size.height()});
             } catch (SdlException fallback) {
@@ -409,6 +425,18 @@ sealed class Sdl3Window implements BackendWindow permits Sdl3Popup {
             shown = true;
             video().showWindow(handle);
         }
+    }
+
+    /// A copy of `frame` in memory of its own, tightly packed.
+    static PixelBuffer detached(PixelBuffer frame) {
+        var copy = PixelBuffer.allocate(frame.size(), frame.format());
+        var row = copy.stride();
+        var source = frame.pixels();
+        var target = copy.pixels();
+        for (var y = 0; y < frame.size().height(); y++) {
+            target.put(y * row, source, y * frame.stride(), row);
+        }
+        return copy;
     }
 
     /// Gives the window surface up and has the compositor claim the window. A

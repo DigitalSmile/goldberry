@@ -7,6 +7,7 @@ import dev.goldberry.render.DamageRect;
 import dev.goldberry.render.GpuPlacement;
 import dev.goldberry.render.PixelBuffer;
 import dev.goldberry.render.PresentTimings;
+import dev.goldberry.render.model.PhysicalSize;
 import dev.goldberry.render.window.PresentMode;
 
 /// A window a [Compositor] has claimed: its painted frames are uploaded to the
@@ -40,6 +41,24 @@ public interface CompositedWindow extends AutoCloseable {
     /// @throws RuntimeException when the GPU fails: a lost device. The caller
     ///                          closes this and presents on the CPU
     void present(PixelBuffer frame, List<DamageRect> damage, List<GpuPlacement> layers);
+
+    /// A frame of `size` to paint into, in memory the GPU copies from, so
+    /// [#present] uploads its damage with no copy on the CPU. Empty where the
+    /// window stages its frames instead: the caller paints into a buffer of its
+    /// own and [#present] copies from it.
+    ///
+    /// At one size it is the same buffer every frame, holding what was painted
+    /// into it last, so a partial repaint works as it does in a buffer of the
+    /// caller's. A new size is a new buffer, whose pixels are undefined. Waits
+    /// for the GPU to finish copying the last frame out of it, which it has in
+    /// all but a GPU-bound frame. The buffer is good until the next call, or
+    /// until [#close].
+    ///
+    /// @throws RuntimeException when the GPU fails: a lost device. The caller
+    ///                          closes this and presents on the CPU
+    default Optional<PixelBuffer> lendFrame(PhysicalSize size) {
+        return Optional.empty();
+    }
 
     /// What the last [#present] cost, for a frame loop's statistics:
     /// [PresentTimings#NONE] when it presented nothing, for want of damage.

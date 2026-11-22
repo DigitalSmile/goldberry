@@ -23,6 +23,7 @@ import dev.goldberry.example.ShowcaseScene;
 import dev.goldberry.example.ShowcaseStyles;
 import dev.goldberry.example.docs.CardShape;
 import dev.goldberry.example.docs.DocLink;
+import dev.goldberry.example.gpu.BoardTiles;
 import dev.goldberry.gpu.raytrace.RayTracingMode;
 import dev.goldberry.gpu.upscale.RenderScale;
 import dev.goldberry.gpu.upscale.UpscaleFilter;
@@ -48,6 +49,7 @@ class GpuChapterTest {
         CARDS.put("gpu-frames-card", DocLink.to("components/gpu", "what-the-module-does-to-a-window"));
         CARDS.put("gpu-spinning-card", DocLink.to("components/gpu", "canvas3d"));
         CARDS.put("gpu-turned-card", DocLink.to("components/gpu", "canvas3d"));
+        CARDS.put("gpu-board-card", DocLink.to("components/gpu", "the-renderer"));
         CARDS.put("gpu-room-card", DocLink.to("components/gpu", "canvas3d"));
         CARDS.put("gpu-measured-card", DocLink.to("components/gpu", "what-it-costs"));
     }
@@ -87,6 +89,29 @@ class GpuChapterTest {
             session.key(Key.RIGHT);
 
             assertEquals(first + 1, revision(session));
+        }
+    }
+
+    @Test
+    @DisplayName("the board's line says nothing before it is drawn, then how its tiles are kept and what went up")
+    void theBoardSaysWhatWentUp() {
+        assertEquals("Not drawn yet", TiledBoard.BoardState.describe(null));
+        assertEquals(
+                "Painted in place: 2 of 24 tiles went up",
+                TiledBoard.BoardState.describe(new BoardTiles.Report(true, 2, 24)));
+        assertEquals(
+                "Staged: 24 of 24 tiles went up", TiledBoard.BoardState.describe(new BoardTiles.Report(false, 24, 24)));
+        var sheets = new ArrayList<Stylesheet>(Controls.stylesheets(Theme.NORD_DARK));
+        sheets.addAll(ShowcaseStyles.sheets());
+        try (var session = Offscreen.of(560, 420).stylesheets(sheets).session(new TiledBoard())) {
+            assertTrue(session.byId("gpu-board").isPresent(), "the canvas");
+            session.click("gpu-board-move");
+            assertEquals(
+                    1,
+                    canvasUnder(session.byId("gpu-board-card").orElseThrow())
+                            .orElseThrow()
+                            .revision(),
+                    "a move is a new revision");
         }
     }
 

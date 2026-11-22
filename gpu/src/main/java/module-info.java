@@ -11,7 +11,8 @@
 /// window presents on the CPU. And the `canvas3d` widget in `…gpu.view`, with
 /// the `Canvas3dRenderer` an application draws it with. And `…gpu.offscreen`,
 /// a device and read-back surface for a picture with no window, which an
-/// application's test hands to `Offscreen`. And `…gpu.video`, the layer video
+/// application's test hands to `Offscreen`. And `…gpu.raster`, a texture kept
+/// in step with a raster the application paints. And `…gpu.video`, the layer video
 /// is shown through, exported to `:media` alone. The toolkit's own
 /// shaders and the quad and Y'CbCr arithmetic they need stay in the unexported
 /// `…gpu.render`.
@@ -48,6 +49,10 @@ module dev.goldberry.gpu {
     /// A 3D view drawn at a scale of its box and upscaled to it: bilinear, or
     /// FSR 1.
     exports dev.goldberry.gpu.upscale;
+
+    /// Rasters an application paints and draws on the GPU: a texture kept in
+    /// step with its raster, painted where the GPU copies from where that pays.
+    exports dev.goldberry.gpu.raster;
 
     /// A GPU for a picture with no window under it: the surface an
     /// application's test hands to `Offscreen.gpu`.

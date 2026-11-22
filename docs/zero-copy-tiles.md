@@ -384,7 +384,7 @@ shaders.
 
 The device-ready line on lavapipe reads 22–33 ms with the check included.
 
-### Phase 3 — the composited window paints in place
+### Phase 3 — the composited window paints in place (done 2026-11-22)
 
 `CompositedWindow` gains an optional frame of its own; `Sdl3Window.acquireFrame()`
 lends it while composited on a driver D6 switched on. `SdlCompositedWindow.present`
@@ -393,13 +393,53 @@ today. Exit: every gallery and GPU golden unchanged; the `hud`'s upload span
 drops by D6's measure on the 1660 Ti; `:example:run` with the dummy driver still
 starts.
 
-### Phase 4 — `RasterTexture` for applications
+**As built** (ADR-0731).
+
+- `CompositedWindow.lendFrame(PhysicalSize)` is a default method answering
+  empty. `SdlCompositedWindow` answers its `MappedRaster`'s pixels where the
+  compositor's decision is on, remade at a new size; lending waits for the
+  last copy out of it.
+- `Sdl3Window.acquireFrame()` returns that frame while composited, so the
+  frame loop's `target == lastTarget` holds and partial repaint goes on.
+- `present` knows the lent frame by identity and copies its damage with
+  `MappedRaster.upload`, submitted before the composite's command buffer. A
+  frame of the caller's own is staged as before. `upload` now answers what
+  it copied, which `uploadBytes` counts.
+- A raster SDL refuses puts the window on the staged path for good, logged
+  once. A failed present or lend copies the frame into memory of its own
+  before the window leaves the GPU, since the lent memory goes with the
+  compositor.
+
+### Phase 4 — `RasterTexture` for applications (done 2026-11-22)
 
 D5's API, its guide section parked in `docs/snapshot/components-gpu.md`, and a
 showcase card on the GPU screen: a board of tiles painted by Blend2D and drawn
 by a `Canvas3dRenderer`, with the path it took shown. Exit: tests on both paths
 (in place on lavapipe, staged with the in-place path off), the card's golden,
 and Tessera's G-30 answer in `answers-tessera.md`.
+
+**As built** (ADR-0732).
+
+- `dev.goldberry.gpu.raster.RasterTexture`, exported: `create` (in place
+  where the device's decision says, staged where SDL refuses the memory),
+  `staged`, `paint` whole, by region, and by region at a scale (the painter
+  runs once per region, clipped), `damage`, `upload(CopyPass)`, `texture`,
+  `inPlace`, `close`. A new raster is zeroed and damaged whole.
+- In place, `upload` records the copies into the application's copy pass
+  (`MappedRaster.upload(pass, texture, damage, finished)`), and the next
+  paint waits on that frame. `GpuFrame` keeps one `FrameCompletion`, a
+  holder of the frame's fence beside its readbacks. A frame still recording
+  answers "not yet" without waiting, and `MappedRaster` keeps such copies and
+  asks again, so no fence is leaked or skipped.
+- `ApiAccess` hands `…gpu.raster` the SDL device, the decision and the copy
+  pass's insides. `GpuDevice` keeps the decision: the compositor sets it, and
+  a device it did not make runs the check on first use. The property name
+  moved to `InPlaceProbe.PROPERTY`.
+- The showcase card, **Tiles painted on the CPU** (`#gpu-board-card`): a 6×4
+  board, each square a `RasterTexture`, copied into the `canvas3d` target
+  with texture-to-texture copies, so no new shader. "Move the piece"
+  repaints two squares; the line beside it says "Painted in place: 2 of 24
+  tiles went up" or "Staged: …".
 
 ## 5. Risks
 
@@ -433,9 +473,9 @@ and Tessera's G-30 answer in `answers-tessera.md`.
 |-------|--------|
 | 0 — measurements | done 2026-11-22: D6 on for Vulkan and Metal, off on WARP (narrowly); the run-time check's threshold taken as 1.5× |
 | 1 — D3D12 staging | done 2026-11-22; the Windows lane's upload numbers wait for phase 0's benchmark |
-| 2 — the in-place raster | done 2026-11-22 (`gpu.render.mapped`); nothing paints in it until phase 3 |
-| 3 — the composited window | not started |
-| 4 — `RasterTexture` | not started |
+| 2 — the in-place raster | done 2026-11-22 (`gpu.render.mapped`) |
+| 3 — the composited window | done 2026-11-22 (ADR-0731): 4K whole-frame upload 6.77 → 0.25 ms on the 1660 Ti |
+| 4 — `RasterTexture` | done 2026-11-22 (ADR-0732): `dev.goldberry.gpu.raster`, the GPU screen's board card |
 
 - **2026-11-21.** Plan written from the tree at `5998561b` and SDL 3.4.18's
   sources. The finding that shapes it: through SDL, real zero-copy (the GPU
@@ -609,3 +649,53 @@ and Tessera's G-30 answer in `answers-tessera.md`.
   case. Both lanes are green on the 1660 Ti and on lavapipe, and
   `:example:gpuTest`'s goldens are unchanged. The benchmark's bands now come
   from `CopyShape`. Next: phase 3, the composited window. Next ADR 0731.
+- **2026-11-22, phases 3 and 4**, in one go at the owner's request.
+
+  Phase 3 (ADR-0731). `CompositedWindow.lendFrame` lends the composited
+  window's `MappedRaster`, and `Sdl3Window.acquireFrame` returns it while
+  composited. `present` copies a lent frame's damage ahead of the composite and
+  stages any other. A refused raster stages for good; a GPU failure copies the
+  frame out before falling back to the CPU. Upload span, median of 120
+  presents through `SdlCompositedWindow` (ms):
+
+  | Frame | Damage | 1660 Ti staged | in place | lavapipe staged | in place |
+  |---|---|---|---|---|---|
+  | 1920x1080 | 100% | 1.858 | 0.146 | 2.274 | 0.056 |
+  | 1920x1080 | 10% | 0.139 | 0.031 | 0.102 | 0.018 |
+  | 3840x2160 | 100% | 6.769 | 0.250 | 8.602 | 0.076 |
+  | 3840x2160 | 10% | 0.678 | 0.051 | 1.054 | 0.027 |
+
+  The showcase under X11 on the 1660 Ti logs "painting in place on (0.96×
+  heap)" and an upload mean of 0.30 ms over its first presents. With the
+  dummy driver it still starts, on the CPU.
+
+  Phase 4 (ADR-0732). `RasterTexture` is exported in `dev.goldberry.gpu.raster`.
+  In place, its upload is recorded into the application's copy pass, and the
+  next paint waits on that frame's `FrameCompletion`: one per `GpuFrame`, a
+  holder of the frame's fence beside its readbacks. A frame still recording
+  isn't waited for. `MappedRaster` keeps such copies and asks again. Its
+  `PendingCopy.finish` answers whether the copy is done with, and its uploads
+  answer what they copied. `ApiAccess` is the module's way in; `GpuDevice`
+  keeps the in-place decision. The GPU screen has **Tiles painted on the CPU**:
+  a 6×4 board of raster tiles copied into a `canvas3d` with texture copies, a
+  button that moves a piece (two tiles go up), and a line saying how.
+
+  Tests:
+  - Without a GPU: `MappedRasterTest` (a frame still recording),
+    `DetachedFrameTest`, `BoardTilesTest` (the walk) and `GpuChapterTest` (the
+    card and its line).
+  - On the device: `CompositorTest$InPlace` (damage read back, resize, a
+    caller's frame staged, off lends nothing), `CompositedBackendTest`
+    (`paintsInPlace`, `stagesWhenOff`), `FrameCompletionTest`,
+    `RasterTextureTest` (both paths, the same bytes, painting before the
+    submit, damage bounds, refusals, no leaks) and `TiledBoardGpuTest` (the
+    `gpu-board` golden, and a move sends two tiles).
+  - `:gpu:gpuTest` and `:example:gpuTest` are green on the 1660 Ti (x11) and
+    on lavapipe.
+  - Goldens retaken for the new card: `gallery-gpu`, `gallery-gpu-drawn`,
+    `shell-home`, `screen-forms-{light,dark}.webp` (the sidebar's GPU count),
+    and the new `gpu-board`.
+
+  The guide section is parked in `docs/snapshot/components-gpu.md`
+  (`## Raster textures`). W3.10 is done. Not run: Metal and Direct3D 12 as a
+  window (their in-place shape is the benchmark lane's). Next ADR 0733.

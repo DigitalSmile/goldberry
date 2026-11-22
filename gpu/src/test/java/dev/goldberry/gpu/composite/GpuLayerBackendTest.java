@@ -26,6 +26,7 @@ import dev.goldberry.render.model.LogicalSize;
 import dev.goldberry.render.model.PhysicalRect;
 import dev.goldberry.render.model.PixelFormat;
 import dev.goldberry.render.window.GpuSurface;
+import dev.goldberry.render.window.Presentation;
 import dev.goldberry.render.window.WindowSpec;
 
 /// GPU layers through the backends: which surface a window gives, and what it
@@ -111,7 +112,8 @@ class GpuLayerBackendTest {
     void compositedDrawsLayers() {
         try (var backend = new Sdl3Backend()) {
             var window = backend.createWindow(WindowSpec.of("composited", LogicalSize.of(64, 48)));
-            assertTrue(window.acquireFrame().isEmpty(), "composited");
+            window.acquireFrame();
+            assertInstanceOf(Presentation.Gpu.class, window.presentation(), "composited");
             var surface = assertInstanceOf(
                     GpuSurface.Composited.class, window.gpuSurface().orElseThrow());
             var size = window.physicalSize();
@@ -148,7 +150,8 @@ class GpuLayerBackendTest {
             readBack.placed(List.of(new GpuPlacement(layer, box, box)));
             window.present(first.get(), List.of(DamageRect.all(window.physicalSize())));
 
-            assertTrue(window.acquireFrame().isEmpty(), "composited once a layer was shown");
+            window.acquireFrame();
+            assertInstanceOf(Presentation.Gpu.class, window.presentation(), "composited once a layer was shown");
             assertInstanceOf(GpuSurface.Composited.class, window.gpuSurface().orElseThrow());
             window.close();
         }

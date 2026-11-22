@@ -24,6 +24,10 @@ import dev.goldberry.render.model.PixelFormat;
 /// [Mode] lets a run decide instead: `goldberry.gpu.inPlace=on` or `off`.
 public final class InPlaceProbe {
 
+    /// Paints in place (`on`), staged (`off`), or as the device's check says
+    /// (`auto`, the default).
+    public static final String PROPERTY = "goldberry.gpu.inPlace";
+
     /// What a run asked for.
     public enum Mode {
         /// Measure, and let the gate decide.
@@ -44,6 +48,11 @@ public final class InPlaceProbe {
                 case "off", "false" -> OFF;
                 default -> AUTO;
             };
+        }
+
+        /// The mode the [#PROPERTY] system property names.
+        public static Mode fromProperty() {
+            return parse(System.getProperty(PROPERTY));
         }
     }
 

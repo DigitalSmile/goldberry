@@ -1,11 +1,13 @@
 package dev.goldberry.gpu.render.mapped;
 
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
 import org.jspecify.annotations.Nullable;
 
+import dev.goldberry.natives.sdl.gpu.SdlGpuCommandBuffer;
 import dev.goldberry.natives.sdl.gpu.SdlGpuDevice;
 import dev.goldberry.natives.sdl.gpu.SdlGpuFence;
 import dev.goldberry.natives.sdl.gpu.SdlGpuRegion;
@@ -28,6 +30,11 @@ import dev.goldberry.render.model.PixelFormat;
 /// frame and the wait costs nothing. The raster keeps last frame's pixels, so
 /// partial repaint works as it does in heap memory.
 ///
+/// **Or the copy recorded into someone else's frame.** [#upload(SdlGpuCommandBuffer.CopyPass, SdlGpuTexture, List,
+/// PendingCopy)]
+/// records into a copy pass the caller submits, and waits on what the caller
+/// says finishes it: the application's frame, for a raster texture.
+///
 /// Used on one thread, the one that paints and presents.
 public final class MappedRaster implements AutoCloseable {
 
@@ -42,23 +49,36 @@ public final class MappedRaster implements AutoCloseable {
         ///              so it may take fresh memory rather than wait
         PendingCopy copy(SdlGpuTexture texture, List<SdlGpuRegion> regions, int stride, boolean whole);
 
+        /// Records the same copies into `pass`, which the caller submits.
+        void record(
+                SdlGpuCommandBuffer.CopyPass pass,
+                SdlGpuTexture texture,
+                List<SdlGpuRegion> regions,
+                int stride,
+                boolean whole);
+
         /// Gives the memory back.
         void close();
     }
 
-    /// A submitted copy, until it has finished.
-    interface PendingCopy {
+    /// A recorded copy, until it has finished.
+    public interface PendingCopy {
 
         /// Blocks until the GPU has finished the copy and lets go of what
-        /// tracked it. Idempotent.
-        void finish();
+        /// tracked it, and answers true; or answers false at once when the copy
+        /// has not been submitted yet, so the GPU has not begun reading and the
+        /// raster may be painted. True once the copy will never run: its frame
+        /// was discarded. Idempotent once true.
+        boolean finish();
     }
 
     private final PhysicalSize size;
     private final InPlaceLayout layout;
     private final PixelBuffer pixels;
     private final Copier copier;
-    private @Nullable PendingCopy pending;
+    /// The copies not yet known to have finished, oldest first: one, unless a
+    /// caller's frame is still recording.
+    private final List<PendingCopy> pending = new ArrayList<>(2);
     private boolean closed;
 
     MappedRaster(PhysicalSize size, InPlaceLayout layout, ByteBuffer memory, Copier copier) {
@@ -99,8 +119,9 @@ public final class MappedRaster implements AutoCloseable {
         return layout;
     }
 
-    /// The pixels to paint, once the last upload's copy has finished: they
-    /// still hold what was painted last.
+    /// The pixels to paint, once the last upload's copy has finished, or while
+    /// its frame has not been submitted: they still hold what was painted
+    /// last.
     ///
     /// @throws IllegalStateException when it is closed
     public PixelBuffer lend() {
@@ -109,9 +130,9 @@ public final class MappedRaster implements AutoCloseable {
         return pixels;
     }
 
-    /// Whether an upload's copy has been submitted and not yet waited for.
+    /// Whether an upload's copy has been recorded and not yet waited for.
     public boolean copyInFlight() {
-        return pending != null;
+        return !pending.isEmpty();
     }
 
     /// Copies the regions of `damage` into `texture`, a BGRA texture of the
@@ -119,16 +140,36 @@ public final class MappedRaster implements AutoCloseable {
     /// copy with a fence the next [#lend] waits for. Empty damage submits
     /// nothing.
     ///
+    /// @return what was copied: the damage, or the bands that hold it
     /// @throws IllegalArgumentException when the texture is not the raster's
     ///                                  size, or a region is outside it
     /// @throws IllegalStateException    when it is closed
-    public void upload(SdlGpuTexture texture, List<SdlGpuRegion> damage) {
+    public List<SdlGpuRegion> upload(SdlGpuTexture texture, List<SdlGpuRegion> damage) {
         Objects.requireNonNull(texture, "texture");
-        upload(
+        return upload(
                 texture.width(),
                 texture.height(),
                 damage,
                 (copies, stride, whole) -> copier.copy(texture, copies, stride, whole));
+    }
+
+    /// Records the copies of `damage` into `pass`, a copy pass of the
+    /// caller's, as [#upload(SdlGpuTexture, List)] submits them; the next
+    /// [#lend] waits on `finished`, which says when the caller's frame has
+    /// run. Empty damage records nothing.
+    ///
+    /// @return what was copied
+    /// @throws IllegalArgumentException as [#upload(SdlGpuTexture, List)]
+    /// @throws IllegalStateException    when it is closed
+    public List<SdlGpuRegion> upload(
+            SdlGpuCommandBuffer.CopyPass pass, SdlGpuTexture texture, List<SdlGpuRegion> damage, PendingCopy finished) {
+        Objects.requireNonNull(pass, "pass");
+        Objects.requireNonNull(texture, "texture");
+        Objects.requireNonNull(finished, "finished");
+        return upload(texture.width(), texture.height(), damage, (copies, stride, whole) -> {
+            copier.record(pass, texture, copies, stride, whole);
+            return finished;
+        });
     }
 
     /// How one upload's copies are submitted: [#upload(SdlGpuTexture, List)]'s
@@ -140,7 +181,7 @@ public final class MappedRaster implements AutoCloseable {
     }
 
     /// [#upload(SdlGpuTexture, List)] into a target `width` by `height`.
-    void upload(int width, int height, List<SdlGpuRegion> damage, Submit submit) {
+    List<SdlGpuRegion> upload(int width, int height, List<SdlGpuRegion> damage, Submit submit) {
         requireOpen();
         if (width != size.width() || height != size.height()) {
             throw new IllegalArgumentException(
@@ -152,14 +193,15 @@ public final class MappedRaster implements AutoCloseable {
             }
         }
         if (damage.isEmpty()) {
-            return;
+            return List.of();
         }
         finishPending();
         var copies = layout.copies(damage, size.width());
         var whole = copies.size() == 1
                 && copies.getFirst().width() == size.width()
                 && copies.getFirst().height() == size.height();
-        pending = submit.submit(copies, pixels.stride(), whole);
+        pending.add(submit.submit(copies, pixels.stride(), whole));
+        return copies;
     }
 
     /// Waits for the copy in flight, then gives the memory back. Idempotent.
@@ -176,12 +218,10 @@ public final class MappedRaster implements AutoCloseable {
         }
     }
 
+    /// Waits for every copy that has been submitted, and keeps the ones
+    /// still to be.
     private void finishPending() {
-        var current = pending;
-        if (current != null) {
-            pending = null;
-            current.finish();
-        }
+        pending.removeIf(PendingCopy::finish);
     }
 
     private void requireOpen() {
@@ -199,9 +239,7 @@ public final class MappedRaster implements AutoCloseable {
             var commands = device.acquireCommandBuffer();
             try {
                 try (var pass = commands.beginCopyPass()) {
-                    for (var region : regions) {
-                        pass.upload(buffer, region.y() * stride + region.x() * 4, stride / 4, texture, region, whole);
-                    }
+                    record(pass, texture, regions, stride, whole);
                 }
                 var fence = commands.submitWithFence();
                 return new FencedCopy(fence);
@@ -211,6 +249,18 @@ public final class MappedRaster implements AutoCloseable {
                     // or cancelled; what was recorded is harmless to submit.
                     commands.submit();
                 }
+            }
+        }
+
+        @Override
+        public void record(
+                SdlGpuCommandBuffer.CopyPass pass,
+                SdlGpuTexture texture,
+                List<SdlGpuRegion> regions,
+                int stride,
+                boolean whole) {
+            for (var region : regions) {
+                pass.upload(buffer, region.y() * stride + region.x() * 4, stride / 4, texture, region, whole);
             }
         }
 
@@ -230,15 +280,16 @@ public final class MappedRaster implements AutoCloseable {
         }
 
         @Override
-        public void finish() {
+        public boolean finish() {
             var current = fence;
             if (current == null) {
-                return;
+                return true;
             }
             fence = null;
             try (current) {
                 current.await();
             }
+            return true;
         }
     }
 }

@@ -4,6 +4,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -21,6 +23,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
+import dev.goldberry.gpu.render.mapped.InPlaceLayout;
 import dev.goldberry.natives.sdl.Sdl;
 import dev.goldberry.natives.sdl.SdlVideo;
 import dev.goldberry.natives.sdl.SdlWindowHandle;
@@ -321,6 +324,121 @@ class CompositorTest {
             }
             claimed.close();
             assertTrue(compositor.unavailable().isEmpty());
+        }
+    }
+
+    @Nested
+    @DisplayName("a window painting in place")
+    class InPlace {
+
+        private SdlWindowHandle window;
+        private SdlCompositor compositor;
+
+        @BeforeEach
+        void createWindow() {
+            System.setProperty(DeviceOptions.IN_PLACE_PROPERTY, "on");
+            window = SdlVideo.get().createWindow("goldberry in-place test", 64, 48, EnumSet.of(SdlWindowFlag.HIDDEN));
+            compositor = new SdlCompositor();
+        }
+
+        @AfterEach
+        void destroyWindow() {
+            System.clearProperty(DeviceOptions.IN_PLACE_PROPERTY);
+            compositor.close();
+            SdlVideo.get().destroyWindow(window);
+        }
+
+        @Test
+        @DisplayName("uploads the damage from where it was painted, as its driver copies it, and keeps the rest")
+        void damageFromWhereItWasPainted() {
+            var claimed = claimed(compositor, window);
+            assertTrue(claimed.paintsInPlace());
+            var size = new PhysicalSize(32, 16);
+            var first = premultiplied(32, 16, 5);
+            var second = premultiplied(32, 16, 6);
+            var lent = claimed.lendFrame(size).orElseThrow();
+            write(lent, first, List.of(DamageRect.all(size)));
+            claimed.present(lent, List.of(DamageRect.all(size)), List.of());
+            assertEquals(32 * 16 * 4, claimed.lastPresent().uploadBytes(), "the first frame goes up whole");
+
+            var again = claimed.lendFrame(size).orElseThrow();
+            assertSame(lent, again, "one buffer at one size");
+            var damage = List.of(new DamageRect(3, 2, 5, 4), new DamageRect(20, 10, 12, 6));
+            write(again, second, damage);
+            claimed.present(again, damage, List.of());
+            var gpu = compositor.device().orElseThrow();
+            var layout = InPlaceLayout.of(gpu.driver(), gpu.uploadsPaddedRows());
+            var copied =
+                    layout.copies(List.of(new SdlGpuRegion(3, 2, 5, 4), new SdlGpuRegion(20, 10, 12, 6)), 32).stream()
+                            .mapToLong(region -> (long) region.width() * region.height() * 4)
+                            .sum();
+            assertEquals(copied, claimed.lastPresent().uploadBytes(), "what the driver's shape copies");
+            var back = readBack(gpu, claimed.uiTexture());
+            for (var y = 0; y < 16; y++) {
+                for (var x = 0; x < 32; x++) {
+                    var expected = inside(damage, x, y) ? second : first;
+                    for (var channel = 0; channel < 4; channel++) {
+                        var at = (y * 32 + x) * 4 + channel;
+                        assertEquals(expected[at], back[at], "at " + x + "," + y);
+                    }
+                }
+            }
+            claimed.close();
+        }
+
+        @Test
+        @DisplayName("lends a new buffer at a new size and uploads it whole, and still stages a frame of the caller's")
+        void resizeAndStaged() {
+            var claimed = claimed(compositor, window);
+            var small = claimed.lendFrame(new PhysicalSize(32, 16)).orElseThrow();
+            claimed.present(small, List.of(DamageRect.all(small.size())), List.of());
+            var large = claimed.lendFrame(new PhysicalSize(40, 20)).orElseThrow();
+            assertNotSame(small, large);
+            assertEquals(new PhysicalSize(40, 20), large.size());
+            claimed.present(large, List.of(new DamageRect(0, 0, 1, 1)), List.of());
+            assertEquals(40 * 20 * 4, claimed.lastPresent().uploadBytes(), "a new texture goes up whole");
+
+            var own = premultiplied(40, 20, 7);
+            claimed.present(frame(own, 40, 20), List.of(new DamageRect(1, 1, 3, 2)), List.of());
+            assertEquals(3 * 2 * 4, claimed.lastPresent().uploadBytes(), "a frame of the caller's is staged");
+            var back = readBack(compositor.device().orElseThrow(), claimed.uiTexture());
+            for (var channel = 0; channel < 4; channel++) {
+                var at = (40 + 1) * 4 + channel;
+                assertEquals(own[at], back[at]);
+            }
+            claimed.close();
+            assertThrows(IllegalStateException.class, () -> claimed.lendFrame(new PhysicalSize(8, 8)));
+        }
+
+        @Test
+        @DisplayName("lends nothing for an empty size, and nothing at all with painting in place off")
+        void lendsNothing() {
+            var claimed = claimed(compositor, window);
+            assertTrue(claimed.lendFrame(new PhysicalSize(0, 0)).isEmpty());
+            claimed.close();
+            compositor.close();
+            System.setProperty(DeviceOptions.IN_PLACE_PROPERTY, "off");
+            compositor = new SdlCompositor();
+            var staged = claimed(compositor, window);
+            assertFalse(staged.paintsInPlace());
+            assertTrue(staged.lendFrame(new PhysicalSize(32, 16)).isEmpty());
+            staged.close();
+        }
+
+        /// Writes `bytes`, a packed frame of `frame`'s size, into `frame` where
+        /// `damage` is, at `frame`'s stride.
+        private static void write(PixelBuffer frame, byte[] bytes, List<DamageRect> damage) {
+            var width = frame.size().width();
+            for (var rect : damage) {
+                for (var y = rect.y(); y < rect.y() + rect.height(); y++) {
+                    frame.pixels()
+                            .put(
+                                    y * frame.stride() + rect.x() * 4,
+                                    bytes,
+                                    (y * width + rect.x()) * 4,
+                                    rect.width() * 4);
+                }
+            }
         }
     }
 

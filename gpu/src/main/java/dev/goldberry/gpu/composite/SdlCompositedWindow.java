@@ -7,9 +7,14 @@ import java.util.List;
 import java.util.Optional;
 
 import org.jspecify.annotations.Nullable;
+import org.slf4j.Logger;
 
 import dev.goldberry.gpu.GpuDevice;
+import dev.goldberry.gpu.render.mapped.InPlaceLayout;
+import dev.goldberry.gpu.render.mapped.MappedRaster;
 import dev.goldberry.gpu.render.staging.StagingBuffer;
+import dev.goldberry.log.Logs;
+import dev.goldberry.natives.sdl.SdlException;
 import dev.goldberry.natives.sdl.gpu.SdlGpuDevice;
 import dev.goldberry.natives.sdl.gpu.SdlGpuRegion;
 import dev.goldberry.natives.sdl.gpu.SdlGpuTexture;
@@ -39,7 +44,16 @@ import dev.goldberry.render.window.PresentMode;
 /// Each layer renders into a texture of its own ([LayerTextures]), in a frame
 /// submitted before the composite that samples them: one queue runs what is
 /// submitted to it in order. That work is counted in the present's submit time.
+///
+/// **Painting in place.** Where the device's check at creation said so, the
+/// window lends the frame loop a [MappedRaster] to paint into
+/// ([#lendFrame]), and a present of that frame copies its damage straight out
+/// of it, in a command buffer submitted ahead of the composite, with no copy
+/// on the CPU. A frame of the caller's own is staged as before. A raster SDL
+/// refuses the memory for puts the window on the staged path for good.
 final class SdlCompositedWindow implements CompositedWindow {
+
+    private static final Logger LOG = Logs.of(SdlCompositedWindow.class);
 
     private final SdlGpuDevice device;
     private final GpuDevice api;
@@ -47,6 +61,13 @@ final class SdlCompositedWindow implements CompositedWindow {
     private final StagingBuffer staging;
     private final UiComposite composite;
     private final LayerTextures layerTextures = new LayerTextures();
+    /// How a frame painted in place is laid out, or null where frames are
+    /// staged.
+    private @Nullable InPlaceLayout inPlace;
+    /// The frame painted in place, at the size last lent.
+    private @Nullable MappedRaster raster;
+    /// What [#lendFrame] last handed out, which [#present] knows by identity.
+    private @Nullable PixelBuffer lent;
     private @Nullable SdlGpuTexture ui;
     /// The layers the last present drew, for [#capture] to draw again.
     private List<UiComposite.Layer> lastDrawn = List.of();
@@ -59,11 +80,61 @@ final class SdlCompositedWindow implements CompositedWindow {
 
     SdlCompositedWindow(
             SdlGpuDevice device, GpuDevice api, SdlGpuWindow window, StagingBuffer staging, UiComposite composite) {
+        this(device, api, window, staging, composite, null);
+    }
+
+    /// A window that paints in place laid out as `inPlace` says, or stages
+    /// its frames when it is null.
+    SdlCompositedWindow(
+            SdlGpuDevice device,
+            GpuDevice api,
+            SdlGpuWindow window,
+            StagingBuffer staging,
+            UiComposite composite,
+            @Nullable InPlaceLayout inPlace) {
         this.device = device;
         this.api = api;
         this.window = window;
         this.staging = staging;
         this.composite = composite;
+        this.inPlace = inPlace;
+    }
+
+    /// The raster at `size`, made for it when the size changed, where this
+    /// window paints in place.
+    @Override
+    public Optional<PixelBuffer> lendFrame(PhysicalSize size) {
+        if (closed) {
+            throw new IllegalStateException("the window was given back to its surface");
+        }
+        var layout = inPlace;
+        if (layout == null || size.isEmpty()) {
+            return Optional.empty();
+        }
+        var current = raster;
+        if (current == null || !current.size().equals(size)) {
+            raster = null;
+            lent = null;
+            if (current != null) {
+                current.close();
+            }
+            try {
+                current = MappedRaster.create(device, size, layout);
+            } catch (SdlException | IllegalArgumentException e) {
+                LOG.warn("[GPU] no {} frame in upload memory ({}): the window stages its frames", size, e.getMessage());
+                inPlace = null;
+                return Optional.empty();
+            }
+            raster = current;
+        }
+        var pixels = current.lend();
+        lent = pixels;
+        return Optional.of(pixels);
+    }
+
+    /// Whether this window paints in place, for the tests.
+    boolean paintsInPlace() {
+        return inPlace != null;
     }
 
     @Override
@@ -102,10 +173,19 @@ final class SdlCompositedWindow implements CompositedWindow {
         var drawn = layerTextures.renderAll(api, layers);
         lastDrawn = drawn;
         var layered = System.nanoTime();
+        var bytes = 0L;
+        var own = frame == lent ? raster : null;
+        var painted = own != null;
+        if (own != null && !regions.isEmpty()) {
+            // Painted in place: the copy goes in a command buffer of its own,
+            // submitted ahead of the composite, and the next lend waits on it.
+            for (var copied : own.upload(texture, regions)) {
+                bytes += texture.byteSize(copied);
+            }
+        }
         var commands = device.acquireCommandBuffer();
         try {
-            var bytes = 0L;
-            if (!regions.isEmpty()) {
+            if (!painted && !regions.isEmpty()) {
                 var staged = staging.stage(frame.pixels(), frame.stride(), 4, regions);
                 try (var pass = commands.beginCopyPass()) {
                     for (var placed : staged.regions()) {
@@ -263,6 +343,17 @@ final class SdlCompositedWindow implements CompositedWindow {
             return;
         }
         closed = true;
+        var own = raster;
+        raster = null;
+        lent = null;
+        if (own != null) {
+            try {
+                own.close();
+            } catch (RuntimeException e) {
+                // A lost device: the window still goes back to its surface.
+                LOG.debug("[GPU] waiting for the last copy out of the frame failed", e);
+            }
+        }
         var texture = ui;
         ui = null;
         if (texture != null) {
