@@ -18,19 +18,8 @@ import dev.goldberry.render.model.LogicalSize;
 ///
 /// ## The size is the image's until a stylesheet says otherwise
 ///
-/// `Box` has no measure hook for an image and no `aspect-ratio`, so the natural
-/// size is arithmetic here, per axis:
-///
-/// - **Both axes auto:** the natural size, capped in proportion by a `max-width`
-///   or `max-height` in points — a cap on one axis alone would squash the
-///   picture rather than shrink it, which is
-///   [dev.goldberry.content.image.Picture]'s argument.
-/// - **One axis in points, the other auto:** the other follows the image's shape.
-/// - **Width a percentage, height auto:** the height follows the width the last
-///   frame laid out, through [dev.goldberry.input.handler.Measured].
-///   One frame late, which the first frame after a load pays once; it is the one
-///   case the renderer cannot answer before layout.
-/// - **Both given:** the box is the stylesheet's, and [Fit] decides the drawing.
+/// The arithmetic is [IntrinsicSize]'s, which other widgets that show a picture
+/// size themselves by too.
 final class ImagePaint {
 
     private ImagePaint() {}
@@ -74,7 +63,8 @@ final class ImagePaint {
     }
 
     /// The width and height the box should take, or null to leave the
-    /// stylesheet's.
+    /// stylesheet's: [IntrinsicSize#of(Length, Length, double, double, double,
+    /// ComputedStyle)].
     static Length @Nullable [] intrinsic(
             Length width,
             Length height,
@@ -82,51 +72,11 @@ final class ImagePaint {
             double naturalHeight,
             double measuredWidth,
             ComputedStyle style) {
-        var ratio = naturalHeight / naturalWidth;
-        var widthAuto = isAuto(width);
-        var heightAuto = isAuto(height);
-        if (widthAuto && heightAuto) {
-            var scale = Math.min(
-                    cap(style.limits().maxWidth(), naturalWidth),
-                    cap(style.limits().maxHeight(), naturalHeight));
-            return new Length[] {points(naturalWidth * scale), points(naturalHeight * scale)};
-        }
-        if (width instanceof Length.Points(var value) && heightAuto) {
-            return new Length[] {width, points(value * ratio)};
-        }
-        if (height instanceof Length.Points(var value) && widthAuto) {
-            return new Length[] {points(value / ratio), height};
-        }
-        if (width instanceof Length.Percent && heightAuto && measuredWidth > 0) {
-            return new Length[] {width, points(measuredWidth * ratio)};
-        }
-        return null;
+        return IntrinsicSize.of(width, height, naturalWidth, naturalHeight, measuredWidth, style);
     }
 
-    static boolean isAuto(Length length) {
-        return length.equals(Length.AUTO) || length.equals(Length.UNDEFINED);
-    }
-
-    /// How much of `natural` fits under `cap`, as a factor of 1 or less; 1 for
-    /// no cap and for a percentage, which cannot be resolved here.
-    private static double cap(Length limit, double natural) {
-        return switch (limit) {
-            case Length.Points(var value) when value > 0 && natural > 0 -> Math.min(1.0, value / natural);
-            default -> 1.0;
-        };
-    }
-
-    private static Length points(double value) {
-        return Length.points((float) value);
-    }
-
-    /// A consumer that is told a width only when it changed by at least half a
-    /// point, so a settled layout does not rebuild on every frame.
+    /// [IntrinsicSize#whenChanged].
     static DoubleConsumer whenChanged(double current, DoubleConsumer onChange) {
-        return width -> {
-            if (Math.abs(width - current) >= 0.5) {
-                onChange.accept(width);
-            }
-        };
+        return IntrinsicSize.whenChanged(current, onChange);
     }
 }

@@ -4,6 +4,10 @@ import dev.goldberry.build.toolchain.ToolLookup
 
 plugins {
     id 'goldberry.java-conventions'
+    // `svg-view` is a @Markup widget, so this module declares a catalog of its
+    // own and a KDL document finds it through the module path, as :media's
+    // widgets are found.
+    id 'goldberry.weave'
     // Published as goldberry-vector, optional in the umbrella. It arrives
     // together with its natives -- libgoldberry-vector as `natives-<target>`
     // classifiers, below -- because a goldberry-vector with no renderer to load
@@ -36,7 +40,8 @@ dependencies {
     api project(':core')
 
     // `Fit`, which `Svg.render(PhysicalSize, Fit)` takes, and the widgets
-    // `svg-view` is built from. `api`, because `Fit` is in this module's surface.
+    // `svg-view` is built from. `api`, because `Fit` and `Widget` are in this
+    // module's surface.
     api project(':widgets')
 
     // The golden-image helpers.

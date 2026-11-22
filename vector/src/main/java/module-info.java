@@ -37,4 +37,15 @@ module dev.goldberry.vector {
     /// `url()` and the content views, all through `:core`'s decoder service.
     provides dev.goldberry.image.spi.VectorDecoder with
             dev.goldberry.vector.decode.SvgDecoder;
+
+    /// `svg-view`, its source, and `VectorStyles`' sheet.
+    exports dev.goldberry.vector.view;
+
+    /// Opened to `:core`, which reads `vector.css` out of this package.
+    opens dev.goldberry.vector.view to
+            dev.goldberry.core;
+
+    /// The catalog the weaver generates. The `provides` line is patched into the
+    /// compiled descriptor by the build.
+    uses dev.goldberry.widgets.markup.WidgetCatalog;
 }

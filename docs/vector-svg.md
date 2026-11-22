@@ -145,7 +145,8 @@ plan gives it a way to draw them as SVG files.
 ## 4. Design
 
 **The module.** `:vector` holds `dev.goldberry.vector` (exported: `Svg`,
-`SvgView`, `VectorCapabilities`), `dev.goldberry.vector.thorvg` (internal:
+`VectorCapabilities`; `SvgView` went to an exported `dev.goldberry.vector.view`
+beside `SvgSource` and `VectorStyles`, as `:media`'s widgets are in `…media.view`), `dev.goldberry.vector.thorvg` (internal:
 FFM bindings, the library loader, the engine's one owner) and
 `dev.goldberry.vector.decode` (internal: the `VectorDecoder` provider). It
 `requires dev.goldberry.core` and `dev.goldberry.widgets`, and nothing in
@@ -271,7 +272,11 @@ Exit: Snapshot green on all jobs, with the vector library on four targets.
 - A card on the showcase: a few documents of the project's own drawing at
   three sizes, one tinted by the theme, one broken.
 - The guide section, parked in `docs/snapshot/components-vector.md`, and the
-  catalogue line.
+  catalogue line. In the same change, `vector` joins `MarkupNames.MODULES`
+  (build-logic), so `BookTest` holds `svg-view` to its heading and catalogue
+  row; it is left out until then because `BookMarkupTest`, in `:example`,
+  inflates a parked `kdl` sample, and `:example` gains `:vector` with the card.
+  The parked `components-drawing-svg-images.md` (phase 3) folds in here.
 - `answers-tessera.md` G-22, `docs/status.md`, `ARCHITECTURE.md` §11.1's row
   (Lottie stays Java).
 
@@ -300,7 +305,7 @@ Exit: Snapshot green on all jobs, with the vector library on four targets.
 |----------|------|--------|
 | `docs/gaps/goldberry-gaps-plan.md` §8, §10 | T-22's row and the log | plan written |
 | `docs/gaps/answers-tessera.md` | G-22's answer when it lands | |
-| `docs/snapshot/adr/` | ADR-0740 (D1–D7), ADR-0741 (phase 1), ADR-0742 (phase 2), ADR-0743 (phase 3), then one per phase | doing |
+| `docs/snapshot/adr/` | ADR-0740 (D1–D7), ADR-0741 (phase 1), ADR-0742 (phase 2), ADR-0743 (phase 3), ADR-0744 (phase 4), then one per phase | doing |
 | `docs/snapshot/` guide pieces | `components-vector.md` | |
 | `docs/status.md` | a line per phase | doing |
 | `THIRD-PARTY-NOTICES.md`, `NOTICE`, `licenses/` | ThorVG, LodePNG, jpgd | done (phase 1) |
@@ -313,8 +318,8 @@ Exit: Snapshot green on all jobs, with the vector library on four targets.
 | 1. The library | done 2026-11-22 (ADR-0741) |
 | 2. `Svg` | done 2026-11-22 (ADR-0742) |
 | 3. SVG wherever an image is | done 2026-11-22 (ADR-0743) |
-| 4. `svg-view` | todo (next) |
-| 5. CI, native image, robustness | todo |
+| 4. `svg-view` | done 2026-11-23 (ADR-0744) |
+| 5. CI, native image, robustness | todo (next) |
 | 6. Showcase and guide | todo |
 
 - **2026-11-22.** Plan written from the tree at `56c6f33a`. Found: no decoder
@@ -367,3 +372,18 @@ Exit: Snapshot green on all jobs, with the vector library on four targets.
   with ThorVG an `image` at 1× and 2×, a CSS background at two sizes and a
   Markdown picture each drawing an edge on a device pixel; with the frame's
   hook switched off, eight of them fail. Next ADR 0744.
+- **2026-11-23, phase 3 committed** (`849f9bfb`), with a fix for a hang in
+  `SpellingMenuTest` that the full `:widgets` run found (from `7888e3be`, not
+  this work): it waited for a menu frame that had already been drawn.
+- **2026-11-23, phase 4 done.** `svg-view` (ADR-0744) in
+  `dev.goldberry.vector.view`: `SvgView`, `SvgSource` (file, resource, text,
+  bytes), `VectorStyles` with `vector.css`; the weave plugin on `:vector`. A
+  view reads its document's bytes on a virtual thread, checks them in black,
+  and at render draws them in the style's `color`, parsed again per colour and
+  remembered (128 drawings). The drawing is an `Image` with its `Svg`, so the
+  frame draws it at the device pixels it covers. `image`'s sizing became the
+  public `IntrinsicSize`. Tests: the tree (figure and alt, decorative, a missing
+  file, not a document, alt required, one drawing shared by three views),
+  markup through the woven catalog (`src=`, inline, `classpath:`, the
+  refusals), the CSS colour, inherited and changed on `:hover`, contain and
+  cover, natural size sharp at 2×, and a golden. Next ADR 0745.

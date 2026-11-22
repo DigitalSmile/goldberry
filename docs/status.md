@@ -7050,6 +7050,11 @@ toolkit, and six entries arrived on it together. All six are closed.
   in the wrong theme, and neither reports an error. **The `Optional` is the design**
   — SDL says `UNKNOWN` on a desktop with no such setting, and "the desktop says
   light" and "the desktop does not say" are a theme and a default.
+- **`svg-view`** (W3.6 phase 4, ADR-0744 parked, 2026-11-23). An SVG document
+  as a widget, from `src=` or written inline, drawn in the view's CSS `color`
+  (`currentColor`), so an icon follows the theme and `:hover`; `fit`, `alt`,
+  `decorative`, and `image`'s loading and error looks through
+  `VectorStyles.stylesheet()`.
 - **SVG wherever an image is** (W3.6 phase 3, ADR-0743 parked, 2026-11-22).
   With `goldberry-vector` on the path, `Image.decode` reads SVG (sniffed past
   its prologue) into an image that carries its document, and `Frame.drawImage`

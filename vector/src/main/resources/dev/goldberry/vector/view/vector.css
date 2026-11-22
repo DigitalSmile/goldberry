@@ -1,0 +1,35 @@
+/* ---------------------------------------------------------------- svg-view --
+ *
+ * An SVG document as a widget. The box is the document's natural size until a
+ * stylesheet gives it one, so nothing here sets a width or a height, and
+ * `currentColor` is the `color` the view inherits.
+ *
+ * Loading and failed, it looks as `image` does: the placeholder fill, and when
+ * the document could not be read, the image-off icon and the alt text, centred,
+ * in the muted ink. */
+svg-view {
+  flex-shrink: 0;
+}
+
+svg-view.loading,
+svg-view.error {
+  background: var(--gb-surface-2);
+  border-radius: 4px;
+}
+
+svg-view.error {
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 8px;
+  min-width: 40px;
+  min-height: 40px;
+  color: var(--gb-text-muted);
+}
+
+svg-view-alt {
+  font-size: var(--gb-font-caption);
+  line-height: var(--gb-line-caption);
+  text-align: center;
+}

@@ -183,3 +183,4 @@ Appended to the index when the records move in, in this order.
 - [ADR-0741 `libgoldberry-vector` is built by a superbuild of its own](0741-libgoldberry-vector-is-built-by-a-superbuild-of-its-own.md)
 - [ADR-0742 An `Svg` is parsed once, and again only for a viewport of another shape](0742-an-svg-is-parsed-once-and-again-only-for-a-viewport-of-another-shape.md)
 - [ADR-0743 An SVG image is drawn at the device pixels it covers, wherever it is drawn](0743-an-svg-image-is-drawn-at-the-device-pixels-it-covers.md)
+- [ADR-0744 `svg-view` keeps a document's bytes, and draws it in its CSS `color`](0744-svg-view-keeps-the-bytes-and-draws-in-its-css-color.md)
