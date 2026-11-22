@@ -2398,6 +2398,15 @@ text-input:hover {
   color: var(--gb-text-placeholder);
 }
 
+/* A word the spell checker did not know, in a field that checks
+   (`spellcheck=true`): the wavy line every platform draws, in the danger
+   colour, under the word in its own colour. The field draws the word; this part
+   only says how. Written as the pseudo-element alone for `::placeholder`'s
+   reason, so an application's `text-area::spelling-error` wins. */
+::spelling-error {
+  text-decoration: wavy underline var(--gb-danger);
+}
+
 /* The insertion point. `--gb-text` and not the accent: a caret is the text it is
    about to become, and one in the accent colour reads as a selected thing rather
    than as a place. Its *width* is the widget's -- one logical pixel, set in the

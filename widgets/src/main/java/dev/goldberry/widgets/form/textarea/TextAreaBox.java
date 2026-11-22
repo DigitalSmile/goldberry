@@ -25,6 +25,7 @@ import dev.goldberry.paint.Box;
 import dev.goldberry.paint.tree.ContainingBlock;
 import dev.goldberry.render.Cursor;
 import dev.goldberry.render.model.LogicalRect;
+import dev.goldberry.text.SpanPaint;
 import dev.goldberry.text.Stretch;
 import dev.goldberry.text.document.DocumentLines;
 import dev.goldberry.text.document.TextDocument;
@@ -37,6 +38,7 @@ import dev.goldberry.text.flow.TextDecoration;
 import dev.goldberry.text.flow.TextFlow;
 import dev.goldberry.text.flow.TextOverflow;
 import dev.goldberry.text.flow.WhiteSpace;
+import dev.goldberry.text.spell.SpellCheck;
 import dev.goldberry.widget.Widget;
 import dev.goldberry.widget.attr.Attributes;
 import dev.goldberry.widget.semantics.Role;
@@ -48,8 +50,10 @@ import dev.goldberry.widgets.form.Carets;
 import dev.goldberry.widgets.form.parts.Caret;
 import dev.goldberry.widgets.form.parts.Composing;
 import dev.goldberry.widgets.form.parts.Highlight;
+import dev.goldberry.widgets.form.parts.SpellingError;
 import dev.goldberry.widgets.form.parts.Underline;
 import dev.goldberry.widgets.form.parts.Value;
+import dev.goldberry.widgets.form.spelling.SpellingInk;
 
 /// The node a stylesheet calls `text-area`.
 ///
@@ -152,6 +156,8 @@ import dev.goldberry.widgets.form.parts.Value;
 /// @param readOnly    whether it takes a caret but no edits
 /// @param attributes  the `id` and classes the document wrote
 /// @param editor      what to tell about a key, a click or a measurement
+/// @param spelling    the check its words are drawn with, or null when it does
+///                    not check its spelling
 record TextAreaBox(
         String display,
         boolean placeholder,
@@ -167,7 +173,8 @@ record TextAreaBox(
         boolean readOnly,
         Attributes attributes,
         @Nullable ScrollBar scrollbar,
-        AreaEditor editor)
+        AreaEditor editor,
+        @Nullable SpellCheck spelling)
         implements Widget.Leaf, Styled, Paints, Handles, Measured, Semantics, ContextMenuOwner {
 
     /// Its own menu: Cut, Copy, Paste and Select all, opened by the state.
@@ -452,6 +459,11 @@ record TextAreaBox(
         // paragraph this class paints, because where a hard line ended up is a
         // fact about the wrap and a column of number nodes would be a frame
         // behind the text on every keystroke.
+        // How a misspelled word looks, only while the area checks: an area that
+        // does not has the parts it always had, at the indices it always had.
+        if (spelling != null) {
+            parts.add(new SpellingError());
+        }
         if (gutter) {
             parts.add(new TextAreaGutter());
         }
@@ -466,6 +478,11 @@ record TextAreaBox(
 
     /// The index of [TextAreaGutter] in [#children()].
     private int gutterIndex() {
+        return spellingIndex() + (spelling == null ? 0 : 1);
+    }
+
+    /// The index of [SpellingError] in [#children()], while there is one.
+    private int spellingIndex() {
         return 2 * maxRows + 2;
     }
 
@@ -616,9 +633,16 @@ record TextAreaBox(
         // document between two line starts, which re-wraps to exactly the rows
         // the document said it would, because both broke with `flow`.
         var ink = value == null ? style.color() : value.argb();
-        var visible = display.substring(
-                lines.get(firstVisual).start(), lines.get(lastVisual).end());
-        boxes.add(Box.text(context.paragraph(style, visible), ink, flow)
+        var visibleStart = lines.get(firstVisual).start();
+        var visibleEnd = lines.get(lastVisual).end();
+        var visible = display.substring(visibleStart, visibleEnd);
+        var check = spelling;
+        var misspelled = check == null || placeholder
+                ? List.<SpanPaint>of()
+                : SpellingInk.of(children.get(spellingIndex()), style.color())
+                        .spans(display, visibleStart, visibleEnd, check, focused ? edit.caret() : -1, ink);
+        boxes.add(Box.of()
+                .text(new Box.Text(context.paragraph(style, visible), ink, flow, misspelled))
                 .position(Position.ABSOLUTE)
                 .inset(leftTop(gutterWidth, windowTop))
                 // A definite width, because an absolutely positioned box has no

@@ -31,21 +31,26 @@ import dev.goldberry.render.clipboard.Clipboard;
 import dev.goldberry.render.event.EventLoop;
 import dev.goldberry.render.model.LogicalRect;
 import dev.goldberry.text.Paragraph;
+import dev.goldberry.text.SpanPaint;
 import dev.goldberry.text.edit.Editor;
 import dev.goldberry.text.edit.keys.EditKeys;
 import dev.goldberry.text.edit.keys.FormatCommand;
 import dev.goldberry.text.font.Font;
+import dev.goldberry.text.mark.Mark;
 import dev.goldberry.text.mark.MarkKind;
 import dev.goldberry.text.mark.MarkRun;
 import dev.goldberry.text.mark.MarkStyle;
 import dev.goldberry.text.mark.MarkedClipboard;
 import dev.goldberry.text.mark.MarkedText;
 import dev.goldberry.text.mark.MentionQuery;
+import dev.goldberry.text.spell.SpellCheck;
 import dev.goldberry.widget.BuildContext;
 import dev.goldberry.widget.State;
 import dev.goldberry.widget.Widget;
 import dev.goldberry.widgets.form.edit.TextCommands;
 import dev.goldberry.widgets.form.edit.TextMenu;
+import dev.goldberry.widgets.form.spelling.FieldSpelling;
+import dev.goldberry.widgets.form.spelling.SpellingInk;
 import dev.goldberry.widgets.menu.Item;
 
 /// What a [RichInput] holds: an [Editor] over its marked text, and what the
@@ -109,6 +114,9 @@ final class RichInputState extends State<RichInput> implements RichInputBox.Inpu
 
     /// A count of changes the painter is compared by.
     private long revision;
+
+    /// The spell check `spellcheck` and `lang` call for.
+    private final FieldSpelling spelling = new FieldSpelling(this::recheck);
 
     /// Whether the press began with the middle button: a paste, so the drag
     /// after it selects nothing.
@@ -186,6 +194,7 @@ final class RichInputState extends State<RichInput> implements RichInputBox.Inpu
     /// for it belongs to a tree that is going too.
     @Override
     protected void dispose() {
+        spelling.close();
         prompt = null;
         unfollow();
         stopBlinking();
@@ -271,7 +280,49 @@ final class RichInputState extends State<RichInput> implements RichInputBox.Inpu
                 !input.disabled(),
                 !input.disabled() && !input.readOnly(),
                 this,
-                attributes);
+                attributes,
+                spelling.update(context, true) != null);
+    }
+
+    /// A check landed or the checkers changed: paint the words again. The
+    /// revision moves so the painter is not the one already drawn.
+    private void recheck() {
+        if (isMounted()) {
+            setState(() -> revision++);
+        }
+    }
+
+    /// The misspelled words of each hard line, leaving out what is under code,
+    /// a link, a mention or a kind of the application's own: those are not
+    /// prose.
+    private Editor.LineOverlay overlay(Editor current, SpellCheck check, SpellingInk ink, int text) {
+        var marks = current.value().marks();
+        var caret = focused ? current.edit().caret() : -1;
+        return (k, line, start) -> {
+            var end = start + line.length();
+            var inLine = caret >= start && caret <= end ? caret - start : -1;
+            var spans = ink.spans(line, 0, line.length(), check, inLine, text);
+            if (spans.isEmpty() || marks.isEmpty()) {
+                return spans;
+            }
+            var kept = new ArrayList<SpanPaint>(spans.size());
+            for (var span : spans) {
+                if (!underUnchecked(marks, start + span.start(), start + span.end())) {
+                    kept.add(span);
+                }
+            }
+            return kept;
+        };
+    }
+
+    private static boolean underUnchecked(List<Mark> marks, int from, int to) {
+        for (var mark : marks) {
+            var prose = mark.kind() instanceof MarkKind.Style style && style != MarkKind.Style.CODE;
+            if (!prose && mark.start() < to && mark.end() > from) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /// The class sets of every set of kinds in the text, and of what is typed
@@ -306,7 +357,8 @@ final class RichInputState extends State<RichInput> implements RichInputBox.Inpu
             Map<Set<String>, MarkStyle> looks,
             RichInputBox.Colours colours,
             @Nullable Paragraph placeholder,
-            ComputedStyle style) {
+            ComputedStyle style,
+            @Nullable SpellingInk misspelled) {
         var input = widget();
         edges = Edges.of(style);
         var current = editorIn(font);
@@ -319,6 +371,9 @@ final class RichInputState extends State<RichInput> implements RichInputBox.Inpu
         current.wrapWidth(width > 0 ? width : Paragraph.UNCONSTRAINED);
         var shown = Math.clamp(current.lines().size(), input.rows(), input.maxRows());
         current.viewportHeight(shown * font.lineHeight());
+        var check = spelling.current();
+        current.overlay(
+                check == null || misspelled == null ? null : overlay(current, check, misspelled, colours.text()));
         var painter = new RichInputPainter(
                 current,
                 revision,

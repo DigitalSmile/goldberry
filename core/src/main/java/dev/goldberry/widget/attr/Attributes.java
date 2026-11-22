@@ -1,6 +1,7 @@
 package dev.goldberry.widget.attr;
 
 import java.util.LinkedHashSet;
+import java.util.Locale;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
@@ -55,12 +56,13 @@ public record Attributes(
         @Nullable Object draggable,
         @Nullable DropTarget dropTarget,
         @Nullable Consumer<PointerEvent> onClick,
-        @Nullable DragOut dragOut) {
+        @Nullable DragOut dragOut,
+        Spelling spelling) {
 
     /// No id, no classes, no key, no tooltip, no name — what a widget built in
     /// Java gets unless it says otherwise.
     public static final Attributes NONE =
-            new Attributes(null, Set.of(), null, null, null, null, null, null, null, null, null, null);
+            new Attributes(null, Set.of(), null, null, null, null, null, null, null, null, null, null, Spelling.NONE);
 
     /// Written out so that the parameters taking null for a default can say so.
     public Attributes(
@@ -75,7 +77,8 @@ public record Attributes(
             @Nullable Object draggable,
             @Nullable DropTarget dropTarget,
             @Nullable Consumer<PointerEvent> onClick,
-            @Nullable DragOut dragOut) {
+            @Nullable DragOut dragOut,
+            @Nullable Spelling spelling) {
         classes = Set.copyOf(classes == null ? Set.of() : classes);
         this.id = id;
         this.classes = classes;
@@ -89,6 +92,38 @@ public record Attributes(
         this.dropTarget = dropTarget;
         this.onClick = onClick;
         this.dragOut = dragOut;
+        this.spelling = spelling == null ? Spelling.NONE : spelling;
+    }
+
+    /// The twelve without `spellcheck` and `lang`, kept for the reason the
+    /// three-argument form is.
+    public Attributes(
+            @Nullable String id,
+            @Nullable Set<String> classes,
+            @Nullable Object key,
+            @Nullable String tooltip,
+            @Nullable String contextMenu,
+            @Nullable String name,
+            @Nullable Runnable onPointerEnter,
+            @Nullable Runnable onPointerExit,
+            @Nullable Object draggable,
+            @Nullable DropTarget dropTarget,
+            @Nullable Consumer<PointerEvent> onClick,
+            @Nullable DragOut dragOut) {
+        this(
+                id,
+                classes,
+                key,
+                tooltip,
+                contextMenu,
+                name,
+                onPointerEnter,
+                onPointerExit,
+                draggable,
+                dropTarget,
+                onClick,
+                dragOut,
+                Spelling.NONE);
     }
 
     /// The eleven without a drag out, kept for the reason the three-argument
@@ -202,7 +237,8 @@ public record Attributes(
                 draggable,
                 dropTarget,
                 onClick,
-                dragOut);
+                dragOut,
+                spelling);
     }
 
     /// This, with the name of the menu a right-click should open — markup's
@@ -226,7 +262,8 @@ public record Attributes(
                 draggable,
                 dropTarget,
                 onClick,
-                dragOut);
+                dragOut,
+                spelling);
     }
 
     /// This, with a different `id` — **and the same id as the key**.
@@ -251,7 +288,8 @@ public record Attributes(
                 draggable,
                 dropTarget,
                 onClick,
-                dragOut);
+                dragOut,
+                spelling);
     }
 
     /// This, with a different set of classes.
@@ -268,7 +306,8 @@ public record Attributes(
                 draggable,
                 dropTarget,
                 onClick,
-                dragOut);
+                dragOut,
+                spelling);
     }
 
     /// This, with a key that is not the id — for a list item whose identity is a
@@ -286,7 +325,8 @@ public record Attributes(
                 draggable,
                 dropTarget,
                 onClick,
-                dragOut);
+                dragOut,
+                spelling);
     }
 
     /// This, with the text a reader should announce it as — markup's `name="…"`,
@@ -320,7 +360,8 @@ public record Attributes(
                 draggable,
                 dropTarget,
                 onClick,
-                dragOut);
+                dragOut,
+                spelling);
     }
 
     /// This, with something to run when the pointer **enters** this node's
@@ -366,7 +407,8 @@ public record Attributes(
                 draggable,
                 dropTarget,
                 onClick,
-                dragOut);
+                dragOut,
+                spelling);
     }
 
     /// This, with something to run when the pointer **leaves** this node's
@@ -394,7 +436,8 @@ public record Attributes(
                 draggable,
                 dropTarget,
                 onClick,
-                dragOut);
+                dragOut,
+                spelling);
     }
 
     /// This, with something to run when the node is **clicked**: a press and a
@@ -429,7 +472,8 @@ public record Attributes(
                 draggable,
                 dropTarget,
                 action,
-                dragOut);
+                dragOut,
+                spelling);
     }
 
     /// This, able to be picked up and dragged onto a [#dropTarget] elsewhere in
@@ -467,7 +511,8 @@ public record Attributes(
                 payload,
                 dropTarget,
                 onClick,
-                dragOut);
+                dragOut,
+                spelling);
     }
 
     /// This, taking what is dragged onto it when `accepts` says yes, and doing
@@ -498,7 +543,8 @@ public record Attributes(
                 draggable,
                 target,
                 onClick,
-                dragOut);
+                dragOut,
+                spelling);
     }
 
     /// This, also offering something to other applications when it is dragged:
@@ -536,7 +582,40 @@ public record Attributes(
                 draggable,
                 dropTarget,
                 onClick,
-                out);
+                out,
+                spelling);
+    }
+
+    /// This, saying whether the text fields in this node check their spelling:
+    /// HTML's `spellcheck`, which passes down to the nodes inside.
+    ///
+    /// Read more: [Fields and forms](https://goldberry.dev/docs/components/forms.html#text-input).
+    public Attributes spellcheck(boolean value) {
+        return spelling(spelling.check(value));
+    }
+
+    /// This, saying which language the text in it is in: HTML's `lang`, which
+    /// passes down, and which a field checking its spelling checks in.
+    public Attributes lang(@Nullable Locale value) {
+        return spelling(spelling.lang(value));
+    }
+
+    /// This, with both at once.
+    public Attributes spelling(Spelling value) {
+        return new Attributes(
+                id,
+                classes,
+                key,
+                tooltip,
+                contextMenu,
+                name,
+                onPointerEnter,
+                onPointerExit,
+                draggable,
+                dropTarget,
+                onClick,
+                dragOut,
+                value);
     }
 
     /// Parses `id` and `class` off a KDL node, `class` being space-separated as
@@ -563,12 +642,16 @@ public record Attributes(
         // No hover hooks: a `Runnable` is not a KDL value, and the registry that
         // turns `press="app.save"` into one is the inflater's `Wiring` rather
         // than this method's — see [#onPointerEnter].
+        var lang = node.stringProperty("lang");
         return new Attributes(
-                id,
-                classes,
-                id,
-                node.stringProperty("tooltip"),
-                node.stringProperty("context-menu"),
-                node.stringProperty("name"));
+                        id,
+                        classes,
+                        id,
+                        node.stringProperty("tooltip"),
+                        node.stringProperty("context-menu"),
+                        node.stringProperty("name"))
+                .spelling(new Spelling(
+                        node.flagProperty("spellcheck"),
+                        lang == null || lang.isBlank() ? null : Locale.forLanguageTag(lang)));
     }
 }

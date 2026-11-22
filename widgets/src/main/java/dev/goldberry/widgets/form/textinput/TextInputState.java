@@ -23,6 +23,7 @@ import dev.goldberry.widgets.form.edit.TextMenu;
 import dev.goldberry.widgets.form.parts.Composing;
 import dev.goldberry.widgets.form.parts.MaxLength;
 import dev.goldberry.widgets.form.parts.Preedit;
+import dev.goldberry.widgets.form.spelling.FieldSpelling;
 
 /// What a [TextInput] holds: the text, the history, the blink and how far it has
 /// scrolled.
@@ -145,6 +146,9 @@ final class TextInputState extends State<TextInput> implements TextEditor, TextC
     /// same four and kept its own, and the pair drifted.
     private final Preedit preedit = new Preedit();
 
+    /// The spell check `spellcheck` and `lang` call for; never for a password.
+    private final FieldSpelling spelling = new FieldSpelling(this::recheck);
+
     @Override
     protected void initState() {
         super.initState();
@@ -257,7 +261,15 @@ final class TextInputState extends State<TextInput> implements TextEditor, TextC
                 input.disabled(),
                 input.readOnly(),
                 input.attributes(),
-                this);
+                this,
+                spelling.update(context, !input.password()));
+    }
+
+    /// A check landed or the checkers changed: draw the words again.
+    private void recheck() {
+        if (isMounted()) {
+            setState(() -> {});
+        }
     }
 
     /// Opens, re-describes or closes the popover so that it says what the widget
@@ -334,6 +346,7 @@ final class TextInputState extends State<TextInput> implements TextEditor, TextC
 
     @Override
     protected void dispose() {
+        spelling.close();
         // A field that goes away with its suggestions showing would leave a
         // platform window parented to nothing -- the one leak a widget can cause,
         // because a popup is not a value and is not collected with the tree.

@@ -314,3 +314,9 @@ Everything below is measured against 2026.2 (tag commit d3eacfdc).
 - `PseudoElement` has two more constants, `SPELLING_ERROR` and
   `GRAMMAR_ERROR`; an exhaustive `switch` over it names two more cases.
   <!-- ADR-0735 -->
+- `Attributes` has a thirteenth component, `spelling`; the twelve-argument
+  constructor stays and means none. A record pattern over `Attributes` names
+  thirteen components. <!-- ADR-0736 -->
+- `::spelling-error` is a rule in the theme: a field that checks its spelling
+  draws a wavy underline in `--gb-danger` under a misspelled word. Nothing
+  checks unless `spellcheck=#true` is said. <!-- ADR-0736 -->

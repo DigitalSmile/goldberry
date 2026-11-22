@@ -33,6 +33,8 @@ import dev.goldberry.widget.semantics.Role;
 import dev.goldberry.widget.semantics.Semantics;
 import dev.goldberry.widget.style.Paints;
 import dev.goldberry.widget.style.Styled;
+import dev.goldberry.widgets.form.parts.SpellingError;
+import dev.goldberry.widgets.form.spelling.SpellingInk;
 
 /// The node a stylesheet calls `rich-input`.
 ///
@@ -61,6 +63,8 @@ import dev.goldberry.widget.style.Styled;
 /// @param editable    whether it asks for text input: not when read-only
 /// @param handler     the state
 /// @param attributes  the application's id, classes and key
+/// @param spelling    whether it checks its spelling, which adds the
+///                    `::spelling-error` part after the marks
 record RichInputBox(
         List<Set<String>> markSets,
         String placeholder,
@@ -68,7 +72,8 @@ record RichInputBox(
         boolean focusable,
         boolean editable,
         Input handler,
-        Attributes attributes)
+        Attributes attributes,
+        boolean spelling)
         implements Widget.Leaf, Styled, Paints, Handles, Measured, Located, ContextMenuOwner, Semantics {
 
     /// What the state hears, and what it is asked for while this node renders.
@@ -104,13 +109,16 @@ record RichInputBox(
         /// @param colours     the text's, the placeholder's, the selection's
         /// @param placeholder the placeholder shaped in the field's font, or null
         /// @param style       the field's resolved style
+        /// @param misspelled  how a misspelled word looks, or null when the
+        ///                    field does not check its spelling
         /// @return the box: sized to the rows the text holds, painting the editor
         Box laidOut(
                 Font font,
                 Map<Set<String>, MarkStyle> looks,
                 Colours colours,
                 @Nullable Paragraph placeholder,
-                ComputedStyle style);
+                ComputedStyle style,
+                @Nullable SpellingInk misspelled);
     }
 
     /// The colours the field draws with that are not a mark's.
@@ -152,6 +160,9 @@ record RichInputBox(
         var children = new ArrayList<Widget>(markSets.size());
         for (var classes : markSets) {
             children.add(new MarkNode(classes));
+        }
+        if (spelling) {
+            children.add(new SpellingError());
         }
         return children;
     }
@@ -253,7 +264,10 @@ record RichInputBox(
                 context.color(PLACEHOLDER_TOKEN, style.color()),
                 context.color(SELECTION_TOKEN, 0x553B82F6));
         var hint = placeholder.isEmpty() ? null : context.paragraph(style, placeholder);
-        return handler.laidOut(font, Map.copyOf(looks), colours, hint, style)
+        var misspelled = spelling && children.size() > markSets.size()
+                ? SpellingInk.of(children.get(markSets.size()), style.color())
+                : null;
+        return handler.laidOut(font, Map.copyOf(looks), colours, hint, style, misspelled)
                 .cursor(focusable ? Cursor.TEXT : Cursor.DEFAULT);
     }
 

@@ -15,6 +15,7 @@ import dev.goldberry.render.clipboard.PrimarySelection;
 import dev.goldberry.render.model.LogicalRect;
 import dev.goldberry.text.Paragraph;
 import dev.goldberry.text.ParagraphCache;
+import dev.goldberry.text.SpanLayers;
 import dev.goldberry.text.SpanPaint;
 import dev.goldberry.text.document.DocumentLines;
 import dev.goldberry.text.document.TextDocument;
@@ -114,6 +115,9 @@ public final class Editor {
     /// How marked words look, or null to draw them as plain text and leave the
     /// formatting keys alone: [#markStyles(MarkStyles)].
     private @Nullable MarkStyles markStyles;
+
+    /// Spans laid over each hard line's own, or null for none: [#overlay].
+    private @Nullable LineOverlay overlay;
 
     /// Shapings of marked words in fonts other than [#font], kept for as long as
     /// the editor lives so a line shaped again re-uses the words that did not
@@ -901,6 +905,23 @@ public final class Editor {
 
     // --- formatting ------------------------------------------------------------
 
+    /// What is drawn over each hard line beyond its own marks: a field's
+    /// misspelled words, say. Each line's spans are laid over its marks' with
+    /// [SpanLayers#over], so a misspelled bold word stays bold. Null for none.
+    public Editor overlay(@Nullable LineOverlay value) {
+        this.overlay = value;
+        return this;
+    }
+
+    /// Spans drawn over one hard line of an [Editor] beyond its marks.
+    @FunctionalInterface
+    public interface LineOverlay {
+
+        /// The spans for hard line `k`, whose text is `line` and which starts at
+        /// `start` in the whole text. Offsets count from the line's start.
+        List<SpanPaint> spans(int k, String line, int start);
+    }
+
     /// How marked words look. Setting it also turns on the formatting keys
     /// ([EditKeys#format]); without it the marks are kept and drawn as plain
     /// text. Everything is shaped again.
@@ -1239,7 +1260,13 @@ public final class Editor {
             if (top + nextRow * lineHeight <= visibleTop) {
                 continue;
             }
-            shaped.paragraphOf(k).paint(frame, x, lineTop, wrapWidth, argb, flow, spansOf(shaped, k, argb));
+            var spans = spansOf(shaped, k, argb);
+            var over = overlay;
+            if (over != null) {
+                var start = shaped.startOf(k);
+                spans = SpanLayers.over(spans, over.spans(k, shaped.text().substring(start, shaped.endOf(k)), start));
+            }
+            shaped.paragraphOf(k).paint(frame, x, lineTop, wrapWidth, argb, flow, spans);
         }
     }
 

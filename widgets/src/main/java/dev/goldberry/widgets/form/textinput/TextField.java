@@ -1,5 +1,6 @@
 package dev.goldberry.widgets.form.textinput;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
@@ -22,11 +23,13 @@ import dev.goldberry.paint.tree.ContainingBlock;
 import dev.goldberry.render.Cursor;
 import dev.goldberry.render.model.LogicalRect;
 import dev.goldberry.text.Paragraph;
+import dev.goldberry.text.SpanLayers;
 import dev.goldberry.text.Stretch;
 import dev.goldberry.text.edit.TextEdit;
 import dev.goldberry.text.edit.keys.EditCommand;
 import dev.goldberry.text.edit.keys.EditKeys;
 import dev.goldberry.text.edit.keys.EditSurface;
+import dev.goldberry.text.spell.SpellCheck;
 import dev.goldberry.widget.Widget;
 import dev.goldberry.widget.attr.Attributes;
 import dev.goldberry.widget.semantics.Role;
@@ -36,8 +39,10 @@ import dev.goldberry.widget.style.Styled;
 import dev.goldberry.widgets.form.parts.Caret;
 import dev.goldberry.widgets.form.parts.Composing;
 import dev.goldberry.widgets.form.parts.Highlight;
+import dev.goldberry.widgets.form.parts.SpellingError;
 import dev.goldberry.widgets.form.parts.Underline;
 import dev.goldberry.widgets.form.parts.Value;
+import dev.goldberry.widgets.form.spelling.SpellingInk;
 
 /// The node a stylesheet calls `text-input`, and everything that needs a frame.
 ///
@@ -90,6 +95,8 @@ import dev.goldberry.widgets.form.parts.Value;
 /// @param readOnly    whether it takes the caret but no edits
 /// @param attributes  the `id` and classes the document wrote
 /// @param editor      what to tell about a key, a click or a measurement
+/// @param spelling    the check its words are drawn with, or null when it does
+///                    not check its spelling
 record TextField(
         String display,
         boolean placeholder,
@@ -100,7 +107,8 @@ record TextField(
         boolean disabled,
         boolean readOnly,
         Attributes attributes,
-        TextEditor editor)
+        TextEditor editor,
+        @Nullable SpellCheck spelling)
         implements Widget.Leaf,
                 Styled,
                 Paints,
@@ -337,7 +345,7 @@ record TextField(
 
     @Override
     public List<Widget> children() {
-        return List.of(
+        var parts = List.<Widget>of(
                 // While a composition is open the highlight draws its converting
                 // clause: there is no selection to draw, because a composition
                 // replaces one when it commits.
@@ -345,6 +353,30 @@ record TextField(
                 new Value(display, placeholder),
                 new Caret(focused && caretShown && !edit.hasSelection()),
                 new Underline(focused && composing.isActive()));
+        // How a misspelled word looks, only while the field checks: a field that
+        // does not has the four parts it always had.
+        if (spelling == null) {
+            return parts;
+        }
+        var withSpelling = new ArrayList<>(parts);
+        withSpelling.add(new SpellingError());
+        return List.copyOf(withSpelling);
+    }
+
+    /// The value's box, with its misspelled words drawn over its own spans.
+    private Box spelled(Box value, @Nullable Box part, ComputedStyle style) {
+        var check = spelling;
+        var text = value.text();
+        if (check == null || placeholder || text == null) {
+            return value;
+        }
+        var misspelled = SpellingInk.of(part, style.color())
+                .spans(display, 0, display.length(), check, focused ? edit.caret() : -1, text.argb());
+        if (misspelled.isEmpty()) {
+            return value;
+        }
+        return value.text(new Box.Text(
+                text.paragraph(), text.argb(), text.flow(), SpanLayers.over(text.spans(), misspelled), text.shadows()));
     }
 
     @Override
@@ -418,7 +450,7 @@ record TextField(
         // way of saying that rather than two. All three children are placed the
         // same way, and the two that are not text take their height from the line
         // rather than from the control.
-        var value = children.get(1)
+        var value = spelled(children.get(1), children.size() > 4 ? children.get(4) : null, style)
                 .position(Position.ABSOLUTE)
                 .inset(inContent(
                         new Insets(

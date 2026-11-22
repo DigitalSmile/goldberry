@@ -1,5 +1,6 @@
 package dev.goldberry.widget.attr;
 
+import java.util.Locale;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
@@ -139,5 +140,17 @@ public interface Attributed<W extends Widget> extends Widget {
     /// [Attributes#dropTarget(DropTarget)].
     default W dropTarget(DropTarget target) {
         return withAttributes(attributes().dropTarget(target));
+    }
+
+    /// This widget saying whether the text fields in it check their spelling,
+    /// the `spellcheck=` of markup; see [Attributes#spellcheck(boolean)].
+    default W spellcheck(boolean value) {
+        return withAttributes(attributes().spellcheck(value));
+    }
+
+    /// This widget saying which language its text is in, the `lang=` of
+    /// markup; see [Attributes#lang(Locale)].
+    default W lang(Locale value) {
+        return withAttributes(attributes().lang(value));
     }
 }

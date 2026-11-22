@@ -29,11 +29,13 @@ import dev.goldberry.log.Logs;
 /// SpellCheckers.load(Locale.of("ru"), Path.of("dict/ru_RU.aff"), Path.of("dict/ru_RU.dic"));
 /// ```
 ///
-/// A field that checks its spelling finds its checker here by its `lang`, or by
-/// the default locale when it has none. A checker for `en_US` also answers a
-/// field that asks for `en`, and a checker for `en` answers `en_GB`. A field
-/// whose language has no checker checks nothing, and that is logged once per
-/// language.
+/// A field that checks its spelling finds its checker here by its `lang`. A
+/// field with none uses the [#defaultLanguage(Locale)] the application set, or,
+/// when it set none, the one checker installed if there is exactly one. The
+/// machine's locale is never read, so a field checks the same way on every
+/// machine. A checker for `en_US` also answers a field that asks for `en`, and a
+/// checker for `en` answers `en_GB`. A field whose language has no checker
+/// checks nothing, and that is logged once per language.
 ///
 /// One registry per process, safe from any thread. A field already showing is
 /// told when a checker comes or goes, and checks again.
@@ -48,6 +50,7 @@ public final class SpellCheckers {
     private static final Set<String> REPORTED = ConcurrentHashMap.newKeySet();
     private static final List<Runnable> LISTENERS = new CopyOnWriteArrayList<>();
     private static final AtomicLong REVISION = new AtomicLong();
+    private static volatile @Nullable Locale defaultLanguage;
 
     private SpellCheckers() {}
 
@@ -71,6 +74,7 @@ public final class SpellCheckers {
     /// Takes away every checker and every personal dictionary: for a test, and
     /// for an application that loads its dictionaries again.
     public static void clear() {
+        defaultLanguage = null;
         CHECKERS.clear();
         PERSONAL.clear();
         REPORTED.clear();
@@ -122,10 +126,27 @@ public final class SpellCheckers {
                 .findFirst();
     }
 
-    /// The checker a field in `lang` uses, or the default locale's for a field
-    /// that names none. Logs once per language that has none.
+    /// The language a field with no `lang` checks in, or null to fall back to
+    /// the only checker installed. Usually the language of the application's
+    /// own interface.
+    public static void defaultLanguage(@Nullable Locale value) {
+        defaultLanguage = value;
+        changed();
+    }
+
+    /// The language set by [#defaultLanguage(Locale)], or empty.
+    public static Optional<Locale> defaultLanguage() {
+        return Optional.ofNullable(defaultLanguage);
+    }
+
+    /// The checker a field in `lang` uses. For a field that names none, the
+    /// default language's, or the only checker there is. Logs once per language
+    /// that has none.
     public static Optional<SpellChecker> forField(@Nullable Locale lang) {
-        var locale = lang == null ? Locale.getDefault() : lang;
+        var locale = lang != null ? lang : defaultLanguage;
+        if (locale == null) {
+            return CHECKERS.size() == 1 ? CHECKERS.values().stream().findFirst() : Optional.empty();
+        }
         var found = find(locale);
         if (found.isEmpty() && REPORTED.add(locale.toLanguageTag())) {
             LOG.info(

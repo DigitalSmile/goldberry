@@ -31,6 +31,7 @@ import dev.goldberry.widgets.form.edit.TextMenu;
 import dev.goldberry.widgets.form.parts.Composing;
 import dev.goldberry.widgets.form.parts.MaxLength;
 import dev.goldberry.widgets.form.parts.Preedit;
+import dev.goldberry.widgets.form.spelling.FieldSpelling;
 
 /// What a [TextArea] holds — `text-input`'s state, with a column to remember.
 ///
@@ -138,6 +139,10 @@ final class TextAreaState extends State<TextArea> implements AreaEditor, TextCom
     /// last answer after every keystroke.
     private @Nullable TextEdit lastPushed;
 
+    /// The spell check `spellcheck` and `lang` call for, built again when they
+    /// or the installed checkers change.
+    private final FieldSpelling spelling = new FieldSpelling(this::recheck);
+
     @Override
     protected void initState() {
         super.initState();
@@ -192,12 +197,21 @@ final class TextAreaState extends State<TextArea> implements AreaEditor, TextCom
                 area.readOnly(),
                 area.attributes(),
                 scrollbar(),
-                this);
+                this,
+                spelling.update(context, true));
+    }
+
+    /// A check landed or the checkers changed: draw the words again.
+    private void recheck() {
+        if (isMounted()) {
+            setState(() -> {});
+        }
     }
 
     @Override
     protected void dispose() {
         stopBlinking();
+        spelling.close();
         if (menu != null) {
             menu.close();
         }

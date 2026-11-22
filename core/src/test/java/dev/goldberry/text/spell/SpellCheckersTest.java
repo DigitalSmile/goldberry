@@ -44,19 +44,20 @@ class SpellCheckersTest {
     }
 
     @Test
-    @DisplayName("a field with no language uses the default locale's")
+    @DisplayName("a field with no language uses the default language, or the only checker there is")
     void forField() {
-        var previous = Locale.getDefault();
-        try {
-            Locale.setDefault(Locale.GERMANY);
-            var de = new WordListChecker(Locale.GERMAN, Set.of("Farbe"));
-            SpellCheckers.install(de);
+        var de = new WordListChecker(Locale.GERMAN, Set.of("Farbe"));
+        SpellCheckers.install(de);
+        assertSame(de, SpellCheckers.forField(null).orElseThrow(), "one checker answers every field");
 
-            assertSame(de, SpellCheckers.forField(null).orElseThrow());
-            assertEquals(Optional.empty(), SpellCheckers.forField(Locale.FRENCH));
-        } finally {
-            Locale.setDefault(previous);
-        }
+        var fr = new WordListChecker(Locale.FRENCH, Set.of("couleur"));
+        SpellCheckers.install(fr);
+        assertEquals(Optional.empty(), SpellCheckers.forField(null), "two, and no default: nobody guesses");
+
+        SpellCheckers.defaultLanguage(Locale.FRANCE);
+        assertSame(fr, SpellCheckers.forField(null).orElseThrow());
+        assertSame(de, SpellCheckers.forField(Locale.GERMAN).orElseThrow(), "a field's own lang wins");
+        assertEquals(Optional.empty(), SpellCheckers.forField(Locale.ITALIAN));
     }
 
     @Test

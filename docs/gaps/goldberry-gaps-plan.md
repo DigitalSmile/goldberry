@@ -285,7 +285,7 @@ log in the same commit as the work.
 | T-22 | W3.6 | todo | | |
 | T-23 | — | parked (D11) | 0690 | |
 | T-24 | W3.3 | done: a page's `<style>`, `style=`, `bgcolor` and `<font color>` in a `StyleScope` of the view's own; `AuthorStyles` with `ADAPTED` the default (a text colour with no background of the mail's under it takes the theme's) | 0710 | |
-| T-25 | W3.7 | in progress (`docs/spell-checking.md`): plan written 2026-11-22; D1 (a) Lucene's pure-Java Hunspell over the same dictionaries, D5 (b) off until a field asks, the rest as recommended (ADR-0733); phase 1, CSS text decoration in full, done (ADR-0734); phase 2, the SPI and the line-check service, done (ADR-0735); next phase 3, the fields | 0733, 0734, 0735 | |
+| T-25 | W3.7 | in progress (`docs/spell-checking.md`): plan written 2026-11-22; D1 (a) Lucene's pure-Java Hunspell over the same dictionaries, D5 (b) off until a field asks, the rest as recommended (ADR-0733); phase 1, CSS text decoration in full, done (ADR-0734); phase 2, the SPI and the line-check service, done (ADR-0735); phase 3, the fields, done (ADR-0736); next phase 4, the menu | 0733, 0734, 0735, 0736 | |
 | T-26 | W2.13 | done | 0686 | |
 | T-29 | W3.8 | done: `GlobalShortcuts` (portal, X11 grab, `RegisterHotKey`, Carbon); Windows and macOS written, not run; the Windows release is polled while held, not hooked | 0711 | |
 | T-30 | W3.10 | done (`docs/zero-copy-tiles.md`): D1 (a), D2 (a), D3 D6 decides per driver, D4 (a), D5 `RasterTexture`, D6 the gate, run-time check at 1.5×. Phases 0–4 done: Direct3D 12 staging without SDL's hidden copy, the in-place raster, the composited window painting in place (4K upload 6.8 → 0.25 ms on the 1660 Ti), and `RasterTexture` in the exported `dev.goldberry.gpu.raster` with a showcase card; Metal and Direct3D 12 in place written, measured by the benchmark lane, not run as a window | 0712, 0731, 0732 | |
@@ -648,3 +648,8 @@ log in the same commit as the work.
   dictionary, the word scanner, and `SpellCheck`, whose answers are kept by
   the line's text and checked off the UI thread (ADR-0735). Phase 1 was
   committed as `7c131331`. Next ADR 0736.
+- **2026-11-22, W3.7 phase 3 done.** `spellcheck`/`lang` on any node, passed
+  down. The three prose fields draw `::spelling-error` under misspelled words,
+  and a field with no `lang` uses the application's default language or its
+  only checker, never the machine's locale (ADR-0736). Phase 2 was committed
+  as `b5470209`. Next ADR 0737.

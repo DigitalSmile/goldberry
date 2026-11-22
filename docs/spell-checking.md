@@ -121,6 +121,11 @@ default locale. A missing language checks nothing and is logged once.
 *Amended in phase 2:* `Labels` carries no locale, so a field with no
 `lang=` uses the default locale.
 
+*Amended again in phase 3:* `DeterminismTest` forbids reading the machine's
+locale in the text and widget layers. A field with no `lang=` uses
+`SpellCheckers.defaultLanguage(Locale)`, which the application sets. Without
+one, it uses the only checker installed when there is exactly one.
+
 ### D7. The personal dictionary (taken: (a))
 
 **(a) Recommended.** *Add to dictionary* adds the word to an in-memory
@@ -256,10 +261,10 @@ where pictures change. Tests are written with the code, not after it.
 |----------|------|--------|
 | `docs/gaps/goldberry-gaps-plan.md` §8, §10 | T-25's row and the log | plan written |
 | `docs/gaps/answers-tessera.md` | T-25's answer when it lands | open |
-| `docs/snapshot/adr/` | ADR-0733 (D1–D9), ADR-0734 (phase 1), ADR-0735 (phase 2) | phase 2 done |
+| `docs/snapshot/adr/` | ADR-0733 (D1–D9), ADR-0734 (phase 1), ADR-0735 (phase 2), ADR-0736 (phase 3) | phase 3 done |
 | `docs/snapshot/changelog-breaking-changes.md` | `ComputedStyle.textDecoration()`'s type, one more component on `TextFlow`, `SpanPaint` and `MarkStyle` | done (phase 1) |
 | `docs/snapshot/` guide pieces | styling (`guide-styling-text-decoration.md`, done), forms (spell checking) | styling done |
-| `docs/status.md` | a line per phase | phase 2 |
+| `docs/status.md` | a line per phase | phase 3 |
 
 ## 7. Status and log
 
@@ -268,7 +273,7 @@ where pictures change. Tests are written with the code, not after it.
 | 0. Plan | done (this document, ADR-0733) |
 | 1. CSS text decoration | done 2026-11-22 (ADR-0734) |
 | 2. SPI and service | done 2026-11-22 (ADR-0735) |
-| 3. Fields | todo |
+| 3. Fields | done 2026-11-22 (ADR-0736) |
 | 4. Menu | todo |
 | 5. `goldberry-spell` | todo |
 | 6. Showcase and guide | todo |
@@ -313,3 +318,21 @@ where pictures change. Tests are written with the code, not after it.
   threads drained by hand), `SpellCheckersTest`. `:core:check` and the
   module-path run of `:example` are green. ADR-0735 is parked. Next: phase 3,
   the fields.
+- **2026-11-22, phase 2 committed** as `b5470209`.
+- **2026-11-22, phase 3 done.** `spellcheck` and `lang` are one `Spelling`
+  component on `Attributes`, as HTML's global attributes are. Markup reads
+  `spellcheck=#true` and `lang="en-GB"` on any node, and both pass down the
+  element tree (`Spelling.of`). `DeterminismTest` caught the default-locale
+  fallback, so D6 changed again: `SpellCheckers.defaultLanguage`, else the
+  only checker. A `SpellingError` carrier part (`::spelling-error`, in the
+  tree only while a field checks) and the theme's wavy `--gb-danger`
+  underline. `form.spelling` (`FieldSpelling`, `SpellingInk`) serves the
+  three fields: `text-area` over its visible slice, `text-input` over its
+  value's box, and `rich-input` through the new `Editor.overlay`, skipping
+  code, links and mentions. `SpanLayers.over` keeps a misspelled bold word
+  bold. Tests: `FieldSpellingTest` (twelve offscreen cases counting red ink,
+  including inheritance, a password, no checker, the personal dictionary and
+  2x), `SpellingAttributeTest`, and the registry's new fallback. A dumped
+  picture showed the wave under the word alone. `:example:test` passed with
+  no golden retaken, and `:core:check` and `:widgets:check` are green.
+  ADR-0736 is parked. Next: phase 4, the menu.

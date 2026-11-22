@@ -7050,6 +7050,12 @@ toolkit, and six entries arrived on it together. All six are closed.
   in the wrong theme, and neither reports an error. **The `Optional` is the design**
   — SDL says `UNKNOWN` on a desktop with no such setting, and "the desktop says
   light" and "the desktop does not say" are a theme and a default.
+- **Fields check their spelling** (W3.7 phase 3, ADR-0736 parked, 2026-11-22).
+  `spellcheck=#true`/`lang=` on any node (`Attributes.spelling`, passed down
+  the tree); `text-input`, `text-area` and `rich-input` draw `::spelling-error`
+  (a wavy `--gb-danger` underline in the theme) under misspelled words, the
+  caret's word excepted; `rich-input` skips code, links and mentions. A field
+  with no `lang` uses `SpellCheckers.defaultLanguage` or the only checker.
 - **Spell checking's service** (W3.7 phase 2, ADR-0735 parked, 2026-11-22).
   `dev.goldberry.text.spell` in `:core`: `SpellChecker` and its provider
   service, the `SpellCheckers` registry, `PersonalDictionary`, `WordScanner`
