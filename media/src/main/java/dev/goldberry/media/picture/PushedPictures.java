@@ -19,9 +19,8 @@ import org.jspecify.annotations.Nullable;
 ///
 /// [#push] may be called from any thread, as often as frames arrive; a view
 /// shows the newest and draws once per frame however many arrived in it. A
-/// [VideoPicture] is drawn on the CPU and on the GPU, and [VideoPlanes] on the
-/// GPU only, so a source pushing planes into a window with no GPU shows
-/// nothing.
+/// [VideoPicture] is drawn as it is; [VideoPlanes] are shown by the GPU where
+/// the window has one, and converted to BGRA on the CPU where it has not.
 ///
 /// **The borrowing rule** is [PictureSource]'s, and here it binds the
 /// application: the bytes of a picture pushed must stay as they are until two

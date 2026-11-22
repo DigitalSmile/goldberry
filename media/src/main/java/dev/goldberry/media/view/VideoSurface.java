@@ -14,6 +14,7 @@ import dev.goldberry.input.handler.Handles;
 import dev.goldberry.media.picture.Picture;
 import dev.goldberry.media.picture.PictureSource;
 import dev.goldberry.media.picture.VideoPicture;
+import dev.goldberry.media.picture.VideoPlanes;
 import dev.goldberry.media.view.gpu.VideoPresenter;
 import dev.goldberry.paint.Box;
 import dev.goldberry.paint.Painter;
@@ -45,11 +46,12 @@ import dev.goldberry.widgets.core.image.Fit;
 /// back. Where the frame cannot show a layer, and without a presenter, it is
 /// drawn on the CPU as before.
 ///
-/// **No conversion on the CPU.** A converted picture is already the toolkit's
+/// **A converted picture is not converted again.** It is already the toolkit's
 /// premultiplied BGRA, so it is wrapped rather than copied, and scaled to the
-/// box at the blit. A picture of planes has nothing to blit, and the CPU path
-/// draws nothing for it: its view asks for planes only while the GPU shows
-/// them.
+/// box at the blit. A picture of planes has nothing to blit: a player's view
+/// asks for planes only while the GPU shows them, and a view of any other
+/// source ([PictureView]) hands the surface a [PlanesOnCpu], which converts
+/// the planes once a picture where no GPU layer shows them.
 ///
 /// **No size of its own**, like `canvas`: a stylesheet gives it one. `media.css`
 /// lets it grow.
@@ -62,13 +64,27 @@ import dev.goldberry.widgets.core.image.Fit;
 ///                   `media-player` plays and pauses
 /// @param gpu        what places the picture on the GPU, or null to draw it on
 ///                   the CPU alone
+/// @param cpu        what converts a picture of planes on the CPU, or null to
+///                   draw only converted pictures there
 record VideoSurface(
         PictureSource source,
         Fit fit,
         Attributes attributes,
         @Nullable Runnable onClick,
-        @Nullable VideoPresenter gpu)
+        @Nullable VideoPresenter gpu,
+        @Nullable PlanesOnCpu cpu)
         implements Widget.Leaf, dev.goldberry.widget.style.Styled, Paints, Handles, Semantics {
+
+    /// A surface that draws planes on the GPU only: a player's, whose view
+    /// asks the player for converted pictures where the GPU does not show them.
+    VideoSurface(
+            PictureSource source,
+            Fit fit,
+            Attributes attributes,
+            @Nullable Runnable onClick,
+            @Nullable VideoPresenter gpu) {
+        this(source, fit, attributes, onClick, gpu, null);
+    }
 
     @Override
     public String cssType() {
@@ -89,16 +105,22 @@ record VideoSurface(
     public Box render(ComputedStyle style, List<Box> children, Context context) {
         var box = Box.of().style(style);
         var picture = source.shownPicture();
-        return picture.isPresent() ? box.painting(painter(picture.get(), fit, gpu)) : box;
+        return picture.isPresent() ? box.painting(painter(picture.get(), fit, gpu, cpu)) : box;
     }
 
     /// Draws `picture` into the box, placed by `fit`: through `gpu` where the
     /// frame shows GPU layers, and on the CPU otherwise.
+    static Painter painter(Picture picture, Fit fit, @Nullable VideoPresenter gpu) {
+        return painter(picture, fit, gpu, null);
+    }
+
+    /// The same, a picture of planes converted by `cpu` where no GPU layer
+    /// shows it.
     ///
     /// A new painter each frame, on purpose: the render tree compares painters by
     /// identity, and a new one is what tells it this box has new pixels.
-    static Painter painter(Picture picture, Fit fit, @Nullable VideoPresenter gpu) {
-        var image = picture instanceof VideoPicture converted
+    static Painter painter(Picture picture, Fit fit, @Nullable VideoPresenter gpu, @Nullable PlanesOnCpu cpu) {
+        var wrapped = picture instanceof VideoPicture converted
                 ? Image.of(new PixelBuffer(
                         new PhysicalSize(converted.width(), converted.height()),
                         PixelFormat.BGRA32_PREMULTIPLIED,
@@ -114,6 +136,11 @@ record VideoSurface(
             if (gpu != null && gpu.place(frame, picture, placement)) {
                 return;
             }
+            // Converted only now, when the GPU has said no: a frame that shows
+            // the layer pays for no conversion.
+            var image = wrapped != null
+                    ? wrapped
+                    : picture instanceof VideoPlanes planes && cpu != null ? cpu.image(planes) : null;
             if (image != null) {
                 frame.drawImage(
                         image,

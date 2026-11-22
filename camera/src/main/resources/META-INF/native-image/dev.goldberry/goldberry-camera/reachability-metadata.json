@@ -1,0 +1,12 @@
+{
+  "comment": [
+    "What :camera ships that is read as a resource, declared by glob rather than",
+    "traced.",
+    "",
+    "`camera/view/camera.css`, `camera-view`'s stylesheet, which :core reads out",
+    "of the package module-info opens to it."
+  ],
+  "resources": [
+    { "module": "dev.goldberry.camera", "glob": "dev/goldberry/camera/view/*.css" }
+  ]
+}

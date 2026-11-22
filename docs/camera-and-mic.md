@@ -14,7 +14,7 @@ phases with exit criteria, risks, and a log. **The owner took (a) for D1–D9
 on 2026-11-21**, D8 on the condition that a measurement showed playback was
 fine on PipeWire; it did once the sink counts
 two pulls on Linux (§3, D8). ADR-0719, parked in `docs/snapshot/adr/`, records
-all nine and phase 1. **Phases 1–3 are done**; phase 4 is next.
+all nine and phase 1. **Phases 1–4 are done**; phase 5 is next.
 
 ## 1. Where things stand
 
@@ -340,7 +340,7 @@ Each phase ends green on `:natives`, the module's own tests, `BoundaryTest`,
 | 1 SDL surface | done: 16 symbols, ABI 29, `natives.sdl.audio` recording and devices, `natives.sdl.camera`, `natives.sdl.device`; the D8 measurement and `SdlAudioSink`'s two pulls on Linux |
 | 2 `goldberry-mic` | done: the module (published, optional), recording, the synthetic source, levels, FFT, spectrum, envelope; ADR-0720; the guide chapter parked |
 | 3 mic widgets | done: `level-meter`, `waveform-view`, `spectrum-view` over exported leaves, `mic.css`, six goldens; ADR-0721; the sections parked with the chapter |
-| 4 `goldberry-camera` | not started |
+| 4 `goldberry-camera` | done: `PictureView` converts planes on the CPU; the module, `Camera` sealed over a device's and a synthetic one, mode choice, the pool, permission followed, `camera-view` with states and mirror; three goldens; ADR-0722; the chapter parked |
 | 5 PipeWire | not started |
 | 6 showcase, platforms, guide | not started |
 
@@ -387,3 +387,24 @@ Each phase ends green on `:natives`, the module's own tests, `BoundaryTest`,
   on the render root itself does not beat a base-layer `:root` rule for it;
   inside any container it does, which is every window. `answers-tessera.md`
   G-05's portal promise corrected. ADR-0721. Next ADR 0722.
+- **2026-11-22, phase 3 committed, phase 4.** Phase 3 is `a1458a9f`. First
+  D2 in `:media`: `PictureView`'s state keeps a `PlanesOnCpu`, which its
+  `VideoSurface` asks for a picture of planes only when the GPU did not place
+  it, converting once a picture into a reused buffer (`picture-view-planes`
+  golden, NV12 and I420). Then `goldberry-camera`: `Cameras` (list,
+  `preferred`, hot-plug, open), a sealed `Camera` over a package-private
+  device camera and `SyntheticCamera` (a test card painted as a function of
+  the picture number); `CameraSpec.choose` takes the uncompressed mode
+  nearest in log size plus twice the rate shortfall, which gives 640×480 at 30
+  on the C922 for a 720p30 call; SDL is asked for NV12 in the mode's own
+  colorspace (V4L2 tags YUYV BT.709 limited) and `Colorimetry` reads the
+  matrix and range back; the capture thread copies into a three-slot
+  `PlanePool` and polls a pending permission every 20 ms. `camera-view`
+  builds a `CameraBox` with the picture or a message (six new labels in
+  `ToolkitLabel`), its state as a class, and mirrors with a view-side
+  `MirroredPictures` copy rather than CSS (a GPU layer would not flip). Found
+  on the way: `camera-view > video-view` does not match, since the
+  `picture-view` element sits between; `camera.css` uses a descendant
+  selector. 35 tests, `CamerasLiveTest` taking pictures from the C922. The
+  parked guide's "`VideoPlanes` are drawn on the GPU only" corrected.
+  ADR-0722. Next ADR 0723.

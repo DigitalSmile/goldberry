@@ -162,3 +162,4 @@ Appended to the index when the records move in, in this order.
 - [ADR-0719 Camera and microphone are two modules over SDL, and Linux counts two pulls](0719-camera-and-microphone-are-two-modules-over-sdl.md)
 - [ADR-0720 A recording is a sample source on a thread of its own](0720-a-recording-is-a-sample-source-on-a-thread-of-its-own.md)
 - [ADR-0721 The microphone widgets draw a tracker's reading](0721-the-microphone-widgets-draw-a-tracker-s-reading.md)
+- [ADR-0722 A camera is a picture source, copied out of the driver](0722-a-camera-is-a-picture-source-copied-out-of-the-driver.md)

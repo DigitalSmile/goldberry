@@ -34,6 +34,18 @@ public enum ToolkitLabel {
     MEDIA_CONTROLS("goldberry.mediaControls", "Media controls"),
     /// A video's picture, as a screen reader names it.
     VIDEO("goldberry.video", "Video"),
+    /// A camera's picture, as a screen reader names it.
+    CAMERA("goldberry.camera", "Camera"),
+    /// What a camera view says while the system asks the user about the camera.
+    CAMERA_ASKING("goldberry.cameraAsking", "Waiting for permission to use the camera"),
+    /// What a camera view says when the user refused the camera.
+    CAMERA_DENIED("goldberry.cameraDenied", "The camera is not allowed"),
+    /// What a camera view says when its camera was unplugged or taken.
+    CAMERA_LOST("goldberry.cameraLost", "The camera stopped"),
+    /// What a camera view says when its camera was closed.
+    CAMERA_OFF("goldberry.cameraOff", "The camera is off"),
+    /// What a camera view says with no camera to show.
+    CAMERA_NONE("goldberry.cameraNone", "No camera"),
 
     /// A rich field's bold: the formatting bar's button and the Format menu's row.
     BOLD("goldberry.bold", "Bold"),

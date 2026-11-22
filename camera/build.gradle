@@ -1,0 +1,62 @@
+plugins {
+    id 'goldberry.java-conventions'
+    // `camera-view` is a @Markup widget, so this module declares a catalog of
+    // its own, as :media's and :mic's do.
+    id 'goldberry.weave'
+    // Published as goldberry-camera, optional in the umbrella.
+    id 'goldberry.publish'
+    // The camera tests load libgoldberry, whose SDL lists and opens cameras.
+    id 'goldberry.native-tests'
+}
+
+description = 'Goldberry camera: cameras over SDL, as picture sources a camera-view draws'
+
+// ============================================================================
+// The camera module
+// https://goldberry.dev/docs/components/media.html
+//
+// SDL's cameras are already inside libgoldberry, so this module has no natives
+// of its own: `:natives` exports its camera and device-event wrappers to this
+// module by name. A camera is a `PictureSource` of :media's, so `camera-view`
+// is drawn by the surface `video-view` is, on the GPU where the window has one
+// and converted on the CPU where it has not. SDL's vocabulary stops in the
+// unexported backend package.
+// ============================================================================
+dependencies {
+    // Logging.
+    implementation project(':common')
+
+    // SDL's cameras and device events, exported here by name.
+    implementation project(':natives')
+
+    // Pictures, the picture view and the widgets: `api`, because a `Camera` is
+    // a `PictureSource` and a `CameraView` is a `Widget`.
+    api project(':media')
+
+    // :media requires :gpu `static`, for the video layer; compiling against
+    // :media's signatures needs it here too, and an application need not ship it.
+    compileOnly project(':gpu')
+    testCompileOnly project(':gpu')
+
+    // Element trees without a window, the headless runtime, and the golden-image
+    // helpers.
+    testImplementation testFixtures(project(':core'))
+
+    // NativeLibraryRequirement: the SDL tests fail rather than skip in a lane
+    // that says it has libgoldberry.
+    testImplementation testFixtures(project(':natives'))
+}
+
+// A camera's planes are drawn on the CPU through the media natives' libyuv, so
+// the goldens need libgoldberry-media: the directory named, else what
+// `:media:nativesBuild` produced here. Without either they skip.
+tasks.withType(Test).configureEach {
+    def mediaLibdir = providers.systemProperty('goldberry.media.libdir')
+            .orElse(providers.gradleProperty('goldberry.media.libdir'))
+    def builtMedia = nativeTests.host.localMedia(layout.settingsDirectory.asFile.toPath()).toFile()
+    if (mediaLibdir.present) {
+        systemProperty 'goldberry.media.libdir', mediaLibdir.get()
+    } else if (builtMedia.isDirectory()) {
+        systemProperty 'goldberry.media.libdir', builtMedia.absolutePath
+    }
+}

@@ -1,0 +1,40 @@
+/*
+ * goldberry-camera's widget, camera-view.
+ *
+ * Written in the theme's tokens, so it follows whichever theme is on. The
+ * --gb-camera-* tokens are this module's component tokens: an application
+ * restyles every camera view at once by setting them.
+ */
+:root {
+    /* What shows behind the picture, and around a letterboxed one. */
+    --gb-camera-backdrop: #000000;
+    /* The line a view shows instead of a picture. */
+    --gb-camera-message-color: var(--gb-text-muted);
+    --gb-camera-min-width: 160px;
+    --gb-camera-min-height: 120px;
+    --gb-camera-radius: 8px;
+}
+
+camera-view {
+    min-width: var(--gb-camera-min-width);
+    min-height: var(--gb-camera-min-height);
+    border-radius: var(--gb-camera-radius);
+    background: var(--gb-camera-backdrop);
+    overflow: hidden;
+    align-items: center;
+    justify-content: center;
+}
+
+/* The picture fills the view; its fit places it inside. A descendant rather
+   than a child selector: the picture-view that builds the video-view is an
+   element of its own between the two. */
+camera-view video-view {
+    width: 100%;
+    height: 100%;
+}
+
+.camera-message {
+    color: var(--gb-camera-message-color);
+    padding: 12px;
+    text-align: center;
+}

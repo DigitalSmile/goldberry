@@ -28,7 +28,8 @@ import dev.goldberry.widgets.core.image.Fit;
 /// ```
 ///
 /// The same node to a stylesheet as `video-view`, and drawn the same way: on
-/// the GPU as a layer where the frame shows one, and on the CPU otherwise. It
+/// the GPU as a layer where the frame shows one, and on the CPU otherwise,
+/// where a picture of planes is converted to BGRA first. It
 /// draws again when the source says a picture arrived, at most once a frame
 /// however many arrived, or, for a source that knows when its next picture is
 /// due, when that time comes.
@@ -83,6 +84,9 @@ public record PictureView(PictureSource source, Fit fit, Attributes attributes)
 
         private @Nullable VideoPresenter presenter;
 
+        /// Converts planes where no GPU layer shows them.
+        private final PlanesOnCpu cpu = new PlanesOnCpu();
+
         private EventLoop.@Nullable Timer due;
 
         /// Whether a redraw is already on its way to the UI thread, so a
@@ -117,7 +121,7 @@ public record PictureView(PictureSource source, Fit fit, Attributes attributes)
                             refresh();
                         }));
             }
-            return new VideoSurface(view.source(), view.fit(), view.attributes(), null, presenter);
+            return new VideoSurface(view.source(), view.fit(), view.attributes(), null, presenter, cpu);
         }
 
         private void listen(PictureSource source) {
@@ -168,6 +172,7 @@ public record PictureView(PictureSource source, Fit fit, Attributes attributes)
             if (gpu != null) {
                 gpu.close();
             }
+            cpu.close();
             super.dispose();
         }
     }

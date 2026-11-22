@@ -17,7 +17,7 @@ nothing.
 | G-02 | Rich-text input | `rich-input` over marked text, with the formatting bar, links, mentions, and Markdown and HTML conversions; the showcase's Rich input screen shows every option | on master; guide at release |
 | G-03 | Rich-text display with entities | Hit-testing, run clicks, selection, spoilers on `RichText` | on master, not yet in a snapshot |
 | G-04 | Sticky section headers | Sections in `ListView` | on master, not yet in a snapshot |
-| G-05 | Camera and microphone | `goldberry-camera` and `goldberry-mic` | microphone landed; camera planned |
+| G-05 | Camera and microphone | `goldberry-camera` and `goldberry-mic` | landed; PipeWire in the shipped natives next |
 | G-06 | Encoders | **Declined**: bring your own | declined, ADR-0689 |
 | G-07 | Video tile from pushed frames | Works today through `PictureRenderer`; `PictureView` over a `PictureSource` | answered; on master, not yet in a snapshot |
 | G-08 | Web view JS bridge | Init script, `eval`, `postMessage` | on master, not yet in a snapshot |
@@ -225,7 +225,17 @@ float in 10 ms blocks, to listeners on a thread of its own or pulled with
 `read`. `level-meter`, `waveform-view` and `spectrum-view` draw any
 `SampleSource`, and a voice message's bubble draws its clip with
 `new WaveformPlot(Envelope.of(samples, 1, 48), played, true, Attributes.NONE)`.
-ADR-0719, ADR-0720, ADR-0721. `goldberry-camera` is next.
+ADR-0719, ADR-0720, ADR-0721.
+
+Then `goldberry-camera` (2026-11-22, same state): `Cameras.open()` lists the
+cameras and hears them come and go; `open(CameraSpec.CALL)` opens the
+preferred one in its nearest uncompressed mode, and the `Camera` is a
+`PictureSource` of NV12 planes, so it goes into G-07's tile as any source
+does. `new CameraView(camera)` draws it with its states (asking, refused,
+stopped, off, none) and a self-view mirror that leaves the sent pictures
+alone. Pushed planes now draw in a window with no GPU as well: `PictureView`
+converts them on the CPU. MJPG modes are not opened, so a USB 2 camera gives
+a call 640×480 at 30. ADR-0722. Linux's shipped natives get PipeWire next.
 
 ## G-06. Encoders and public codec access
 

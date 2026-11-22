@@ -268,7 +268,7 @@ log in the same commit as the work.
 | T-02 | W3.1 | done: phases 1–7 (marks, `Editor` with marks, `rich-input`, the formatting bar and link editor, mentions, Markdown and HTML, the showcase's Rich input screen); the guide is parked until release (`docs/rich-text-input.md` §5) | 0703–0708 | |
 | T-03 | W2.6 | done | 0697 | |
 | T-04 | W2.5 | done | 0696 | |
-| T-05 | W3.4 | in progress (`docs/camera-and-mic.md`): D1–D9 taken (a), D8 on a measurement; phase 1 (the SDL surface, native ABI 29), phase 2 (`goldberry-mic`: recording, the synthetic source, levels and spectra) and phase 3 (`level-meter`, `waveform-view`, `spectrum-view`) done; phases 4–6 (`goldberry-camera`, PipeWire in CI, the showcase) open | 0719, 0720, 0721 | |
+| T-05 | W3.4 | in progress (`docs/camera-and-mic.md`): D1–D9 taken (a), D8 on a measurement; phase 1 (the SDL surface, native ABI 29), phase 2 (`goldberry-mic`: recording, the synthetic source, levels and spectra) and phase 3 (`level-meter`, `waveform-view`, `spectrum-view`) and phase 4 (`goldberry-camera`, `camera-view`, planes drawn on the CPU) done; phases 5–6 (PipeWire in CI, the showcase and the platforms) open | 0719, 0720, 0721, 0722 | |
 | T-06 | — | declined (D9) | 0689 | |
 | T-07 | W2.7 | done | 0698 | |
 | T-08 | W1.11 | done | 0684 | |
@@ -560,3 +560,11 @@ log in the same commit as the work.
   `--gb-mic-*` tokens in `mic.css`; goldens on both themes from the synthetic
   source. `answers-tessera.md` G-05 corrected: SDL's PipeWire camera does not
   go through the portal. ADR-0721. Next ADR 0722.
+- **2026-11-22, W3.4 phase 4.** Phase 3 committed (`a1458a9f`).
+  `goldberry-camera`: `Cameras` and a sealed `Camera` (a device's, and a
+  `SyntheticCamera` test card), uncompressed modes chosen nearest the spec,
+  frames copied into a pool of three on a capture thread that also follows
+  the permission; `camera-view` with its states and a view-side mirror.
+  `:media`'s `PictureView` now converts planes on the CPU where no GPU shows
+  them, so a pushed call tile draws in a CPU window too. Run against the C922
+  here. ADR-0722. Next ADR 0723.

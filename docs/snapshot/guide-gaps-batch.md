@@ -336,8 +336,10 @@ tile.push(new VideoPlanes(...));   // from the thread that decoded it
 ```
 
 A pushed picture's bytes must stay as they are until two more have been
-pushed after it. `VideoPlanes` are drawn on the GPU only, and a `VideoPicture`
-everywhere.
+pushed after it. A `VideoPicture` is drawn as it is. `VideoPlanes` are shown
+by the GPU where the window has one, and converted to BGRA on the CPU where it
+has not, which takes the module's natives; a picture is converted once however
+many frames draw it.
 
 ## `book/src/components/content.md`, `## `web-view``, after the paragraph on reading cookies
 

@@ -53,6 +53,11 @@ rootProject.name = 'goldberry'
 // analysis (levels, spectra, envelopes) is plain Java; its widgets read a
 // SampleSource, so a synthetic one makes them golden-testable.
 //
+// :camera is `goldberry-camera`: SDL's cameras, also Java only. A camera is a
+// PictureSource of :media's, so `camera-view` draws through `video-view`'s
+// surface and :camera requires :media. A synthetic camera paints a test
+// pattern, which is what its goldens draw.
+//
 // :media is `goldberry-media`: audio and video, demuxed in Java and decoded by
 // the reference codecs bound directly,
 // https://goldberry.dev/docs/components/media.html#the-module. It is the one module
@@ -81,6 +86,7 @@ include ':common',
         ':html',
         ':media',
         ':mic',
+        ':camera',
         ':emoji',
         ':gpu',
         ':bom',
