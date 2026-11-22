@@ -82,6 +82,7 @@ class FormsChapterTest {
                                     "gutter-card",
                                     "label-card",
                                     "signup-card",
+                                    "spelling-card",
                                     "stacked-card",
                                     "code-card",
                                     "date-card",

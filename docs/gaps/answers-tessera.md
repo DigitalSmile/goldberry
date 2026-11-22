@@ -34,7 +34,7 @@ nothing.
 | G-22 | SVG | `goldberry-vector` on ThorVG | planned |
 | G-23 | PDF | Still parked | parked, ADR-0690 |
 | G-24 | HTML mail styles | A subset of `style=` and `<style>` | planned |
-| G-25 | Spellcheck | Hunspell | planned |
+| G-25 | Spellcheck | `goldberry-spell` and `spellcheck=` on the three prose fields | on master, not yet in a snapshot |
 | G-26 | Pluralization | `dev.goldberry.i18n` with CLDR plurals | on master, not yet in a snapshot |
 | G-29 | Global hotkeys | `GlobalShortcuts` on all four platforms | planned |
 | G-30 | Shared GPU memory for Board tiles | `RasterTexture`: tiles painted where the GPU copies from | on master, not yet in a snapshot |
@@ -488,7 +488,28 @@ checks text inputs off the UI thread. Misspellings get a wavy underline, and
 suggestions appear in the text menu. Dictionaries come from the application:
 their licences differ per language, so Goldberry ships none.
 
-**Landed.** —
+**Landed** on Goldberry's master, not yet in a snapshot (ADR-0733 to
+ADR-0739). One change from the plan: the dictionaries are read by Lucene's
+Hunspell in Java, which reads the same `.aff`/`.dic` files, rather than by
+the C library, so there is no native library to build.
+
+- Add `goldberry-spell` (optional) and load your dictionaries:
+  `SpellCheckers.load(Locale.of("ru"), aff, dic)`, from paths or streams, and
+  `SpellCheckers.defaultLanguage(...)` for fields with no `lang`.
+- `spellcheck=#true` and `lang="ru"` go on any node and pass down, as in
+  HTML. `text-input`, `text-area` and `rich-input` check. In `rich-input`,
+  code, links and mentions are skipped. A password never checks.
+- Misspelled words get `::spelling-error`, a wavy `--gb-danger` underline in
+  the theme. The word being typed is not flagged.
+- The field's menu on a flagged word offers up to five suggestions (one undo
+  step), *Add to dictionary* and *Ignore*.
+- `SpellCheckers.personal(locale)` is the personal dictionary. It lives in
+  memory: save `words()` on `onChange` and `addAll` them at start.
+- On the composer, `rich-input spellcheck=#true lang=…` is all it takes.
+
+Measured with SCOWL's `en_US`: loading takes about 450 ms cold and 50 to 90
+ms warm, so load it with `Goldberry.async`. A check is 1 to 10 µs a word,
+and a suggestion 12 to 38 ms, capped at 250 ms.
 
 ## G-26. Pluralization and locale message formatting
 

@@ -260,11 +260,11 @@ where pictures change. Tests are written with the code, not after it.
 | Document | What | Status |
 |----------|------|--------|
 | `docs/gaps/goldberry-gaps-plan.md` §8, §10 | T-25's row and the log | plan written |
-| `docs/gaps/answers-tessera.md` | T-25's answer when it lands | open |
-| `docs/snapshot/adr/` | ADR-0733 (D1–D9), ADR-0734 (phase 1), ADR-0735 (phase 2), ADR-0736 (phase 3), ADR-0737 (phase 4), ADR-0738 (phase 5) | phase 5 done |
+| `docs/gaps/answers-tessera.md` | T-25's answer when it lands | done |
+| `docs/snapshot/adr/` | ADR-0733 (D1–D9), ADR-0734 (phase 1), ADR-0735 (phase 2), ADR-0736 (phase 3), ADR-0737 (phase 4), ADR-0738 (phase 5), ADR-0739 (phase 6) | done |
 | `docs/snapshot/changelog-breaking-changes.md` | `ComputedStyle.textDecoration()`'s type, one more component on `TextFlow`, `SpanPaint` and `MarkStyle` | done (phase 1) |
-| `docs/snapshot/` guide pieces | styling (`guide-styling-text-decoration.md`, done), forms (spell checking) | styling done |
-| `docs/status.md` | a line per phase | phase 5 |
+| `docs/snapshot/` guide pieces | styling (`guide-styling-text-decoration.md`), forms (`components-forms-spelling.md`) | done |
+| `docs/status.md` | a line per phase | done |
 
 ## 7. Status and log
 
@@ -276,7 +276,7 @@ where pictures change. Tests are written with the code, not after it.
 | 3. Fields | done 2026-11-22 (ADR-0736) |
 | 4. Menu | done 2026-11-22 (ADR-0737) |
 | 5. `goldberry-spell` | done 2026-11-22 (ADR-0738) |
-| 6. Showcase and guide | todo |
+| 6. Showcase and guide | done 2026-11-22 (ADR-0739) |
 
 - **2026-11-22.** Plan written from the tree at `67e807d7`. Found:
   decoration is lines only and drawn as rectangles, `SpanPaint` has no
@@ -369,3 +369,20 @@ where pictures change. Tests are written with the code, not after it.
   it. `:spell:check` and `:build-logic:test` are green. The benchmark moves
   to phase 6, where `en_US` gives meaningful numbers. ADR-0738 is parked.
   Next: phase 6, the showcase and the guide.
+- **2026-11-22, phase 5 committed** as `b526ab5e`.
+- **2026-11-22, phase 6 done, and W3.7 with it.** SCOWL's `en_US`
+  2026.02.25 is the showcase's own pinned asset (`Asset.SCOWL_EN_US`,
+  `assetTool.bundle`), with its licence vendored, a notices row and a
+  native-image glob. `goldberry-spell` is `runtimeOnly` and bound as a service
+  with no `requires`: the module-path run on the Forms screen logs "Lucene
+  Hunspell reads the en-US dictionary". `ShowcaseDictionary` loads in the
+  background in a window. Measured once, its cold load took 454 ms, too long
+  for the UI thread. The Forms screen has a Spelling card, pictured in both
+  themes before it went in. Measured on an i7-4790K: load 454 ms cold and 53
+  to 93 ms warm, a check 0.6 to 10 µs a word, a suggestion 12 to 38 ms. The
+  search index and 57 pictures (the sidebar's and Home's counts) were
+  retaken. The guide section is parked as
+  `docs/snapshot/components-forms-spelling.md`, and its `kdl` inflates.
+  Tessera's answer is written. ADR-0739 is parked. **Open:** a hand check of
+  the right-click menu on each desktop, and a native-image run of the
+  Spelling card.

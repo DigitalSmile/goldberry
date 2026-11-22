@@ -138,12 +138,14 @@ Those obligations no longer apply to anything Goldberry ships.
 
 The showcase (`:example`) is an application rather than a library, and nothing
 here reaches a toolkit artifact. It groups its Icons and Emoji sheets by
-category, from two tables compiled at build time (`PrepareCatalogs`):
+category, from two tables compiled at build time (`PrepareCatalogs`), and
+checks the spelling on its Forms screen against one dictionary:
 
 | Component | Licence | Upstream | Notes |
 |---|---|---|---|
 | Lucide icon metadata | ISC | <https://lucide.dev> | Each icon's categories, from the same pinned archive as the icons ([licence](licenses/lucide.txt)) |
 | [Unicode emoji data](licenses/unicode.txt) | Unicode License v3 | <https://unicode.org/Public/18.0.0/emoji/emoji-test.txt> | Each emoji's group, compiled from `emoji-test.txt` 18.0 |
+| [SCOWL `en_US` Hunspell dictionary](licenses/scowl.txt) | SCOWL permission notice; BSD (affix file) | <https://github.com/en-wl/wordlist/releases/tag/rel-2026.02.25> | The Forms screen's Spelling card checks against it; bundled into the showcase alone, under `dev/goldberry/example/spelling`. No toolkit artifact ships a dictionary |
 | [Unicode CLDR plural rules](licenses/unicode.txt) | Unicode License v3 | <https://github.com/unicode-org/cldr-json/tree/49.0.0> | Every locale's cardinal and ordinal plural rules, extracted from CLDR 49 `plurals.json` and `ordinals.json` into `dev/goldberry/i18n/plurals.txt` by `tools/i18n/extract_plurals.py` |
 
 ## Not distributed

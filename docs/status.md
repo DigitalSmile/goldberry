@@ -7050,6 +7050,10 @@ toolkit, and six entries arrived on it together. All six are closed.
   in the wrong theme, and neither reports an error. **The `Optional` is the design**
   — SDL says `UNKNOWN` on a desktop with no such setting, and "the desktop says
   light" and "the desktop does not say" are a theme and a default.
+- **Spelling in the showcase** (W3.7 phase 6, ADR-0739 parked, 2026-11-22). The
+  Forms screen's Spelling card checks against SCOWL's `en_US` (the showcase's
+  own pinned asset, loaded in the background). W3.7 is done; hand checks of the
+  menu on each desktop and a native-image run remain.
 - **`goldberry-spell`** (W3.7 phase 5, ADR-0738 parked, 2026-11-22). The engine:
   Lucene 10.6.0's Hunspell in Java, an optional module providing
   `SpellCheckerProvider`; `SpellCheckers.load(locale, aff, dic)` reads any

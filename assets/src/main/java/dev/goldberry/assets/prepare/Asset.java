@@ -241,7 +241,25 @@ public record Asset(
             "lucide.txt");
 
     /// Everything Goldberry bundles.
+    /// SCOWL's `en_US` Hunspell dictionary — the showcase's spelling.
+    ///
+    /// **The showcase's alone.** No toolkit artifact ships a dictionary,
+    /// because their licences differ by language and an application brings its
+    /// own. The showcase bundles this one so its Spelling card has words to
+    /// check. SCOWL's size 60 list, the one Hunspell calls official for American
+    /// English; the licence is SCOWL's permission notice and Geoff Kuenning's
+    /// BSD licence for the affix file, both in its README.
+    public static final Asset SCOWL_EN_US = new Asset(
+            "scowl-en-us",
+            "2026.02.25",
+            "https://github.com/en-wl/wordlist/releases/download/rel-2026.02.25/hunspell-en_US-2026.02.25.zip",
+            "ac8e73310e951d88c52c2cf2ba54ceaca34f8486a81630ac8a75dc5f931179f9",
+            Map.of("en_US.aff", "spelling/en_US.aff", "en_US.dic", "spelling/en_US.dic"),
+            Map.of("README_en_US.txt", "scowl.txt"),
+            null,
+            null);
+
     public static List<Asset> all() {
-        return List.of(INTER, JETBRAINS_MONO, NOTO_EMOJI, LUCIDE, UNICODE_EMOJI);
+        return List.of(INTER, JETBRAINS_MONO, NOTO_EMOJI, LUCIDE, UNICODE_EMOJI, SCOWL_EN_US);
     }
 }

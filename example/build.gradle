@@ -45,6 +45,9 @@ dependencies {
     // their own.
     implementation project(':mic')
     implementation project(':camera')
+    // The Spelling card: the engine behind `spellcheck=`, found by :core as a
+    // service, so nothing here names a class of it.
+    runtimeOnly project(':spell')
     // The GPU: the GPU screen's
     // `canvas3d` and its cube, whose shaders `:gpu:compileShaders` compiles
     // into this module's resources. Being on the module path is also what lets
@@ -94,9 +97,12 @@ dependencies {
 // ============================================================================
 assetTool.catalogs('dev/goldberry/example/catalog')
 
-// Unicode's licence, for the emoji groups the showcase compiles out of
-// `emoji-test.txt`. Run by hand and committed.
-assetTool.licences('unicode-emoji', 'dev/goldberry/example')
+// SCOWL's `en_US` dictionary, for the Forms screen's Spelling card: the
+// showcase's own, under `…example/spelling`, because no toolkit artifact ships
+// a dictionary. And Unicode's licence, for the emoji groups the showcase
+// compiles out of `emoji-test.txt`, which has nothing to extract. The
+// licences (`vendorLicences`) are run by hand and committed.
+assetTool.bundle('scowl-en-us,unicode-emoji', 'dev/goldberry/example')
 
 // Where a locally built libgoldberry lives, for a run straight from the source
 // tree. A released application gets the library from a classifier jar instead

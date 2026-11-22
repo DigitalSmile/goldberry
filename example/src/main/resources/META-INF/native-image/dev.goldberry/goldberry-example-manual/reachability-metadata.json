@@ -40,7 +40,10 @@
     "getResourceAsStream when a source is picked -- never during the trace.",
     "",
     "search/index.tsv is the search palette's list of cards, which SearchIndex",
-    "reads the first time the palette opens or a sidebar row shows its count."
+    "reads the first time the palette opens or a sidebar row shows its count.",
+    "",
+    "spelling/en_US.* is SCOWL's dictionary, prepared by `prepareAssets` rather",
+    "than committed, which ShowcaseDictionary reads when the Spelling card is built."
   ],
   "resources": [
     {
@@ -61,6 +64,10 @@
     {
       "module": "dev.goldberry.example",
       "glob": "dev/goldberry/example/search/*.tsv"
+    },
+    {
+      "module": "dev.goldberry.example",
+      "glob": "dev/goldberry/example/spelling/en_US.*"
     },
     {
       "module": "dev.goldberry.example",

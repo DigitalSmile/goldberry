@@ -178,3 +178,4 @@ Appended to the index when the records move in, in this order.
 - [ADR-0736 `spellcheck` and `lang` are attributes every node carries, and pass down](0736-spellcheck-and-lang-are-attributes-every-node-carries.md)
 - [ADR-0737 A misspelled word's menu opens at once and fills in its suggestions](0737-a-misspelled-words-menu-opens-at-once-and-fills-in.md)
 - [ADR-0738 `goldberry-spell` reads Hunspell dictionaries in memory, behind one lock](0738-goldberry-spell-reads-hunspell-dictionaries-in-memory.md)
+- [ADR-0739 The showcase checks against SCOWL's `en_US`, loaded in the background](0739-the-showcase-checks-against-scowl-loaded-in-the-background.md)
