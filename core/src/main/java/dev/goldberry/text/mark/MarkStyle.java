@@ -3,6 +3,7 @@ package dev.goldberry.text.mark;
 import java.util.Objects;
 import java.util.Set;
 
+import dev.goldberry.text.flow.DecorationPaint;
 import dev.goldberry.text.flow.TextDecoration;
 import dev.goldberry.text.font.Font;
 
@@ -27,7 +28,10 @@ import dev.goldberry.text.font.Font;
 ///                    [#TEXT_COLOUR] for the colour the rest of the text has
 /// @param decorations the rules drawn along them, usually none
 /// @param background  a fill behind them, or 0 for none
-public record MarkStyle(Font font, int argb, Set<TextDecoration> decorations, int background) {
+/// @param decorationPaint how the rules are drawn: their style, colour and
+///                    thickness
+public record MarkStyle(
+        Font font, int argb, Set<TextDecoration> decorations, int background, DecorationPaint decorationPaint) {
 
     /// The colour the text around the marked words is drawn in. Zero, which as a
     /// colour would draw nothing at all.
@@ -36,6 +40,12 @@ public record MarkStyle(Font font, int argb, Set<TextDecoration> decorations, in
     public MarkStyle {
         Objects.requireNonNull(font, "font");
         decorations = Set.copyOf(Objects.requireNonNull(decorations, "decorations"));
+        Objects.requireNonNull(decorationPaint, "decorationPaint");
+    }
+
+    /// Words whose rules, if any, are drawn solid in their colour.
+    public MarkStyle(Font font, int argb, Set<TextDecoration> decorations, int background) {
+        this(font, argb, decorations, background, DecorationPaint.SOLID);
     }
 
     /// Words in `font`, drawn like the text around them.

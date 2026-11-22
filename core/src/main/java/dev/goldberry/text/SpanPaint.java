@@ -3,6 +3,7 @@ package dev.goldberry.text;
 import java.util.Objects;
 import java.util.Set;
 
+import dev.goldberry.text.flow.DecorationPaint;
 import dev.goldberry.text.flow.TextDecoration;
 
 /// How one stretch of a paragraph is drawn: its colour, the rules along it, and
@@ -36,7 +37,16 @@ import dev.goldberry.text.flow.TextDecoration;
 /// @param background  a fill behind the stretch, a line box tall on every line it
 ///                    reaches, or 0 for none: a highlighted word, a selection, a
 ///                    spoiler's cover
-public record SpanPaint(int start, int end, int argb, Set<TextDecoration> decorations, int background) {
+/// @param decorationPaint how those rules are drawn: their style, a colour of
+///                    their own and their thickness. A spell checker's wavy red
+///                    line under text in its own colour is a span with both
+public record SpanPaint(
+        int start,
+        int end,
+        int argb,
+        Set<TextDecoration> decorations,
+        int background,
+        DecorationPaint decorationPaint) {
 
     public SpanPaint {
         if (start < 0 || end < start) {
@@ -46,6 +56,12 @@ public record SpanPaint(int start, int end, int argb, Set<TextDecoration> decora
         // decide whether a frame changed, and a set a caller can still mutate
         // would change the answer after the fact.
         decorations = Set.copyOf(Objects.requireNonNull(decorations, "decorations"));
+        Objects.requireNonNull(decorationPaint, "decorationPaint");
+    }
+
+    /// A stretch whose rules, if any, are drawn solid in its own colour.
+    public SpanPaint(int start, int end, int argb, Set<TextDecoration> decorations, int background) {
+        this(start, end, argb, decorations, background, DecorationPaint.SOLID);
     }
 
     /// A stretch in a colour and its rules, with nothing behind it.
@@ -65,6 +81,6 @@ public record SpanPaint(int start, int end, int argb, Set<TextDecoration> decora
 
     /// This stretch in another colour, its range and its rules kept.
     public SpanPaint argb(int value) {
-        return new SpanPaint(start, end, value, decorations, background);
+        return new SpanPaint(start, end, value, decorations, background, decorationPaint);
     }
 }

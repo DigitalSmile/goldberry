@@ -14,7 +14,7 @@ import dev.goldberry.css.ComputedStyle;
 /// @param name      the property's name
 /// @param inherited whether a child takes the value from its parent when no
 ///                  rule sets it. This is goldberry's list, which follows CSS
-///                  with one addition: `text-decoration-line` inherits, because
+///                  with one addition: the `text-decoration` longhands inherit, because
 ///                  a decoration has to reach the anonymous box holding an
 ///                  element's text
 /// @param readable  whether a declaration of this name is read; see

@@ -32,6 +32,7 @@ import dev.goldberry.css.parse.TokenType;
 import dev.goldberry.css.property.GlobalKeyword;
 import dev.goldberry.css.property.LogicalProperties;
 import dev.goldberry.css.property.Properties;
+import dev.goldberry.css.text.TextDecorationParser;
 import dev.goldberry.css.value.CssColor;
 import dev.goldberry.css.value.CssEasing;
 import dev.goldberry.css.value.CssLength;
@@ -62,9 +63,11 @@ import dev.goldberry.paint.Box;
 import dev.goldberry.render.Cursor;
 import dev.goldberry.text.bidi.Directionality;
 import dev.goldberry.text.bidi.UnicodeBidi;
+import dev.goldberry.text.flow.DecorationPaint;
 import dev.goldberry.text.flow.OverflowWrap;
 import dev.goldberry.text.flow.TextAlign;
 import dev.goldberry.text.flow.TextDecoration;
+import dev.goldberry.text.flow.TextDecorations;
 import dev.goldberry.text.flow.TextFlow;
 import dev.goldberry.text.flow.TextJustify;
 import dev.goldberry.text.flow.TextOverflow;
@@ -195,8 +198,9 @@ public record ComputedStyle(
         // approximation of CSS's *propagation* to in-flow descendants and is chosen
         // for `text-align`'s reason -- a control's text is very often an anonymous
         // child box, and a property that stopped at the node it was written on
-        // would decorate nothing.
-        Set<TextDecoration> textDecoration,
+        // would decorate nothing. The line's style, colour and thickness travel
+        // with it as one value, because CSS propagates a decoration whole.
+        TextDecorations textDecoration,
         // Whether a word may be cut: `overflow-wrap` when it is wider than the
         // whole line, `word-break: break-all` anywhere. Both inherit, which is
         // CSS's rule, and they are two components because they are two
@@ -291,7 +295,7 @@ public record ComputedStyle(
             // The leading edge, which is CSS's initial value and where every
             // line in the toolkit sat before the property existed.
             TextAlign.START,
-            TextDecoration.NONE,
+            TextDecorations.NONE,
             // A word breaks only between words, CSS's initial value for both.
             OverflowWrap.NORMAL,
             WordBreak.NORMAL,
@@ -323,9 +327,8 @@ public record ComputedStyle(
         Objects.requireNonNull(whiteSpace, "whiteSpace");
         Objects.requireNonNull(textOverflow, "textOverflow");
         Objects.requireNonNull(textAlign, "textAlign");
-        // Copied rather than merely checked, because a style is a value that is
-        // cached and compared, and a set the caller can still add to is neither.
-        textDecoration = Set.copyOf(Objects.requireNonNull(textDecoration, "textDecoration"));
+        // A value already: `TextDecorations` copies its set of lines.
+        Objects.requireNonNull(textDecoration, "textDecoration");
         Objects.requireNonNull(overflowWrap, "overflowWrap");
         Objects.requireNonNull(wordBreak, "wordBreak");
         Objects.requireNonNull(fill, "fill");
@@ -970,13 +973,32 @@ public record ComputedStyle(
                         .map(v -> typography(
                                 typography.lettering(typography.lettering().justify(v))))
                         .orElseGet(() -> dropped(property, value));
-            // The shorthand and the one longhand of it that exists here. CSS's
-            // shorthand also carries a colour and a style, and a declaration that
-            // names either is dropped whole rather than half-applied: a rule that
-            // asked for `underline wavy red` and got a straight rule in the text's
-            // own colour would be a property that lies.
-            case "text-decoration", "text-decoration-line" ->
-                decorations(value).map(this::textDecoration).orElseGet(() -> dropped(property, value));
+            // The shorthand and its longhands. The shorthand resets the four
+            // parts it has and keeps `text-underline-offset`, which is not one.
+            case "text-decoration" ->
+                TextDecorationParser.shorthand(value, context, textDecoration)
+                        .map(this::textDecoration)
+                        .orElseGet(() -> dropped(property, value));
+            case "text-decoration-line" ->
+                TextDecorationParser.lines(value)
+                        .map(v -> textDecoration(textDecoration.lines(v)))
+                        .orElseGet(() -> dropped(property, value));
+            case "text-decoration-style" ->
+                TextDecorationParser.style(value)
+                        .map(v -> decorationPaint(textDecoration.paint().style(v)))
+                        .orElseGet(() -> dropped(property, value));
+            case "text-decoration-color" ->
+                TextDecorationParser.colour(value)
+                        .map(v -> decorationPaint(textDecoration.paint().colour(v)))
+                        .orElseGet(() -> dropped(property, value));
+            case "text-decoration-thickness" ->
+                TextDecorationParser.thickness(value, context)
+                        .map(v -> decorationPaint(textDecoration.paint().thickness(v)))
+                        .orElseGet(() -> dropped(property, value));
+            case "text-underline-offset" ->
+                TextDecorationParser.offset(value, context)
+                        .map(v -> decorationPaint(textDecoration.paint().underlineOffset(v)))
+                        .orElseGet(() -> dropped(property, value));
 
             // `background` is CSS's shorthand: gradient layers, top first, and a
             // colour under them. It resets what it does not name, so
@@ -2815,9 +2837,19 @@ public record ComputedStyle(
                 cursor);
     }
 
+    /// This style with different lines, drawn as they were: `text-decoration-line`.
+    public ComputedStyle textDecoration(Set<TextDecoration> v) {
+        return textDecoration(textDecoration.lines(v));
+    }
+
+    /// This style with the same lines drawn another way: the other longhands.
+    public ComputedStyle decorationPaint(DecorationPaint v) {
+        return textDecoration(textDecoration.paint(v));
+    }
+
     /// This style with a different `text-decoration` — see the component's note on
     /// why it inherits.
-    public ComputedStyle textDecoration(Set<TextDecoration> v) {
+    public ComputedStyle textDecoration(TextDecorations v) {
         return new ComputedStyle(
                 direction,
                 justifyContent,
@@ -2956,7 +2988,15 @@ public record ComputedStyle(
     /// [Box#text(dev.goldberry.text.Paragraph, int,
     /// TextFlow)].
     public TextFlow textFlow() {
-        return new TextFlow(whiteSpace, textOverflow, lineAlign(), textDecoration, overflowWrap, wordBreak, lineClamp);
+        return new TextFlow(
+                whiteSpace,
+                textOverflow,
+                lineAlign(),
+                textDecoration.lines(),
+                overflowWrap,
+                wordBreak,
+                lineClamp,
+                textDecoration.paint());
     }
 
     /// `text-align` as a line is placed in this box: `start` and `end` turned
@@ -4613,36 +4653,6 @@ public record ComputedStyle(
         } catch (IllegalArgumentException e) {
             return Optional.empty();
         }
-    }
-
-    /// CSS's `text-decoration-line`: `none`, or one or both of the rules.
-    ///
-    /// Empty — a dropped declaration — for anything else, which deliberately
-    /// includes the rest of the shorthand: `underline red` names a colour this
-    /// toolkit cannot draw, and dropping it with a warning is how every other
-    /// property here reports a value outside the subset.
-    ///
-    /// `none` beside another keyword is also refused rather than resolved. CSS says
-    /// the same, and the alternative is guessing which half of a contradiction the
-    /// author meant.
-    private static Optional<Set<TextDecoration>> decorations(List<Token> value) {
-        var tokens = value.stream().filter(t -> !t.is(TokenType.WHITESPACE)).toList();
-        if (tokens.isEmpty() || tokens.stream().anyMatch(t -> !t.is(TokenType.IDENT))) {
-            return Optional.empty();
-        }
-        if (tokens.size() == 1 && tokens.getFirst().text().equalsIgnoreCase("none")) {
-            return Optional.of(TextDecoration.NONE);
-        }
-        var lines = java.util.EnumSet.noneOf(TextDecoration.class);
-        for (var token : tokens) {
-            var line = TextDecoration.parse(token.text());
-            if (line == null || !lines.add(line)) {
-                // Unknown, or named twice -- both are a declaration nobody can read
-                // back, and neither is worth half-applying.
-                return Optional.empty();
-            }
-        }
-        return Optional.of(Set.copyOf(lines));
     }
 
     /// CSS's `flex-wrap`, whose default keyword is spelled without the hyphen

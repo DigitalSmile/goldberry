@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -15,6 +16,8 @@ import org.junit.jupiter.api.Test;
 import dev.goldberry.RendererRequirement;
 import dev.goldberry.assets.BundledFont;
 import dev.goldberry.paint.TestFrames;
+import dev.goldberry.text.flow.DecorationPaint;
+import dev.goldberry.text.flow.DecorationStyle;
 import dev.goldberry.text.flow.TextAlign;
 import dev.goldberry.text.flow.TextDecoration;
 import dev.goldberry.text.flow.TextFlow;
@@ -181,7 +184,64 @@ class ParagraphDecorationTest {
         assertEquals(box, last + 1, 2.0, "the rule stopped short of the line's own ellipsis");
     }
 
+    @Test
+    @DisplayName("a flow's line takes the colour its paint gives it, not the text's")
+    void aFlowLineHasItsOwnColour() {
+        var red = 0xFFFF0000;
+        var flow = TextFlow.NORMAL
+                .decorations(TextDecoration.UNDERLINE)
+                .decorationPaint(DecorationPaint.SOLID.colour(red));
+        var target = paint(TEXT, 200, flow);
+
+        var row = rules(target, TEXT).getFirst();
+        assertRed(target.pixel(10, row));
+    }
+
+    @Test
+    @DisplayName("a wavy line under text is ink below the baseline that no row fills")
+    void aWavyLineIsAWave() {
+        var flow = TextFlow.NORMAL
+                .decorations(TextDecoration.UNDERLINE)
+                .decorationPaint(DecorationPaint.SOLID.style(DecorationStyle.WAVY));
+        var target = paint(TEXT, 200, flow);
+
+        assertEquals(List.of(), rules(target, TEXT), "a wave is not a straight rule");
+        var below = (int) Math.ceil(font.ascent()
+                + font.decorations().orElse(font.size(), font.ascent()).underlinePosition());
+        var inked = false;
+        for (var x = 3; x < 30 && !inked; x++) {
+            inked = isInk(target, x, below) || isInk(target, x, below + 1) || isInk(target, x, below + 2);
+        }
+        assertTrue(inked, "nothing was drawn where the underline goes");
+    }
+
+    /// A spell checker's line: a span whose text keeps the paragraph's colour
+    /// and whose line is a red wave of its own.
+    @Test
+    @DisplayName("a span's line is drawn in the span's paint")
+    void aSpanLineHasItsOwnPaint() {
+        var red = 0xFFFF0000;
+        var target = TestFrames.of(WIDTH, HEIGHT, 1.0f);
+        target.frame().fill(BACKGROUND);
+        var span = new SpanPaint(
+                0, TEXT.length(), INK, Set.of(TextDecoration.UNDERLINE), 0, DecorationPaint.SOLID.colour(red));
+        Paragraph.of(font, TEXT).paint(target.frame(), 0, 0, 200, INK, TextFlow.NORMAL, List.of(span));
+        target.end();
+
+        var row = rules(target, TEXT).getFirst();
+        assertRed(target.pixel(10, row));
+        assertTrue(row >= font.ascent(), "and it is under the text");
+    }
+
     // --- helpers --------------------------------------------------------------
+
+    /// Red over the black background: a rule at a fractional position covers
+    /// its edge rows in part, so the red is less than full and nothing else is
+    /// there.
+    private static void assertRed(int pixel) {
+        assertEquals(0, pixel & 0xFFFF, () -> String.format("#%08x has green or blue in it", pixel));
+        assertTrue(((pixel >>> 16) & 0xFF) > 0x80, () -> String.format("#%08x is not red", pixel));
+    }
 
     private TestFrames.Target paint(String text, double maxWidth, TextFlow flow) {
         var target = TestFrames.of(WIDTH, HEIGHT, 1.0f);

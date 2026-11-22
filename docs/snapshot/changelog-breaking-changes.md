@@ -300,3 +300,14 @@ Everything below is measured against 2026.2 (tag commit d3eacfdc).
   covered window sees none. <!-- ADR-0730 -->
 - `rich-text` reads `user-select`: `none` stops one made `selectable`, and
   `text` or `all` make one selectable that was not. <!-- ADR-0728 -->
+- `ComputedStyle.textDecoration()` returns a `TextDecorations` (the lines and
+  how they are drawn) where it returned a `Set<TextDecoration>`; the lines are
+  `textDecoration().lines()`. `textDecoration(Set)` still sets the lines.
+  <!-- ADR-0734 -->
+- `TextFlow`, `SpanPaint` and `MarkStyle` each have one more component,
+  `decorationPaint`; their former constructors stay and mean a solid line in
+  the text's colour. A record pattern over any of them names one more
+  component. <!-- ADR-0734 -->
+- `text-decoration: underline red` and the other declarations that named a
+  style, a colour or a thickness used to be dropped whole, and are now drawn
+  as written. <!-- ADR-0734 -->

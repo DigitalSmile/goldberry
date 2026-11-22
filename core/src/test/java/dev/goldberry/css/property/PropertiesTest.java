@@ -56,7 +56,9 @@ class PropertiesTest {
             margin-top: 1px; margin-right: 2px; margin-bottom: 3px; margin-left: 4px;
             top: 1px; right: 2px; bottom: 3px; left: 4px;
             white-space: nowrap; overflow-wrap: anywhere; word-break: break-all; text-overflow: ellipsis; line-clamp: 3;
-            text-align: center; text-decoration-line: underline; color: #abcdef; opacity: 0.5;
+            text-align: center; text-decoration-line: underline; text-decoration-style: dashed;
+            text-decoration-color: #123456; text-decoration-thickness: 3px; text-underline-offset: 4px;
+            color: #abcdef; opacity: 0.5;
             background-color: #123456; background-image: linear-gradient(red, blue);
             background-position-x: 3px; background-position-y: 4px; background-size: 10px 20px;
             background-repeat: no-repeat; background-origin: content-box; background-clip: padding-box;
@@ -96,7 +98,7 @@ class PropertiesTest {
             Map.entry("-webkit-backdrop-filter", "blur(1px)"),
             Map.entry("container", "main / inline-size"),
             Map.entry("flex", "4 5 6px"),
-            Map.entry("text-decoration", "line-through"),
+            Map.entry("text-decoration", "line-through dotted #654321 2px"),
             Map.entry(
                     "background", "url(\"tile.png\") right 3px top 2px / 7px 8px space border-box content-box #654321"),
             Map.entry("border-width", "6px 7px 8px 9px"),

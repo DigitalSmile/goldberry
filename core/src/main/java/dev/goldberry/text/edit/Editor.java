@@ -643,7 +643,13 @@ public final class Editor {
             var style = styles.of(run.kinds());
             if (style.paints()) {
                 var argb = style.argb() == MarkStyle.TEXT_COLOUR ? ink : style.argb();
-                spans.add(new SpanPaint(run.start(), run.end(), argb, style.decorations(), style.background()));
+                spans.add(new SpanPaint(
+                        run.start(),
+                        run.end(),
+                        argb,
+                        style.decorations(),
+                        style.background(),
+                        style.decorationPaint()));
             }
         }
         return spans;

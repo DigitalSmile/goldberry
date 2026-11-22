@@ -100,7 +100,13 @@ public final class TextSelection<E> {
         spans.addAll(text.spans());
         // Last, so it is painted over whatever background a span had: the
         // selection is what a reader is looking at.
-        spans.add(new SpanPaint(from, to, text.argb(), text.flow().decorations(), highlight));
+        spans.add(new SpanPaint(
+                from,
+                to,
+                text.argb(),
+                text.flow().decorations(),
+                highlight,
+                text.flow().decorationPaint()));
         return new Box.Text(text.paragraph(), text.argb(), text.flow(), spans, text.shadows());
     }
 

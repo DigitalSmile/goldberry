@@ -173,7 +173,29 @@ final class Longhands {
         all.add(own("text-overflow", (from, into) -> into.textOverflow(from.textOverflow())));
         all.add(own("line-clamp", (from, into) -> into.lineClamp(from.lineClamp())));
         all.add(inherited("text-align", (from, into) -> into.textAlign(from.textAlign())));
-        all.add(inherited("text-decoration-line", (from, into) -> into.textDecoration(from.textDecoration())));
+        all.add(inherited(
+                "text-decoration-line",
+                (from, into) -> into.textDecoration(from.textDecoration().lines())));
+        all.add(inherited(
+                "text-decoration-style",
+                (from, into) -> into.decorationPaint(into.textDecoration()
+                        .paint()
+                        .style(from.textDecoration().paint().style()))));
+        all.add(inherited("text-decoration-color", (from, into) -> {
+            var colour = from.textDecoration().paint().colour();
+            var paint = into.textDecoration().paint();
+            return into.decorationPaint(colour.isPresent() ? paint.colour(colour.getAsInt()) : paint.textColour());
+        }));
+        all.add(inherited(
+                "text-decoration-thickness",
+                (from, into) -> into.decorationPaint(into.textDecoration()
+                        .paint()
+                        .thickness(from.textDecoration().paint().thickness()))));
+        all.add(inherited(
+                "text-underline-offset",
+                (from, into) -> into.decorationPaint(into.textDecoration()
+                        .paint()
+                        .underlineOffset(from.textDecoration().paint().underlineOffset()))));
         all.add(inherited("color", (from, into) -> into.color(from.color())));
         all.add(own("opacity", (from, into) -> into.opacity(from.opacity())));
     }

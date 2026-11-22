@@ -17,6 +17,8 @@ import dev.goldberry.paint.Frame;
 import dev.goldberry.text.bidi.BidiLevels;
 import dev.goldberry.text.bidi.Directionality;
 import dev.goldberry.text.bidi.LevelRun;
+import dev.goldberry.text.decoration.DecorationPainter;
+import dev.goldberry.text.flow.DecorationPaint;
 import dev.goldberry.text.flow.OverflowWrap;
 import dev.goldberry.text.flow.TextAlign;
 import dev.goldberry.text.flow.TextDecoration;
@@ -1276,7 +1278,8 @@ public final class Paragraph {
             var pen = rtl ? x + widthOf(next, to) : x + widthOf(from, at);
             drawGlyphs(frame, pen, baseline, glyphBefore[at], glyphBefore[next], colour);
             var decorations = paint != null ? paint.decorations() : flow.decorations();
-            rule(frame, pen, baseline, widthOf(at, next), colour, decorations, fontAt(at));
+            var look = paint != null ? paint.decorationPaint() : flow.decorationPaint();
+            rule(frame, pen, baseline, widthOf(at, next), colour, decorations, look, fontAt(at));
             at = next;
         }
     }
@@ -1314,7 +1317,8 @@ public final class Paragraph {
         var pen = rtl ? left - face.ellipsisWidth() : left + kept;
         face.draw(frame, pen, baseline, TextOverflow.MARK, colour);
         var decorations = paint != null ? paint.decorations() : flow.decorations();
-        rule(frame, pen, baseline, face.ellipsisWidth(), colour, decorations, face);
+        var look = paint != null ? paint.decorationPaint() : flow.decorationPaint();
+        rule(frame, pen, baseline, face.ellipsisWidth(), colour, decorations, look, face);
     }
 
     /// Whether any span has something behind it.
@@ -1516,7 +1520,8 @@ public final class Paragraph {
     }
 
     /// Draws `decorations` along one piece, at the place and thickness `face`
-    /// gives them. Nothing for no decorations, which asks the face nothing.
+    /// gives them unless `look` says otherwise. Nothing for no decorations,
+    /// which asks the face nothing.
     private static void rule(
             Frame frame,
             double x,
@@ -1524,26 +1529,22 @@ public final class Paragraph {
             double width,
             int argb,
             Set<TextDecoration> decorations,
+            DecorationPaint look,
             Font face) {
         if (decorations.isEmpty() || !(width > 0)) {
             return;
         }
         var rules = face.decorations().orElse(face.size(), face.ascent());
-        if (decorations.contains(TextDecoration.UNDERLINE)) {
-            fillRule(frame, x, baseline + rules.underlinePosition(), width, rules.underlineThickness(), argb);
-        }
-        if (decorations.contains(TextDecoration.LINE_THROUGH)) {
-            fillRule(frame, x, baseline + rules.strikethroughPosition(), width, rules.strikethroughThickness(), argb);
-        }
+        DecorationPainter.paint(frame, x, baseline, width, argb, decorations, look, rules);
     }
 
     /// Draws the rules `flow` asks for along one line, `width` wide from `x`.
     ///
-    /// In the text's own colour and at the face's own thickness. A decoration is
-    /// part of the glyphs rather than a box behind them, which is why it takes
-    /// `argb` and not a second colour, and why the position and the thickness
-    /// come from [dev.goldberry.text.font.Font#decorations()] rather than from
-    /// any arithmetic here.
+    /// In the text's own colour unless the flow's paint has one, and at the
+    /// face's own position and thickness unless it says otherwise. A decoration
+    /// is part of the glyphs rather than a box behind them, which is why the
+    /// metrics come from [dev.goldberry.text.font.Font#decorations()] rather
+    /// than from any arithmetic here.
     ///
     /// @param rules the face's metrics, already substituted for by
     ///              [dev.goldberry.text.font.Font.Decorations#orElse],
@@ -1556,20 +1557,10 @@ public final class Paragraph {
             int argb,
             TextFlow flow,
             Font.@Nullable Decorations rules) {
-
-        if (rules == null || !(width > 0)) {
+        if (rules == null) {
             return;
         }
-        if (flow.has(TextDecoration.UNDERLINE)) {
-            fillRule(frame, x, baseline + rules.underlinePosition(), width, rules.underlineThickness(), argb);
-        }
-        if (flow.has(TextDecoration.LINE_THROUGH)) {
-            fillRule(frame, x, baseline + rules.strikethroughPosition(), width, rules.strikethroughThickness(), argb);
-        }
-    }
-
-    private static void fillRule(Frame frame, double x, double top, double width, double thickness, int argb) {
-        frame.fillRect((float) x, (float) top, (float) width, (float) thickness, argb);
+        DecorationPainter.paint(frame, x, baseline, width, argb, flow.decorations(), flow.decorationPaint(), rules);
     }
 
     /// Draws one over-long line as much of itself as fits, then the ellipsis.

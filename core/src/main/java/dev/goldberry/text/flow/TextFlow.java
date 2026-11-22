@@ -34,6 +34,8 @@ import java.util.Set;
 /// @param wordBreak    whether a line may break between any two graphemes
 /// @param maxLines     how many lines are kept, the last marked with an
 ///                     ellipsis when more were cut: `line-clamp`. 0 keeps all
+/// @param decorationPaint how the decoration lines are drawn: their style,
+///                     colour, thickness and offset
 public record TextFlow(
         WhiteSpace whiteSpace,
         TextOverflow textOverflow,
@@ -41,7 +43,8 @@ public record TextFlow(
         Set<TextDecoration> decorations,
         OverflowWrap overflowWrap,
         WordBreak wordBreak,
-        int maxLines) {
+        int maxLines,
+        DecorationPaint decorationPaint) {
 
     /// Wraps, marks nothing, sits at the leading edge, is undecorated, breaks
     /// only between words: CSS's initial values for all six.
@@ -65,6 +68,27 @@ public record TextFlow(
         if (maxLines < 0) {
             throw new IllegalArgumentException("a paragraph keeps a number of lines, not " + maxLines);
         }
+        Objects.requireNonNull(decorationPaint, "decorationPaint");
+    }
+
+    /// A flow whose lines, if any, are drawn solid in the text's colour.
+    public TextFlow(
+            WhiteSpace whiteSpace,
+            TextOverflow textOverflow,
+            TextAlign textAlign,
+            Set<TextDecoration> decorations,
+            OverflowWrap overflowWrap,
+            WordBreak wordBreak,
+            int maxLines) {
+        this(
+                whiteSpace,
+                textOverflow,
+                textAlign,
+                decorations,
+                overflowWrap,
+                wordBreak,
+                maxLines,
+                DecorationPaint.SOLID);
     }
 
     /// A flow that keeps every line.
@@ -96,42 +120,65 @@ public record TextFlow(
 
     /// This, with a different `white-space`.
     public TextFlow whiteSpace(WhiteSpace value) {
-        return new TextFlow(value, textOverflow, textAlign, decorations, overflowWrap, wordBreak, maxLines);
+        return new TextFlow(
+                value, textOverflow, textAlign, decorations, overflowWrap, wordBreak, maxLines, decorationPaint);
     }
 
     /// This, with a different `text-overflow`.
     public TextFlow textOverflow(TextOverflow value) {
-        return new TextFlow(whiteSpace, value, textAlign, decorations, overflowWrap, wordBreak, maxLines);
+        return new TextFlow(
+                whiteSpace, value, textAlign, decorations, overflowWrap, wordBreak, maxLines, decorationPaint);
     }
 
     /// This, with a different `text-align`.
     public TextFlow textAlign(TextAlign value) {
-        return new TextFlow(whiteSpace, textOverflow, value, decorations, overflowWrap, wordBreak, maxLines);
+        return new TextFlow(
+                whiteSpace, textOverflow, value, decorations, overflowWrap, wordBreak, maxLines, decorationPaint);
     }
 
     /// This, with a different set of decorations.
     public TextFlow decorations(Set<TextDecoration> value) {
-        return new TextFlow(whiteSpace, textOverflow, textAlign, value, overflowWrap, wordBreak, maxLines);
+        return new TextFlow(
+                whiteSpace, textOverflow, textAlign, value, overflowWrap, wordBreak, maxLines, decorationPaint);
     }
 
     /// This, with a different `overflow-wrap`.
     public TextFlow overflowWrap(OverflowWrap value) {
-        return new TextFlow(whiteSpace, textOverflow, textAlign, decorations, value, wordBreak, maxLines);
+        return new TextFlow(
+                whiteSpace, textOverflow, textAlign, decorations, value, wordBreak, maxLines, decorationPaint);
     }
 
     /// This, with a different `word-break`.
     public TextFlow wordBreak(WordBreak value) {
-        return new TextFlow(whiteSpace, textOverflow, textAlign, decorations, overflowWrap, value, maxLines);
+        return new TextFlow(
+                whiteSpace, textOverflow, textAlign, decorations, overflowWrap, value, maxLines, decorationPaint);
     }
 
     /// This, keeping `value` lines: `line-clamp`. 0 keeps every line.
     public TextFlow maxLines(int value) {
-        return new TextFlow(whiteSpace, textOverflow, textAlign, decorations, overflowWrap, wordBreak, value);
+        return new TextFlow(
+                whiteSpace, textOverflow, textAlign, decorations, overflowWrap, wordBreak, value, decorationPaint);
     }
 
     /// Whether lines past [#maxLines] are cut.
     public boolean clamps() {
         return maxLines > 0;
+    }
+
+    /// This, with its lines drawn as `value` says.
+    public TextFlow decorationPaint(DecorationPaint value) {
+        return new TextFlow(whiteSpace, textOverflow, textAlign, decorations, overflowWrap, wordBreak, maxLines, value);
+    }
+
+    /// This, with the lines and the paint of `value`: `text-decoration` whole.
+    public TextFlow textDecorations(TextDecorations value) {
+        return new TextFlow(
+                whiteSpace, textOverflow, textAlign, value.lines(), overflowWrap, wordBreak, maxLines, value.paint());
+    }
+
+    /// The lines and how they are drawn, together.
+    public TextDecorations textDecorations() {
+        return new TextDecorations(decorations, decorationPaint);
     }
 
     /// This, decorated with the lines named: `flow.decorations(UNDERLINE)`, or
@@ -179,6 +226,7 @@ public record TextFlow(
                 + textOverflow.name().toLowerCase(java.util.Locale.ROOT) + ", "
                 + textAlign.name().toLowerCase(java.util.Locale.ROOT) + ", "
                 + decorationNames()
+                + (decorationPaint.isPlain() || decorations.isEmpty() ? "" : " " + decorationPaint)
                 + (overflowWrap == OverflowWrap.NORMAL ? "" : ", overflow-wrap anywhere")
                 + (wordBreak == WordBreak.NORMAL ? "" : ", word-break break-all")
                 + (maxLines == 0 ? "" : ", line-clamp " + maxLines) + "]";

@@ -26,6 +26,7 @@ import dev.goldberry.layout.Wrap;
 import dev.goldberry.render.Cursor;
 import dev.goldberry.text.Paragraph;
 import dev.goldberry.text.SpanPaint;
+import dev.goldberry.text.flow.DecorationPaint;
 import dev.goldberry.text.flow.TextFlow;
 
 /// A rectangle with a flexbox style and children — the smallest thing that can
@@ -169,15 +170,23 @@ public record Box(
                         span.end(),
                         CssColor.fade(span.argb(), alpha),
                         span.decorations(),
-                        span.hasBackground() ? CssColor.fade(span.background(), alpha) : 0));
+                        span.hasBackground() ? CssColor.fade(span.background(), alpha) : 0,
+                        fadedPaint(span.decorationPaint(), alpha)));
             }
             return new Text(
                     paragraph,
                     CssColor.fade(argb, alpha),
-                    flow,
+                    flow.decorationPaint(fadedPaint(flow.decorationPaint(), alpha)),
                     faded,
                     shadows.stream().map(shadow -> shadow.fade(alpha)).toList());
         }
+    }
+
+    /// `paint` at `alpha` of its opacity. A line in the text's own colour fades
+    /// with the text and needs nothing.
+    private static DecorationPaint fadedPaint(DecorationPaint paint, double alpha) {
+        var colour = paint.colour();
+        return colour.isEmpty() ? paint : paint.colour(CssColor.fade(colour.getAsInt(), alpha));
     }
 
     /// An icon filling a box, and the colour to stroke it in.

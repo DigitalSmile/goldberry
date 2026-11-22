@@ -7050,6 +7050,16 @@ toolkit, and six entries arrived on it together. All six are closed.
   in the wrong theme, and neither reports an error. **The `Optional` is the design**
   — SDL says `UNKNOWN` on a desktop with no such setting, and "the desktop says
   light" and "the desktop does not say" are a theme and a default.
+- **`text-decoration` in full** (W3.7 phase 1, ADR-0734 parked, 2026-11-22).
+  `text-decoration-style` (`solid` `double` `dotted` `dashed` `wavy`),
+  `-color`, `-thickness` and `text-underline-offset`, and the shorthand in any
+  order. The cascade holds one `TextDecorations`, so a decoration inherits
+  with its style and colour. `TextFlow`, `SpanPaint` and `MarkStyle` carry a
+  `DecorationPaint`, so a span's line has a colour of its own (the spell
+  checker's squiggle). `text.decoration.DecorationPainter` draws it; `solid` is
+  still a rectangle, and the patterns are anchored to the frame's x so a line
+  in several spans keeps one rhythm. Tests: `TextDecorationParserTest`,
+  `DecorationPainterTest`, `ParagraphDecorationTest`, `ComputedStyleTest`.
 - **`text-decoration`, from the face's own metrics**
   ([ADR-0321](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0321-a-rule-under-text-belongs-to-the-face.md), G27). `underline`
   and `line-through` resolve in the cascade, inherit (CSS *propagates* them, which

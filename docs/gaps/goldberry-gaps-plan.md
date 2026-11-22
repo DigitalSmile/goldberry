@@ -285,7 +285,7 @@ log in the same commit as the work.
 | T-22 | W3.6 | todo | | |
 | T-23 | — | parked (D11) | 0690 | |
 | T-24 | W3.3 | done: a page's `<style>`, `style=`, `bgcolor` and `<font color>` in a `StyleScope` of the view's own; `AuthorStyles` with `ADAPTED` the default (a text colour with no background of the mail's under it takes the theme's) | 0710 | |
-| T-25 | W3.7 | todo | | |
+| T-25 | W3.7 | in progress (`docs/spell-checking.md`): plan written 2026-11-22; D1 (a) Lucene's pure-Java Hunspell over the same dictionaries, D5 (b) off until a field asks, the rest as recommended (ADR-0733); phase 1, CSS text decoration in full, done (ADR-0734); next phase 2, the SPI | 0733, 0734 | |
 | T-26 | W2.13 | done | 0686 | |
 | T-29 | W3.8 | done: `GlobalShortcuts` (portal, X11 grab, `RegisterHotKey`, Carbon); Windows and macOS written, not run; the Windows release is polled while held, not hooked | 0711 | |
 | T-30 | W3.10 | done (`docs/zero-copy-tiles.md`): D1 (a), D2 (a), D3 D6 decides per driver, D4 (a), D5 `RasterTexture`, D6 the gate, run-time check at 1.5×. Phases 0–4 done: Direct3D 12 staging without SDL's hidden copy, the in-place raster, the composited window painting in place (4K upload 6.8 → 0.25 ms on the 1660 Ti), and `RasterTexture` in the exported `dev.goldberry.gpu.raster` with a showcase card; Metal and Direct3D 12 in place written, measured by the benchmark lane, not run as a window | 0712, 0731, 0732 | |
@@ -628,3 +628,18 @@ log in the same commit as the work.
   its copy is recorded in the application's frame and the next paint waits on
   that frame (ADR-0732). The GPU screen has a board of raster tiles. G-30
   answered in `answers-tessera.md`. W3.10 is done. Next ADR 0733.
+- **2026-11-22, W3.7 started.** `docs/spell-checking.md` written before any
+  code: decoration is lines only and drawn as rectangles, `SpanPaint` has no
+  decoration colour, `TextMenu` takes rows only after the stock ones, and
+  `::spelling-error` fits beside `::placeholder` and `::selection`. Lucene
+  10.6.0 has a pure-Java Hunspell (Apache 2.0, a JPMS module, suggestions
+  under a timeout) that reads the same dictionaries, so D1 asks again which
+  engine reads them. D1–D9 are asked; phase 1 (CSS text decoration) does not
+  depend on D1.
+- **2026-11-22, W3.7 decided and phase 1 done.** The owner chose D1 (a),
+  Lucene's pure-Java Hunspell, and D5 (b), no field checking by default. D2–D4
+  and D6–D9 went as recommended (ADR-0733). Phase 1 is CSS text decoration in
+  full (ADR-0734): the style, colour, thickness and underline offset, one
+  `TextDecorations` value in the cascade, a `decorationPaint` on `TextFlow`,
+  `SpanPaint` and `MarkStyle`, and `DecorationPainter`. No golden moved. Next
+  ADR 0735.

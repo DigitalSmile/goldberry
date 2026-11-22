@@ -15,7 +15,7 @@ import dev.goldberry.layout.Presence.UserSelect;
 import dev.goldberry.paint.Box;
 import dev.goldberry.text.Paragraph;
 import dev.goldberry.text.SpanPaint;
-import dev.goldberry.text.flow.TextDecoration;
+import dev.goldberry.text.flow.TextDecorations;
 import dev.goldberry.text.flow.TextFlow;
 import dev.goldberry.widget.Widget;
 import dev.goldberry.widget.attr.Attributes;
@@ -153,7 +153,7 @@ record RichTextBox(
     public Box render(ComputedStyle style, List<Box> children, Context context) {
         var spans = new ArrayList<Paragraph>(runs.size());
         var paints = new ArrayList<SpanPaint>();
-        var decorations = style.textFlow().decorations();
+        var decorations = style.textFlow().textDecorations();
         var runEnds = new int[runs.size()];
         var highlight = children.isEmpty() ? 0 : backgroundOf(children.getLast());
         var offset = 0;
@@ -165,7 +165,7 @@ record RichTextBox(
                 continue;
             }
             var end = offset + run.paragraph().text().length();
-            var ruled = run.flow().decorations();
+            var ruled = run.flow().textDecorations();
             var behind = backgroundOf(child);
             var differs = run.argb() != style.color() || !ruled.equals(decorations) || behind != 0;
             addPieces(paints, offset, end, differs, run.argb(), style.color(), ruled, decorations, behind, highlight);
@@ -197,8 +197,8 @@ record RichTextBox(
             boolean differs,
             int argb,
             int paragraphArgb,
-            Set<TextDecoration> ruled,
-            Set<TextDecoration> paragraphRules,
+            TextDecorations ruled,
+            TextDecorations paragraphRules,
             int behind,
             int highlight) {
         var start = selFrom >= 0 ? Math.clamp(selFrom, from, to) : to;
@@ -207,17 +207,21 @@ record RichTextBox(
         var rules = differs ? ruled : paragraphRules;
         if (start >= end || highlight == 0) {
             if (differs) {
-                into.add(new SpanPaint(from, to, colour, rules, behind));
+                into.add(span(from, to, colour, rules, behind));
             }
             return;
         }
         if (from < start && differs) {
-            into.add(new SpanPaint(from, start, colour, rules, behind));
+            into.add(span(from, start, colour, rules, behind));
         }
-        into.add(new SpanPaint(start, end, colour, rules, highlight));
+        into.add(span(start, end, colour, rules, highlight));
         if (end < to && differs) {
-            into.add(new SpanPaint(end, to, colour, rules, behind));
+            into.add(span(end, to, colour, rules, behind));
         }
+    }
+
+    private static SpanPaint span(int from, int to, int argb, TextDecorations rules, int background) {
+        return new SpanPaint(from, to, argb, rules.lines(), background, rules.paint());
     }
 
     /// A box's solid background colour, or 0 for none or for anything that is

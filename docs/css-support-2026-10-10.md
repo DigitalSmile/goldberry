@@ -147,7 +147,7 @@ have. *By design* marks a gap the guide or an ADR already argues for keeping.
 | `text-shadow` | unknown property | moderate | `box-shadow`'s ramp could be reused over glyph runs |
 | `text-indent`, `tab-size`, `hyphens`, `text-wrap` (`balance`, `pretty`), `line-clamp`/`-webkit-line-clamp` | unknown property | moderate each | A paragraph already knows its lines, so `line-clamp` is close to `text-overflow: ellipsis` |
 | `line-height: normal` | dropped | trivial | Only a length or a number is read |
-| `text-decoration` colour, style, thickness; `text-decoration-color`/`-style`/`-thickness`, `text-underline-offset` | dropped / unknown | moderate | `underline red` drops the whole declaration on purpose rather than half-applying it |
+| `text-decoration` colour, style, thickness; `text-decoration-color`/`-style`/`-thickness`, `text-underline-offset` | **applied since 2026-11-22** (W3.7 phase 1, ADR-0734): all five styles, a colour of its own, a thickness and an offset; `overline` still dropped | — | Was: `underline red` dropped the whole declaration on purpose rather than half-applying it |
 | `white-space: break-spaces`; `white-space-collapse`, `text-wrap-mode` | dropped / unknown | small | |
 | `font` shorthand | unknown property | small | |
 | `font-variant*`, `font-feature-settings`, `font-variation-settings`, `font-stretch`, `font-optical-sizing`, `font-synthesis` | unknown property | moderate to large | Variable weights are *not scheduled* in the limitations page: a weight is a face |

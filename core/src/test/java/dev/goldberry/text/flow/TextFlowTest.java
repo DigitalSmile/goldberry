@@ -4,7 +4,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import java.util.Set;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -88,6 +91,43 @@ class TextFlowTest {
         mutable.add(TextDecoration.LINE_THROUGH);
 
         assertEquals(java.util.Set.of(TextDecoration.UNDERLINE), flow.decorations());
+    }
+
+    @Test
+    @DisplayName("lines are drawn solid in the text's colour until the flow says otherwise")
+    void decorationPaintDefaultsToSolid() {
+        assertEquals(DecorationPaint.SOLID, TextFlow.NORMAL.decorationPaint());
+        assertTrue(TextFlow.NORMAL.decorationPaint().isPlain());
+
+        var wavy = DecorationPaint.SOLID.style(DecorationStyle.WAVY).colour(0xFFE5484D);
+        var flow = TextFlow.NORMAL.decorations(TextDecoration.UNDERLINE).decorationPaint(wavy);
+
+        assertEquals(wavy, flow.decorationPaint());
+        assertEquals(new TextDecorations(Set.of(TextDecoration.UNDERLINE), wavy), flow.textDecorations());
+        assertEquals(flow, TextFlow.NORMAL.textDecorations(flow.textDecorations()), "the pair goes in as it came out");
+        assertEquals(wavy, flow.whiteSpace(WhiteSpace.NOWRAP).decorationPaint(), "every wither keeps the paint");
+        assertEquals(wavy, flow.maxLines(2).decorationPaint());
+    }
+
+    @Test
+    @DisplayName("a paint is a value: NaN equals NaN, and the colour falls back to the text's")
+    void decorationPaintIsAValue() {
+        assertEquals(DecorationPaint.SOLID, DecorationPaint.SOLID.thickness(Double.NaN));
+        assertEquals(0xFF112233, DecorationPaint.SOLID.argbOver(0xFF112233));
+        assertEquals(0xFFFF0000, DecorationPaint.SOLID.colour(0xFFFF0000).argbOver(0xFF112233));
+        assertEquals(DecorationPaint.SOLID, DecorationPaint.SOLID.colour(1).textColour());
+        assertThrows(IllegalArgumentException.class, () -> DecorationPaint.SOLID.thickness(-1));
+        assertThrows(
+                IllegalArgumentException.class, () -> DecorationPaint.SOLID.underlineOffset(Double.NEGATIVE_INFINITY));
+        assertEquals(
+                "wavy #ffe5484d 2.0px",
+                DecorationPaint.SOLID
+                        .style(DecorationStyle.WAVY)
+                        .colour(0xFFE5484D)
+                        .thickness(2)
+                        .toString());
+        assertEquals(DecorationStyle.DASHED, DecorationStyle.parse("Dashed"));
+        assertNull(DecorationStyle.parse("zigzag"));
     }
 
     @Test

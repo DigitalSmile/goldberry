@@ -27,7 +27,13 @@ final class Shorthands {
         all.add(new Shorthand("place-content", List.of("align-content", "justify-content")));
         all.add(new Shorthand("place-items", List.of("align-items", "justify-items")));
         all.add(new Shorthand("place-self", List.of("align-self", "justify-self")));
-        all.add(new Shorthand("text-decoration", List.of("text-decoration-line")));
+        all.add(new Shorthand(
+                "text-decoration",
+                List.of(
+                        "text-decoration-line",
+                        "text-decoration-style",
+                        "text-decoration-color",
+                        "text-decoration-thickness")));
         all.add(new Shorthand(
                 "background",
                 List.of(

@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 import java.util.List;
+import java.util.OptionalInt;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Stream;
@@ -33,9 +34,11 @@ import dev.goldberry.layout.Justify;
 import dev.goldberry.layout.Length;
 import dev.goldberry.layout.Overflow;
 import dev.goldberry.motion.Easing;
+import dev.goldberry.text.flow.DecorationStyle;
 import dev.goldberry.text.flow.OverflowWrap;
 import dev.goldberry.text.flow.TextAlign;
 import dev.goldberry.text.flow.TextDecoration;
+import dev.goldberry.text.flow.TextDecorations;
 import dev.goldberry.text.flow.TextFlow;
 import dev.goldberry.text.flow.TextOverflow;
 import dev.goldberry.text.flow.WhiteSpace;
@@ -1382,7 +1385,7 @@ class ComputedStyleTest {
         void initial() {
             var style = compute("input { color: red }");
 
-            assertEquals(TextDecoration.NONE, style.textDecoration());
+            assertEquals(TextDecorations.NONE, style.textDecoration());
             assertFalse(style.textFlow().isDecorated(), "an undecorated flow must not make the painter read metrics");
         }
 
@@ -1391,44 +1394,99 @@ class ComputedStyleTest {
         void keywordsAreRead() {
             assertEquals(
                     Set.of(TextDecoration.UNDERLINE),
-                    compute("button { text-decoration: underline }").textDecoration());
+                    compute("button { text-decoration: underline }")
+                            .textDecoration()
+                            .lines());
             assertEquals(
                     Set.of(TextDecoration.LINE_THROUGH),
-                    compute("button { text-decoration-line: line-through }").textDecoration());
+                    compute("button { text-decoration-line: line-through }")
+                            .textDecoration()
+                            .lines());
             assertEquals(
                     Set.of(TextDecoration.UNDERLINE, TextDecoration.LINE_THROUGH),
                     compute("button { text-decoration: underline line-through }")
-                            .textDecoration());
+                            .textDecoration()
+                            .lines());
             assertEquals(
                     TextDecoration.NONE,
                     compute("button { text-decoration: underline; text-decoration: none }")
-                            .textDecoration());
+                            .textDecoration()
+                            .lines());
         }
 
-        /// The shorthand's other two parts. Dropping the declaration whole is the
-        /// point: a rule that asked for a wavy red underline and got a straight one
-        /// in the text's colour would be a property that lies.
         @Test
-        @DisplayName("a colour or a style in the shorthand drops the whole declaration")
-        void therestOfTheShorthandIsRefused() {
+        @DisplayName("the shorthand carries a style, a colour and a thickness, in any order")
+        void theWholeShorthandIsRead() {
+            var style = compute("button { text-decoration: #e5484d 2px wavy underline }");
+
+            assertEquals(
+                    Set.of(TextDecoration.UNDERLINE), style.textDecoration().lines());
+            var paint = style.textDecoration().paint();
+            assertEquals(DecorationStyle.WAVY, paint.style());
+            assertEquals(OptionalInt.of(0xFFE5484D), paint.colour());
+            assertEquals(2.0, paint.thickness());
+            assertEquals(paint, style.textFlow().decorationPaint(), "the flow is how the painter hears it");
+        }
+
+        @Test
+        @DisplayName("a shorthand resets what it leaves out, and keeps the underline offset")
+        void theShorthandResets() {
+            var style = compute("button { text-underline-offset: 3px; text-decoration: wavy red line-through;"
+                    + " text-decoration: underline }");
+
+            var paint = style.textDecoration().paint();
+            assertEquals(DecorationStyle.SOLID, paint.style());
+            assertEquals(OptionalInt.empty(), paint.colour());
+            assertTrue(Double.isNaN(paint.thickness()));
+            assertEquals(3.0, paint.underlineOffset(), "`text-underline-offset` is not part of the shorthand");
+        }
+
+        @Test
+        @DisplayName("each longhand changes its own part")
+        void longhands() {
+            var paint = compute("button { text-decoration-line: underline; text-decoration-style: dotted;"
+                            + " text-decoration-color: currentcolor; color: #102030;"
+                            + " text-decoration-thickness: 25%; font-size: 20px; text-underline-offset: -1px }")
+                    .textDecoration()
+                    .paint();
+
+            assertEquals(DecorationStyle.DOTTED, paint.style());
+            assertEquals(OptionalInt.of(0xFF102030), paint.colour(), "`currentcolor` is this element's colour, fixed");
+            assertEquals(5.0, paint.thickness(), 1e-9, "a percentage is of the element's own font size");
+            assertEquals(-1.0, paint.underlineOffset());
+        }
+
+        @Test
+        @DisplayName("a value outside the subset drops the whole declaration")
+        void refusals() {
             assertEquals(
                     TextDecoration.NONE,
-                    compute("button { text-decoration: underline wavy }").textDecoration());
-            assertEquals(
-                    TextDecoration.NONE,
-                    compute("button { text-decoration: underline red }").textDecoration());
-            assertEquals(
-                    TextDecoration.NONE,
-                    compute("button { text-decoration: overline }").textDecoration(),
+                    compute("button { text-decoration: overline }")
+                            .textDecoration()
+                            .lines(),
                     "`overline` is CSS's and is not in the subset");
             assertEquals(
                     TextDecoration.NONE,
-                    compute("button { text-decoration: underline underline }").textDecoration(),
+                    compute("button { text-decoration: underline underline }")
+                            .textDecoration()
+                            .lines(),
                     "named twice is a declaration nobody can read back");
             assertEquals(
                     TextDecoration.NONE,
-                    compute("button { text-decoration: none underline }").textDecoration(),
+                    compute("button { text-decoration: none underline }")
+                            .textDecoration()
+                            .lines(),
                     "a contradiction is refused rather than guessed at");
+            assertEquals(
+                    TextDecoration.NONE,
+                    compute("button { text-decoration: underline wavy dotted }")
+                            .textDecoration()
+                            .lines(),
+                    "two styles");
+            assertTrue(Double.isNaN(compute("button { text-decoration-thickness: -1px }")
+                    .textDecoration()
+                    .paint()
+                    .thickness()));
         }
 
         /// It inherits, which is how CSS's *propagation* to in-flow descendants
@@ -1438,8 +1496,21 @@ class ComputedStyleTest {
         void itInherits() {
             var child = computeChild("window { text-decoration: underline }");
 
-            assertEquals(Set.of(TextDecoration.UNDERLINE), child.textDecoration());
+            assertEquals(
+                    Set.of(TextDecoration.UNDERLINE), child.textDecoration().lines());
             assertTrue(child.textFlow().has(TextDecoration.UNDERLINE));
+        }
+
+        /// CSS propagates a decoration whole: the child's line is drawn as the box
+        /// that declared it said, whatever colour the child's own text is.
+        @Test
+        @DisplayName("its style and colour reach the label with it")
+        void itsPaintInherits() {
+            var child = computeChild("window { text-decoration: underline wavy #e5484d } button { color: blue }");
+
+            assertEquals(DecorationStyle.WAVY, child.textDecoration().paint().style());
+            assertEquals(
+                    OptionalInt.of(0xFFE5484D), child.textDecoration().paint().colour());
         }
 
         @Test
@@ -1447,7 +1518,7 @@ class ComputedStyleTest {
         void aChildMayOverride() {
             var child = computeChild("window { text-decoration: underline } button { text-decoration: none }");
 
-            assertEquals(TextDecoration.NONE, child.textDecoration());
+            assertEquals(TextDecoration.NONE, child.textDecoration().lines());
         }
 
         /// The other half of inheriting: the style cache's key has to know about it,
@@ -1473,7 +1544,8 @@ class ComputedStyleTest {
 
             mutable.add(TextDecoration.LINE_THROUGH);
 
-            assertEquals(Set.of(TextDecoration.UNDERLINE), style.textDecoration());
+            assertEquals(
+                    Set.of(TextDecoration.UNDERLINE), style.textDecoration().lines());
         }
     }
 

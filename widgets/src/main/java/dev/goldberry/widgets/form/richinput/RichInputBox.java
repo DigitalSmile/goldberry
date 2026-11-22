@@ -241,7 +241,12 @@ record RichInputBox(
             var ink = text.argb() == style.color() ? MarkStyle.TEXT_COLOUR : text.argb();
             looks.put(
                     markSets.get(i),
-                    new MarkStyle(text.paragraph().font(), ink, text.flow().decorations(), fill));
+                    new MarkStyle(
+                            text.paragraph().font(),
+                            ink,
+                            text.flow().decorations(),
+                            fill,
+                            text.flow().decorationPaint()));
         }
         var colours = new Colours(
                 style.color(),

@@ -246,8 +246,18 @@ decl | text-indent: 1em | UNKNOWN | unplanned
 decl | hyphens: auto | UNKNOWN | unplanned
 decl | text-wrap: balance | UNKNOWN | unplanned
 decl | line-height: normal | APPLIED | -
-decl | text-decoration: underline red | DROPPED | unplanned
-decl | text-decoration-color: red | UNKNOWN | unplanned
+decl | text-decoration: underline red | APPLIED | -
+decl | text-decoration: wavy underline red 2px | APPLIED | -
+decl | text-decoration: underline overline | DROPPED | unplanned
+decl | text-decoration: underline underline | DROPPED | by-design
+decl | text-decoration-color: red | APPLIED | -
+decl | text-decoration-style: wavy | APPLIED | -
+decl | text-decoration-style: zigzag | DROPPED | by-design
+decl | text-decoration-thickness: from-font | APPLIED | -
+decl | text-decoration-thickness: 10% | APPLIED | -
+decl | text-decoration-thickness: -1px | DROPPED | by-design
+decl | text-underline-offset: 3px | APPLIED | -
+decl | text-underline-position: under | UNKNOWN | unplanned
 decl | white-space: break-spaces | DROPPED | unplanned
 decl | font: 12px Inter | APPLIED | -
 decl | font-family: Mono, Inter | IGNORED | unplanned | font-family: Mono
