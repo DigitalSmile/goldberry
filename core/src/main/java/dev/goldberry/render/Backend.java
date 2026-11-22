@@ -8,6 +8,7 @@ import dev.goldberry.render.clipboard.Clipboard;
 import dev.goldberry.render.clipboard.PrimarySelection;
 import dev.goldberry.render.cursor.CursorPictures;
 import dev.goldberry.render.desktop.DisplayPreferences;
+import dev.goldberry.render.desktop.PowerState;
 import dev.goldberry.render.desktop.SystemTheme;
 import dev.goldberry.render.desktop.menubar.BackendMenuBar;
 import dev.goldberry.render.desktop.notify.BackendNotifier;
@@ -214,6 +215,15 @@ public interface Backend extends AutoCloseable {
     ///         does not say"
     default Optional<Boolean> reducedMotion() {
         return Optional.empty();
+    }
+
+    /// Where the machine's power comes from, how much battery is left, and
+    /// whether the desktop's power-saving mode is on.
+    ///
+    /// Asked again whenever it is called: no platform raises an event for it,
+    /// so a window asks on a timer. [PowerState#UNKNOWN] where nothing says.
+    default PowerState powerState() {
+        return PowerState.UNKNOWN;
     }
 
     /// The desktop's display accessibility switches: more contrast, forced

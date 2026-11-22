@@ -20,10 +20,13 @@ import dev.goldberry.natives.layout.Layouts;
 import dev.goldberry.natives.sdl.calls.SdlClipboardCalls;
 import dev.goldberry.natives.sdl.calls.SdlDisplayCalls;
 import dev.goldberry.natives.sdl.calls.SdlEventCalls;
+import dev.goldberry.natives.sdl.calls.SdlPowerCalls;
 import dev.goldberry.natives.sdl.calls.SdlSurfaceCalls;
 import dev.goldberry.natives.sdl.calls.SdlThemeCalls;
 import dev.goldberry.natives.sdl.calls.SdlWaylandCalls;
 import dev.goldberry.natives.sdl.calls.SdlWindowCalls;
+import dev.goldberry.natives.sdl.desktop.SdlPowerInfo;
+import dev.goldberry.natives.sdl.desktop.SdlPowerState;
 import dev.goldberry.natives.sdl.desktop.SdlSystemTheme;
 import dev.goldberry.natives.sdl.event.SdlEventType;
 import dev.goldberry.natives.sdl.window.NativeWindowHandle;
@@ -76,6 +79,7 @@ public final class SdlVideo {
     private final SdlDisplayCalls sdlDisplayCalls;
     private final SdlEventCalls sdlEventCalls;
     private final SdlThemeCalls sdlThemeCalls;
+    private final SdlPowerCalls sdlPowerCalls;
     private final SdlWaylandCalls sdlWaylandCalls;
 
     /// SDL's allocator, for the display list SDL hands over.
@@ -87,6 +91,7 @@ public final class SdlVideo {
         this.sdlDisplayCalls = SdlDisplayCalls.bind(lookup);
         this.sdlEventCalls = SdlEventCalls.bind(lookup);
         this.sdlThemeCalls = SdlThemeCalls.bind(lookup);
+        this.sdlPowerCalls = SdlPowerCalls.bind(lookup);
         this.sdlWaylandCalls = SdlWaylandCalls.bind(lookup);
         this.free = SdlClipboardCalls.bind(lookup).free();
         // Everything else is bound with `Downcalls.symbol`, which fails loudly,
@@ -120,6 +125,23 @@ public final class SdlVideo {
             return SdlSystemTheme.UNKNOWN;
         }
         return SdlSystemTheme.of(sdlThemeCalls.getSystemTheme().call());
+    }
+
+    /// Where the machine's power comes from, and how much battery is left.
+    ///
+    /// [SdlPowerInfo#UNKNOWN] from a `libgoldberry` built before the export,
+    /// which is the same answer a desktop that will not say gives.
+    public SdlPowerInfo powerInfo() {
+        var call = sdlPowerCalls.getPowerInfo();
+        if (!call.isAvailable()) {
+            return SdlPowerInfo.UNKNOWN;
+        }
+        try (var arena = Arena.ofConfined()) {
+            var seconds = arena.allocate(ValueLayout.JAVA_INT);
+            var percent = arena.allocate(ValueLayout.JAVA_INT);
+            var state = SdlPowerState.of(call.call(seconds, percent));
+            return new SdlPowerInfo(state, seconds.get(ValueLayout.JAVA_INT, 0), percent.get(ValueLayout.JAVA_INT, 0));
+        }
     }
 
     /// Creates a window.

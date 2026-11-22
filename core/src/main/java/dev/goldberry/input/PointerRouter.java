@@ -34,6 +34,7 @@ import dev.goldberry.input.key.Mod;
 import dev.goldberry.input.key.Modifiers;
 import dev.goldberry.input.key.Repeat;
 import dev.goldberry.input.key.Shortcut;
+import dev.goldberry.input.select.TextSelection;
 import dev.goldberry.render.Cursor;
 import dev.goldberry.render.model.LogicalPoint;
 import dev.goldberry.render.model.LogicalRect;
@@ -79,6 +80,21 @@ public final class PointerRouter {
 
     /// One per window. Its state is that window's pointer and focus.
     public PointerRouter() {}
+
+    /// Selecting the words of plain text boxes, on what dispatch left: see
+    /// [TextSelecting].
+    private final TextSelecting textSelecting = new TextSelecting(new TextSelecting.Locator() {
+        @Override
+        public LogicalPoint contentPoint(Element element, float x, float y) {
+            return PointerRouter.this.contentPoint(element, x, y);
+        }
+
+        @Override
+        public double contentWidth(Element element) {
+            var region = regionOf(element);
+            return region == null ? 0 : region.content().width();
+        }
+    });
 
     private List<HitTest.Region> regions = List.of();
 
@@ -946,6 +962,7 @@ public final class PointerRouter {
             dispatch(new PointerEvent(
                     PointerEvent.Kind.MOVED, x, y, null, 0, pressOriginX, pressOriginY, modifiers, target));
         }
+        textSelecting.moved(x, y);
     }
 
     /// The pointer left the window entirely.
@@ -1006,6 +1023,7 @@ public final class PointerRouter {
             if (modal == null) {
                 focus(null, false);
             }
+            textSelecting.pressed(null, null, x, y, clickCount, false);
             return;
         }
 
@@ -1023,8 +1041,11 @@ public final class PointerRouter {
             capture(target, true);
         }
         focusFromPress(target);
-        dispatch(new PointerEvent(
-                PointerEvent.Kind.PRESSED, x, y, button, clickCount, pressOriginX, pressOriginY, modifiers, target));
+        var press = new PointerEvent(
+                PointerEvent.Kind.PRESSED, x, y, button, clickCount, pressOriginX, pressOriginY, modifiers, target);
+        dispatch(press);
+        // After dispatch, on what it left: a press a widget took is the widget's.
+        textSelecting.pressed(target, press, x, y, clickCount, onAControl(target));
         if (button == PointerEvent.Button.PRIMARY && drag == null) {
             arm(target);
         }
@@ -1062,6 +1083,7 @@ public final class PointerRouter {
         // A drag the platform carries is let go by the platform's report, not by
         // this release, which may not even be the window's to hear.
         var landed = drag != null && !drag.fromKeyboard && !drag.platform ? land(under, x, y) : null;
+        textSelecting.released();
         var dragged = dragSpent;
         pickable = null;
         pickOut = null;
@@ -1124,6 +1146,17 @@ public final class PointerRouter {
         }
         endGesture();
         runLanded(landed);
+    }
+
+    /// Whether `target` or an ancestor is a control: a widget that handles input
+    /// and takes the focus.
+    private static boolean onAControl(Element target) {
+        for (var element : chain(target)) {
+            if (element.widget() instanceof Handles handles && handles.isFocusable()) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /// Forgets what the press sampled, now that the last event of the gesture has
@@ -1403,6 +1436,11 @@ public final class PointerRouter {
     /// pointer -- traversal is the only thing that needs to enumerate.
     private @Nullable Element focusRoot;
 
+    /// The selection a press last went to, for a test that wants to read it.
+    public Optional<TextSelection<Element>> textSelection() {
+        return Optional.ofNullable(textSelecting.active());
+    }
+
     public void focusRoot(Element root) {
         this.focusRoot = root;
     }
@@ -1435,6 +1473,12 @@ public final class PointerRouter {
         var event = new KeyEvent(KeyEvent.Kind.PRESSED, key, modifiers, repeat, focused);
         dispatchKey(event);
         if (event.isConsumed()) {
+            return true;
+        }
+        // Copying the selected words of a plain text box, when the focused chain
+        // had nothing of its own to copy. Before the accelerators: an
+        // application's own `Ctrl+C` binding still runs when nothing is selected.
+        if (textSelecting.key(event)) {
             return true;
         }
         // Accelerators come after the focused chain has declined the key, which

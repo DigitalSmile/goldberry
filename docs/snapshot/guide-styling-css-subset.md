@@ -120,9 +120,18 @@ not painted, the pointer passes through it, and the keyboard skips it.
 to whatever is under the box, which still draws. Both inherit, and both are
 per box: a child that says `visibility: visible` or `pointer-events: auto`
 under a parent that said otherwise is drawn, or hit, as usual.
-`user-select: none` keeps a press in a `markdown-view` or an `html-view` from
-selecting, and `user-select: all` makes any click select the whole document;
-`text` and `auto` are the default. `user-select` inherits too, and
+`user-select: text` makes the words of a `text`, and of any other box that
+draws words and does not handle the pointer itself, selectable: a drag selects,
+a double click takes a word and a triple click the whole box, and `Ctrl+C`
+(`Cmd+C` on macOS) copies when nothing focused takes the key. `user-select: all`
+selects the whole box at a click. `auto` leaves a plain `text` unselectable,
+since a label is pressed rather than selected. A `rich-text` takes the property
+as its own `selectable`: `text` and `all` turn selection on, and `none` turns
+it off. In a `markdown-view` or an `html-view`, `none` keeps a press from
+selecting, `all` makes any click select the whole document, and `text` and
+`auto` are the default. The highlight is `--gb-selection`. One selection is kept
+per window: a press elsewhere clears it, and a press on a button leaves it
+alone, so a Copy button can act on it. `user-select` inherits, and
 `-webkit-user-select` is the same property.
 
 `z-index` is `auto` or a whole number, and orders a box among its siblings: a
@@ -742,3 +751,22 @@ otherwise:
 `unicode-bidi` does not inherit. In a `text-input` or a `text-area` the
 arrow keys move through the text in reading order: `Left` moves on in a
 right-to-left paragraph and back in a left-to-right one.
+
+
+<!-- Destination: `## Selectors`, the pseudo-class table, after `:drag-over`.
+     Written 2026-11-22. -->
+
+| `:window-inactive` | every element of a window the keyboard focus is not in; a popup the window opened counts as the window |
+
+<!-- Destination: `## Selectors`, after the pseudo-class table. Written
+     2026-11-22. -->
+
+`:window-inactive` is the window's state rather than a node's, so it is written
+on whatever the rule is about: `spinner:window-inactive` or
+`:window-inactive .badge`. A window that is covered or minimized already stops
+its animations by itself; this is for motion an application would rather pause
+while the user works in another window.
+
+```css
+.attention:window-inactive { animation-play-state: paused }
+```

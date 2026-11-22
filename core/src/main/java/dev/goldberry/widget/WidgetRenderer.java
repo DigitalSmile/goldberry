@@ -20,6 +20,8 @@ import dev.goldberry.css.media.MediaContext;
 import dev.goldberry.css.select.Selector.PseudoClass;
 import dev.goldberry.css.value.CssLength;
 import dev.goldberry.css.value.FontUnits;
+import dev.goldberry.input.handler.Handles;
+import dev.goldberry.input.select.TextSelection;
 import dev.goldberry.layout.Display;
 import dev.goldberry.log.Logs;
 import dev.goldberry.motion.Clock;
@@ -27,6 +29,7 @@ import dev.goldberry.motion.KeyframeTrack;
 import dev.goldberry.paint.Box;
 import dev.goldberry.paint.BoxEdges;
 import dev.goldberry.paint.tree.RenderTree;
+import dev.goldberry.render.Cursor;
 import dev.goldberry.render.desktop.SystemTheme;
 import dev.goldberry.stats.FrameStats;
 import dev.goldberry.text.Paragraph;
@@ -545,7 +548,10 @@ public final class WidgetRenderer {
         if (resolver.siblingsMatter() || resolver.hasMatters()) {
             mirrorAhead(tree.root(), false);
         }
+        var selection = tree.textSelection();
+        selection.beginFrame();
         var boxes = render(tree.root(), null, false, now);
+        selection.endFrame();
         if (FrameTrace.ENABLED) {
             tree.trace().text((int) (cache.hits() - textHitsBefore), (int) (cache.misses() - textMissesBefore));
         }
@@ -932,6 +938,7 @@ public final class WidgetRenderer {
         try {
             box = paints.render(style, List.copyOf(children), paintContext).owner(element);
             wantsFrame = paints.isAnimating(style, paintContext);
+            box = selectable(element, style, box);
         } finally {
             currentElement = null;
         }
@@ -952,5 +959,50 @@ public final class WidgetRenderer {
         // the one that goes quiet: one wasted frame per arrival, per widget.
         animating |= wantsFrame;
         return List.of(box);
+    }
+
+    /// Whether `element` is the label of something pressed: an ancestor that
+    /// handles input and whose own cursor says so, `pointer` on a button,
+    /// `not-allowed` on a disabled one. A press there is the control's, and an
+    /// I-beam over a button's label would say otherwise. A `scroll` handles
+    /// input too and sets no cursor, so the words in a log are still selected.
+    private static boolean insideAControl(Element element) {
+        for (var parent = element.parent(); parent instanceof Element ancestor; parent = ancestor.parent()) {
+            if (ancestor.widget() instanceof Handles) {
+                var style = ancestor.lastStyle();
+                if (style != null && style.cursor() != Cursor.DEFAULT && style.cursor() != Cursor.TEXT) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    /// The highlight a selection is drawn in where the theme names none: the
+    /// dark theme's `--gb-selection`.
+    private static final int SELECTION_FALLBACK = 0x665E81AC;
+
+    /// `box`, registered with the tree's text selection when it draws words
+    /// under `user-select: text` or `all`, with the highlight in it when it
+    /// holds the selection and an I-beam where no `cursor` was set.
+    ///
+    /// Not for a widget that handles input itself. A `text-input`, a
+    /// `rich-text` or a `link` decides what a press on its words means, and
+    /// `rich-text` reads `user-select` for its own selection.
+    ///
+    /// Asked inside the render window, so the token is this node's.
+    private Box selectable(Element element, ComputedStyle style, Box box) {
+        var text = box.text();
+        var mode = style.presence().userSelect();
+        if (text == null
+                || element.widget() instanceof Handles
+                || !TextSelection.selects(mode)
+                || insideAControl(element)) {
+            return box;
+        }
+        var highlight = paintContext.color("--gb-selection", SELECTION_FALLBACK);
+        var drawn = element.tree().textSelection().rendered(element, text, mode, highlight);
+        var selectable = drawn == text ? box : box.text(drawn);
+        return selectable.cursor() == Cursor.DEFAULT ? selectable.cursor(Cursor.TEXT) : selectable;
     }
 }

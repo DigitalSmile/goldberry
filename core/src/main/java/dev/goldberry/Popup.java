@@ -209,6 +209,14 @@ public final class Popup implements AutoCloseable {
     /// The window behind this popup, for the handful of things a caller may need
     /// from it — the cursor, a resize notification. Named as the escape hatch it
     /// is, exactly like [Host#window()].
+    /// Tells this popup's tree whether its window is inactive, for
+    /// `:window-inactive`, and repaints it when that changed.
+    void windowInactive(boolean value) {
+        if (tree.windowInactive(value) && isOpen()) {
+            window().repaint();
+        }
+    }
+
     public Window window() {
         return window;
     }

@@ -546,6 +546,7 @@ final class Launcher {
     private void focusMayHaveLeft() {
         for (var window : windows()) {
             window.focusMayHaveLeft();
+            window.activityMayHaveChanged();
         }
     }
 

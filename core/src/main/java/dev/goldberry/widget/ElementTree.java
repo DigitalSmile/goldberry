@@ -10,6 +10,7 @@ import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 
 import dev.goldberry.css.StyleElement;
+import dev.goldberry.input.select.TextSelection;
 import dev.goldberry.log.Logs;
 import dev.goldberry.widget.style.StyleScope;
 
@@ -48,6 +49,12 @@ public final class ElementTree {
     /// from the window that opened it.
     private final dev.goldberry.@Nullable Host host;
 
+    /// The selected words in this tree's plain text boxes, if any: the
+    /// renderer registers what each frame drew under `user-select: text` or
+    /// `all`, and the router drives the gesture. One per tree, as a browser
+    /// keeps one per document.
+    private final TextSelection<Element> textSelection = new TextSelection<>();
+
     /// Builds a tree from a root widget, with no window behind it.
     ///
     /// What a widget test and a golden image build. A control that wants a popup
@@ -71,6 +78,33 @@ public final class ElementTree {
         // first build is legal, and discarding it -- which an earlier version of
         // this constructor did -- lost the change silently and produced a tree
         // one build behind its own state.
+    }
+
+    /// Whether the window this tree is drawn in is not the one the user is
+    /// working in: what `:window-inactive` matches.
+    private boolean windowInactive;
+
+    /// Whether `:window-inactive` matches every element of this tree.
+    public boolean windowInactive() {
+        return windowInactive;
+    }
+
+    /// Says whether the window is inactive, and restyles the tree when that
+    /// changed: every element's answer to `:window-inactive` moved at once.
+    ///
+    /// @return whether it changed
+    public boolean windowInactive(boolean value) {
+        if (windowInactive == value) {
+            return false;
+        }
+        windowInactive = value;
+        restyle();
+        return true;
+    }
+
+    /// The selection of plain text in this tree. See [TextSelection].
+    public TextSelection<Element> textSelection() {
+        return textSelection;
     }
 
     public Element root() {

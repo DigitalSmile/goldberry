@@ -19,7 +19,16 @@ public enum SdlEventType {
     /// is ending.
     QUIT(0x100),
 
+    /// The window was shown: mapped, or brought back from being hidden.
+    WINDOW_SHOWN(0x202),
+
+    /// The window was hidden: nothing of it is on any screen.
+    WINDOW_HIDDEN(0x203),
+
     /// The window's contents were lost and must be redrawn.
+    ///
+    /// Also what SDL sends when a window that was [#WINDOW_OCCLUDED] can be
+    /// seen again, on the platforms that report occlusion at all.
     WINDOW_EXPOSED(0x204),
 
     /// The window's top-left corner moved on the desktop.
@@ -45,6 +54,18 @@ public enum SdlEventType {
     /// windows, or to another application entirely. Which of the two it was is
     /// not in the event: it is whether anything else of ours gained it.
     WINDOW_FOCUS_LOST(0x20F),
+
+    /// The window was minimized to the dock or the task bar.
+    WINDOW_MINIMIZED(0x209),
+
+    /// The window is entirely covered: by other windows, or by being on a
+    /// Space or a workspace nobody is looking at.
+    ///
+    /// Reported where the platform says so: macOS's occlusion state, X11's
+    /// visibility events under a window manager that sends them. A
+    /// [#WINDOW_EXPOSED] says it can be seen again. A desktop that never says
+    /// leaves the window counted as visible, which is the safe answer.
+    WINDOW_OCCLUDED(0x216),
 
     /// The window was maximized — by the user or by
     /// [dev.goldberry.natives.sdl.calls.SdlWindowCalls.MaximizeWindow].

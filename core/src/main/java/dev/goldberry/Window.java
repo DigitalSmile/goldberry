@@ -3,6 +3,7 @@ package dev.goldberry;
 import java.nio.ByteBuffer;
 import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -15,6 +16,7 @@ import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 
 import dev.goldberry.bind.Subscription;
+import dev.goldberry.frame.pacing.AnimationPacing;
 import dev.goldberry.image.Image;
 import dev.goldberry.input.PointerRouter;
 import dev.goldberry.input.dragout.DragHandOff;
@@ -32,6 +34,7 @@ import dev.goldberry.render.DamageRect;
 import dev.goldberry.render.GpuPlacement;
 import dev.goldberry.render.PixelBuffer;
 import dev.goldberry.render.desktop.DisplayPreferences;
+import dev.goldberry.render.desktop.PowerState;
 import dev.goldberry.render.desktop.SystemTheme;
 import dev.goldberry.render.display.Display;
 import dev.goldberry.render.display.DisplayLayout;
@@ -1746,11 +1749,170 @@ public final class Window implements AutoCloseable {
     }
 
     void handleFocusChanged(boolean value) {
+        var changed = focused != value;
         focused = value;
         // The `Alt` that reached the compositor's window switcher comes back as a
         // release this window never saw the press of. Firing on it would open a
         // menu on the way *back* from another application.
         modifierTaps.interrupted();
+        if (changed) {
+            // Over a copy, for `handleFullscreenChanged`'s reason.
+            for (var listener : List.copyOf(focusListeners)) {
+                listener.accept(value);
+            }
+        }
+    }
+
+    /// Everything following [#isFocused], for [#fullscreenListeners]' reason.
+    private final List<Consumer<Boolean>> focusListeners = new ArrayList<>();
+
+    /// Called with the new state each time this window gains or loses the
+    /// keyboard focus; on the UI thread.
+    ///
+    /// Per window, as the platform reports it: opening one of this
+    /// application's popups is a loss here and a gain there. A hosted window's
+    /// `:window-inactive` already accounts for its own popups, which is usually
+    /// what a stylesheet wants instead. Close the subscription to stop.
+    ///
+    /// ```java
+    /// window.onFocusChanged(focused -> ticker.paused(!focused));
+    /// ```
+    public Subscription onFocusChanged(Consumer<Boolean> listener) {
+        Objects.requireNonNull(listener, "listener");
+        focusListeners.add(listener);
+        return () -> focusListeners.remove(listener);
+    }
+
+    /// Whether the window cannot be seen, as the platform last reported it.
+    private boolean occluded;
+
+    /// Everything following [#isOccluded].
+    private final List<Consumer<Boolean>> occlusionListeners = new ArrayList<>();
+
+    /// Whether the window cannot be seen at all: covered entirely by other
+    /// windows, on a Space or a workspace nobody is looking at, hidden or
+    /// minimized — **as the platform last reported it**.
+    ///
+    /// macOS reports occlusion and X11 does under a window manager that sends
+    /// visibility events; a platform that never says leaves this `false`,
+    /// which is the safe answer. While it is `true` the window asks for no
+    /// animation frames: transitions, keyframes and spinners wait, and catch up
+    /// to the clock the moment it can be seen. A frame something asks for —
+    /// a state change, a new video picture — is still painted.
+    public boolean isOccluded() {
+        return occluded;
+    }
+
+    /// Called with the new state each time the window stops or starts being
+    /// visible; on the UI thread. Told only of a change. Close the
+    /// subscription to stop.
+    ///
+    /// ```java
+    /// window.onOcclusionChanged(hidden -> feed.paused(hidden));
+    /// ```
+    public Subscription onOcclusionChanged(Consumer<Boolean> listener) {
+        Objects.requireNonNull(listener, "listener");
+        occlusionListeners.add(listener);
+        return () -> occlusionListeners.remove(listener);
+    }
+
+    void handleOcclusionChanged(boolean value) {
+        if (occluded == value) {
+            return;
+        }
+        occluded = value;
+        for (var listener : List.copyOf(occlusionListeners)) {
+            listener.accept(value);
+        }
+        if (!value) {
+            // Seen again: whatever was waiting for it, an animation above all,
+            // gets its frame.
+            repaint();
+        }
+    }
+
+    /// The last reading of the machine's power, and when it was taken.
+    private PowerState power = PowerState.UNKNOWN;
+
+    private boolean powerRead;
+
+    /// Everything following [#powerState].
+    private final List<Consumer<PowerState>> powerListeners = new ArrayList<>();
+
+    /// Where the machine's power comes from, how much battery is left, and
+    /// whether the desktop is saving power: the last reading.
+    ///
+    /// No platform raises an event for any of it, so a hosted window reads it
+    /// again every [#POWER_POLL] and tells [#onPowerChanged] what changed.
+    /// While [PowerState#saving()] is on, the window holds its animation frames
+    /// to [PowerState#SAVING_FRAME_RATE] a second.
+    public PowerState powerState() {
+        if (!powerRead) {
+            power = runtime.backend().powerState();
+            powerRead = true;
+        }
+        return power;
+    }
+
+    /// How often a hosted window reads the power again.
+    public static final Duration POWER_POLL = Duration.ofSeconds(20);
+
+    /// Called with the new reading each time the power changes — plugged in,
+    /// unplugged, a percent of battery gone, a saving mode turned on — as the
+    /// next reading finds it; on the UI thread. Close the subscription to stop.
+    ///
+    /// ```java
+    /// window.onPowerChanged(power -> sparkles.setVisible(!power.onBattery()));
+    /// ```
+    public Subscription onPowerChanged(Consumer<PowerState> listener) {
+        Objects.requireNonNull(listener, "listener");
+        powerListeners.add(listener);
+        return () -> powerListeners.remove(listener);
+    }
+
+    /// Reads the power again and tells the listeners when it changed.
+    ///
+    /// @return whether it changed
+    boolean refreshPower() {
+        var before = powerState();
+        var now = runtime.backend().powerState();
+        power = now;
+        if (now.equals(before)) {
+            return false;
+        }
+        for (var listener : List.copyOf(powerListeners)) {
+            listener.accept(now);
+        }
+        return true;
+    }
+
+    /// How often this window animates while it does not have the focus.
+    private final AnimationPacing pacing = new AnimationPacing();
+
+    /// The animation frame cap while the window does not have the focus, in
+    /// frames a second, or zero for none — which is the default.
+    public double inactiveFrameCap() {
+        return pacing.inactiveRate();
+    }
+
+    /// Holds this window to at most `hertz` **animation** frames a second while
+    /// the focus is in another application, or lifts the cap for zero.
+    ///
+    /// Off unless set, because a window beside the one being typed in is still
+    /// looked at: a video in it is still watched. An application whose motion
+    /// is decoration sets a few a second here. Only the frames an animation asks
+    /// for are held; a click, a state change or a new video picture is painted
+    /// at once. See also [#frameCap(double)], which holds every frame.
+    ///
+    /// @throws IllegalArgumentException when `hertz` is negative or not finite
+    public Window inactiveFrameCap(double hertz) {
+        pacing.inactiveRate(hertz);
+        return this;
+    }
+
+    /// How this window paces its animation frames.
+    AnimationPacing pacing() {
+        return pacing;
     }
 
     void handlePointerExited() {

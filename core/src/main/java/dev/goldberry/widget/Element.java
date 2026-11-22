@@ -19,6 +19,7 @@ import dev.goldberry.css.container.QueryContainer;
 import dev.goldberry.css.select.PseudoElement;
 import dev.goldberry.css.select.Selector;
 import dev.goldberry.css.select.SiblingPosition;
+import dev.goldberry.input.select.TextSelection;
 import dev.goldberry.layout.Display;
 import dev.goldberry.layout.Presence;
 import dev.goldberry.motion.Animations;
@@ -125,6 +126,13 @@ public final class Element implements BuildContext, StyleElement {
     /// hands down a different one and its children re-resolve without anything
     /// having to tell them to. That is inheritance invalidating itself.
     private @Nullable ComputedStyle styleInherited;
+
+    /// The style the cascade last resolved for this node, or null before one:
+    /// what a descendant asks about an ancestor already rendered this frame.
+    @Nullable
+    ComputedStyle lastStyle() {
+        return style;
+    }
 
     /// The style the cascade resolved for this node last frame, if it is still
     /// good for `resolver` and `inherited`. Null means ask again.
@@ -776,6 +784,12 @@ public final class Element implements BuildContext, StyleElement {
         return Optional.empty();
     }
 
+    /// The selection of plain text in this element's tree: what a press on a
+    /// box under `user-select: text` starts. See [TextSelection].
+    public TextSelection<Element> textSelection() {
+        return tree.textSelection();
+    }
+
     @Override
     public Optional<dev.goldberry.Host> host() {
         return tree.host();
@@ -963,6 +977,11 @@ public final class Element implements BuildContext, StyleElement {
 
     @Override
     public boolean hasState(Selector.PseudoClass state) {
+        // The window's, not this node's: every element of an inactive window
+        // matches, and the tree holds the one answer.
+        if (state == Selector.PseudoClass.WINDOW_INACTIVE) {
+            return tree.windowInactive();
+        }
         return states.contains(state);
     }
 

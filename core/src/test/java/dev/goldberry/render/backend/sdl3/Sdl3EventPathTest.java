@@ -515,6 +515,31 @@ class Sdl3EventPathTest {
                         + " write in close() free never to be seen there");
     }
 
+    /// Occluded, hidden and minimized say the window cannot be seen; exposed,
+    /// shown and restored say it can. One SPI event with the boolean for all
+    /// six, and the window keeps only the changes.
+    @Test
+    @DisplayName("occlusion, hiding and minimizing reach the sink as one event with the state")
+    void occlusionEventsReachTheSink() {
+        withBackend((backend, window) -> {
+            var events = pump(backend, sink -> {
+                push(buffer -> buffer.writeWindowEvent(SdlEventType.WINDOW_OCCLUDED, id(window), 0, 0));
+                push(buffer -> buffer.writeWindowEvent(SdlEventType.WINDOW_EXPOSED, id(window), 0, 0));
+                push(buffer -> buffer.writeWindowEvent(SdlEventType.WINDOW_HIDDEN, id(window), 0, 0));
+                push(buffer -> buffer.writeWindowEvent(SdlEventType.WINDOW_SHOWN, id(window), 0, 0));
+                push(buffer -> buffer.writeWindowEvent(SdlEventType.WINDOW_MINIMIZED, id(window), 0, 0));
+                push(buffer -> buffer.writeWindowEvent(SdlEventType.WINDOW_RESTORED, id(window), 0, 0));
+            });
+
+            var changes = events.stream()
+                    .filter(BackendEvent.OcclusionChanged.class::isInstance)
+                    .map(BackendEvent.OcclusionChanged.class::cast)
+                    .map(BackendEvent.OcclusionChanged::occluded)
+                    .toList();
+            assertEquals(List.of(true, false, true, false, true, false), changes, () -> String.valueOf(names(events)));
+        });
+    }
+
     /// SDL's two fullscreen events become one SPI event with the boolean,
     /// whoever caused them: this is the route the user's own
     /// green button takes, which no call of ours precedes.

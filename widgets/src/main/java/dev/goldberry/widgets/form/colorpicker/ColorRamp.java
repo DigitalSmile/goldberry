@@ -11,6 +11,7 @@ import dev.goldberry.input.handler.Handles;
 import dev.goldberry.paint.Box;
 import dev.goldberry.paint.Frame;
 import dev.goldberry.paint.Gradient;
+import dev.goldberry.paint.Painter;
 import dev.goldberry.paint.Path;
 import dev.goldberry.paint.stroke.Stroke;
 import dev.goldberry.render.model.LogicalSize;
@@ -122,7 +123,17 @@ record ColorRamp(Kind kind, HsvColor colour, DoubleConsumer onChange, boolean di
         var ramp = kind;
         var argb = colour.opaque().toArgb();
         var position = ramp == Kind.HUE ? colour.hue() / 360.0 : colour.alpha();
-        return Box.of().style(style).painting((frame, size) -> paint(frame, size, ramp, argb, position));
+        return Box.of().style(style).painting(new RampPainter(ramp, argb, position));
+    }
+
+    /// The ramp as a value, for [ColorPlane]'s reason: an equal painter is a
+    /// box the render tree leaves alone.
+    private record RampPainter(Kind kind, int argb, double position) implements Painter {
+
+        @Override
+        public void paint(Frame frame, LogicalSize size) {
+            ColorRamp.paint(frame, size, kind, argb, position);
+        }
     }
 
     private static void paint(Frame frame, LogicalSize size, Kind kind, int argb, double position) {

@@ -269,6 +269,7 @@ final class GoldberryRuntime {
                     focusWatcher.run();
                 }
             }
+            case BackendEvent.OcclusionChanged occlusion -> window.handleOcclusionChanged(occlusion.occluded());
             case BackendEvent.MaximizedChanged maximized -> window.handleMaximizedChanged(maximized.maximized());
             case BackendEvent.FullscreenChanged full -> window.handleFullscreenChanged(full.fullscreen());
             case BackendEvent.SystemThemeChanged themed -> window.handleSystemThemeChanged(themed.theme());

@@ -11,6 +11,7 @@ import org.jspecify.annotations.Nullable;
 import dev.goldberry.Host;
 import dev.goldberry.input.event.KeyEvent;
 import dev.goldberry.input.event.PointerEvent;
+import dev.goldberry.layout.Presence.UserSelect;
 import dev.goldberry.text.Paragraph;
 import dev.goldberry.text.TextLayout;
 import dev.goldberry.text.edit.TextGeometry;
@@ -54,15 +55,18 @@ final class RichTextState extends State<RichText> implements RichTextBox.Input {
 
     private @Nullable Host host;
 
+    /// What `user-select` said on the last frame. `auto` leaves the widget's
+    /// own flag in charge; `text` and `all` make the paragraph selectable
+    /// without it, and `none` stops one that has it.
+    private UserSelect userSelect = UserSelect.AUTO;
+
     @Override
     public Widget build(BuildContext context) {
         host = context.host().orElse(null);
         var rich = widget();
         var runs = new ArrayList<Run>(rich.runs().size());
-        var interactive = rich.selectable();
         for (var i = 0; i < rich.runs().size(); i++) {
             var run = rich.runs().get(i);
-            interactive |= run.onPress() != null || run.spoiler();
             runs.add(run.spoiler() && revealed.contains(i) ? revealedOf(run) : run);
         }
         var from = Math.min(anchor, caret);
@@ -74,7 +78,10 @@ final class RichTextState extends State<RichText> implements RichTextBox.Input {
                 from < to ? to : -1,
                 hovered,
                 rich.selectable(),
-                interactive ? this : null,
+                // Always this state, even for a paragraph with nothing to press:
+                // `user-select` is only known once a frame has been styled, and
+                // the box reports it here.
+                this,
                 rich.attributes());
     }
 
@@ -86,10 +93,20 @@ final class RichTextState extends State<RichText> implements RichTextBox.Input {
     }
 
     @Override
-    public void laidOut(Paragraph shaped, TextFlow shapedFlow, int[] ends) {
+    public void laidOut(Paragraph shaped, TextFlow shapedFlow, int[] ends, UserSelect said) {
         paragraph = shaped;
         flow = shapedFlow;
         runEnds = ends;
+        userSelect = said;
+    }
+
+    @Override
+    public boolean selectable() {
+        return switch (userSelect) {
+            case TEXT, ALL -> true;
+            case NONE -> false;
+            case AUTO -> widget().selectable();
+        };
     }
 
     @Override
@@ -113,7 +130,21 @@ final class RichTextState extends State<RichText> implements RichTextBox.Input {
             event.consume();
             return;
         }
-        hover(runAt(event));
+        // Only a paragraph with something to press follows the pointer: a
+        // plain one would rebuild for every run it crossed, to show nothing.
+        if (pressable()) {
+            hover(runAt(event));
+        }
+    }
+
+    /// Whether any run is pressed or revealed by a click.
+    private boolean pressable() {
+        for (var run : widget().runs()) {
+            if (run.onPress() != null || run.spoiler()) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private void hover(int run) {
@@ -123,7 +154,17 @@ final class RichTextState extends State<RichText> implements RichTextBox.Input {
     }
 
     private void pressed(PointerEvent event) {
-        if (!widget().selectable() || event.button() != PointerEvent.Button.PRIMARY) {
+        if (!selectable() || event.button() != PointerEvent.Button.PRIMARY) {
+            return;
+        }
+        if (userSelect == UserSelect.ALL) {
+            // Any click takes the whole paragraph, as CSS's `all` says.
+            var shaped = paragraph;
+            var end = shaped == null ? widget().text().length() : shaped.text().length();
+            setState(() -> {
+                anchor = 0;
+                caret = end;
+            });
             return;
         }
         var offset = offsetAt(event);
@@ -162,7 +203,7 @@ final class RichTextState extends State<RichText> implements RichTextBox.Input {
 
     @Override
     public void key(KeyEvent event) {
-        if (!widget().selectable()) {
+        if (!selectable()) {
             return;
         }
         if (!(EditKeys.of(event, EditSurface.WRAPPED) instanceof EditCommand.Simple command)) {

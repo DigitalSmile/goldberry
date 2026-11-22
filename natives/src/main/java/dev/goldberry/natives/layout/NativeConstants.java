@@ -15,6 +15,7 @@ import dev.goldberry.natives.sdl.calls.SdlGpuSwapchainCalls;
 import dev.goldberry.natives.sdl.camera.SdlCameraPermission;
 import dev.goldberry.natives.sdl.camera.SdlCameraPixelFormat;
 import dev.goldberry.natives.sdl.camera.SdlCameraPosition;
+import dev.goldberry.natives.sdl.desktop.SdlPowerState;
 import dev.goldberry.natives.sdl.desktop.SdlSystemCursor;
 import dev.goldberry.natives.sdl.desktop.SdlSystemTheme;
 import dev.goldberry.natives.sdl.desktop.SdlTrayEntryFlag;
@@ -80,6 +81,12 @@ public final class NativeConstants {
         // theme with no error anywhere.
         for (var theme : SdlSystemTheme.values()) {
             constants.add(new NativeConstant(theme.nativeName(), theme.value()));
+        }
+        // Where the power comes from. Ordinals with -1 for an error, which the
+        // shim's uint32 row carries as 0xFFFFFFFF; a wrong reading would call a
+        // laptop on battery plugged in, and nothing would ever say so.
+        for (var power : SdlPowerState.values()) {
+            constants.add(new NativeConstant(power.nativeName(), Integer.toUnsignedLong(power.value())));
         }
         // What this build of the platform layer can actually do. Bits of
         // libgoldberry's own, not an upstream's, and here for the same reason as

@@ -17,6 +17,8 @@ import dev.goldberry.bind.Subscription;
 import dev.goldberry.bind.runtime.Models;
 import dev.goldberry.css.media.MediaContext;
 import dev.goldberry.frame.FrameSequence;
+import dev.goldberry.frame.pacing.AnimationPacing;
+import dev.goldberry.frame.pacing.WindowActivity;
 import dev.goldberry.input.PointerRouter;
 import dev.goldberry.input.event.PointerEvent;
 import dev.goldberry.input.handler.ContextMenuOwner;
@@ -181,6 +183,10 @@ final class HostedWindow implements WindowHost {
 
         // Whatever belongs to this window goes before it does.
         window.launcherOnClose(this::closing);
+
+        // No platform says when the battery runs down or a saving mode is turned
+        // on, so the window asks every so often.
+        powerPoll = after(Window.POWER_POLL, this::pollPower);
 
         // A press on nothing, or an Escape, closes whatever is open over this
         // window. Neither reaches a widget, which is why it is watched here
@@ -367,6 +373,14 @@ final class HostedWindow implements WindowHost {
         }
         disposed = true;
         hideTooltip();
+        if (pacedFrame != null) {
+            pacedFrame.cancel();
+            pacedFrame = null;
+        }
+        if (powerPoll != null) {
+            powerPoll.cancel();
+            powerPoll = null;
+        }
         if (focusCheck != null) {
             focusCheck.cancel();
             focusCheck = null;
@@ -726,9 +740,11 @@ final class HostedWindow implements WindowHost {
         }
 
         // The frame loop is idle when no animation is active: ask for another
-        // frame *only* while something is moving.
+        // frame *only* while something is moving -- and as often as the window's
+        // activity allows: none while it cannot be seen, fewer while the desktop
+        // saves power or, where the application asked, while it is not focused.
         if (renderer().isAnimating()) {
-            window.repaint();
+            animate(beganAt);
         }
 
         if (FrameTrace.ENABLED) {
@@ -1121,6 +1137,80 @@ final class HostedWindow implements WindowHost {
         return null;
     }
 
+    // --- how often an animation is painted ------------------------------------
+
+    /// The animation frame a cap is holding back, or null.
+    private EventLoop.@Nullable Timer pacedFrame;
+
+    /// The next reading of the power, or null once the window is gone.
+    private EventLoop.@Nullable Timer powerPoll;
+
+    /// Whether the keyboard focus is in this window or one of its popups, as
+    /// the last focus change left it.
+    private boolean active = true;
+
+    /// Asks for the next frame of an animation, as [AnimationPacing] says: now,
+    /// after the wait a cap imposes, or not at all while the window cannot be
+    /// seen — [Window#handleOcclusionChanged] asks again when it can.
+    private void animate(long beganAt) {
+        switch (window.pacing().next(activity(), Duration.ofNanos(System.nanoTime() - beganAt))) {
+            case AnimationPacing.Next.Now _ -> window.repaint();
+            case AnimationPacing.Next.After(var delay) -> {
+                if (pacedFrame == null) {
+                    pacedFrame = after(delay, () -> {
+                        pacedFrame = null;
+                        window.repaint();
+                    });
+                }
+            }
+            case AnimationPacing.Next.Paused _ -> {
+                // Nothing: the frame that comes when the window is seen again
+                // asks for the next one.
+            }
+        }
+    }
+
+    /// What the pacing is decided by, now.
+    WindowActivity activity() {
+        return new WindowActivity(
+                window.isOccluded(), active, window.powerState().saving());
+    }
+
+    /// Some window's focus changed: works out whether the focus is still in
+    /// this window or one of its popups, and when that changed, tells
+    /// `:window-inactive` and lets a held animation frame through at once.
+    void activityMayHaveChanged() {
+        var now = window.isFocused();
+        for (var popup : popups) {
+            now |= popup.isOpen() && popup.window().isFocused();
+        }
+        if (now == active) {
+            return;
+        }
+        active = now;
+        tree.windowInactive(!now);
+        for (var popup : popups) {
+            popup.windowInactive(!now);
+        }
+        if (now && pacedFrame != null) {
+            pacedFrame.cancel();
+            pacedFrame = null;
+        }
+        window.repaint();
+    }
+
+    /// Reads the power again, repaints when it changed, and asks again later.
+    private void pollPower() {
+        powerPoll = null;
+        if (disposed || !window.isOpen()) {
+            return;
+        }
+        if (window.refreshPower()) {
+            window.repaint();
+        }
+        powerPoll = after(Window.POWER_POLL, this::pollPower);
+    }
+
     /// The pending "has the application really lost focus" check, or null.
     private EventLoop.@Nullable Timer focusCheck;
 
@@ -1404,6 +1494,7 @@ final class HostedWindow implements WindowHost {
     /// styled.
     private ElementTree popupTree(Widget content) {
         var tree = new ElementTree(content, this);
+        tree.windowInactive(!active);
         tree.openedFrom(OpenedFrom.current().orElse(null));
         return tree;
     }

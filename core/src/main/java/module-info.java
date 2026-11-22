@@ -210,6 +210,10 @@ module dev.goldberry.core {
     // than assumed.
     exports dev.goldberry.input.global;
 
+    // The selected words of plain text boxes under `user-select: text` or `all`:
+    // one per tree, read by an application's own Copy and driven by the router.
+    exports dev.goldberry.input.select;
+
     // The frame clock, the three easing curves, and the per-node animation
     // overlay CSS transitions run through. Exported because an application
     // supplies the clock (a test drives a virtual one so a golden image can

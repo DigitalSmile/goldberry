@@ -12,6 +12,7 @@ import dev.goldberry.input.handler.Handles;
 import dev.goldberry.paint.Box;
 import dev.goldberry.paint.Frame;
 import dev.goldberry.paint.Gradient;
+import dev.goldberry.paint.Painter;
 import dev.goldberry.paint.Path;
 import dev.goldberry.paint.stroke.Stroke;
 import dev.goldberry.render.model.LogicalSize;
@@ -183,7 +184,17 @@ record ColorPlane(HsvColor colour, PlaneCursor onChange, boolean disabled)
         var hue = colour.hueArgb();
         var saturation = colour.saturation();
         var value = colour.value();
-        return Box.of().style(style).painting((frame, size) -> paint(frame, size, hue, saturation, value));
+        return Box.of().style(style).painting(new PlanePainter(hue, saturation, value));
+    }
+
+    /// The plane as a value, so a colour that did not change is a box that did
+    /// not: the render tree compares painters, and a fresh lambda never matches.
+    private record PlanePainter(int hue, double saturation, double value) implements Painter {
+
+        @Override
+        public void paint(Frame frame, LogicalSize size) {
+            ColorPlane.paint(frame, size, hue, saturation, value);
+        }
     }
 
     private static void paint(Frame frame, LogicalSize size, int hue, double saturation, double value) {

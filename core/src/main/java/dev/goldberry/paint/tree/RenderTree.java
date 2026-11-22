@@ -1332,8 +1332,19 @@ public final class RenderTree implements AutoCloseable {
             widenForBackdrops(rects, backdrops);
         }
 
-        if (everything[0] || rects.size() > MAX_DAMAGE_RECTS) {
+        if (everything[0]) {
             return java.util.List.of(whole);
+        }
+        // Too many to track one by one: the nearest are merged until few are
+        // left, rather than the whole frame being repainted for twenty icons
+        // dotted about a window. Only a frame that changed in more places than
+        // are worth searching gives up.
+        if (rects.size() > MAX_DAMAGE_RECTS) {
+            var merged = DamageMerge.reduce(rects, MAX_DAMAGE_RECTS);
+            if (merged.isEmpty()) {
+                return java.util.List.of(whole);
+            }
+            rects = new ArrayList<>(merged.get());
         }
 
         // Clamped **here**, on the way out, rather than only where each rectangle
@@ -1370,10 +1381,10 @@ public final class RenderTree implements AutoCloseable {
         return right > x && bottom > y ? new DamageRect(x, y, right - x, bottom - y) : null;
     }
 
-    /// Past this many regions, the whole frame is cheaper to present than the
-    /// list is to track. Small on purpose: the cases worth splitting are one
-    /// control repainting and a caret blinking, not a table redrawing.
-    private static final int MAX_DAMAGE_RECTS = 8;
+    /// Past this many regions, the nearest are merged ([DamageMerge]) until this
+    /// many are left. Small on purpose: each rectangle is an upload of its own,
+    /// and a few slightly larger ones cost less than many small ones.
+    static final int MAX_DAMAGE_RECTS = 8;
 
     private void collectDamage(
             RenderObject object,

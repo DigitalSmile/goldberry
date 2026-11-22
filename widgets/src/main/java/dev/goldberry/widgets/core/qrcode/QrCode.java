@@ -11,6 +11,9 @@ import dev.goldberry.image.qr.Level;
 import dev.goldberry.image.qr.QrMatrix;
 import dev.goldberry.kdl.KdlNode;
 import dev.goldberry.paint.Box;
+import dev.goldberry.paint.Frame;
+import dev.goldberry.paint.Painter;
+import dev.goldberry.render.model.LogicalSize;
 import dev.goldberry.widget.Widget;
 import dev.goldberry.widget.attr.Attributed;
 import dev.goldberry.widget.attr.Attributes;
@@ -203,9 +206,18 @@ public record QrCode(String payload, Level level, int quietZone, Attributes attr
         var ink = context.color(INK_TOKEN, DEFAULT_INK);
         var paper = context.color(PAPER_TOKEN, DEFAULT_PAPER);
         var matrix = matrix();
-        return Box.of()
-                .style(style)
-                .painting((frame, size) -> QrModules.paint(frame, size, matrix, quietZone, ink, paper));
+        return Box.of().style(style).painting(new ModulesPainter(matrix, quietZone, ink, paper));
+    }
+
+    /// The symbol as a value. The matrix is the cache's, one instance per
+    /// payload and level, so the same code in the same colours is an equal
+    /// painter and a box the render tree does not repaint.
+    private record ModulesPainter(QrMatrix matrix, int quietZone, int ink, int paper) implements Painter {
+
+        @Override
+        public void paint(Frame frame, LogicalSize size) {
+            QrModules.paint(frame, size, matrix, quietZone, ink, paper);
+        }
     }
 
     /// Builds a `qr-code` from markup.

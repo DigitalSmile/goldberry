@@ -145,8 +145,10 @@ public record Sparkline(List<Double> values, boolean fill, boolean marker, Attri
 
     @Override
     public Box render(ComputedStyle style, List<Box> children, Context context) {
-        var argb = style.color();
-        return Box.of().style(style).painting((frame, size) -> paint(frame, size, argb));
+        // A value and not a lambda, so a series that did not change is a box that
+        // did not change: see SparklinePainter.
+        var drawn = new Sparkline(values, fill, marker, Attributes.NONE);
+        return Box.of().style(style).painting(new SparklinePainter(drawn, style.color()));
     }
 
     /// Draws the series into `size`, from the canvas's own origin.

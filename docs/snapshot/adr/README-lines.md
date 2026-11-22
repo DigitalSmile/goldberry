@@ -167,3 +167,6 @@ Appended to the index when the records move in, in this order.
 - [ADR-0724 Linux builds PipeWire in, and patches SDL's PipeWire camera](0724-linux-builds-pipewire-in-and-patches-sdl-s-pipewire-camera.md)
 - [ADR-0725 The showcase lists capture devices on open, records throwaway clips, and parked samples are inflated](0725-the-showcase-lists-capture-devices-on-open-records-throwaway-clips-and-parked-samples-are-inflated.md)
 - [ADR-0726 A popup fits each new description, and a tree can change its root](0726-a-popup-fits-each-new-description-and-a-tree-can-change-its-root.md)
+- [ADR-0728 A plain text box is selected under user-select](0728-a-plain-text-box-is-selected-under-user-select.md)
+- [ADR-0729 A box that did not change is not damage, and many damaged boxes are merged](0729-a-box-that-did-not-change-is-not-damage-and-many-are-merged.md)
+- [ADR-0730 An animation is paced by what the window can show](0730-an-animation-is-paced-by-what-the-window-can-show.md)

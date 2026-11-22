@@ -34,6 +34,11 @@ import dev.goldberry.paint.stroke.Stroke;
 /// value, not a native allocation, so there is nothing to release and
 /// [#close()] does nothing.
 ///
+/// **Compared by value**: two icons are equal when they have the same name,
+/// size, stroke width and outline, so a box built from a second
+/// `Icon.find("plus", 16)` draws the same as one built from the first, and the
+/// render tree can tell it has nothing new to paint.
+///
 /// Read more: [Text, fonts and icons](https://goldberry.dev/docs/guide/text.html#icons).
 public final class Icon implements AutoCloseable {
 
@@ -157,6 +162,32 @@ public final class Icon implements AutoCloseable {
     @Override
     public void close() {
         // Deliberately empty -- see the javadoc.
+    }
+
+    /// Equal to another icon with the same name, size, stroke width and
+    /// outline.
+    ///
+    /// The outline is compared too, and last: [#of] takes any name, so two
+    /// icons can share one and still draw different shapes. The common case is
+    /// one `Icon` handed to every frame, which the identity test answers before
+    /// any of it.
+    @Override
+    public boolean equals(Object other) {
+        if (this == other) {
+            return true;
+        }
+        return other instanceof Icon icon
+                && Double.compare(size, icon.size) == 0
+                && Double.compare(strokeWidth, icon.strokeWidth) == 0
+                && name.equals(icon.name)
+                && path.equals(icon.path);
+    }
+
+    /// From the name and the size, which tell two icons apart nearly always;
+    /// the outline is left to [#equals], where a collision is settled.
+    @Override
+    public int hashCode() {
+        return 31 * name.hashCode() + Double.hashCode(size);
     }
 
     @Override

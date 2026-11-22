@@ -272,6 +272,16 @@ public record Selector(List<Part> parts) {
         /// change that moves it.
         ENABLED,
 
+        /// The window is not the one the user is working in: the keyboard focus
+        /// is in another application, or in another of this application's
+        /// windows — `:window-inactive .spinner { animation-play-state: paused }`.
+        ///
+        /// WebKit's name, and a fact about the whole tree rather than any one
+        /// node: every element of an inactive window matches it, and a popup the
+        /// window opened counts as the window, so opening a menu does not make
+        /// what is under it look inactive. Answered by the tree, as [#ROOT] is.
+        WINDOW_INACTIVE,
+
         /// The root element — `:root { --gb-accent: … }`.
         ///
         /// Structural rather than a state: it never changes for an element, so

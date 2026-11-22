@@ -23,6 +23,7 @@ import dev.goldberry.render.clipboard.PrimarySelection;
 import dev.goldberry.render.composite.Compositor;
 import dev.goldberry.render.cursor.CursorPictures;
 import dev.goldberry.render.desktop.DisplayPreferences;
+import dev.goldberry.render.desktop.PowerState;
 import dev.goldberry.render.desktop.SystemTheme;
 import dev.goldberry.render.display.Display;
 import dev.goldberry.render.event.BackendEvent;
@@ -526,6 +527,22 @@ public final class HeadlessBackend implements Backend {
     public Optional<SystemTheme> systemTheme() {
         return Optional.ofNullable(systemTheme);
     }
+
+    /// What this backend says about the power, which is [PowerState#UNKNOWN]
+    /// until a test sets something else.
+    @Override
+    public PowerState powerState() {
+        return powerState;
+    }
+
+    /// Sets it, as a battery running down or a saving mode turned on would. No
+    /// event follows, because none follows on a real desktop either: a window
+    /// finds out the next time it asks.
+    public void powerState(PowerState value) {
+        this.powerState = Objects.requireNonNull(value, "value");
+    }
+
+    private volatile PowerState powerState = PowerState.UNKNOWN;
 
     /// What this backend says about motion, or empty for "the desktop does not
     /// say" — which is what it says until a test sets one.

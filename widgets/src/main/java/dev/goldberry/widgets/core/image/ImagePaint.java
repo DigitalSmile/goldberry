@@ -6,8 +6,12 @@ import java.util.function.DoubleConsumer;
 import org.jspecify.annotations.Nullable;
 
 import dev.goldberry.css.ComputedStyle;
+import dev.goldberry.image.Image;
 import dev.goldberry.layout.Length;
 import dev.goldberry.paint.Box;
+import dev.goldberry.paint.Frame;
+import dev.goldberry.paint.Painter;
+import dev.goldberry.render.model.LogicalSize;
 
 /// What [ImageBox] and [ImageFigure] share: how big the box is, and what is drawn
 /// in it.
@@ -44,8 +48,16 @@ final class ImagePaint {
         if (size != null) {
             box = box.size(size[0], size[1]);
         }
-        var image = ready.image();
-        return box.painting((frame, area) -> {
+        return box.painting(new ImagePainter(ready.image(), fit, naturalWidth, naturalHeight));
+    }
+
+    /// The picture as a value. An [Image] is immutable and compared by
+    /// identity, so the same loaded image placed the same way is an equal
+    /// painter, and an animation's next frame, which is a new image, is not.
+    private record ImagePainter(Image image, Fit fit, double naturalWidth, double naturalHeight) implements Painter {
+
+        @Override
+        public void paint(Frame frame, LogicalSize area) {
             var placement =
                     fit.place(image.width(), image.height(), naturalWidth, naturalHeight, area.width(), area.height());
             if (placement != null) {
@@ -58,7 +70,7 @@ final class ImagePaint {
                         placement.height(),
                         1);
             }
-        });
+        }
     }
 
     /// The width and height the box should take, or null to leave the

@@ -21,6 +21,7 @@ import dev.goldberry.log.Logs;
 import dev.goldberry.log.Startup;
 import dev.goldberry.natives.desktop.DesktopAccessibility;
 import dev.goldberry.natives.desktop.DesktopMotion;
+import dev.goldberry.natives.desktop.DesktopPower;
 import dev.goldberry.natives.glib.GlibLog;
 import dev.goldberry.natives.sdl.Sdl;
 import dev.goldberry.natives.sdl.SdlEventBuffer;
@@ -41,6 +42,7 @@ import dev.goldberry.render.clipboard.PrimarySelection;
 import dev.goldberry.render.composite.Compositor;
 import dev.goldberry.render.cursor.CursorPictures;
 import dev.goldberry.render.desktop.DisplayPreferences;
+import dev.goldberry.render.desktop.PowerState;
 import dev.goldberry.render.desktop.SystemTheme;
 import dev.goldberry.render.desktop.menubar.BackendMenuBar;
 import dev.goldberry.render.desktop.menubar.MacMenuBarProjection;
@@ -1100,6 +1102,15 @@ public final class Sdl3Backend implements Backend {
             // a region of its parent is one way to lose them.
             window.exposed();
             out.add(new BackendEvent.Exposed(window));
+            // What SDL sends when a covered window can be seen again, and on a
+            // resize, which says nothing new and is dropped above.
+            out.add(new BackendEvent.OcclusionChanged(window, false));
+        } else if (type == SdlEventType.WINDOW_OCCLUDED.value()
+                || type == SdlEventType.WINDOW_HIDDEN.value()
+                || type == SdlEventType.WINDOW_MINIMIZED.value()) {
+            out.add(new BackendEvent.OcclusionChanged(window, true));
+        } else if (type == SdlEventType.WINDOW_SHOWN.value()) {
+            out.add(new BackendEvent.OcclusionChanged(window, false));
         } else if (type == SdlEventType.WINDOW_FOCUS_GAINED.value()) {
             out.add(new BackendEvent.FocusChanged(window, true));
         } else if (type == SdlEventType.WINDOW_FOCUS_LOST.value()) {
@@ -1109,8 +1120,10 @@ public final class Sdl3Backend implements Backend {
         } else if (type == SdlEventType.WINDOW_RESTORED.value()) {
             // SDL reports `RESTORED` for un-maximizing *and* un-minimizing, and
             // both mean the same thing to a window that only tracks the one
-            // state: it is no longer maximized.
+            // state: it is no longer maximized. Un-minimizing is also being
+            // seen again.
             out.add(new BackendEvent.MaximizedChanged(window, false));
+            out.add(new BackendEvent.OcclusionChanged(window, false));
         } else if (type == SdlEventType.WINDOW_ENTER_FULLSCREEN.value()) {
             out.add(new BackendEvent.FullscreenChanged(window, true));
         } else if (type == SdlEventType.WINDOW_LEAVE_FULLSCREEN.value()) {
@@ -1446,6 +1459,23 @@ public final class Sdl3Backend implements Backend {
                 settings.increasedContrast().isOn(),
                 settings.forcedColors().isOn(),
                 settings.reducedTransparency().isOn());
+    }
+
+    /// What SDL says about the power source and the battery, and what the
+    /// desktop says about its saving mode. Not cached: a window asks every so
+    /// often, and each answer is two quick reads.
+    @Override
+    public PowerState powerState() {
+        var info = video.powerInfo();
+        var source = switch (info.state()) {
+            case ON_BATTERY -> PowerState.Source.BATTERY;
+            case CHARGING -> PowerState.Source.CHARGING;
+            case CHARGED -> PowerState.Source.CHARGED;
+            case NO_BATTERY -> PowerState.Source.MAINS;
+            case UNKNOWN, ERROR -> PowerState.Source.UNKNOWN;
+        };
+        var percent = info.percent() >= 0 && info.percent() <= 100 ? info.percent() : -1;
+        return new PowerState(source, percent, DesktopPower.savingMode().orElse(false));
     }
 
     @Override

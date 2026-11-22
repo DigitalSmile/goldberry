@@ -7,6 +7,9 @@ import dev.goldberry.css.ComputedStyle;
 import dev.goldberry.image.Image;
 import dev.goldberry.layout.Length;
 import dev.goldberry.paint.Box;
+import dev.goldberry.paint.Frame;
+import dev.goldberry.paint.Painter;
+import dev.goldberry.render.model.LogicalSize;
 import dev.goldberry.widget.Widget;
 import dev.goldberry.widget.style.Paints;
 import dev.goldberry.widget.style.Styled;
@@ -77,7 +80,17 @@ public record Picture(Image image, String alt) implements Widget.Leaf, Styled, P
         return Box.of()
                 .style(style)
                 .size(Length.points((float) drawnWidth), Length.points((float) drawnHeight))
-                .painting((frame, size) -> frame.drawImage(image, 0, 0, drawnWidth, drawnHeight));
+                .painting(new PicturePainter(image, drawnWidth, drawnHeight));
+    }
+
+    /// The picture as a value: the same image at the same size is an equal
+    /// painter, which the render tree reads as a box with nothing new to draw.
+    private record PicturePainter(Image image, double width, double height) implements Painter {
+
+        @Override
+        public void paint(Frame frame, LogicalSize size) {
+            frame.drawImage(image, 0, 0, width, height);
+        }
     }
 
     /// How much of `natural` fits under `cap`, as a factor of 1 or less.

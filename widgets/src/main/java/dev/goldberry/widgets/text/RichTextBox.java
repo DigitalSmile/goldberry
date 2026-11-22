@@ -11,6 +11,7 @@ import dev.goldberry.css.background.Background;
 import dev.goldberry.input.event.KeyEvent;
 import dev.goldberry.input.event.PointerEvent;
 import dev.goldberry.input.handler.Handles;
+import dev.goldberry.layout.Presence.UserSelect;
 import dev.goldberry.paint.Box;
 import dev.goldberry.text.Paragraph;
 import dev.goldberry.text.SpanPaint;
@@ -37,8 +38,7 @@ import dev.goldberry.widget.style.Styled;
 /// @param selTo      one past where it ends
 /// @param hovered    the run the pointer is over, or -1
 /// @param focusable  whether it takes the focus, which a selectable one does
-/// @param handler    what hears its input, or null for a paragraph with nothing
-///                   to press and nothing to select
+/// @param handler    what hears its input and is told what each frame laid out
 /// @param attributes the paragraph's id, classes and key
 record RichTextBox(
         List<Run> runs,
@@ -61,9 +61,13 @@ record RichTextBox(
 
         void focus(boolean focused);
 
-        /// The paragraph as it was rendered, its flow, and where each run ends
-        /// in its text.
-        void laidOut(Paragraph paragraph, TextFlow flow, int[] runEnds);
+        /// The paragraph as it was rendered, its flow, where each run ends in
+        /// its text, and what `user-select` said about it.
+        void laidOut(Paragraph paragraph, TextFlow flow, int[] runEnds, UserSelect userSelect);
+
+        /// Whether the words can be selected now: the widget's own flag, unless
+        /// the last frame's `user-select` said otherwise.
+        boolean selectable();
     }
 
     @Override
@@ -96,9 +100,11 @@ record RichTextBox(
         return children;
     }
 
+    /// Focusable when selectable, by the widget's flag or by `user-select`,
+    /// because `Ctrl+C` goes to whatever has the focus.
     @Override
     public boolean isFocusable() {
-        return focusable;
+        return focusable || (handler != null && handler.selectable());
     }
 
     @Override
@@ -169,7 +175,8 @@ record RichTextBox(
         }
         var paragraph = spans.isEmpty() ? context.paragraph(style, "") : context.join(spans);
         if (handler != null) {
-            handler.laidOut(paragraph, style.textFlow(), runEnds);
+            handler.laidOut(
+                    paragraph, style.textFlow(), runEnds, style.presence().userSelect());
         }
         var box = Box.of()
                 .text(new Box.Text(paragraph, style.color(), style.textFlow(), paints))

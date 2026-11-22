@@ -259,12 +259,12 @@ Everything below is measured against 2026.2 (tag commit d3eacfdc).
 
 #### Native libraries
 
-- `libgoldberry`'s ABI is 28 (2026.2's was 18), and this release's jars refuse a
+- `libgoldberry`'s ABI is 30 (2026.2's was 18), and this release's jars refuse a
   library built for an older one. Take `goldberry-natives` at the same version
   as the other artifacts (the BOM does). An application that loads its own build
   through `-Dgoldberry.native.library` builds it again from this release's
   sources, and a GraalVM native image is built again from matching jars.
-  <!-- ADR-0562, ADR-0573, ADR-0580, ADR-0589, ADR-0615, ADR-0620, ADR-0639, ADR-0669, ADR-0714, ADR-0716 -->
+  <!-- ADR-0562, ADR-0573, ADR-0580, ADR-0589, ADR-0615, ADR-0620, ADR-0639, ADR-0669, ADR-0714, ADR-0716, ADR-0719, ADR-0730 -->
 - `goldberry-media` refuses an `ffmpeg-<target>` jar built before this release,
   because the FFmpeg layout it checks has new fields. Take the `ffmpeg-<target>`
   jars at the same version as `goldberry-media`; an application's own FFmpeg
@@ -286,3 +286,17 @@ Everything below is measured against 2026.2 (tag commit d3eacfdc).
 - `Dragging` has an eighth component, `platform`; the seven-argument
   constructor stays and means false. A record pattern over `Dragging` names
   eight components. <!-- ADR-0714 -->
+- `Icon` compares by value: two icons with the same name, size, stroke width
+  and outline are `equals`, where before every instance was distinct. A map or
+  set keyed by `Icon` now holds one entry for both. <!-- ADR-0729 -->
+- Past eight damaged rectangles a frame now repaints the nearest ones merged,
+  not the whole window. A backend or test that relied on "many changes means
+  the whole frame" sees a short list instead. <!-- ADR-0729 -->
+- `Selector.PseudoClass` has a new constant, `WINDOW_INACTIVE`, before `ROOT`;
+  an exhaustive `switch` over it names one more case. <!-- ADR-0730 -->
+- An animating window that is occluded, hidden or minimized stops asking for
+  animation frames until it is seen, and a desktop in its power-saving mode
+  holds animation to 30 frames a second. A test that counted frames of a
+  covered window sees none. <!-- ADR-0730 -->
+- `rich-text` reads `user-select`: `none` stops one made `selectable`, and
+  `text` or `all` make one selectable that was not. <!-- ADR-0728 -->

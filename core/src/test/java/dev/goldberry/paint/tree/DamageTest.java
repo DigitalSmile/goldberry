@@ -392,17 +392,26 @@ class DamageTest {
     }
 
     @Test
-    @DisplayName("scattered changes fall back to the whole frame rather than a list")
+    @DisplayName("scattered changes are merged into a few rectangles rather than the whole frame")
     void tooManyRegions() {
-        // Past a handful of rectangles the bookkeeping costs more than the upload
-        // it saves, so the answer becomes "all of it" — stated behaviour rather
-        // than an unbounded list.
+        // Twelve small boxes change down one column: more than the list keeps.
+        // The nearest are merged until it fits, so the repaint stays near the
+        // column instead of covering the window, and every box is still inside it.
         try (var render = RenderTree.create()) {
             render.update(target.frame(), scattered(0xFFFF0000));
             render.damage(target.frame());
 
             render.update(target.frame(), scattered(0xFF0000FF));
-            assertEquals(List.of(DamageRect.all(target.frame().pixelSize())), render.damage(target.frame()));
+            var damage = render.damage(target.frame());
+            assertTrue(damage.size() <= RenderTree.MAX_DAMAGE_RECTS, "kept to the limit: " + damage);
+            for (var i = 0; i < 12; i++) {
+                var y = i * 16 + 2;
+                assertTrue(covers(damage, 2, y), "box " + i + " at y=" + y + " is repainted: " + damage);
+            }
+            var area = damage.stream().mapToInt(r -> r.width() * r.height()).sum();
+            var whole = target.frame().pixelSize().width()
+                    * target.frame().pixelSize().height();
+            assertTrue(area < whole / 10, "the column, not the window: " + area + " of " + whole);
         }
     }
 

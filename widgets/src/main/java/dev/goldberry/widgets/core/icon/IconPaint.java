@@ -23,8 +23,8 @@ final class IconPaint {
         if (icon == null) {
             return box;
         }
-        var argb = style.color();
-        return box.painting((frame, size) -> paint(frame, size, icon, argb));
+        // A value and not a lambda: see IconPainter.
+        return box.painting(new IconPainter(icon, style.color()));
     }
 
     /// Strokes `icon` into a `size` box, scaled to the smaller side and

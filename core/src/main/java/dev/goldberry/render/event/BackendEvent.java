@@ -214,6 +214,17 @@ public sealed interface BackendEvent {
     /// an event — see `Launcher`, which is the only thing that needs to draw it.
     record FocusChanged(BackendWindow window, boolean focused) implements BackendEvent {}
 
+    /// The window can no longer be seen, or can again: covered entirely by other
+    /// windows, on a Space or workspace nobody is looking at, hidden or
+    /// minimized — or back from any of them.
+    ///
+    /// Sent on what the platform says, and repeated: SDL's `EXPOSED` is also
+    /// what a resize sends, so a window is told "visible" when it already was,
+    /// and what consumes this keeps only the changes. A platform that never
+    /// reports occlusion never sends `true`, which leaves the window counted as
+    /// visible.
+    record OcclusionChanged(BackendWindow window, boolean occluded) implements BackendEvent {}
+
     /// The window became maximized, or stopped being.
     ///
     /// **The only truth about the state.** Maximizing is a *request* a
