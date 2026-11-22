@@ -22,10 +22,14 @@ module dev.goldberry.vector {
     /// is what this module hands back.
     requires transitive dev.goldberry.core;
 
+    /// `Fit`, which a document is placed in a box by. `transitive`, because it
+    /// appears in `Svg`'s signatures.
+    requires transitive dev.goldberry.widgets;
+
     /// JSpecify's nullness annotations, for the packages under NullAway.
     requires static org.jspecify;
 
-    /// What this module can do on this machine: whether its library loaded, and
-    /// which ThorVG it holds.
+    /// `Svg`, a parsed document drawn at any size, and what this module can do on
+    /// this machine: whether its library loaded, and which ThorVG it holds.
     exports dev.goldberry.vector;
 }

@@ -35,6 +35,13 @@ dependencies {
     // this module hands back.
     api project(':core')
 
+    // `Fit`, which `Svg.render(PhysicalSize, Fit)` takes, and the widgets
+    // `svg-view` is built from. `api`, because `Fit` is in this module's surface.
+    api project(':widgets')
+
+    // The golden-image helpers.
+    testImplementation testFixtures(project(':core'))
+
     // `NativePlatform`, which the platform test holds this module's detection to.
     testImplementation project(':natives')
 }

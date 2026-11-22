@@ -7050,6 +7050,12 @@ toolkit, and six entries arrived on it together. All six are closed.
   in the wrong theme, and neither reports an error. **The `Optional` is the design**
   — SDL says `UNKNOWN` on a desktop with no such setting, and "the desktop says
   light" and "the desktop does not say" are a theme and a default.
+- **`Svg`** (W3.6 phase 2, ADR-0742 parked, 2026-11-22). `goldberry-vector`'s
+  document type: parsed once by ThorVG, drawn at any pixel size into an
+  `Image` (premultiplied BGRA, no conversion), placed by the document's own
+  `preserveAspectRatio` or by a `Fit`, `currentColor` from the caller, `data:`
+  images only, 16 MiB and 8192-pixel limits, one lock for the process. Not yet
+  reachable from `image` or CSS (phase 3).
 - **`libgoldberry-vector`** (W3.6 phase 1, ADR-0741 parked, 2026-11-22). The
   new optional `:vector` (`goldberry-vector`) and its library: ThorVG v1.1.4's
   SVG loader and CPU rasterizer, built by `vector/src/main/cmake` and shipped as

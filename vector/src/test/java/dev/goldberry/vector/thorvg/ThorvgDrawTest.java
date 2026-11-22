@@ -10,7 +10,6 @@ import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
 import java.nio.charset.StandardCharsets;
 
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -18,7 +17,8 @@ import org.junit.jupiter.api.Test;
 import dev.goldberry.vector.VectorNativesRequirement;
 
 /// ThorVG through the bare bindings: a document parsed, sized and drawn into
-/// memory Java owns, as the module's renderer will do it.
+/// memory Java owns, as `ThorvgPicture` does it, inside the engine's lock as
+/// every call into ThorVG is.
 @DisplayName("ThorVG, through the bindings")
 class ThorvgDrawTest {
 
@@ -35,25 +35,18 @@ class ThorvgDrawTest {
             </svg>
             """;
 
-    private static VectorLibrary library;
-
     @BeforeAll
-    static void engine() {
+    static void library() {
         VectorNativesRequirement.enforce();
-        library = VectorNatives.get();
-        assertEquals(0, library.engine().init().call(0));
-    }
-
-    @AfterAll
-    static void stop() {
-        if (library != null) {
-            assertEquals(0, library.engine().term().call());
-        }
     }
 
     @Test
     @DisplayName("reads a document's size and draws it, premultiplied, at twice that size")
     void draws() {
+        ThorvgEngine.call(ThorvgDrawTest::draws);
+    }
+
+    private static Void draws(VectorLibrary library) {
         var picture = library.picture();
         var canvas = library.canvas();
         try (var arena = Arena.ofConfined()) {
@@ -97,11 +90,16 @@ class ThorvgDrawTest {
                     () -> assertEquals(128, blue & 0xFF, 1, Integer.toHexString(blue)),
                     () -> assertEquals(0, blue & 0x00FFFF00, Integer.toHexString(blue)));
         }
+        return null;
     }
 
     @Test
     @DisplayName("refuses bytes that are not SVG, with a result rather than a crash")
     void refusesGarbage() {
+        ThorvgEngine.call(ThorvgDrawTest::refusesGarbage);
+    }
+
+    private static Void refusesGarbage(VectorLibrary library) {
         var picture = library.picture();
         try (var arena = Arena.ofConfined()) {
             var garbage = arena.allocateFrom("<svg <<<< not a document", StandardCharsets.UTF_8);
@@ -117,5 +115,6 @@ class ThorvgDrawTest {
             assertNotEquals(0, result);
             assertEquals(0, picture.release().call(parsed));
         }
+        return null;
     }
 }

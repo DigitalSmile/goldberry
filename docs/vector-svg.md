@@ -171,6 +171,15 @@ parsed picture sized and placed by `preserveAspectRatio`, draws and syncs. The
 canvas lives only for that one call. The pixels are Java's again when it
 returns.
 
+As built (phase 2): ThorVG's `tvg_picture_set_size` stretches a parsed document
+on each axis, and the document's `preserveAspectRatio` is applied only at
+parse time. So a viewport with the document's own shape (within half a pixel)
+resizes a duplicate, and a viewport of another shape, for a document with a
+view box it does not stretch, parses the document again with the viewport's
+`width` and `height` on its root. `RootTag` (`…vector.document`) reads and
+rewrites the root; `currentColor` is an `rgba()` `color` put there. A `Fit`
+other than `FILL` places the natural box with a resize and a translation.
+
 **Limits.** A document over 16 MB is refused before parsing. A raster over 8K
 on a side or 64 megapixels is refused (as ADR-0658 caps video). A document that
 fails to parse is an `ImageDecodeException` with ThorVG's result code, and the
@@ -251,6 +260,7 @@ error state, semantics (alt text), and a golden.
 - An ASan build and a fuzz corpus run over the SVG loader, as ADR-0656 does
   for `:media`.
 - A native-image run of the showcase with the library as a resource.
+  `ThorvgEngine` registers a `Cleaner`, so it is initialized at run time.
 
 Exit: Snapshot green on all jobs, with the vector library on four targets.
 
@@ -288,7 +298,7 @@ Exit: Snapshot green on all jobs, with the vector library on four targets.
 |----------|------|--------|
 | `docs/gaps/goldberry-gaps-plan.md` §8, §10 | T-22's row and the log | plan written |
 | `docs/gaps/answers-tessera.md` | G-22's answer when it lands | |
-| `docs/snapshot/adr/` | ADR-0740 (D1–D7), ADR-0741 (phase 1), then one per phase | doing |
+| `docs/snapshot/adr/` | ADR-0740 (D1–D7), ADR-0741 (phase 1), ADR-0742 (phase 2), then one per phase | doing |
 | `docs/snapshot/` guide pieces | `components-vector.md` | |
 | `docs/status.md` | a line per phase | doing |
 | `THIRD-PARTY-NOTICES.md`, `NOTICE`, `licenses/` | ThorVG, LodePNG, jpgd | done (phase 1) |
@@ -299,8 +309,8 @@ Exit: Snapshot green on all jobs, with the vector library on four targets.
 |-------|--------|
 | 0. Plan | done (this document, ADR-0740) |
 | 1. The library | done 2026-11-22 (ADR-0741) |
-| 2. `Svg` | todo (next) |
-| 3. SVG wherever an image is | todo |
+| 2. `Svg` | done 2026-11-22 (ADR-0742) |
+| 3. SVG wherever an image is | todo (next) |
 | 4. `svg-view` | todo |
 | 5. CI, native image, robustness | todo |
 | 6. Showcase and guide | todo |
@@ -324,3 +334,18 @@ Exit: Snapshot green on all jobs, with the vector library on four targets.
   path. D6 measured on an i7-4790K: SIMD off costs about 35% at 1024² on a
   400-path document with gradients (288–295 against 215–219 ms) and 17% at
   256²; it stays off (ADR-0741). Next ADR 0742.
+- **2026-11-22, phase 2 done.** `Svg` (ADR-0742): `parse` from bytes or text
+  with an optional `currentColor`, `naturalSize`, `viewBox`, `render(size)` as
+  a browser's SVG viewport and `render(size, Fit)`, `close` and a cleaner;
+  `ViewBox`; `RootTag`, which finds the root past a prologue and rewrites its
+  attributes; `ThorvgEngine` (one lock, the engine started once and never
+  stopped) and `ThorvgPicture`. Found in ThorVG's source: a resize stretches,
+  so a viewport of another shape is a parse of its own; `rgba()` with commas is
+  the only colour with alpha it reads. Limits: 16 MiB, 8192 a side, 64 million
+  pixels. Tests: the root scanner, placement in all three kinds and every
+  `Fit`, `currentColor`, a `data:` PNG and five references out of the
+  document drawing nothing, a truncated body, the limits, 32 virtual threads
+  sharing and parsing documents, and two goldens (every feature, and contained
+  in a square) with the 2× and 1.5× sweep. The phase 1 draw test now runs in
+  the engine's lock, since the cleaner's thread may release a picture at any
+  time. `:vector` requires `:widgets` for `Fit`. Next ADR 0743.
