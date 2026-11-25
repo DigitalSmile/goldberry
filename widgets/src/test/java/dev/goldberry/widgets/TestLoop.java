@@ -1,9 +1,11 @@
 package dev.goldberry.widgets;
 
+import java.time.Duration;
 import java.util.List;
 import java.util.function.BooleanSupplier;
 
 import dev.goldberry.Goldberry;
+import dev.goldberry.Host;
 import dev.goldberry.render.backend.headless.HeadlessBackend;
 import dev.goldberry.render.backend.headless.HeadlessPopup;
 
@@ -26,8 +28,7 @@ import dev.goldberry.render.backend.headless.HeadlessPopup;
 /// widget, in window size and in stylesheets, which is each test's own business.
 public final class TestLoop {
 
-    /// How often [#when] asks.
-    private static final long POLL_MILLIS = 10;
+    private static final Duration POLL_INTERVAL = Duration.ofMillis(10);
 
     private TestLoop() {}
 
@@ -53,23 +54,25 @@ public final class TestLoop {
                 .thenRun(action);
     }
 
-    /// Runs `then` on the UI thread once `ready` says so, asking it again every
-    /// few milliseconds until it does.
-    ///
-    /// For a step that waits on something the toolkit does in its own time, such
-    /// as a check on a virtual thread landing, rather than on a guess at how long
-    /// that takes, which is what a slow runner breaks. There is no limit here: the
-    /// test's `@Timeout` is the bound, and a condition that never holds fails as
-    /// a timeout.
-    ///
-    /// @param ready asked on the UI thread
-    /// @param then  what to run, on the UI thread
-    public static void when(BooleanSupplier ready, Runnable then) {
-        later(POLL_MILLIS, () -> {
+    /// Waits on the UI thread for a step in a headless window test. A timer
+    /// callback propagates an assertion through the launcher to JUnit.
+    public static void when(Host host, String step, BooleanSupplier ready, Runnable then) {
+        var timeout = host.after(Duration.ofSeconds(5), () -> {
+            throw new AssertionError("Timed out waiting for " + step);
+        });
+        poll(host, ready, () -> {
+            timeout.cancel();
+            // A background thread may already have posted the result we waited for.
+            Goldberry.ui().execute(then);
+        });
+    }
+
+    private static void poll(Host host, BooleanSupplier ready, Runnable then) {
+        host.after(POLL_INTERVAL, () -> {
             if (ready.getAsBoolean()) {
                 then.run();
             } else {
-                when(ready, then);
+                poll(host, ready, then);
             }
         });
     }

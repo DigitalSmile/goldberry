@@ -27,6 +27,11 @@ The vector CI jobs exercise ThorVG independently. Snapshot and release builds
 also check offscreen SVG widgets with both native artifacts before publishing.
 [ADR-0746](snapshot/adr/0746-goldberry-vector-is-built-on-four-targets-and-carried-in-the-native-image.md)
 
+The spelling menu handles suggestions that arrive after its first frame. Enter
+takes the first suggestion, and a user who has moved to another command keeps
+that selection when the new rows arrive.
+[ADR-0737](snapshot/adr/0737-a-misspelled-words-menu-opens-at-once-and-fills-in.md)
+
 ## Foundation
 
 **Done.**

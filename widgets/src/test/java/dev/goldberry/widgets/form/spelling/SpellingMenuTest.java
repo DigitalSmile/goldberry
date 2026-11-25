@@ -1,6 +1,5 @@
 package dev.goldberry.widgets.form.spelling;
 
-import static dev.goldberry.widgets.TestLoop.later;
 import static dev.goldberry.widgets.TestLoop.popups;
 import static dev.goldberry.widgets.TestLoop.when;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -8,12 +7,16 @@ import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.time.Duration;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Queue;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Consumer;
 
 import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.AfterEach;
@@ -192,12 +195,16 @@ class SpellingMenuTest {
             RendererRequirement.enforce();
             backend = new HeadlessBackend();
             GoldberryTestAccess.install(backend);
-            watched = new Watched(checker);
+            // Two suggestions move Add and Ignore down by a row when the answer arrives.
+            watched = new Watched(WordListChecker.english("the", "quick", "quizz", "brown", "fox"));
             SpellCheckers.install(watched);
         }
 
         @AfterEach
         void tearDown() {
+            if (watched != null) {
+                watched.allowSuggestion.complete(null);
+            }
             GoldberryTestAccess.shutdown();
         }
 
@@ -212,13 +219,9 @@ class SpellingMenuTest {
             // comes it takes the first row's place, and the menu, drawn again, puts
             // the focus on it: the first row that can run.
             Goldberry.launch(new TestApp(
-                    new Column(area),
-                    () -> onTheSuggestion(() -> {
-                        press(Key.ENTER);
-                        when(() -> !values.isEmpty(), Goldberry::stop);
-                    })));
+                    new Column(area), host -> onTheSuggestion(host, () -> choose(host, Key.ENTER))));
 
-            assertEquals("the quick fox", values.getLast());
+            assertEquals(List.of("the quick fox"), values);
         }
 
         @Test
@@ -227,42 +230,74 @@ class SpellingMenuTest {
         void addFromTheMenu() {
             var area = new TextArea("the quikc fox", value -> {}).spellcheck(true);
 
-            // The suggestion, then Add to dictionary.
+            // The two suggestions, then Add to dictionary.
             Goldberry.launch(new TestApp(
                     new Column(area),
-                    () -> onTheSuggestion(() -> {
-                        press(Key.DOWN);
-                        press(Key.ENTER);
-                        when(() -> SpellCheckers.personal(Locale.US).contains("quikc"), Goldberry::stop);
-                    })));
+                    host -> onTheSuggestion(host, () -> choose(host, Key.DOWN, Key.DOWN, Key.ENTER))));
 
             assertTrue(SpellCheckers.personal(Locale.US).contains("quikc"));
         }
 
+        @Test
+        @Timeout(20)
+        @DisplayName("suggestions arriving after keyboard navigation preserve the chosen row")
+        void keepKeyboardFocus() {
+            var area = new TextArea("the quikc fox", value -> {}).spellcheck(true);
+            Goldberry.launch(new TestApp(
+                    new Column(area),
+                    host -> onPendingMenu(host, () -> {
+                        // Down moves from Add to Ignore. Deliver the key before releasing the checker.
+                        press(Key.DOWN);
+                        host.after(Duration.ZERO, () -> releaseSuggestion(host, () -> choose(host, Key.UP, Key.ENTER)));
+                    })));
+            assertTrue(SpellCheckers.personal(Locale.US).contains("quikc"), "Up from Ignore should choose Add");
+        }
+
+        private void choose(Host host, Key... keys) {
+            for (var key : keys) {
+                press(key);
+            }
+            when(host, "the menu to close after Enter", () -> popups(backend).isEmpty(), Goldberry::stop);
+        }
+
         /// Right-clicks "quikc" once the field knows it is misspelled, and runs
         /// `then` once the open menu has been drawn with its suggestion.
-        ///
-        /// Each wait is for an event, not a time. The field checks and suggests on
-        /// virtual threads of its own, and such a thread has handed its answer to
-        /// the UI thread by the time it ends, so a step waits for the thread to end
-        /// and then goes once round the UI thread, behind the answer. The menu
-        /// takes the suggestion then and asks for a frame, and the focus has moved
-        /// once that frame is drawn. It may be drawn already by the time the step
-        /// looks, so the step waits for no frame to be pending, not for one more:
-        /// a menu with nothing left to draw draws nothing, and a wait for its next
-        /// frame never ends.
-        private void onTheSuggestion(Runnable then) {
+        /// The checker waits for the pending menu's first frame, so these tests
+        /// exercise suggestions arriving after the keyboard focus is already set.
+        private void onTheSuggestion(Host host, Runnable then) {
+            onPendingMenu(host, () -> releaseSuggestion(host, then));
+        }
+
+        private void onPendingMenu(Host host, Runnable then) {
             when(
+                    host,
+                    "the field to check the word",
                     () -> window().presentCount() > 0 && Watched.done(watched.checked),
-                    () -> later(0, () -> {
-                        rightClick(50, 16);
-                        when(
-                                () -> Watched.done(watched.suggested),
-                                () -> later(0, () -> {
-                                    var menu = popups(backend).getLast();
-                                    when(() -> menu.presentCount() > 0 && !menu.isFramePending(), then);
-                                }));
-                    }));
+                    () -> openPendingMenu(host, then));
+        }
+
+        private void openPendingMenu(Host host, Runnable then) {
+            rightClick(50, 16);
+            when(
+                    host,
+                    "the pending menu to paint",
+                    () -> popups(backend).stream().anyMatch(menu -> menu.presentCount() > 0),
+                    then);
+        }
+
+        private void releaseSuggestion(Host host, Runnable then) {
+            var menu = popups(backend).getLast();
+            var pendingFrame = menu.presentCount();
+            watched.allowSuggestion.complete(null);
+            when(
+                    host,
+                    "the suggestion to arrive",
+                    () -> Watched.done(watched.suggested),
+                    () -> when(
+                            host,
+                            "the refreshed menu to paint",
+                            () -> menu.presentCount() > pendingFrame && !menu.isFramePending(),
+                            then));
         }
 
         private HeadlessWindow window() {
@@ -291,6 +326,7 @@ class SpellingMenuTest {
     private static final class Watched implements SpellChecker {
 
         private final SpellChecker words;
+        private final CompletableFuture<Void> allowSuggestion = new CompletableFuture<>();
         private volatile @Nullable Thread checked;
         private volatile @Nullable Thread suggested;
 
@@ -320,13 +356,14 @@ class SpellingMenuTest {
 
         @Override
         public List<String> suggest(String word, int limit) {
+            allowSuggestion.orTimeout(5, TimeUnit.SECONDS).join();
             var found = words.suggest(word, limit);
             suggested = Thread.currentThread();
             return found;
         }
     }
 
-    private record TestApp(Widget root, Runnable started) implements Application {
+    private record TestApp(Widget root, Consumer<Host> started) implements Application {
 
         @Override
         public LogicalSize size() {
@@ -340,7 +377,7 @@ class SpellingMenuTest {
 
         @Override
         public void start(Host host) {
-            started.run();
+            started.accept(host);
         }
     }
 

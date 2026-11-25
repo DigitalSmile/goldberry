@@ -38,6 +38,18 @@ public final class ShownMenu {
         replace.accept(menu);
     }
 
+    /// Updates the menu and offers its first command as the default for Enter.
+    /// A user who already moved the keyboard focus keeps their choice.
+    public void updateAndPreferFirst(Menu menu) {
+        update(menu);
+        if (isOpen()
+                && !menu.children().isEmpty()
+                && menu.children().getFirst() instanceof Item first
+                && !first.disabled()) {
+            popup.preferFocus(Menus.rowId(first, 0));
+        }
+    }
+
     /// Whether it is still on screen.
     public boolean isOpen() {
         return popup.isOpen();

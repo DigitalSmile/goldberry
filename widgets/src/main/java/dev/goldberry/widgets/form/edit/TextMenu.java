@@ -120,7 +120,7 @@ public final class TextMenu {
     public void refresh() {
         var current = shown;
         if (current != null && current.isOpen()) {
-            current.update(menu(commands, before.get(), more.get()));
+            current.updateAndPreferFirst(menu(commands, before.get(), more.get()));
         }
     }
 
@@ -163,19 +163,20 @@ public final class TextMenu {
             return new Menu(rows, null);
         }
         return new Menu(
-                row(Labels.text(ToolkitLabel.CUT), Key.X, commands.canCut(), commands::cut),
-                row(Labels.text(ToolkitLabel.COPY), Key.C, commands.canCopy(), commands::copy),
-                row(Labels.text(ToolkitLabel.PASTE), Key.V, commands.canPaste(), commands::paste),
+                row(ToolkitLabel.CUT, Key.X, commands.canCut(), commands::cut),
+                row(ToolkitLabel.COPY, Key.C, commands.canCopy(), commands::copy),
+                row(ToolkitLabel.PASTE, Key.V, commands.canPaste(), commands::paste),
                 new Separator(),
-                row(Labels.text(ToolkitLabel.SELECT_ALL), Key.A, commands.canSelectAll(), commands::selectAll));
+                row(ToolkitLabel.SELECT_ALL, Key.A, commands.canSelectAll(), commands::selectAll));
     }
 
     /// One row. The command's answer is dropped: the field redraws itself, and
     /// `Menus` closes the menu either way.
-    private static Item row(String label, Key key, boolean enabled, BooleanSupplier command) {
-        return new Item(label, () -> {
+    private static Item row(ToolkitLabel label, Key key, boolean enabled, BooleanSupplier command) {
+        return new Item(Labels.text(label), () -> {
                     var _ = command.getAsBoolean();
                 })
+                .id(label.key())
                 .accelerator(Shortcut.primary(key).toString())
                 .disabled(!enabled);
     }

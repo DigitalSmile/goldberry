@@ -54,3 +54,15 @@ only be about the word the caret was already in.
 - Choosing *Add to dictionary* tells every field in the language: the
   personal dictionary's listeners make each `SpellCheck` forget its answers
   and redraw.
+
+## Late suggestions and keyboard focus
+
+A pending menu initially focuses *Add to dictionary*. When suggestions arrive,
+Enter chooses the first suggestion unless the user has already navigated to a
+command. Stable row keys keep the chosen command focused when several suggestions
+shift its position. Clipboard updates continue to reconcile the rows in place.
+
+The window tests release the spell checker after the pending menu paints. They
+cover Enter with the initial focus and navigation both before and after the
+suggestions arrive. Each wait runs on the event loop with a deadline so a missed
+event reports its name to JUnit.
