@@ -195,6 +195,31 @@ jobs:
           -Pgoldberry.skipNative=true -Pgoldberry.vector.required=true
           -Pgoldberry.vector.libdir="${{ github.workspace }}/vector-natives" --no-daemon
 
+      - name: Read Windows application crash events
+        if: failure() && runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $start = (Get-Item -LiteralPath "$env:GITHUB_WORKSPACE/.git").CreationTime
+          $events = Get-WinEvent -FilterHashtable @{
+            LogName = 'Application'
+            ProviderName = 'Application Error'
+            Id = 1000
+            StartTime = $start
+          } -ErrorAction SilentlyContinue
+          $count = 0
+          foreach ($event in $events) {
+            $data = @{}
+            foreach ($field in ([xml]$event.ToXml()).Event.EventData.Data) {
+              $data[$field.Name] = $field.InnerText
+            }
+            if ($data.AppName -in @('java.exe', 'javaw.exe')) {
+              $count++
+              Write-Output ("{0:u} {1} faulted in {2} {3}, exception {4}" -f $event.TimeCreated,
+                $data.AppName, $data.ModuleName, $data.ModuleVersion, $data.ExceptionCode)
+            }
+          }
+          if ($count -eq 0) { Write-Output 'Windows recorded no Java Application Error event during this job.' }
+
       - name: Keep JVM crash reports
         if: failure()
         uses: actions/upload-artifact@v4

@@ -95,7 +95,22 @@ jobs:
       # while the icon is up, which is the tray's only check on Windows.
       # https://goldberry.dev/docs/contributing/testing.html#with-and-without-the-library
       - name: Build and test against it
+        timeout-minutes: 30
         run: |
+          # A test blocked in native code may keep the Gradle worker alive.
+          # Record the test thread's stack while the worker can still answer.
+          (
+            while sleep 120; do
+              echo "Sampling Gradle workers at $(date -u)"
+              while read -r worker; do
+                echo "Gradle test worker $worker at $(date -u)"
+                /usr/bin/timeout 20s jcmd.exe "$worker" Thread.print |
+                  awk '/^"Test worker"/ { show=1 } /^[[:space:]]*$/ { show=0 } show { print }' || true
+              done < <(jcmd.exe -l | awk '/GradleWorkerMain.*Gradle Test Executor/ { print $1 }')
+            done
+          ) &
+          observer=$!
+          trap 'kill "$observer" 2>/dev/null || true' EXIT
           ./gradlew build --no-daemon --continue \
             -x gpuTest \
             -Pgoldberry.native.required=true \
