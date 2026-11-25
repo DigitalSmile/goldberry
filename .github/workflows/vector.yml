@@ -205,7 +205,7 @@ jobs:
         if: failure() && runner.os == 'Windows'
         shell: pwsh
         run: |
-          $start = (Get-Item -LiteralPath "$env:GITHUB_WORKSPACE/.git").CreationTime
+          $start = (Get-Item -LiteralPath $env:GITHUB_WORKSPACE).CreationTime
           $events = Get-WinEvent -FilterHashtable @{
             LogName = 'Application'
             ProviderName = 'Application Error'
@@ -309,7 +309,7 @@ jobs:
         if: always()
         shell: pwsh
         run: |
-          $start = (Get-Item -LiteralPath "$env:GITHUB_WORKSPACE/.git").CreationTime
+          $start = (Get-Item -LiteralPath $env:GITHUB_WORKSPACE).CreationTime
           $events = Get-WinEvent -FilterHashtable @{
             LogName = 'Application'
             ProviderName = 'Application Error'
