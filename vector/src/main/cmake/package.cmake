@@ -81,11 +81,12 @@ licenses/thorvg.txt in every Goldberry jar.
 ThorVG was built with the CPU engine, the svg, png and jpg loaders, no file
 I/O, no task scheduler and SIMD ${_simd}. It was built by vector/src/main/cmake
 of the Goldberry repository at the commit above, which gradle/libs.versions.toml
-pins, with two changes of Goldberry's, in vector/src/main/cmake/patches/:
+pins, with Goldberry's patches from vector/src/main/cmake/patches/:
 thorvg-bounded-strokes.patch draws a dashed stroke whose dashes would number
 more than a million undashed and strokes no path with a point at no finite
 place, and thorvg-bounded-coordinates.patch clamps a point more than 2^21
-pixels out to that distance.
+pixels out to that distance. thorvg-svg-character-bytes.patch passes unsigned
+bytes to the C runtime when the SVG parser classifies characters.
 
 Library: ${_name} (${_kb} KB)
 ")

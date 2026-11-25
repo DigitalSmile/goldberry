@@ -96,6 +96,19 @@ class SvgTest {
                 assertPixel(svg.render(new PhysicalSize(8, 4)), 1, 1, 0xFFFF0000);
             }
         }
+
+        @Test
+        @DisplayName("a UTF-8 class name in a stylesheet and on a shape")
+        void unicodeClassName() {
+            try (var svg = Svg.parse("""
+                    <svg xmlns="http://www.w3.org/2000/svg" width="4" height="4">
+                      <style>.青 { fill: #0000ff; }</style>
+                      <path class="青" d="M0 0h4v4H0z"/>
+                    </svg>
+                    """)) {
+                assertPixel(svg.render(new PhysicalSize(4, 4)), 2, 2, 0xFF0000FF);
+            }
+        }
     }
 
     @Nested

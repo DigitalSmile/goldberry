@@ -96,7 +96,7 @@ mail.
 - A document can no longer run ThorVG out of memory or time through dashes,
   far points or non-finite strokes. Other unbounded paths may exist; the lane
   at 48 rounds is where they will show, and the trace names the input.
-- Two patches are carried against ThorVG v1.1.4. A ThorVG bump has to rebase
+- The two geometry patches are carried against ThorVG v1.1.4. A ThorVG bump has to rebase
   or drop each; `apply_patch.cmake` refuses to build past one that no longer
   applies. Each is a candidate to send upstream.
 - A stroke past the bounds is not drawn, where a browser would clip it and draw
@@ -105,3 +105,11 @@ mail.
 - The robustness tests should be run under a memory cap on a desktop
   (`systemd-run --user --scope -p MemoryMax=…`): a regression of the first kind
   takes the machine, not the test.
+
+## Character classification on Windows
+
+The SVG and number parsers also pass character bytes to the C runtime. A
+UTF-8 byte can become negative when promoted from plain `char`.
+`thorvg-svg-character-bytes.patch` converts the bytes to `unsigned char`
+before classification, as ThorVG already does when reading XML whitespace.
+The vector tests render a path styled by a UTF-8 class name on each platform.
