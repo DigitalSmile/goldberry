@@ -334,6 +334,33 @@ public final class HitTest {
                         Math.max(0, layout.width() - left - right),
                         Math.max(0, layout.height() - top - bottom)),
                 shape));
+        var text = box.text();
+        if (text == null || text.ranges() == null) {
+            return;
+        }
+        var content = regions.getLast().content();
+        var ranges = text.ranges();
+        var placedRanges = ranges.place(text.paragraph(), text.flow(), content.width());
+        for (var index = 0; index < placedRanges.size(); index++) {
+            var range = ranges.ranges().get(index);
+            if (range.owner() == null) {
+                continue;
+            }
+            for (var piece : placedRanges.get(index)) {
+                var bounds = piece.bounds().offsetBy(content.left(), content.top());
+                regions.add(new Region(
+                        range.owner(),
+                        range.cursor(),
+                        bounds.left(),
+                        bounds.top(),
+                        bounds.width(),
+                        bounds.height(),
+                        inverse,
+                        placed.clip(),
+                        bounds,
+                        shape));
+            }
+        }
     }
 
     /// The topmost node containing `(x, y)`, in logical coordinates.

@@ -3,13 +3,15 @@ package dev.goldberry.content.image;
 import java.util.List;
 import java.util.Set;
 
+import org.jspecify.annotations.Nullable;
+
 import dev.goldberry.css.ComputedStyle;
 import dev.goldberry.image.Image;
 import dev.goldberry.layout.Length;
 import dev.goldberry.paint.Box;
-import dev.goldberry.paint.Frame;
-import dev.goldberry.paint.Painter;
 import dev.goldberry.render.model.LogicalSize;
+import dev.goldberry.text.Paragraph;
+import dev.goldberry.text.bidi.Directionality;
 import dev.goldberry.widget.Widget;
 import dev.goldberry.widget.style.Paints;
 import dev.goldberry.widget.style.Styled;
@@ -25,31 +27,27 @@ import dev.goldberry.widget.style.Styled;
 /// A part rather than a widget an application builds: it is a CSS type, `picture`,
 /// that a stylesheet can reach, and a document is what puts one on the screen.
 ///
-/// ## How big it is, and why that is not Yoga's decision
-///
-/// The box carries its size rather than a measure callback, because the toolkit's
-/// measured leaves are text and icons and there is no general measure hook on [Box].
-/// So the size is arithmetic here:
-///
-/// - **Natural size**, in logical pixels, from the image's own pixel dimensions.
-/// - **Capped by `max-width` and `max-height`** from the cascade, *in proportion* —
-///   which is the part a `max-width` rule alone would get wrong, because Yoga would
-///   clamp the width and leave the height, and the picture would be squashed rather
-///   than smaller.
-/// - A **percentage** cap is ignored rather than guessed at: resolving one needs the
-///   container's width, which is exactly what a measure callback would have and this
-///   does not. `html.css` and `markdown.css` therefore write their caps in points,
-///   and say so beside the rule.
-///
-/// Read more:
-/// [Links, images and tasks](https://goldberry.dev/docs/components/content.html#links-images-and-tasks).
-///
-/// @param image what to draw. A **value** — it owns no native handle, so
-///        holding one in a widget that is rebuilt every frame is safe, which is the
-///        property that makes this a two-line widget
-/// @param alt what the author wrote for a reader who cannot see it, used as the
-///        accessible name
-public record Picture(Image image, String alt) implements Widget.Leaf, Styled, Paints {
+/// The image's intrinsic size is capped in proportion by its resolved CSS
+/// limits. Its bottom edge shares the baseline of neighbouring text.
+public final class Picture implements Widget.Leaf, Styled, Paints {
+    private final Image image;
+    private final String alt;
+    private @Nullable Paragraph span;
+    private @Nullable LogicalSize previousSize;
+    private @Nullable Directionality previousDirection;
+
+    public Picture(Image image, String alt) {
+        this.image = image;
+        this.alt = alt;
+    }
+
+    public Image image() {
+        return image;
+    }
+
+    public String alt() {
+        return alt;
+    }
 
     @Override
     public String cssType() {
@@ -75,22 +73,17 @@ public record Picture(Image image, String alt) implements Widget.Leaf, Styled, P
             width *= scale;
             height *= scale;
         }
-        var drawnWidth = width;
-        var drawnHeight = height;
-        return Box.of()
-                .style(style)
-                .size(Length.points((float) drawnWidth), Length.points((float) drawnHeight))
-                .painting(new PicturePainter(image, drawnWidth, drawnHeight));
-    }
-
-    /// The picture as a value: the same image at the same size is an equal
-    /// painter, which the render tree reads as a box with nothing new to draw.
-    private record PicturePainter(Image image, double width, double height) implements Painter {
-
-        @Override
-        public void paint(Frame frame, LogicalSize size) {
-            frame.drawImage(image, 0, 0, width, height);
+        var size = LogicalSize.of((float) width, (float) height);
+        var font = context.font(style);
+        if (span == null
+                || span.font() != font
+                || !size.equals(previousSize)
+                || !style.directionality().equals(previousDirection)) {
+            span = Paragraph.picture(font, image, size, style.directionality());
+            previousSize = size;
+            previousDirection = style.directionality();
         }
+        return Box.text(span, style.color()).style(style);
     }
 
     /// How much of `natural` fits under `cap`, as a factor of 1 or less.

@@ -17,6 +17,8 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 import dev.goldberry.bind.Property;
+import dev.goldberry.content.select.ParagraphLine;
+import dev.goldberry.content.select.StyledWords;
 import dev.goldberry.content.select.Word;
 import dev.goldberry.html.Html;
 import dev.goldberry.html.model.HtmlDocument;
@@ -26,7 +28,6 @@ import dev.goldberry.widget.ElementTree;
 import dev.goldberry.widget.attr.Attributes;
 import dev.goldberry.widgets.controls.button.Button;
 import dev.goldberry.widgets.core.Column;
-import dev.goldberry.widgets.core.Row;
 import dev.goldberry.widgets.core.scroll.Scroll;
 import dev.goldberry.widgets.core.scroll.ScrollAxis;
 import dev.goldberry.widgets.markup.Wiring;
@@ -64,7 +65,8 @@ class HtmlViewTest {
         var subtrees = new LinkedHashSet<Element>();
         elements.forEach(element -> subtrees.addAll(walk(element)));
         return withClass(List.copyOf(subtrees), "html-word").stream()
-                .map(element -> ((Word) element.widget()).text())
+                .flatMap(element -> StyledWords.ofWidget(element.widget()).stream())
+                .map(Word::text)
                 .toList();
     }
 
@@ -371,7 +373,7 @@ class HtmlViewTest {
         void withoutABreak() {
             var prose = withClass(mount("<p>one two</p>"), "html-prose").getFirst();
 
-            assertInstanceOf(Row.class, prose.widget());
+            assertInstanceOf(ParagraphLine.class, prose.widget());
             assertTrue(prose.classes().contains("html-line"), "the paragraph is its own line");
             assertFalse(prose.classes().contains("html-lines"));
         }

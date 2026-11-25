@@ -12,6 +12,7 @@ import dev.goldberry.content.ImageSource;
 import dev.goldberry.content.image.Picture;
 import dev.goldberry.content.inline.Words;
 import dev.goldberry.content.select.BlockMemo;
+import dev.goldberry.content.select.ParagraphLine;
 import dev.goldberry.content.select.WordMinter;
 import dev.goldberry.markdown.model.Block;
 import dev.goldberry.markdown.model.BulletList;
@@ -74,26 +75,11 @@ import dev.goldberry.widgets.core.scroll.ScrollAxis;
 ///   other half: it flips that one marker in the source, and the binding brings the
 ///   new document back.
 ///
-/// ## What this cannot do, said out loud
-///
-/// - **A line of mixed faces is a row of words, not a shaped run**, so there is no
-///   justification and no hyphenation. This is the one an engine would close, and it
-///   is what `docs/TODO.md` still tracks. Selecting text across those words does
-///   work — the words say where they landed.
-///
-/// **A table's rules between its cells were on that list and are not any more**:
-/// the subset's border has four sides, so a row draws the line above it
-/// and a cell the line before it, and the `first` class on the leftmost cell and the
-/// top row — put there for this rule before it could be written — stops either
-/// doubling the table's own border.
-///
-/// **A hard break was on that list and is not any more**: a paragraph the
-/// author ended a line inside is a column of line rows rather than one row, so the
-/// break lands where they put it. A *soft* break still reflows, because that is what
-/// makes it soft.
+/// Paragraphs group adjacent words in the same style for shaping. A hard
+/// break separates two paragraphs in the same block.
 final class MarkdownWidgets implements BlockMemo.Fold<Block> {
 
-    /// The `md-word` / `md-token` namespace, which is all this fold and
+    /// The `md-word` namespace, which is all this fold and
     /// `html-view`'s disagree about — see [Words]. Per fold rather than static,
     /// because the words it makes report where they land, and where they land is a
     /// fact about *this* document.
@@ -223,14 +209,7 @@ final class MarkdownWidgets implements BlockMemo.Fold<Block> {
 
     // --- prose -----------------------------------------------------------------
 
-    /// A run of inline content as the lines it is: one wrapping row of words, or a
-    /// column of them where the author ended a line.
-    ///
-    /// **With no hard break in it this builds exactly the row it always built**, one
-    /// class wider — which is deliberate and is what keeps every golden image of every
-    /// document without a break in it unmoved. `md-prose` is the paragraph, whichever
-    /// shape it takes, and `md-line` is a line of words; `markdown.css` says which
-    /// declarations belong to which and why.
+    /// Each hard line is a shaped paragraph and shares the block's style.
     private Widget prose(List<Inline> content, String... extra) {
         minter.block();
         var pieces = new ArrayList<Words.Piece>();
@@ -242,11 +221,11 @@ final class MarkdownWidgets implements BlockMemo.Fold<Block> {
         classes.addAll(List.of(extra));
         var attributes = classes(classes.toArray(String[]::new));
         if (lines.size() == 1) {
-            return new Row(lines.getFirst(), attributes);
+            return ParagraphLine.of(lines.getFirst(), attributes);
         }
         var rows = new ArrayList<Widget>(lines.size());
         for (var line : lines) {
-            rows.add(new Row(line, classes("md-line")));
+            rows.add(ParagraphLine.of(line, classes("md-line")));
         }
         return new Column(rows, attributes);
     }
@@ -470,7 +449,7 @@ final class MarkdownWidgets implements BlockMemo.Fold<Block> {
         return new Row(cells, first ? classes("md-row", kind, "first") : classes("md-row", kind));
     }
 
-    /// One cell — a wrapping row of words, like a paragraph, with the column's
+    /// One cell — shaped text, like a paragraph, with the column's
     /// alignment and the border-suppressing `first` class on the leftmost one.
     private Widget cell(TableCell cell, boolean first) {
         minter.block();
@@ -492,7 +471,7 @@ final class MarkdownWidgets implements BlockMemo.Fold<Block> {
             // repeats the default.
             case CellAlignment.START, CellAlignment.DEFAULT -> {}
         }
-        return new Row(words.tokens(fragments), classes(classes.toArray(String[]::new)));
+        return ParagraphLine.of(words.tokens(fragments), classes(classes.toArray(String[]::new)));
     }
 
     // --- attributes ------------------------------------------------------------

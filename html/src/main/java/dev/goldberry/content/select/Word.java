@@ -14,45 +14,9 @@ import dev.goldberry.widget.attr.Attributes;
 import dev.goldberry.widget.style.Paints;
 import dev.goldberry.widget.style.Styled;
 
-/// One word of a rendered document — `word`, a **part**.
-///
-/// What `text` was until documents needed to be selectable. It draws exactly what a
-/// `text` widget draws, through the same measured-leaf box and the same paragraph
-/// cache, and adds the two things a selection cannot work without:
-///
-/// - it is [Located], so it says **where** it was laid out, once a frame and only
-///   when that changes;
-/// - it hands its shaped [dev.goldberry.text.Paragraph] to the
-///   geometry, which is what turns a pointer's **x** into a character offset —
-///   `Paragraph.offsetAt`, the same arithmetic a caret in a `text-input` uses.
-///
-/// Neither is something `text` could be asked for. A callback per instance is not a
-/// thing a shared catalog widget carries, and wrapping every word in a reporting node
-/// would double the element count of a document — which is the cost a rendered
-/// document was only just brought down to. So a document's words are this instead,
-/// and the *cost of the change is nothing*: one widget per word either way.
-///
-/// ## It can also carry something that is not text
-///
-/// A link is a `button` and an image is a `picture`, and a selection that skipped them
-/// would copy "Read first." out of "Read the help first." So a `Word` may wrap a
-/// child instead of drawing text: it contributes the child's **words** to what a
-/// selection copies, and the child draws itself. The box it adds carries no padding,
-/// no gap and no size of its own.
-///
-/// Such a word shapes nothing, so the geometry never hears from [WordGeometry#shaped]
-/// about it: the label belongs to the control and is shaped in the control's style.
-/// Where a caret inside one falls is then a proportion of the box it landed in, which
-/// the geometry works out for itself — the ends of it are exact either way, and those
-/// are what a double-click and a drag across a link are made of.
-///
-/// Read more: [Selection](https://goldberry.dev/docs/components/content.html#selection).
-///
-/// @param text what it says — the label of the child, when there is one
-/// @param attributes the classes the fold put on it, which is what `markdown.css` and
-///        `html.css` style
-/// @param entry where this word reports to
-/// @param child what to draw instead of the text, or null for an ordinary word
+/// A selectable word or inline element. A paragraph uses its entry to map
+/// shaped text back to the document. Standalone words, including list markers
+/// and lines of preformatted text, report their own layout.
 public record Word(
         String text,
         Attributes attributes,

@@ -12,6 +12,8 @@ import org.jspecify.annotations.Nullable;
 import dev.goldberry.content.ImageSource;
 import dev.goldberry.content.image.Picture;
 import dev.goldberry.content.inline.Words;
+import dev.goldberry.content.select.ParagraphLine;
+import dev.goldberry.content.select.Word;
 import dev.goldberry.content.select.WordMinter;
 import dev.goldberry.html.model.Comment;
 import dev.goldberry.html.model.Element;
@@ -56,15 +58,8 @@ import dev.goldberry.widgets.core.scroll.ScrollAxis;
 ///   cannot — which is a line drawn on purpose and not a missing widget: no file is
 ///   opened and no socket, so a page full of remote images shows what its author
 ///   wrote for a reader who cannot see them.
-/// - **A line is a row of words, not a shaped run.** Mixed faces on one line are one
-///   `text` widget per word, so justification and hyphenation are not available. This
-///   is the one that *is* litehtml's, and it is why an engine is still an open
-///   question rather than a closed one. **Selecting** across those words does work,
-///   because each one reports where it was painted.
-/// - **A document's own styles are a subset, and a box on an inline element is
-///   not a box.** `<style>` and `style=` reach the widgets as one generated class
-///   per element ([DocumentStyles]), so a `background` on a `span` is drawn round
-///   each of its words rather than round the run.
+/// - Inline typography and background colours apply to ranges in a shaped
+///   paragraph. Block elements retain their own CSS boxes.
 /// - **`sub` and `sup` are a size and not a baseline shift**, because the toolkit's
 ///   CSS subset has no `vertical-align`.
 /// - **A form control draws nothing.** Interactive widgets are out of scope for a
@@ -74,7 +69,7 @@ import dev.goldberry.widgets.core.scroll.ScrollAxis;
 /// All of it is in `docs/TODO.md` as well as here.
 final class HtmlWidgets {
 
-    /// The `html-word` / `html-token` namespace — see [Words], which the Markdown
+    /// The `html-word` namespace — see [Words], which the Markdown
     /// fold shares with this one. Per fold rather than static, because the words it
     /// makes report where they land.
     private final Words words;
@@ -140,6 +135,9 @@ final class HtmlWidgets {
         var widgets = new ArrayList<Widget>(nodes.size());
         var run = new Prose();
         for (var node : nodes) {
+            if (node instanceof Comment) {
+                continue;
+            }
             if (isInline(node)) {
                 run.add(node, Set.of());
                 continue;
@@ -162,7 +160,7 @@ final class HtmlWidgets {
     /// a run is ordinary text, which is [Prose]'s business rather than this test's.
     private static boolean isInline(HtmlNode node) {
         return switch (node) {
-            case HtmlText text -> !text.isBlank();
+            case HtmlText _ -> true;
             case Element element -> Tags.isInline(element.tag()) && !Tags.isMetadata(element.tag());
             case Comment _ -> false;
             case HtmlDocument _ -> false;
@@ -246,21 +244,14 @@ final class HtmlWidgets {
         return paragraph(run.take(), classesOf(element, extra));
     }
 
-    /// `lines` as the one box a paragraph is: a wrapping row of words, or a column of
-    /// them when a `br` ended a line inside it.
-    ///
-    /// **With no `br` in it this builds exactly the row it always built**, one class
-    /// wider — which is what keeps a page nobody wrote a `br` in pixel-identical.
-    /// `html-prose` and the tag's own class stay on the paragraph's box whichever shape
-    /// it has, so the page's structure is the same to a stylesheet either way, and
-    /// `html-line` is what lays a line of words out — see `html.css`.
-    private Widget paragraph(List<List<Widget>> lines, Attributes attributes) {
+    /// Hard breaks separate shaped lines inside a single styled block.
+    private Widget paragraph(List<List<Word>> lines, Attributes attributes) {
         if (lines.size() == 1) {
-            return new Row(lines.getFirst(), with(attributes, "html-line"));
+            return ParagraphLine.of(lines.getFirst(), with(attributes, "html-line"));
         }
         var rows = new ArrayList<Widget>(lines.size());
         for (var line : lines) {
-            rows.add(new Row(line, classes("html-line")));
+            rows.add(ParagraphLine.of(line, classes("html-line")));
         }
         return new Column(rows, with(attributes, "html-lines"));
     }
@@ -567,7 +558,7 @@ final class HtmlWidgets {
 
         /// Everything built so far **as the lines it is** — one list of tokens, or one
         /// per line where a `br` ended one — and this builder is empty again.
-        List<List<Widget>> take() {
+        List<List<Word>> take() {
             var taken = words.lines(List.copyOf(pending));
             pending.clear();
             return taken;

@@ -133,12 +133,22 @@ public record Box(
     /// @param spans     the stretches drawn otherwise, by offset into the text
     /// @param shadows   the `text-shadow` list, first on top, drawn under the
     ///                  glyphs; empty for nearly all text
-    public record Text(Paragraph paragraph, int argb, TextFlow flow, List<SpanPaint> spans, List<Shadow> shadows) {
+    public record Text(
+            Paragraph paragraph,
+            int argb,
+            TextFlow flow,
+            List<SpanPaint> spans,
+            List<Shadow> shadows,
+            @Nullable InlineRanges ranges) {
         public Text {
             Objects.requireNonNull(paragraph, "paragraph");
             Objects.requireNonNull(flow, "flow");
             spans = List.copyOf(Objects.requireNonNull(spans, "spans"));
             shadows = List.copyOf(Objects.requireNonNull(shadows, "shadows"));
+        }
+
+        public Text(Paragraph paragraph, int argb, TextFlow flow, List<SpanPaint> spans, List<Shadow> shadows) {
+            this(paragraph, argb, flow, spans, shadows, null);
         }
 
         /// Text with no shadow.
@@ -158,7 +168,7 @@ public record Box(
 
         /// This, with a different flow.
         public Text flow(TextFlow value) {
-            return new Text(paragraph, argb, value, spans, shadows);
+            return new Text(paragraph, argb, value, spans, shadows, ranges);
         }
 
         /// This at `alpha` of its opacity, its spans included.
@@ -178,7 +188,8 @@ public record Box(
                     CssColor.fade(argb, alpha),
                     flow.decorationPaint(fadedPaint(flow.decorationPaint(), alpha)),
                     faded,
-                    shadows.stream().map(shadow -> shadow.fade(alpha)).toList());
+                    shadows.stream().map(shadow -> shadow.fade(alpha)).toList(),
+                    ranges);
         }
     }
 
@@ -2104,7 +2115,8 @@ public record Box(
                                 style.color(),
                                 style.textFlow(),
                                 text.spans(),
-                                style.typography().lettering().shadows()),
+                                style.typography().lettering().shadows(),
+                                text.ranges()),
                 // `color` reaches an icon exactly as it reaches text: Lucide's
                 // set is drawn to be tinted, and a stylesheet saying `color`
                 // means the same thing to both.

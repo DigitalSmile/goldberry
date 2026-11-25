@@ -187,3 +187,4 @@ Appended to the index when the records move in, in this order.
 - [ADR-0745 ThorVG is patched where hostile geometry took the process down, and a sanitizer lane holds it there](0745-thorvg-is-patched-where-hostile-geometry-took-the-process-down.md)
 - [ADR-0746 goldberry-vector is built on four targets, published with its natives, and carried in the native image](0746-goldberry-vector-is-built-on-four-targets-and-carried-in-the-native-image.md)
 - [ADR-0747 The Drawing screen shows SVG at three sizes](0747-the-drawing-screen-shows-svg-at-three-sizes.md)
+- [ADR-0748 Document prose uses shaped paragraphs](0748-document-prose-uses-shaped-paragraphs.md)

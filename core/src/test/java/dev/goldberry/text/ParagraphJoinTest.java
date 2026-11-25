@@ -17,7 +17,10 @@ import org.junit.jupiter.api.Test;
 
 import dev.goldberry.RendererRequirement;
 import dev.goldberry.assets.BundledFont;
+import dev.goldberry.image.Image;
 import dev.goldberry.paint.TestFrames;
+import dev.goldberry.render.model.LogicalSize;
+import dev.goldberry.text.bidi.Directionality;
 import dev.goldberry.text.flow.TextDecoration;
 import dev.goldberry.text.flow.TextFlow;
 import dev.goldberry.text.font.Font;
@@ -59,6 +62,24 @@ class ParagraphJoinTest {
     private Paragraph sentence(Font keyword) {
         return Paragraph.join(
                 List.of(Paragraph.of(regular, GIVE), Paragraph.of(keyword, BLEEDING), Paragraph.of(regular, REST)));
+    }
+
+    @Test
+    void inlinePictureContributesItsOwnAdvanceAndBaseline() {
+        var red = 0xFFFF0000;
+        var picture = Paragraph.picture(
+                regular, Image.ofArgb(1, 1, new int[] {red}), LogicalSize.of(24, 40), Directionality.LTR);
+        var paragraph = Paragraph.join(List.of(Paragraph.of(regular, "A "), picture, Paragraph.of(strong, " B")));
+        var line = paragraph.layout(200).lines().getFirst();
+        assertEquals(40, paragraph.ascentOf(line), 0.01);
+        assertEquals(24, paragraph.widthBetween(2, 3), 0.01);
+        var x = (int) Math.ceil(paragraph.widthBetween(0, 2));
+        var target = TestFrames.of(200, 80, 1);
+        paragraph.paint(target.frame(), 0, 0, 200, 0xFFFFFFFF);
+        target.end();
+        assertEquals(red, target.pixel(x + 12, 1));
+        assertEquals(red, target.pixel(x + 12, 38));
+        assertTrue(paragraph.layout(30).lineCount() > 1);
     }
 
     @Nested

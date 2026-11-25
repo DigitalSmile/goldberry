@@ -3,17 +3,20 @@ package dev.goldberry.text;
 import java.text.Bidi;
 import java.text.BreakIterator;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 
 import org.jspecify.annotations.Nullable;
 
+import dev.goldberry.image.Image;
 import dev.goldberry.layout.Direction;
 import dev.goldberry.layout.Measure;
 import dev.goldberry.layout.MeasureMode;
 import dev.goldberry.layout.MeasuredSize;
 import dev.goldberry.paint.Frame;
+import dev.goldberry.render.model.LogicalSize;
 import dev.goldberry.text.bidi.BidiLevels;
 import dev.goldberry.text.bidi.Directionality;
 import dev.goldberry.text.bidi.LevelRun;
@@ -258,7 +261,11 @@ public final class Paragraph {
         this.advanceBeforeGlyph = segments.length == 1 ? EMPTY_PREFIX : glyphPrefix(run);
         this.spanStarts = spanStarts;
         this.spanFonts = spanFonts;
-        if (spanFonts == null || allIn(font, spanFonts)) {
+        boolean hasPicture = false;
+        for (var segment : segments) {
+            hasPicture |= segment.picture() != null;
+        }
+        if (spanFonts == null || (allIn(font, spanFonts) && !hasPicture)) {
             this.uniform = true;
             this.spanAscents = null;
             this.spanBelows = null;
@@ -272,6 +279,20 @@ public final class Paragraph {
                 var measured = grid ? font : spanFonts[k];
                 ascents[k] = measured.ascent();
                 belows[k] = measured.lineHeight() - ascents[k];
+            }
+            if (hasPicture && !grid) {
+                for (var segment : segments) {
+                    if (segment.picture() != null) {
+                        var starts = Objects.requireNonNull(spanStarts);
+                        var index = Arrays.binarySearch(starts, segment.textStart());
+                        // Empty spans may share the picture's start.
+                        while (starts[index + 1] == starts[index]) {
+                            index++;
+                        }
+                        ascents[index] = segment.picture().size().height();
+                        belows[index] = 0;
+                    }
+                }
             }
             this.spanAscents = ascents;
             this.spanBelows = belows;
@@ -343,7 +364,38 @@ public final class Paragraph {
     /// @param glyphStart where this segment's glyphs start in the concatenated run
     /// @param textStart  where its text starts, for rebasing the clusters
     /// @param rtl        whether it was shaped right to left
-    private record Segment(Font font, ShapedRun run, int glyphStart, int textStart, boolean rtl) {}
+    private record Segment(
+            Font font,
+            ShapedRun run,
+            int glyphStart,
+            int textStart,
+            boolean rtl,
+            @Nullable Picture picture) {
+        Segment(Font font, ShapedRun run, int glyphStart, int textStart, boolean rtl) {
+            this(font, run, glyphStart, textStart, rtl, null);
+        }
+    }
+
+    private record Picture(Image image, LogicalSize size) {
+        void draw(Frame frame, double x, double baseline, int colour) {
+            frame.drawImage(image, x, baseline - size.height(), size.width(), size.height(), (colour >>> 24) / 255.0);
+        }
+    }
+
+    /// An inline image occupying one object-replacement character. Its bottom
+    /// edge sits on the text baseline and its dimensions contribute to wrapping.
+    public static Paragraph picture(Font font, Image image, LogicalSize size, Directionality direction) {
+        Objects.requireNonNull(image, "image");
+        if (size.isEmpty()) {
+            throw new IllegalArgumentException("An inline image needs a positive size");
+        }
+        var advance = Math.toIntExact(Math.round((double) size.width() * font.unitsPerEm() / font.size()));
+        var zero = new int[] {0};
+        var run = ShapedRun.of(zero, zero, new int[] {advance}, zero, zero, zero);
+        var segment = new Segment(font, run, 0, 0, false, new Picture(image, size));
+        return new Paragraph(
+                font, "\uFFFC", direction, null, new Segment[] {segment}, new int[] {0, 1}, new Font[] {font}, false);
+    }
 
     /// Shapes `text` by runs, each in the face that should draw it and the
     /// direction its level says.
@@ -700,7 +752,8 @@ public final class Paragraph {
                         segment.run(),
                         glyph + segment.glyphStart(),
                         offset + segment.textStart(),
-                        segment.rtl()));
+                        segment.rtl(),
+                        segment.picture()));
             }
             for (var k = 0; k < span.spanCount(); k++) {
                 starts.add(offset + span.spanStart(k));
@@ -1183,7 +1236,11 @@ public final class Paragraph {
         if (segments.length == 1) {
             var only = segments[0];
             var count = only.run().length();
-            if (only.rtl()) {
+            if (only.picture() != null) {
+                if (from < to) {
+                    only.picture().draw(frame, x, baseline, argb);
+                }
+            } else if (only.rtl()) {
                 only.font().draw(frame, x, baseline, only.run(), count - to, count - from, argb);
             } else {
                 only.font().draw(frame, x, baseline, only.run(), from, to, argb);
@@ -1199,7 +1256,14 @@ public final class Paragraph {
             var count = segment.run().length();
             var local = start - segment.glyphStart();
             var localEnd = end - segment.glyphStart();
-            if (segment.rtl()) {
+            if (segment.picture() != null) {
+                segment.picture()
+                        .draw(
+                                frame,
+                                x + font.toLogical(advanceBeforeGlyph[start] - advanceBeforeGlyph[from]),
+                                baseline,
+                                argb);
+            } else if (segment.rtl()) {
                 var pen = x + font.toLogical(advanceBeforeGlyph[to] - advanceBeforeGlyph[end]);
                 segment.font().draw(frame, pen, baseline, segment.run(), count - localEnd, count - local, argb);
             } else {
@@ -1295,11 +1359,7 @@ public final class Paragraph {
             TextFlow flow,
             List<SpanPaint> spans,
             TextLine line) {
-        var room = maxWidth - font.ellipsisWidth();
-        var cut = room > 0 ? offsetFitting(line.start(), line.end(), room) : line.start();
-        while (cut > line.start() && Character.isWhitespace(text.charAt(cut - 1))) {
-            cut--;
-        }
+        var cut = beforeEllipsis(line, maxWidth);
         var kept = widthOf(line.start(), cut);
         var rtl = endsLeft(line, maxWidth);
         var left = rtl ? x + maxWidth - kept : x;
@@ -1384,9 +1444,43 @@ public final class Paragraph {
         return next;
     }
 
-    /// One past the line's last character that is not trailing whitespace: the
-    /// end of what is drawn, which is where the glyph range of a [TextLine]
-    /// already stops.
+    /// Visits visible directional fragments at the same positions used for painting.
+    /// Coordinates are relative to the paragraph's content box.
+    public void placeFragments(double width, TextFlow flow, FragmentVisitor visitor) {
+        var layout = layout(flow.wraps() ? width : UNCONSTRAINED, flow);
+        var count = kept(layout, flow);
+        double top = 0;
+        for (int i = 0; i < count; i++) {
+            var line = layout.lines().get(i);
+            var height = heightOf(line);
+            var y = top;
+            top += height;
+            var truncated =
+                    (i == count - 1 && count < layout.lines().size()) || (flow.ellipsises() && line.width() > width);
+            var end = visibleEnd(line);
+            double pen;
+            double gap;
+            if (truncated) {
+                end = beforeEllipsis(line, width);
+                pen = endsLeft(line, width) ? width - widthOf(line.start(), end) : 0;
+                gap = 0;
+            } else {
+                gap = gapRoom(line, flow.textAlign(), width);
+                pen = gap > 0 ? 0 : indentOf(line, flow.textAlign(), width);
+            }
+            var visible = end;
+            eachFragment(line.start(), end, pen, gap, (from, to, x, rtl) -> {
+                double extra = to < visible && isWordSeparator(text.charAt(to - 1)) ? gap : 0;
+                visitor.accept(from, to, x, y, height, rtl, extra);
+            });
+        }
+    }
+
+    @FunctionalInterface
+    public interface FragmentVisitor {
+        void accept(int from, int to, double x, double top, double height, boolean rtl, double gapAfter);
+    }
+
     /// The room each word gap on `line` takes when `align` justifies it in a
     /// box `maxWidth` wide, or 0 when the line is placed rather than respaced:
     /// it is not justified, it is the last line of its paragraph (the last of
@@ -1581,17 +1675,7 @@ public final class Paragraph {
     /// and the mark at its left, where the text would have gone on.
     private void paintTruncated(Frame frame, double x, double baseline, double maxWidth, int argb, TextLine line) {
         var mark = font.ellipsisWidth();
-        var room = maxWidth - mark;
-        var cut = room > 0 ? offsetFitting(line.start(), line.end(), room) : line.start();
-
-        // Trailing whitespace before the mark, so a cut at a word boundary reads
-        // as `Save as…` rather than `Save as …`. The glyph range already drops
-        // it from the *width*; what it does not do is stop the pen advancing
-        // over it, which is what would put the gap in.
-        while (cut > line.start() && Character.isWhitespace(text.charAt(cut - 1))) {
-            cut--;
-        }
-
+        var cut = beforeEllipsis(line, maxWidth);
         var kept = widthOf(line.start(), cut);
         var rtl = endsLeft(line, maxWidth);
         var left = rtl ? x + maxWidth - kept : x;
@@ -1603,6 +1687,15 @@ public final class Paragraph {
                 (from, to, pen, runsLeft) ->
                         drawGlyphs(frame, pen, baseline, glyphBefore[from], glyphBefore[to], argb));
         font.draw(frame, rtl ? left - mark : left + kept, baseline, TextOverflow.MARK, argb);
+    }
+
+    private int beforeEllipsis(TextLine line, double maxWidth) {
+        var room = maxWidth - font.ellipsisWidth();
+        var cut = room > 0 ? offsetFitting(line.start(), line.end(), room) : line.start();
+        while (cut > line.start() && Character.isWhitespace(text.charAt(cut - 1))) {
+            cut--;
+        }
+        return cut;
     }
 
     /// Whether a cut `line` ends at its left: its paragraph runs right to left

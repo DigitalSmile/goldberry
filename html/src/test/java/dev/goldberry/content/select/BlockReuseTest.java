@@ -176,9 +176,10 @@ class BlockReuseTest {
     }
 
     private static void collectWords(Element element, List<String> found) {
-        if (element.widget() instanceof Word word && word.child() == null) {
-            found.add(word.text());
-        }
+        StyledWords.ofWidget(element.widget()).stream()
+                .filter(word -> word.child() == null)
+                .map(Word::text)
+                .forEach(found::add);
         element.children().forEach(child -> collectWords(child, found));
     }
 

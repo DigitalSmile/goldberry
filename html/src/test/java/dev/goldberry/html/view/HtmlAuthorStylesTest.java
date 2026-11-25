@@ -219,8 +219,21 @@ class HtmlAuthorStylesTest {
                             + "</p>")
                     .authorStyles(AuthorStyles.AS_WRITTEN);
 
-            assertEquals(0xFF00FF00, word(view, "", "outer").text().argb());
-            assertEquals(BLUE, word(view, "", "inner").text().argb());
+            var paragraph = word(view, "", "outer inner").text();
+            assertEquals(
+                    0xFF00FF00,
+                    paragraph.spans().stream()
+                            .filter(s -> s.covers(0))
+                            .findFirst()
+                            .orElseThrow()
+                            .argb());
+            assertEquals(
+                    BLUE,
+                    paragraph.spans().stream()
+                            .filter(s -> s.covers(6))
+                            .findFirst()
+                            .orElseThrow()
+                            .argb());
         }
 
         @Test

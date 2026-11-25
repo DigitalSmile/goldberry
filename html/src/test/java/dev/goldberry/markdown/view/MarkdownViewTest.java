@@ -19,6 +19,8 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 import dev.goldberry.bind.Property;
+import dev.goldberry.content.select.ParagraphLine;
+import dev.goldberry.content.select.StyledWords;
 import dev.goldberry.content.select.Word;
 import dev.goldberry.kdl.KdlParser;
 import dev.goldberry.markdown.Markdown;
@@ -36,7 +38,6 @@ import dev.goldberry.widget.Element;
 import dev.goldberry.widget.ElementTree;
 import dev.goldberry.widget.attr.Attributes;
 import dev.goldberry.widgets.core.Column;
-import dev.goldberry.widgets.core.Row;
 import dev.goldberry.widgets.core.scroll.Scroll;
 import dev.goldberry.widgets.core.scroll.ScrollAxis;
 import dev.goldberry.widgets.markup.Wiring;
@@ -84,7 +85,8 @@ class MarkdownViewTest {
         var subtrees = new LinkedHashSet<Element>();
         elements.forEach(element -> subtrees.addAll(walk(element)));
         return withClass(List.copyOf(subtrees), "md-word").stream()
-                .map(element -> ((Word) element.widget()).text())
+                .flatMap(element -> StyledWords.ofWidget(element.widget()).stream())
+                .map(Word::text)
                 .toList();
     }
 
@@ -393,7 +395,8 @@ class MarkdownViewTest {
             var elements = mount("one\ntwo\n");
             var prose = paragraph(elements);
 
-            assertInstanceOf(Row.class, prose.widget(), "a newline the author's editor put in is not a line ending");
+            assertInstanceOf(
+                    ParagraphLine.class, prose.widget(), "a newline the author's editor put in is not a line ending");
             assertTrue(prose.classes().contains("md-line"), "the paragraph is its own line");
             assertFalse(prose.classes().contains("md-lines"));
             assertEquals(1, lines(elements).size());
@@ -442,7 +445,8 @@ class MarkdownViewTest {
             var elements = mount("[a\\\nb](/x)\n");
             var prose = paragraph(elements);
 
-            assertInstanceOf(Row.class, prose.widget(), "splitting the button would make two Tab stops for one href");
+            assertInstanceOf(
+                    ParagraphLine.class, prose.widget(), "splitting the button would make two Tab stops for one href");
             assertEquals(1, lines(elements).size());
             assertEquals("a b", buttonsOf(elements).getFirst().label(), "the break is a space in the label instead");
         }
@@ -522,7 +526,8 @@ class MarkdownViewTest {
 
             assertEquals(1, withClass(elements, "md-cell").size());
             assertInstanceOf(
-                    Row.class, withClass(elements, "md-cell").getFirst().widget());
+                    ParagraphLine.class,
+                    withClass(elements, "md-cell").getFirst().widget());
             assertEquals(List.of("a", "b"), wordsOf(elements));
         }
     }

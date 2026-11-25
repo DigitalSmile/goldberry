@@ -14,13 +14,10 @@ import dev.goldberry.widget.attr.Attributes;
 /// It also carries the two things only the **fold** knows and the geometry cannot
 /// work out afterwards:
 ///
-/// - **Where the blocks are.** A wrapping row of words is a paragraph to a reader and
-///   a flat list to everything else. [#block()] is the fold saying "a new one starts
-///   here", which is what puts a newline in a copied selection and what a triple-click
-///   takes.
-/// - **Where the spaces went.** A paragraph's spaces are *gaps between boxes* rather
-///   than characters, so a copy that joined the words back up would produce
-///   `Thequickbrown`. Each word carries the separator that belongs in front of it.
+/// - Each block starts a new line in a copied selection and defines the
+///   extent of a triple-click.
+/// - Each word carries its source separator. Soft wrapping and justification
+///   can change its placement while the copied text stays the same.
 ///
 /// One of these per build, like the fold that holds it.
 ///
@@ -100,7 +97,7 @@ public final class WordMinter {
     /// @param startsToken whether a space belongs in front of it: true between two
     ///        words of a line, false between two pieces of one word — `*a*,` is an
     ///        emphasised piece and then a comma, and the comma is not a new word
-    public Widget word(String text, Attributes attributes, boolean startsToken) {
+    public Word word(String text, Attributes attributes, boolean startsToken) {
         return mint(text, attributes, startsToken, null);
     }
 
@@ -108,11 +105,11 @@ public final class WordMinter {
     ///
     /// `text` is what it contributes to a copy: a link's label, and nothing at all for
     /// a picture, which is what a browser copies for an image.
-    public Widget wrapping(Widget child, String text, Attributes attributes, boolean startsToken) {
+    public Word wrapping(Widget child, String text, Attributes attributes, boolean startsToken) {
         return mint(text, attributes, startsToken, child);
     }
 
-    private Widget mint(String text, Attributes attributes, boolean startsToken, @Nullable Widget child) {
+    private Word mint(String text, Attributes attributes, boolean startsToken, @Nullable Widget child) {
         var prefix = pendingBlock ? "\n" : startsToken ? " " : "";
         if (pendingBlock || block == null) {
             // **Before the word is registered, not after.** The word that opens a block

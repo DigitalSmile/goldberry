@@ -40,61 +40,15 @@
   font-weight: var(--gb-weight-regular);
 }
 
-/* ----------------------------------------------------------------- prose --
- *
- * **A paragraph is a wrapping row of words, one `text` widget each.**
- *
- * The load-bearing decision, and it is the same one `markdown.css` explains: the
- * text stack shapes one font per `Paragraph`, so a line containing both regular
- * and semibold glyphs cannot be one shaped run. Real inline layout is what an
- * engine would have brought and is the one thing a document-not-engine design
- * leaves open; everything else is here.
- * https://goldberry.dev/docs/components/content.html
- */
-
-/* **`.html-prose` carries no declarations, and the split is the decision**
-   (`markdown.css` argues it at length beside the same pair of rules).
-   It is on the paragraph's box whichever shape that box has -- the wrapping row below
-   when the page wrote no `br` inside it, the column below that when it did -- so a
-   declaration here would have to mean the same thing on a row and on a column, and
-   the row's three do not: `gap` on the row is the space between two words and on the
-   column would be the space between two lines.
-
-   The paragraph's box is still where the tag's own class lands (`.html-h2`,
-   `.html-caption`), and that is the half of the split that matters to a page: the
-   face is inherited by every line, a fill is painted once round the paragraph, and
-   there is one box per paragraph in the flow either way. */
-
-/* One line of a paragraph: a wrapping row of words. On the paragraph's box itself
-   when the paragraph is one line, and on each row of `.html-lines` when it is not. */
+/* Paragraphs inherit the reading face. Hard breaks stack separate shaped
+   lines, each with the same available width and baseline spacing. */
 .html-line {
-  flex-wrap: wrap;
-  /* Words of different sizes -- a code span sits in a smaller face -- sit on one
-     line. Without this the row would stretch every word box to its tallest
-     member and a code span would ride high. */
-  align-items: baseline;
-  /* A space, in the reading font's own units, so it grows with the text scale.
-     It is also the gap *between wrapped lines*, since `gap` is one value here --
-     which reads as leading, and is why it is not larger. */
-  gap: 0.25em;
+  min-width: 0;
 }
 
-/* A paragraph with a `br` in it: the lines, stacked. */
 .html-lines {
   flex-direction: column;
-  /* The same 0.25em `.html-line` puts between two *wrapped* lines, so a line the
-     author ended and a line the width ended are the same distance apart. */
-  gap: 0.25em;
-  /* Each line gets the paragraph's full width, so a line after a `br` wraps where
-     the line before it did. */
   align-items: stretch;
-}
-
-/* A word that spans two styles is a row of pieces with no gap between them, so
-   that a comma sits where it was written. The row is inside the prose row, so the
-   line still breaks between tokens and never inside one. */
-.html-token {
-  align-items: baseline;
 }
 
 /* `.html-word` carries no declarations, deliberately: a word's face comes from
@@ -371,10 +325,12 @@ scroll.html-code-scroll {
 }
 
 .html-cell.center {
+  text-align: center;
   align-items: center;
 }
 
 .html-cell.end {
+  text-align: end;
   align-items: flex-end;
 }
 

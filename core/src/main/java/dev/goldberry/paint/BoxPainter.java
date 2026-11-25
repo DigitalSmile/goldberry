@@ -5,6 +5,7 @@ import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 import dev.goldberry.css.Border;
+import dev.goldberry.css.Decoration;
 import dev.goldberry.css.background.BackgroundBox;
 import dev.goldberry.css.background.GradientLayer;
 import dev.goldberry.css.image.CssImage;
@@ -296,6 +297,26 @@ public final class BoxPainter {
                             // A `rich-text`'s runs in their own colours; empty,
                             // and the plain path, for every other text.
                             box.text().spans());
+            var ranges = box.text().ranges();
+            if (ranges != null && ranges.hasOutline()) {
+                var pieces = ranges.place(box.text().paragraph(), box.text().flow(), Math.max(0, width - left - right));
+                for (int i = 0; i < pieces.size(); i++) {
+                    var inline = ranges.ranges().get(i).decoration();
+                    if (inline.hasOutline()) {
+                        for (var piece : pieces.get(i)) {
+                            var bounds = piece.bounds();
+                            outline(
+                                    frame,
+                                    path,
+                                    inline,
+                                    x + left + bounds.left(),
+                                    y + top + bounds.top(),
+                                    bounds.width(),
+                                    bounds.height());
+                        }
+                    }
+                }
+            }
         }
 
         if (box.icon() != null) {
@@ -328,6 +349,11 @@ public final class BoxPainter {
             paintCanvas(frame, box, painter, x, y, width, height, ambient);
         }
 
+        outline(frame, path, decoration, x, y, width, height);
+    }
+
+    private static void outline(
+            Frame frame, BlendPath path, Decoration decoration, double x, double y, double width, double height) {
         if (decoration.hasOutline() && decoration.outlineStyle() != Border.Style.SOLID) {
             // A styled ring is a border around the box: the band from the
             // offset out to the offset plus the width, its corners concentric

@@ -98,35 +98,17 @@ on, which in four cases is the same thing.
   ([ADR-0294](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0294-a-parser-crosses-the-boundary-once.md),
   [ADR-0295](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0295-a-document-is-a-value-and-a-paragraph-is-a-row-of-words.md),
   [ADR-0298](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0298-html-is-a-document-and-not-an-engine.md)),
-  and what they do *not* do is a short list that mostly has one cause — there is no
-  inline layout engine under either, because that is what litehtml would be:
-  - **Neither can lay out a line of mixed faces as one shaped run**, so there is no
-    justification and no hyphenation. This is the item that *is* litehtml's, and it
-    is now **the whole** of what an engine would buy: links, images, task boxes
-    (ADR-0300) and text selection
-    ([ADR-0301](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0301-a-selection-is-geometry-the-frame-already-had.md)) all
-    used to be on this list and none of them needed one.
-
-    **Narrower than it reads (2026-10-18).** The toolkit can now shape a line of
-    mixed faces as one run: `rich-text` shapes each run in its own font and joins
-    them into one paragraph, and a justified line is respaced at paint time
-    (ADR-0615, parked in `docs/snapshot/adr`). The two views do not use it yet.
-    They still build a row of words, so moving them over is toolkit work and not
-    an engine's. Selection and links would have to move with them. Only
-    **hyphenation** still needs an engine.
-
-    **Later, by choice (2026-10-18).** Moving the two views onto the shaped
-    run is a large change: word geometry, selection and link hit-testing all
-    move with it, and justification alone does not pay for that yet. It stays
-    open as toolkit work, scheduled after the release.
+  and the remaining content-view gaps are listed below.
+  - **Automatic hyphenation remains open.** Both document views now shape styled
+    paragraphs, wrap mixed faces and support CSS justification. Selection and link
+    hits follow the painted lines ([ADR-0748](snapshot/adr/0748-document-prose-uses-shaped-paragraphs.md)).
   - **`src="…"` is not a thing on either view.** Reading a file from markup means
     deciding what a relative path is relative to and what a missing one does —
     three answers `Icons` and the stylesheets each needed a resolver for. An
     application reads the file and passes the text.
-  - **`<style>` and `style=` are kept in the HTML model and applied by nothing**,
-    and neither is a `<script>` run. The cascade an `html-view` is under is the
-    application's stylesheets, which is what makes a page follow the theme; an
-    author's own colours would fight it (ADR-0298).
+  - **HTML author styles cover a subset of CSS.** `html-view` applies supported
+    declarations from `<style>` and `style=`, including paragraph alignment.
+    Scripts stay inert ([ADR-0710](snapshot/adr/0710-a-page-s-own-styles-in-a-scope-of-their-own.md)).
   - **A keystroke re-parses the whole preview** (ADR-0296). The rebuild is no
     longer whole: blocks the edit did not touch keep their widgets (`BlockMemo`,
     [ADR-0389](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0389-a-block-nobody-typed-in-keeps-its-widget.md)).

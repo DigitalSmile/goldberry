@@ -50,8 +50,8 @@ own sheets for the page's elements; an application that has to insist writes
 | `as-written` | Exactly as written, for a surface the application knows to be white |
 | `ignored` | The application's stylesheets alone, as a help page should be |
 
-An inline element is a class on each of its words rather than a box, so a
-`background` or `padding` on a `span` is drawn round each word.
+Inline styles follow the text run. Its background covers the glyph range on
+each line. Paragraph boxes support padding.
 
 ## 3. `### What it does not do`
 

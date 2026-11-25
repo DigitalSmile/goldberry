@@ -1,12 +1,22 @@
-# Emphasis is set in the italic face
+# Document typography
 
-Held back until the release (ADR-0636). One piece here; the `Rich text` row of
-`book/src/overview/limitations.md` is item 4 of `components-rich-text.md`.
+Release edits for `book/src/components/content.md` (ADR-0636 and ADR-0748).
 
-## `book/src/components/content.md`, `### What it does not do`
+In both views’ styling sections, remove `md-token` and `html-token` from the
+class lists. A paragraph groups adjacent text of the same style into runs.
+The `md-word` and `html-word` classes style those runs. Both views accept the same alignment rule.
 
-Drop the first sentence, "Emphasis is a faux oblique, a skew rather than an
-italic face." The paragraph then begins:
+```css
+.md-prose, .html-prose {
+  text-align: justify;
+}
+```
 
-A line of mixed faces is a row of words rather than one shaped run, so there is
-no justification and no hyphenation.
+Word gaps expand on wrapped lines. The last line and the line before a hard
+break retain their natural spacing. Inline images sit on the text baseline.
+A link can cover several lines and remains a single Tab stop.
+
+Under Markdown’s limitations, replace the sentences about faux oblique and
+word rows with “Emphasis uses the italic face. Automatic hyphenation is
+unavailable.” Under HTML’s limitations, remove the sentence about mixed faces
+requiring an engine.

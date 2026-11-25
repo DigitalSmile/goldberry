@@ -2,31 +2,19 @@ package dev.goldberry.content.select;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 import org.jspecify.annotations.Nullable;
 
+import dev.goldberry.paint.InlineRanges;
 import dev.goldberry.render.model.LogicalRect;
 import dev.goldberry.text.Paragraph;
 
 /// Where every word of a rendered document ended up, and what it says.
 ///
-/// The thing a document needs in order to be **selectable** and the one thing a
-/// widget cannot work out for itself: `build` and `render` both run before Yoga, so
-/// a word describing itself has no idea where it is. Three facilities answer
-/// geometry questions in this toolkit and only one carries a position —
-/// [dev.goldberry.input.handler.Located] — so each [Word] reports
-/// its own rectangle here, once a frame, when it changes.
-///
-/// ## What is registered when
-///
-/// | | arrives | from |
-/// |---|---|---|
-/// | text, prefix, block | at **build**, in document order | the fold |
-/// | the shaped paragraph | at **render** | [Word#render] |
-/// | the rectangle and its clip | after **layout**, on a change | [Word#located] |
-///
-/// The entry is the word's identity and is handed out by the build, so the three
-/// sources agree without any of them knowing about the others.
+/// The fold registers logical words and block boundaries in document order.
+/// [ParagraphLine] reports the shaped run and its visible fragments. List
+/// markers and preformatted lines report their own bounds through [Word].
 ///
 /// ## Entries belong to a block, not to the document
 ///
@@ -39,20 +27,13 @@ import dev.goldberry.text.Paragraph;
 /// however many words appeared above it, and the only thing that moves is the flat
 /// view — which is rebuilt from the blocks and costs a reference copy per word.
 ///
-/// ## It is mutable, and confined to the UI thread
-///
-/// Everything here happens inside a frame on the thread that owns the window. The
-/// entries are overwritten in place rather than rebuilt, because a scroll moves six
-/// hundred rectangles and allocating six hundred records per frame to say so would be
-/// the cost this whole file exists to avoid.
-///
-/// Read more: [Selection](https://goldberry.dev/docs/components/content.html#selection).
+/// Selection, layout and pointer events use this geometry on the UI thread.
 public final class WordGeometry {
 
     /// One word: what it says, where it is, and what it is part of.
     ///
     /// A class rather than a record because a frame updates two of its fields and
-    /// keeps the rest — see the note about allocation above.
+    /// keeps the document identity across frames.
     ///
     /// Public because [Word]'s canonical constructor names it, and a record's
     /// canonical constructor is as visible as the record. The package is not
@@ -69,12 +50,21 @@ public final class WordGeometry {
         private int block;
 
         private @Nullable Paragraph paragraph;
+        private int startInParagraph;
 
         private @Nullable LogicalRect rect;
 
         /// What the nearest `overflow` above it confines it to, so a word scrolled
         /// out of sight is not hit by a pointer over the thing it scrolled under.
         private @Nullable LogicalRect clip;
+
+        private List<InlineRanges.Piece> pieces = List.of();
+
+        private List<LogicalRect> separator = List.of();
+
+        boolean spaceBefore() {
+            return prefix.equals(" ");
+        }
 
         String text() {
             return text;
@@ -235,16 +225,42 @@ public final class WordGeometry {
     /// The shaped paragraph a word drew with, which is what maps an **x** to a
     /// character offset.
     static void shaped(Entry entry, Paragraph paragraph) {
+        shaped(entry, paragraph, 0);
+    }
+
+    static void shaped(Entry entry, Paragraph paragraph, int start) {
         entry.paragraph = paragraph;
+        entry.startInParagraph = start;
     }
 
     /// Where the last frame put a word, in the window's own coordinates.
     static void placed(Entry entry, LogicalRect rect, LogicalRect clip) {
+        entry.separator = List.of();
+        entry.pieces = List.of(new InlineRanges.Piece(0, entry.text.length(), rect, false, 0));
         entry.rect = rect;
         entry.clip = clip;
     }
 
-    /// How many words the document has.
+    static void hidden(Entry entry) {
+        entry.rect = null;
+        entry.separator = List.of();
+        entry.pieces = List.of();
+    }
+
+    static void separator(Entry entry, List<InlineRanges.Piece> pieces, float left, float top) {
+        entry.separator =
+                pieces.stream().map(piece -> piece.bounds().offsetBy(left, top)).toList();
+    }
+
+    static void placed(Entry entry, List<InlineRanges.Piece> pieces, float left, float top, LogicalRect clip) {
+        entry.clip = clip;
+        entry.pieces = pieces.stream()
+                .map(piece -> new InlineRanges.Piece(
+                        piece.start(), piece.end(), piece.bounds().offsetBy(left, top), piece.rtl(), piece.gapAfter()))
+                .toList();
+        entry.rect = entry.pieces.isEmpty() ? null : entry.pieces.getFirst().bounds();
+    }
+
     public int size() {
         return entries.size();
     }
@@ -272,104 +288,40 @@ public final class WordGeometry {
     /// word whose rectangle is closest — vertically first, which is what makes
     /// dragging down the left margin select whole lines.
     Caret at(double x, double y) {
-        Entry nearest = null;
-        var nearestIndex = 0;
-        var nearestDistance = Double.MAX_VALUE;
+        int nearest = -1;
+        InlineRanges.Piece closest = null;
+        var best = Double.MAX_VALUE;
         for (var index = 0; index < entries.size(); index++) {
             var entry = entries.get(index);
-            var rect = entry.rect;
-            if (rect == null || (entry.clip != null && !contains(entry.clip, x, y))) {
-                // Never laid out, or scrolled out of sight under something that clips
-                // it -- either way the pointer is not over it however close it looks.
+            if (entry.clip != null && !contains(entry.clip, x, y)) {
                 continue;
             }
-            if (contains(rect, x, y)) {
-                return new Caret(index, offsetIn(entry, x));
-            }
-            var distance = distanceTo(rect, x, y);
-            if (distance < nearestDistance) {
-                nearestDistance = distance;
-                nearest = entry;
-                nearestIndex = index;
+            for (var piece : entry.pieces) {
+                var distance = distanceTo(piece.bounds(), x, y);
+                if (distance == 0) {
+                    return new Caret(index, offsetIn(entry, piece, x));
+                }
+                if (distance < best) {
+                    nearest = index;
+                    closest = piece;
+                    best = distance;
+                }
             }
         }
-        if (nearest == null) {
-            return Caret.NONE;
-        }
-        // Past the end of a word rather than inside it: a drag that stopped in the
-        // margin to the right of a line means "to the end of that line".
-        var rect = nearest.rect;
-        var after = rect != null && x > rect.right();
-        return new Caret(nearestIndex, after ? nearest.text.length() : offsetIn(nearest, x));
+        return closest == null ? Caret.NONE : new Caret(nearest, offsetIn(entries.get(nearest), closest, x));
     }
 
-    /// Which character of a word an **x** falls on.
-    ///
-    /// [Paragraph#offsetAt] is the text stack's own answer — the same arithmetic a
-    /// caret in a `text-input` uses — so a selection lands between the glyphs a reader
-    /// sees rather than at a proportion of the box.
-    ///
-    /// **A word that drew a child has no paragraph of its own**, and then the box is
-    /// all there is — see [#across].
-    private static int offsetIn(Entry entry, double x) {
-        var rect = entry.rect;
-        if (rect == null) {
+    private static int offsetIn(Entry entry, InlineRanges.Piece piece, double x) {
+        if (entry.text.isEmpty()) {
             return 0;
         }
-        var paragraph = entry.paragraph;
-        if (paragraph == null) {
-            var length = entry.text.length();
-            if (length == 0 || rect.width() <= 0) {
-                return 0;
-            }
-            return Math.clamp(Math.round((x - rect.left()) / rect.width() * length), 0, length);
-        }
-        return paragraph.offsetAt(0, entry.text.length(), x - rect.left());
+        var paragraph = Objects.requireNonNull(entry.paragraph);
+        var base = entry.startInParagraph;
+        var local = x - piece.bounds().left() - (piece.rtl() ? piece.gapAfter() : 0);
+        return paragraph.offsetAt(base + piece.start(), base + piece.end(), local) - base;
     }
 
-    /// Where a caret sits inside its word, in window coordinates.
-    private static double xOf(Entry entry, int offset) {
-        var rect = entry.rect;
-        if (rect == null) {
-            return 0;
-        }
-        var paragraph = entry.paragraph;
-        if (paragraph == null) {
-            return across(entry, rect, offset);
-        }
-        return rect.left() + paragraph.widthBetween(0, Math.min(offset, entry.text.length()));
-    }
-
-    /// An offset inside a word that **drew something instead of text**, as a
-    /// proportion of the box it landed in.
-    ///
-    /// A link is a `button` and an image a `picture` ([Word]), so those words never
-    /// reach [#shaped] and have no paragraph to measure against: the label is shaped by
-    /// the control, in the control's own style, and nothing hands that paragraph back
-    /// here. Answering `rect.left()` for every offset — which this did — makes the two
-    /// ends of a link the same place, so a selection ending inside one washes nothing
-    /// of it and a double-click on one highlights nothing at all.
-    ///
-    /// Proportional rather than exact, and deliberately: the *ends* are what a reader
-    /// can see are right — offset zero is the left edge and the last offset is the
-    /// right one, which is the whole of a double-click and of a drag across a link —
-    /// and a caret halfway through a label lands within a glyph of where it belongs.
-    /// An image carries no text (a copy of one is nothing), so its every offset is its
-    /// left edge and a selection either covers the box or does not.
-    private static double across(Entry entry, LogicalRect rect, int offset) {
-        var length = entry.text.length();
-        if (length == 0) {
-            return rect.left();
-        }
-        return rect.left() + rect.width() * (double) Math.clamp(offset, 0, length) / length;
-    }
-
-    /// The rectangles a selection covers, in window coordinates.
-    ///
-    /// One per word rather than one per line, which is what makes this arithmetic
-    /// instead of a line-breaking algorithm: the words already **are** the lines, laid
-    /// out by the wrapping row they are in, so a selection is the union of the boxes
-    /// it touches and the two partial ones at its ends.
+    /// The visible pieces of the selected range, including its shaped spaces.
     List<LogicalRect> rectangles(Caret from, Caret to) {
         if (from.isNone() || to.isNone() || from.equals(to)) {
             return List.of();
@@ -383,53 +335,37 @@ public final class WordGeometry {
             if (rect == null) {
                 continue;
             }
-            var left = index == start.word() ? xOf(entry, start.offset()) : rect.left();
-            var right = index == end.word() ? xOf(entry, end.offset()) : (double) rect.right();
-            if (right > left) {
-                rectangles.add(LogicalRect.of((float) left, rect.top(), (float) (right - left), rect.height()));
+            if (index > start.word()) {
+                rectangles.addAll(entry.separator);
             }
-        }
-        return bridged(rectangles);
-    }
-
-    /// The same rectangles with the **spaces between words** covered.
-    ///
-    /// A paragraph is a wrapping row of word boxes and the spaces in it are the row's
-    /// `gap` — so a selection drawn from the boxes alone is a row of stripes with white
-    /// gaps between them, which reads as several selections rather than one. Where two
-    /// selected words sit on the same line with only a space between them, the first is
-    /// stretched to meet the second.
-    ///
-    /// The bridge is capped at half a line's height, which is comfortably more than the
-    /// 0.25em a paragraph puts between words and comfortably less than the padding
-    /// between two table cells — so a selection across a row does not paint over the
-    /// rule between them.
-    private static List<LogicalRect> bridged(List<LogicalRect> rectangles) {
-        if (rectangles.size() < 2) {
-            return List.copyOf(rectangles);
-        }
-        var joined = new ArrayList<LogicalRect>(rectangles.size());
-        for (var index = 0; index < rectangles.size(); index++) {
-            var rect = rectangles.get(index);
-            if (index + 1 < rectangles.size()) {
-                var next = rectangles.get(index + 1);
-                var gap = next.left() - rect.right();
-                if (Math.abs(next.top() - rect.top()) < 0.5 && gap > 0 && gap <= rect.height() / 2) {
-                    rect = LogicalRect.of(rect.left(), rect.top(), next.left() - rect.left(), rect.height());
+            var fromOffset = index == start.word() ? start.offset() : 0;
+            var paragraph = Objects.requireNonNull(entry.paragraph);
+            for (var piece : entry.pieces) {
+                var a = Math.max(fromOffset, piece.start());
+                var b = index == end.word() ? Math.min(end.offset(), piece.end()) : piece.end();
+                if (a >= b) {
+                    continue;
                 }
+                var bounds = piece.bounds();
+                var base = entry.startInParagraph;
+                var x = piece.rtl()
+                        ? paragraph.widthBetween(base + b, base + piece.end())
+                        : paragraph.widthBetween(base + piece.start(), base + a);
+                var extra = b == piece.end() ? piece.gapAfter() : 0;
+                if (piece.rtl() && b < piece.end()) {
+                    x += piece.gapAfter();
+                }
+                rectangles.add(LogicalRect.of(
+                        bounds.left() + (float) x,
+                        bounds.top(),
+                        (float) (paragraph.widthBetween(base + a, base + b) + extra),
+                        bounds.height()));
             }
-            joined.add(rect);
         }
-        return List.copyOf(joined);
+        return List.copyOf(rectangles);
     }
 
     /// The selected text, with the separators the document implies.
-    ///
-    /// The prefixes are the fold's: `""` between two pieces of one word, `" "` between
-    /// words, `"\n"` at the start of a block. A selection that pasted `Thequickbrown`
-    /// would be a selection nobody uses twice, and the renderer is the only thing that
-    /// knows where the spaces went — a wrapping row draws them as gaps rather than as
-    /// characters.
     String text(Caret from, Caret to) {
         if (from.isNone() || to.isNone() || from.equals(to)) {
             return "";

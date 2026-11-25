@@ -22,7 +22,9 @@ import dev.goldberry.RendererRequirement;
 import dev.goldberry.css.Stylesheet;
 import dev.goldberry.css.Theme;
 import dev.goldberry.css.cascade.CascadeLayer;
+import dev.goldberry.html.view.HtmlStyles;
 import dev.goldberry.html.view.HtmlView;
+import dev.goldberry.image.Image;
 import dev.goldberry.input.PointerRouter;
 import dev.goldberry.input.event.KeyEvent;
 import dev.goldberry.input.event.PointerEvent;
@@ -45,6 +47,7 @@ import dev.goldberry.widget.Widget;
 import dev.goldberry.widget.WidgetRenderer;
 import dev.goldberry.widget.attr.Attributes;
 import dev.goldberry.widgets.Controls;
+import dev.goldberry.widgets.controls.button.Button;
 import dev.goldberry.widgets.core.scroll.EdgeScroll;
 import dev.goldberry.widgets.core.scroll.Scroll;
 import dev.goldberry.widgets.core.scroll.ScrollAxis;
@@ -142,9 +145,9 @@ class SelectionTest {
     }
 
     private static void collectWords(Element element, List<Word> found) {
-        if (element.widget() instanceof Word word && word.child() == null) {
-            found.add(word);
-        }
+        found.addAll(StyledWords.ofWidget(element.widget()).stream()
+                .filter(word -> word.child() == null)
+                .toList());
         element.children().forEach(child -> collectWords(child, found));
     }
 
@@ -171,12 +174,11 @@ class SelectionTest {
 
     /// Where the last frame painted `word`.
     private LogicalRect rectOf(Word word) {
-        for (var region : HitTest.capture(render)) {
-            if (region.owner() instanceof Element element && element.widget() == word) {
-                return region.painted();
-            }
+        var rect = word.entry().rect();
+        if (rect == null) {
+            throw new AssertionError("No placement for " + word.text());
         }
-        throw new AssertionError("the word '" + word.text() + "' was never painted");
+        return rect;
     }
 
     private void press(LogicalRect rect, int clickCount) {
@@ -205,6 +207,75 @@ class SelectionTest {
         mount(MarkdownView.of(DOCUMENT).id("note"));
         // A second frame, so the host has read its style before the first press.
         frame();
+    }
+
+    @Test
+    void justifiedHtmlWrapsAndHitsEveryLineOfOneLink() {
+        var followed = new ArrayList<String>();
+        var sheets = new ArrayList<>(Controls.stylesheets(Theme.NORD_DARK));
+        sheets.add(HtmlStyles.stylesheet());
+        renderer = new WidgetRenderer(sheets, fonts);
+        mount(HtmlView.of("<p style='max-width:140px;text-align:justify'>A <b>bold</b> "
+                        + "<a href='/help'>link with enough words to wrap onto another line</a>.</p>")
+                .onLink(followed::add));
+        var regions = HitTest.capture(render);
+        var links = regions.stream()
+                .filter(region -> region.owner() instanceof Element element && element.widget() instanceof Button)
+                .toList();
+        assertTrue(links.stream().map(HitTest.Region::top).distinct().count() >= 2);
+        assertEquals(1, links.stream().map(HitTest.Region::owner).distinct().count());
+        var first = links.getFirst();
+        var firstRight = links.stream()
+                .filter(r -> r.top() == first.top())
+                .mapToDouble(r -> r.bounds().right())
+                .max()
+                .orElseThrow();
+        var paragraph = regions.stream()
+                .filter(r -> r.owner() instanceof Element e && e.widget() instanceof ParagraphLine)
+                .findFirst()
+                .orElseThrow();
+        assertEquals(paragraph.content().right(), firstRight, 0.1, "the first line is justified to the edge");
+        var last = links.getLast();
+        press(last.bounds(), 1);
+        release(last.bounds());
+        assertEquals(List.of("/help"), followed);
+        router.focus((Element) last.owner(), true);
+        router.keyPressed(Key.ENTER, Modifiers.NONE, false);
+        assertEquals(List.of("/help", "/help"), followed);
+        press(last.bounds(), 2);
+        assertEquals("link with enough words to wrap onto another line", state().selectedText());
+        assertTrue(state().washed().stream().map(LogicalRect::top).distinct().count() >= 2);
+        assertEquals("A bold link with enough words to wrap onto another line.", state().text());
+    }
+
+    @Test
+    void inlineImageSharesTheMarkdownParagraphAndCopiesAsAnEmptyRange() {
+        var picture = Image.ofArgb(1, 1, new int[] {0xFF00FF00});
+        mount(MarkdownView.of("before **bold** ![alt](x) after").images(src -> picture));
+        var boxes = HitTest.capture(render);
+        assertEquals(
+                1,
+                boxes.stream()
+                        .filter(r -> r.owner() instanceof Element e && e.widget() instanceof ParagraphLine)
+                        .count());
+        assertEquals("before bold  after", state().text());
+        assertEquals(rectOf(0).top(), rectOf(2).top(), 0.1);
+        assertTrue(rectOf(2).left() > rectOf(1).right());
+        press(rectOf(0), 3);
+        assertEquals("before bold  after", state().selectedText());
+        var image = rectOf(wrappingWord());
+        assertTrue(state().washed().stream().anyMatch(rect -> rect.equals(image)));
+    }
+
+    @Test
+    void aRightToLeftWordIsSelectedFromItsVisualRightEdge() {
+        mount(MarkdownView.of("before **שלום** after"));
+        var word = rectOf(1);
+        var middle = word.top() + word.height() / 2;
+        router.pointerPressed(word.right() - 0.1f, middle, PointerEvent.Button.PRIMARY, 1);
+        router.pointerMoved(word.left() + 0.1f, middle);
+        router.pointerReleased(word.left() + 0.1f, middle, PointerEvent.Button.PRIMARY, 1);
+        assertEquals("שלום", state().selectedText());
     }
 
     @Test
