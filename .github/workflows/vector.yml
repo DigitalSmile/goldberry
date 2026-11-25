@@ -34,11 +34,6 @@ on:
       - '.github/workflows/vector.yml'
   workflow_call:
   workflow_dispatch:
-    inputs:
-      windows_smoke:
-        description: Check ordinary Windows SVG rendering with the Snapshot artifact
-        type: boolean
-        default: false
 
 # The oldest macOS the library loads on, as media.yml pins it.
 env:
@@ -46,7 +41,6 @@ env:
 
 jobs:
   natives:
-    if: ${{ !inputs.windows_smoke }}
     name: libgoldberry-vector (${{ matrix.target }})
     strategy:
       fail-fast: false
@@ -204,7 +198,9 @@ jobs:
       - name: Read Windows application crash events
         if: failure() && runner.os == 'Windows'
         shell: pwsh
-        run: ./.github/scripts/windows-java-faults.ps1
+        run: |
+          ./.github/scripts/windows-java-faults.ps1 -SelfTest
+          ./.github/scripts/windows-java-faults.ps1
 
       - name: Keep JVM crash reports
         if: failure()
@@ -215,7 +211,6 @@ jobs:
           if-no-files-found: ignore
 
   sanitizer:
-    if: ${{ !inputs.windows_smoke }}
     name: libgoldberry-vector under AddressSanitizer (linux-x64)
     runs-on: ubuntu-24.04
     defaults:
@@ -253,42 +248,3 @@ jobs:
           name: vector-sanitizer-reports
           path: vector/build/sanitizer/
           if-no-files-found: ignore
-
-
-  windows-smoke:
-    if: inputs.windows_smoke
-    name: Windows vector diagnostics
-    runs-on: windows-2022
-    permissions:
-      contents: read
-      actions: read
-    steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-java@v6
-        with:
-          distribution: temurin
-          java-version: '25'
-      - uses: gradle/actions/setup-gradle@v5
-      - uses: actions/download-artifact@v4
-        with:
-          name: vector-natives-windows-x64
-          path: vector-natives
-          run-id: '45622791691'
-          github-token: ${{ github.token }}
-      - name: Test crash event decoding
-        shell: pwsh
-        run: ./.github/scripts/windows-java-faults.ps1 -SelfTest
-      - name: Check placement, color and concurrent rendering
-        shell: bash
-        run: >-
-          ./gradlew :vector:test
-          --tests 'dev.goldberry.vector.SvgPlacementTest*'
-          --tests 'dev.goldberry.vector.SvgCurrentColorTest*'
-          --tests 'dev.goldberry.vector.SvgThreadsTest*'
-          -Pgoldberry.skipNative=true -Pgoldberry.vector.required=true
-          -Pgoldberry.vector.libdir="${{ github.workspace }}/vector-natives"
-          --no-daemon
-      - name: Read Windows application crash events
-        if: always()
-        shell: pwsh
-        run: ./.github/scripts/windows-java-faults.ps1
