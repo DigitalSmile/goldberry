@@ -59,9 +59,14 @@ jobs:
   media:
     uses: ./.github/workflows/media.yml
 
+  # libgoldberry-vector for goldberry-vector's classifiers, the same way: the
+  # Vector workflow uploads each target's install as `vector-natives-<target>`.
+  vector:
+    uses: ./.github/workflows/vector.yml
+
   maven:
     name: Maven Central (${{ inputs.release && 'release' || 'snapshot' }})
-    needs: [linux, windows, macos, media]
+    needs: [linux, windows, macos, media, vector]
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
@@ -162,6 +167,23 @@ jobs:
           done
           find media-artifacts -type f | sort
 
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: vector-natives-*
+          path: vector-downloads
+
+      # `<target>/`, which :vector's `nativesJar*` tasks read; a release
+      # refuses to publish without all four (vector/build.gradle).
+      - name: Flatten into the layout :vector expects
+        run: |
+          mkdir -p vector-artifacts
+          for dir in vector-downloads/vector-natives-*; do
+            target="${dir#vector-downloads/vector-natives-}"
+            mkdir -p "vector-artifacts/$target"
+            cp -R "$dir"/. "vector-artifacts/$target/"
+          done
+          find vector-artifacts -type f | sort
+
       # Every licence file must carry its verbatim upstream text before a release
       # is published. A snapshot warns instead: it is a build of work in progress,
       # and the check exists to stop the permanent thing.
@@ -186,6 +208,7 @@ jobs:
             -Pgoldberry.skipNative=true \
             -Pgoldberry.artifactsDir="$PWD/artifacts" \
             -Pgoldberry.media.artifactsDir="$PWD/media-artifacts" \
+            -Pgoldberry.vector.artifactsDir="$PWD/vector-artifacts" \
             -Pgoldberry.centralAutoRelease=$AUTO_RELEASE \
             $VERSION_ARGS
 
@@ -198,6 +221,7 @@ jobs:
             -Pgoldberry.skipNative=true \
             -Pgoldberry.artifactsDir="$PWD/artifacts" \
             -Pgoldberry.media.artifactsDir="$PWD/media-artifacts" \
+            -Pgoldberry.vector.artifactsDir="$PWD/vector-artifacts" \
             $VERSION_ARGS
 
       - uses: actions/upload-artifact@v4

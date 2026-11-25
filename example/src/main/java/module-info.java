@@ -16,6 +16,7 @@ module dev.goldberry.example {
     /// against one has to read it.
     requires transitive static org.jspecify;
     requires dev.goldberry.widgets;
+    requires dev.goldberry.vector;
 
     /// The content module, which an application opts into, and **both** of
     /// its widgets. The Panels and Markdown screens name `markdown-view` in KDL and

@@ -79,8 +79,11 @@ class PublishWorkflowsTest {
                 () -> assertTrue(text.contains("uses: ./.github/workflows/windows.yml")),
                 // libgoldberry-media for goldberry-media's classifiers.
                 () -> assertTrue(text.contains("uses: ./.github/workflows/media.yml")),
-                () -> assertTrue(text.contains("needs: [linux, windows, macos, media]")),
+                // libgoldberry-vector for goldberry-vector's.
+                () -> assertTrue(text.contains("uses: ./.github/workflows/vector.yml")),
+                () -> assertTrue(text.contains("needs: [linux, windows, macos, media, vector]")),
                 () -> assertTrue(text.contains("-Pgoldberry.media.artifactsDir=")),
+                () -> assertTrue(text.contains("-Pgoldberry.vector.artifactsDir=")),
                 () -> assertTrue(text.contains("publishToMavenCentral")));
     }
 

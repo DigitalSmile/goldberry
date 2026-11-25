@@ -21,6 +21,7 @@ import dev.goldberry.media.view.MediaStyles;
 import dev.goldberry.mic.view.MicStyles;
 import dev.goldberry.platform.Capability;
 import dev.goldberry.text.font.Font;
+import dev.goldberry.vector.view.VectorStyles;
 import dev.goldberry.widget.Widget;
 import dev.goldberry.widgets.Controls;
 import dev.goldberry.widgets.Icons;
@@ -111,6 +112,7 @@ public final class ShowcaseScene implements AutoCloseable {
         sheets.add(MediaStyles.stylesheet());
         sheets.add(MicStyles.stylesheet());
         sheets.add(CameraStyles.stylesheet());
+        sheets.add(VectorStyles.stylesheet());
         sheets.addAll(ShowcaseStyles.sheets());
         sheets.add(model.shell().readingSize().stylesheet());
         return sheets;

@@ -267,6 +267,25 @@ error state, semantics (alt text), and a golden.
 
 Exit: Snapshot green on all jobs, with the vector library on four targets.
 
+As built (ADR-0745, ADR-0746):
+
+- The robustness tests (`dev.goldberry.vector.robustness`: nine corpus
+  documents, eleven kinds of damage, every cut of the first 256 bytes) found
+  three ways a document took the process down, and the ASan build found that
+  ThorVG mixes `malloc` and `delete` by design. Two patches in
+  `vector/src/main/cmake/patches/` answer the three (dashes bounded as Skia
+  bounds them, strokes only of finite paths, points clamped to 2^21 pixels);
+  the lane runs with `alloc_dealloc_mismatch=0` for the fourth.
+- `:vector:sanitizerTest` (48 rounds, every test that draws through ThorVG,
+  against the ASan build), the `sanitizer` job in `vector.yml`.
+- `vector.yml`, beside `media.yml`: the library on four targets, `:vector:check`
+  against each, the sanitizer job; `publish.yml` calls it and publishes the
+  classifiers with the snapshot.
+- The module's own native-image metadata (foreign calls generated from the
+  bindings, `native-image.properties`, `vector.css`); `:vector` at run time in
+  the showcase, and its library in the image through `showcase.yml`, which
+  builds each image with the Vector workflow's artifact.
+
 ### Phase 6. Showcase and guide
 
 - A card on the showcase: a few documents of the project's own drawing at
@@ -291,7 +310,8 @@ Exit: Snapshot green on all jobs, with the vector library on four targets.
   without one.
 - **Rendering differences.** ThorVG is not a browser. Where it differs from
   Firefox on a test document, the guide lists the difference rather than the
-  toolkit patching ThorVG.
+  toolkit patching ThorVG. The two patches carried since phase 5 are for
+  documents that took the process down, not for how one looks.
 - **Release cadence.** ThorVG releases monthly and the C API grows (v1.1.4
   changed the asset resolver's signature). The pin moves only with the
   dependency updates, and the exports list catches a removed function.
@@ -303,11 +323,11 @@ Exit: Snapshot green on all jobs, with the vector library on four targets.
 
 | Document | What | Status |
 |----------|------|--------|
-| `docs/gaps/goldberry-gaps-plan.md` §8, §10 | T-22's row and the log | plan written |
-| `docs/gaps/answers-tessera.md` | G-22's answer when it lands | |
-| `docs/snapshot/adr/` | ADR-0740 (D1–D7), ADR-0741 (phase 1), ADR-0742 (phase 2), ADR-0743 (phase 3), ADR-0744 (phase 4), then one per phase | doing |
-| `docs/snapshot/` guide pieces | `components-vector.md` | |
-| `docs/status.md` | a line per phase | doing |
+| `docs/gaps/goldberry-gaps-plan.md` §8, §10 | T-22’s row and the log | done |
+| `docs/gaps/answers-tessera.md` | G-22’s answer | done |
+| `docs/snapshot/adr/` | ADR-0740 through ADR-0747 | parked |
+| `docs/snapshot/` guide pieces | `components-vector.md`, including SVG images and the catalogue row | parked |
+| `docs/status.md` | a line per phase | done |
 | `THIRD-PARTY-NOTICES.md`, `NOTICE`, `licenses/` | ThorVG, LodePNG, jpgd | done (phase 1) |
 
 ## 8. Status and log
@@ -319,8 +339,8 @@ Exit: Snapshot green on all jobs, with the vector library on four targets.
 | 2. `Svg` | done 2026-11-22 (ADR-0742) |
 | 3. SVG wherever an image is | done 2026-11-22 (ADR-0743) |
 | 4. `svg-view` | done 2026-11-23 (ADR-0744) |
-| 5. CI, native image, robustness | todo (next) |
-| 6. Showcase and guide | todo |
+| 5. CI, native image, robustness | done here 2026-11-24 (ADR-0745, ADR-0746); CI's first run open |
+| 6. Showcase and guide | implemented 2026-11-25 (ADR-0747) |
 
 - **2026-11-22.** Plan written from the tree at `56c6f33a`. Found: no decoder
   SPI and no vector reader beyond `SvgPath`; `:media`'s superbuild already
@@ -387,3 +407,31 @@ Exit: Snapshot green on all jobs, with the vector library on four targets.
   markup through the woven catalog (`src=`, inline, `classpath:`, the
   refusals), the CSS colour, inherited and changed on `:hover`, contain and
   cover, natural size sharp at 2×, and a golden. Next ADR 0745.
+- **2026-11-24, phase 5 done here.** Robustness first: the corpus and eleven
+  kinds of damage (ADR-0745). Their first run froze and rebooted this machine:
+  `stroke-dasharray` on a line to y=10^12 made ThorVG's dasher append a dash a
+  step for ever, in native memory `-Xmx` does not bound. Run under a memory cap
+  with every input named in a trace file, they found two more: a `<use>` that
+  scaled a star by -2^31 put points 27 million pixels out, the rasterizer's
+  24.8 cell walk overflowed and ran for hours; a rounded `<rect>` of height
+  `-inf` (or 3.4e38) stroked until memory ran out. Two patches bound them
+  (`thorvg-bounded-strokes`: past a million dashes a stroke is undashed, as
+  Skia's; a path with a point not finite or past 10^18 is not stroked;
+  `thorvg-bounded-coordinates`: points clamped to 2^21 pixels, `HYPOT` in 64
+  bits). The ASan build then reported a malloc/`delete` mismatch on every
+  document: ThorVG replaces `new`/`delete` with `malloc`/`free` and mixes them
+  by design; compiling the replacement out exposed the mixing, so the lane runs
+  with `alloc_dealloc_mismatch=0`. `:vector:sanitizerTest`: 227 tests, about
+  7 600 damaged inputs at 48 rounds, nothing reported, under two minutes.
+  `:vector:test`: 289 green, the robustness tests 12 s at 6 rounds. CI and the
+  image (ADR-0746): `vector.yml` (four targets, `:vector:check` against each,
+  the sanitizer job), `publish.yml` publishing the classifiers, the module's
+  own metadata (the bindings' foreign calls generated by
+  `:vector:foreignMetadata`, `native-image.properties`, `vector.css`), `:vector`
+  at run time in the showcase. The showcase image (GraalVM CE 25.4 here, 3 min)
+  carries the library and runs 60 frames headless; the showcase draws no SVG
+  until phase 6's card, so a probe image parsed and drew a document with a
+  dashed path to 10^12 through the natives jar on its class path. Not yet seen: the first run of `vector.yml` on the
+  three other targets. Next ADR 0747.
+- **2026-11-25, phase 6.** The Drawing screen shows two original documents at three sizes, one with fixed fills and one in the theme accent, plus the error state. The guide and catalogue entry are parked together in `components-vector.md`. The catalogue and guide sample checks cover `vector` (ADR-0747).
+  Verified on Linux x64 with all 1,063 example tests, 37 guide and decision-log checks, the Drawing card pixel test with the vector library present, and 60 headless frames on the Drawing screen. The other three native targets still await CI.

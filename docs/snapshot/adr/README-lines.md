@@ -184,3 +184,6 @@ Appended to the index when the records move in, in this order.
 - [ADR-0742 An `Svg` is parsed once, and again only for a viewport of another shape](0742-an-svg-is-parsed-once-and-again-only-for-a-viewport-of-another-shape.md)
 - [ADR-0743 An SVG image is drawn at the device pixels it covers, wherever it is drawn](0743-an-svg-image-is-drawn-at-the-device-pixels-it-covers.md)
 - [ADR-0744 `svg-view` keeps a document's bytes, and draws it in its CSS `color`](0744-svg-view-keeps-the-bytes-and-draws-in-its-css-color.md)
+- [ADR-0745 ThorVG is patched where hostile geometry took the process down, and a sanitizer lane holds it there](0745-thorvg-is-patched-where-hostile-geometry-took-the-process-down.md)
+- [ADR-0746 goldberry-vector is built on four targets, published with its natives, and carried in the native image](0746-goldberry-vector-is-built-on-four-targets-and-carried-in-the-native-image.md)
+- [ADR-0747 The Drawing screen shows SVG at three sizes](0747-the-drawing-screen-shows-svg-at-three-sizes.md)

@@ -48,6 +48,8 @@ dependencies {
     // The Spelling card: the engine behind `spellcheck=`, found by :core as a
     // service, so nothing here names a class of it.
     runtimeOnly project(':spell')
+    // The Drawing screen uses svg-view. Its native library is found at run time.
+    implementation project(':vector')
     // The GPU: the GPU screen's
     // `canvas3d` and its cube, whose shaders `:gpu:compileShaders` compiles
     // into this module's resources. Being on the module path is also what lets
@@ -129,6 +131,8 @@ application {
             // goldberry-media binds its codecs itself, and the system's
             // decoders.
             '--enable-native-access=dev.goldberry.media',
+            // goldberry-vector binds ThorVG.
+            '--enable-native-access=dev.goldberry.vector',
     ]
 
     // macOS drives AppKit from the process's first thread, and the java launcher
@@ -207,6 +211,12 @@ tasks.withType(Test).configureEach {
     // the loader's ordinary "not available" branch.
     systemProperty 'goldberry.media.libdir', layout.buildDirectory
             .dir('no-such-media-natives').get().asFile.absolutePath
+
+    // The goldens run without vector natives by default. The Drawing card's
+    // pixel test can also run against an explicitly supplied native build.
+    systemProperty 'goldberry.vector.libdir', providers.systemProperty('goldberry.vector.libdir')
+            .orElse(providers.gradleProperty('goldberry.vector.libdir'))
+            .getOrElse(layout.buildDirectory.dir('no-such-vector-natives').get().asFile.absolutePath)
 }
 
 tasks.named('run') {
@@ -220,6 +230,18 @@ tasks.named('run') {
         systemProperty 'goldberry.media.libdir', mediaLibdir.get()
     } else if (builtMedia.isDirectory()) {
         systemProperty 'goldberry.media.libdir', builtMedia.absolutePath
+    }
+
+    // The same for the vector natives, which draw every SVG: an explicit
+    // directory, else what `:vector:nativesBuild` produced. Without either an
+    // SVG image is refused, as an application without them refuses one.
+    def vectorLibdir = providers.systemProperty('goldberry.vector.libdir')
+            .orElse(providers.gradleProperty('goldberry.vector.libdir'))
+    def builtVector = nativeTests.host.localVector(layout.settingsDirectory.asFile.toPath()).toFile()
+    if (vectorLibdir.present) {
+        systemProperty 'goldberry.vector.libdir', vectorLibdir.get()
+    } else if (builtVector.isDirectory()) {
+        systemProperty 'goldberry.vector.libdir', builtVector.absolutePath
     }
 
     // An explicitly supplied path wins, so CI can point at a downloaded
@@ -428,6 +450,7 @@ tasks.register('nativeImageMetadata', Exec) {
         def command = [graalTool('java'),
                        '--enable-native-access=dev.goldberry.natives',
                        '--enable-native-access=dev.goldberry.media',
+                       '--enable-native-access=dev.goldberry.vector',
                        "-agentlib:native-image-agent=config-output-dir=${metadataDir.asFile.absolutePath}",
                        "-Dgoldberry.backend.videoDriver=${videoDriver}",
                        "-Dgoldberry.native.library=${hostLibrary.absolutePath}"]
@@ -470,6 +493,33 @@ dependencies {
     hostNatives project(path: ':natives', configuration: 'hostNativesJar')
 }
 
+// libgoldberry-vector, carried the same way: goldberry-vector's natives jar on
+// the image's class path, where `VectorNatives` finds it as any application
+// does. Only when there is a build to pack -- `:vector:nativesBuild` here, or
+// `-Pgoldberry.vector.libdir` pointing at one, as showcase.yml does with the
+// Vector workflow's artifact -- because the jar task refuses to pack nothing.
+// Without one the image is built without it and refuses SVG images, which is
+// said when the image is built.
+def vectorLibdirForImage = providers.systemProperty('goldberry.vector.libdir')
+        .orElse(providers.gradleProperty('goldberry.vector.libdir'))
+        .map { file(it) }
+        .getOrElse(nativeTests.host.localVector(layout.settingsDirectory.asFile.toPath()).toFile())
+def vectorNativesBuilt = new File(vectorLibdirForImage, 'vector.properties').isFile()
+
+configurations {
+    hostVectorNatives {
+        canBeConsumed = false
+        canBeResolved = true
+        description = 'libgoldberry-vector for this machine, as the natives jar the image carries.'
+    }
+}
+
+if (vectorNativesBuilt) {
+    dependencies {
+        hostVectorNatives project(path: ':vector', configuration: 'hostNativesJar')
+    }
+}
+
 // The jar packages whatever is in :natives' artifacts directory, which CI fills
 // by downloading each platform's build. Locally nothing fills it unless
 // `stageHostArtifact` runs, so an image built from a source tree asks for it;
@@ -492,9 +542,11 @@ tasks.register('nativeImage', Exec) {
     def runtimeClasspath = configurations.runtimeClasspath
     def appJar = tasks.named('jar').flatMap { it.archiveFile }
     def nativesJar = configurations.hostNatives
+    def vectorNativesJar = configurations.hostVectorNatives
     def target = imageDirNative
 
     inputs.files(nativesJar)
+    inputs.files(vectorNativesJar).withPropertyName('vectorNatives')
     inputs.files(runtimeClasspath).withPathSensitivity(PathSensitivity.RELATIVE)
     inputs.files(appJar)
     // A FileTree and not `inputs.dir`, because an image can be built before the
@@ -507,7 +559,12 @@ tasks.register('nativeImage', Exec) {
     inputs.property('graalvmArgs', graalvmArgs)
     outputs.dir(target)
 
+    def vectorBuilt = vectorNativesBuilt
     doFirst {
+        if (!vectorBuilt) {
+            logger.warn('native image: no libgoldberry-vector to carry, so this image refuses SVG images. '
+                    + 'Run ./gradlew :vector:nativesBuild, or pass -Pgoldberry.vector.libdir=<dir>.')
+        }
         target.get().asFile.mkdirs()
         def modulePath = (runtimeClasspath.files.toList() + [appJar.get().asFile])
                 .collect { it.absolutePath }
@@ -519,13 +576,15 @@ tasks.register('nativeImage', Exec) {
                 // path nothing would `require` it and resolution would drop it;
                 // on the class path it is exactly what a released application
                 // sees, which is the arrangement NativeLibrary was written for.
-                '-cp', nativesJar.singleFile.absolutePath,
+                '-cp', (nativesJar.files + vectorNativesJar.files)
+                        .collect { it.absolutePath }.join(File.pathSeparator),
                 '--module', "${appModule}/dev.goldberry.example.Showcase",
                 '-o', new File(target.get().asFile, imageName).absolutePath,
                 // JEP 472, the same modules the run names: `goldberry-media`
                 // binds its codecs and the system's decoders itself.
                 '--enable-native-access=dev.goldberry.natives',
                 '--enable-native-access=dev.goldberry.media',
+                '--enable-native-access=dev.goldberry.vector',
                 // No `--no-fallback`. It was here because a fallback image is a
                 // JVM in a trench coat, and GraalVM 25.4 -- the line CI pins --
                 // has no fallback images left to refuse: the flag reports

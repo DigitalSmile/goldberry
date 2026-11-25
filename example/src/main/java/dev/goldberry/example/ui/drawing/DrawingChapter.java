@@ -44,6 +44,7 @@ public record DrawingChapter(GalleryContext context) implements Widget.Stateless
                         FigureCards.icons(),
                         ImageCards.draws(),
                         new ClipboardCard(),
-                        ImageCards.rendered()));
+                        ImageCards.rendered(),
+                        SvgCard.card()));
     }
 }

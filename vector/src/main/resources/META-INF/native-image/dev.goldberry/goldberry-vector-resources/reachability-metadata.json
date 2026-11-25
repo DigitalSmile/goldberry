@@ -1,0 +1,15 @@
+{
+  "comment": [
+    "What :vector ships that is read as a resource, declared by glob rather than",
+    "traced.",
+    "",
+    "`vector/view/vector.css`, svg-view's stylesheet, which :core reads out of",
+    "the package module-info opens to it. Declared by hand here, beside the file",
+    "`:vector:foreignMetadata` generates into goldberry-vector/: that one owns",
+    "the foreign calls and the natives jar's glob, and two files at one path",
+    "would collide in the jar."
+  ],
+  "resources": [
+    { "module": "dev.goldberry.vector", "glob": "dev/goldberry/vector/view/*.css" }
+  ]
+}

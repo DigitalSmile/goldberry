@@ -31,7 +31,7 @@ nothing.
 | G-18 | Text scaling | `Host.textScale` | on master, not yet in a snapshot |
 | G-19 | Windows notifications | Click and badge | on master, not yet in a snapshot |
 | G-20 | Drag out to the OS | All four platforms | X11 and Wayland built, Windows and macOS written |
-| G-22 | SVG | `goldberry-vector` on ThorVG | planned |
+| G-22 | SVG | `goldberry-vector` on ThorVG | implemented locally |
 | G-23 | PDF | Still parked | parked, ADR-0690 |
 | G-24 | HTML mail styles | A subset of `style=` and `<style>` | planned |
 | G-25 | Spellcheck | `goldberry-spell` and `spellcheck=` on the three prose fields | on master, not yet in a snapshot |
@@ -457,12 +457,12 @@ drag source, so this is platform code of Goldberry's own.
 
 ## G-22. SVG rendering
 
-**Goldberry's plan.** `goldberry-vector`, a module on ThorVG (MIT): an
-`svg-view`, and SVG files accepted wherever an image is, once the module is
-on the path. Then the 40 library shapes can be SVG files rather than paths
-built from a JSON spec.
-
-**Landed.** —
+**Implemented locally.** Tessera can supply the library shapes as SVG files
+with `goldberry-vector` and the matching platform natives. An ordinary image
+draws an SVG at device resolution. Use `svg-view` for inline artwork and for
+icons whose `currentColor` follows the theme. Convert text to outlines and
+embed any raster assets as PNG or JPEG data URIs. The Drawing screen shows
+both approaches to colour. ADR-0740 through ADR-0747 record the work.
 
 ## G-23. PDF page rendering
 

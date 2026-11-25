@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 60">
+  <defs>
+    <clipPath id="round" clipPathUnits="objectBoundingBox">
+      <circle cx="0.5" cy="0.5" r="0.5"/>
+    </clipPath>
+    <clipPath id="nested" clip-path="url(#round)">
+      <rect x="10" y="10" width="30" height="30"/>
+    </clipPath>
+    <mask id="fade" maskUnits="userSpaceOnUse" x="0" y="0" width="100" height="60">
+      <rect width="100" height="60" fill="white"/>
+      <circle cx="70" cy="30" r="15" fill="black"/>
+    </mask>
+    <mask id="alpha" style="mask-type: alpha">
+      <rect width="50" height="60" fill="black" fill-opacity="0.5"/>
+    </mask>
+  </defs>
+  <rect width="50" height="50" fill="#36c" clip-path="url(#round)"/>
+  <rect width="50" height="50" fill="#c63" clip-path="url(#nested)"/>
+  <rect x="50" width="50" height="60" fill="#3c6" mask="url(#fade)"/>
+  <g mask="url(#alpha)"><rect width="100" height="60" fill="purple"/></g>
+</svg>

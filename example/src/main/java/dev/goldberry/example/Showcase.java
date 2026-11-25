@@ -47,6 +47,7 @@ import dev.goldberry.markdown.view.MarkdownStyles;
 import dev.goldberry.media.view.MediaStyles;
 import dev.goldberry.mic.view.MicStyles;
 import dev.goldberry.render.model.LogicalSize;
+import dev.goldberry.vector.view.VectorStyles;
 import dev.goldberry.widget.Widget;
 import dev.goldberry.widget.attr.Attributes;
 import dev.goldberry.widget.style.Corner;
@@ -272,6 +273,7 @@ public final class Showcase implements Application {
         // meters and camera-view.
         sheets.add(MicStyles.stylesheet());
         sheets.add(CameraStyles.stylesheet());
+        sheets.add(VectorStyles.stylesheet());
         sheets.addAll(styles);
         // The reading size last: it is the type scale's tokens, and it has to
         // win over the theme's and anything this window's sheets said.

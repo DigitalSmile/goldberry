@@ -40,6 +40,7 @@ public final class ForwardedProperties {
             "goldberry.webview.required",
             "goldberry.tray.required",
             "goldberry.media.required",
+            "goldberry.vector.required",
             "goldberry.platform.required",
             "goldberry.gpu.required",
             "goldberry.raytracing.required",

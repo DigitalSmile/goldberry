@@ -39,8 +39,15 @@ permissions:
   contents: read
 
 jobs:
+  # libgoldberry-vector, which draws every SVG, built by the Vector workflow
+  # on each target with the toolchain it needs (MinGW on Windows, where this
+  # workflow's leg is MSVC). Each image carries its target's.
+  vector:
+    uses: ./.github/workflows/vector.yml
+
   image:
     name: ${{ matrix.target }}
+    needs: vector
     runs-on: ${{ matrix.runs-on }}
     strategy:
       fail-fast: false
@@ -154,8 +161,17 @@ jobs:
         if: runner.os == 'macOS'
         run: ./gradlew :example:nativeImageMetadata -Pgoldberry.trace.videoDriver=cocoa --no-daemon --stacktrace
 
+      - uses: actions/download-artifact@v4
+        with:
+          name: vector-natives-${{ matrix.target }}
+          path: vector-natives
+
+      # The vector library rides the image as goldberry-vector's natives jar,
+      # packed from the directory named here.
       - name: Build the native image
-        run: ./gradlew :example:nativeImage --no-daemon --stacktrace
+        run: >-
+          ./gradlew :example:nativeImage --no-daemon --stacktrace
+          -Pgoldberry.vector.libdir="${{ github.workspace }}/vector-natives"
 
       # What was built, when something was built. A missing module or a library
       # in the wrong place is visible here and invisible in a green tick.

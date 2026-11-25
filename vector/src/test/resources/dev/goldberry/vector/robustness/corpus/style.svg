@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- A comment before the root, and a doctype with an internal subset. -->
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd" [
+  <!ENTITY accent "#d22">
+]>
+<svg xmlns="http://www.w3.org/2000/svg" width="90" height="60" color="#06a">
+  <style type="text/css"><![CDATA[
+    .box { fill: currentColor; stroke: &accent;; stroke-width: 2 }
+    #tilted { fill: #999; opacity: .5 }
+    circle { fill: none; stroke: currentColor }
+    g > rect.box { fill-opacity: 0.8 }
+  ]]></style>
+  <g transform="translate(5 5) rotate(10, 20, 20) skewX(5) scale(1 0.9)">
+    <rect class="box" width="30" height="20"/>
+    <rect id="tilted" x="35" width="30" height="20" transform="matrix(1 0.2 -0.2 1 0 0)"/>
+    <circle cx="70" cy="40" r="10" style="stroke-width:3;stroke-dasharray:2,2"/>
+    <rect x="5" y="30" width="20" height="20" fill="inherit" style="fill: inherit"/>
+  </g>
+  <?processing instruction?>
+</svg>

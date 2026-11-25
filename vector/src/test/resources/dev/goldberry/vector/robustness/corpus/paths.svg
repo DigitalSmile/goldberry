@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <path d="M10 10 L30 10 l0 20 H10 h5 V15 v-2 Z m40 0 C60 0 70 20 80 10 c5 -5 10 5 15 0 S90 30 80 30 s-10 10 -20 0 Q50 40 40 30 q-5 -5 0 -10 T60 20 t10 5 z"
+        fill="#446" fill-rule="evenodd"/>
+  <path d="M10 60 A20 15 30 0 1 50 60 a10 10 0 1 0 20 0 A5 5 0 0 0 90 90"
+        fill="none" stroke="#a40" stroke-width="4" stroke-dasharray="6 3 1 3" stroke-dashoffset="2"
+        stroke-linecap="square" stroke-linejoin="miter" stroke-miterlimit="2"/>
+  <path d="M5,95l10-10 10,10 10-10 10,10" stroke="black" fill="none"/>
+  <path d="M1e1 1e1.5.5-.5-.5Z" fill="red"/>
+</svg>

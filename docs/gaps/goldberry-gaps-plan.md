@@ -282,7 +282,7 @@ log in the same commit as the work.
 | T-18 | W1.7 | done | 0678 | |
 | T-19 | W2.12 | done (Win32 half unverified) | 0701 | |
 | T-20 | W3.9 | in progress (`docs/drag-out.md`): decided D1 (b) the platform's drag from the threshold, D2–D8 as recommended. Phase 1 (API, router, window, headless), phase 2 (X11, XDND over SDL's hook, native ABI 27; no picture yet) and phase 3 (Wayland, `start_drag` on SDL's own data device with SDL's serial, native ABI 28; hand check on GNOME open) done; phase 4 (Windows, OLE `DoDragDrop` with COM objects in Java and a loop turn inside it) and phase 5 (macOS, an `NSDraggingSession` on SDL's view with a source class of the toolkit's own) built, not yet run on Windows or a Mac; phase 6 (the showcase's drag-out card, the guide section parked in `docs/snapshot/`) done. The Windows and macOS lanes are green on it (Snapshot #86). Open: hand drags on all four | 0714, 0716, 0717, 0718 | |
-| T-22 | W3.6 | doing (`docs/vector-svg.md`): D1–D7 taken as recommended; phases 1 (`:vector`, `libgoldberry-vector` on ThorVG v1.1.4, 486 KB), 2 (`Svg`), 3 (SVG wherever an image is) and 4 (`svg-view`) done; phase 5 (CI, native image, robustness) next | 0740–0744 | |
+| T-22 | W3.6 | implemented locally (`docs/vector-svg.md`), including the Drawing card and parked guide. First CI run on the other targets pending | 0740–0747 | |
 | T-23 | — | parked (D11) | 0690 | |
 | T-24 | W3.3 | done: a page's `<style>`, `style=`, `bgcolor` and `<font color>` in a `StyleScope` of the view's own; `AuthorStyles` with `ADAPTED` the default (a text colour with no background of the mail's under it takes the theme's) | 0710 | |
 | T-25 | W3.7 | done (`docs/spell-checking.md`): CSS text decoration in full, the `dev.goldberry.text.spell` SPI and line service, `spellcheck`/`lang` passed down and `::spelling-error` on `text-input`, `text-area` and `rich-input`, the suggestion menu, `goldberry-spell` on Lucene's Hunspell (D1 (a)), and the showcase's Spelling card over SCOWL `en_US`. Open: hand checks of the menu on each desktop, a native-image run | 0733–0739 | |
@@ -696,3 +696,11 @@ log in the same commit as the work.
 - **2026-11-23, W3.6 phase 4 done.** `svg-view` (ADR-0744): a document from
   `src=` or inline, drawn in its CSS `color`, with `image`'s fit, alt and
   states. Next ADR 0745.
+- **2026-11-24, W3.6 phase 5 done here.** The robustness tests found three
+  documents that took the process down (unbounded dashes, a far point
+  overflowing the rasterizer, a non-finite stroke); two ThorVG patches bound
+  them (ADR-0745), and the ASan lane runs the corpus at 48 rounds. `vector.yml`
+  builds and tests the library on the four targets, `publish.yml` ships it, and
+  the showcase's native image carries it (ADR-0746). CI's first run is open.
+  Next ADR 0747.
+- **2026-11-25, W3.6 phase 6.** Drawing shows fixed-colour and theme-tinted SVGs at three sizes and the broken-document state. The guide and catalogue entry are parked (ADR-0747).

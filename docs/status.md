@@ -7050,6 +7050,19 @@ toolkit, and six entries arrived on it together. All six are closed.
   in the wrong theme, and neither reports an error. **The `Optional` is the design**
   — SDL says `UNKNOWN` on a desktop with no such setting, and "the desktop says
   light" and "the desktop does not say" are a theme and a default.
+- **SVG in the Drawing showcase** (W3.6 phase 6, ADR-0747 parked, 2026-11-25). Two drawings at three sizes demonstrate fixed fills and theme ink. A broken document shows its alt text. The guide, KDL samples and catalogue entry are in `docs/snapshot/components-vector.md`.
+- **`goldberry-vector` hardened, built on four targets, and in the native
+  image** (W3.6 phase 5, ADR-0745 and ADR-0746 parked, 2026-11-24). The
+  robustness tests (nine documents, eleven kinds of damage) found three
+  documents that took the process down: a dashed line to 10^12 or infinity ran
+  the machine out of memory, a point 27 million pixels out overflowed the
+  rasterizer's cell walk for hours, and a rounded rect of height `-inf` stroked
+  for ever. Two ThorVG patches bound them (dashes as Skia bounds them, strokes
+  only of finite paths, points clamped to 2^21 pixels), and
+  `:vector:sanitizerTest` runs the corpus at 48 rounds against an ASan build.
+  `vector.yml` builds the library on the four targets and tests `:vector`
+  against each; `publish.yml` ships the classifiers; the module carries its own
+  native-image metadata, and the showcase's image carries the library.
 - **`svg-view`** (W3.6 phase 4, ADR-0744 parked, 2026-11-23). An SVG document
   as a widget, from `src=` or written inline, drawn in the view's CSS `color`
   (`currentColor`), so an icon follows the theme and `:hover`; `fit`, `alt`,

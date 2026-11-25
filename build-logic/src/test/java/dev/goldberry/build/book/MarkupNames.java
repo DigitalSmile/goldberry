@@ -23,7 +23,7 @@ import dev.goldberry.build.repository.Repository;
 final class MarkupNames {
 
     /** The modules that ship widgets. A new one joins this list and the catalogue chapter. */
-    static final List<String> MODULES = List.of("widgets", "html", "media", "gpu", "mic", "camera");
+    static final List<String> MODULES = List.of("widgets", "html", "media", "gpu", "mic", "camera", "vector");
 
     private static final Pattern MARKUP = Pattern.compile("@Markup\\(\"([a-z0-9-]+)\"\\)");
 

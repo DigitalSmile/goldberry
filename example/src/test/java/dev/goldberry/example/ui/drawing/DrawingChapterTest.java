@@ -26,9 +26,12 @@ import dev.goldberry.input.event.PointerEvent;
 import dev.goldberry.offscreen.Offscreen;
 import dev.goldberry.offscreen.Session;
 import dev.goldberry.render.model.LogicalRect;
+import dev.goldberry.vector.VectorCapabilities;
+import dev.goldberry.vector.view.SvgView;
 import dev.goldberry.widget.Element;
 import dev.goldberry.widget.Widget;
 import dev.goldberry.widgets.Controls;
+import dev.goldberry.widgets.core.Row;
 import dev.goldberry.widgets.core.icon.IconView;
 import dev.goldberry.widgets.panel.card.Card;
 
@@ -47,6 +50,7 @@ class DrawingChapterTest {
         CARDS.put("codecs-card", DocLink.to("components/drawing", "image"));
         CARDS.put("qr-card", DocLink.to("components/drawing", "qr-code"));
         CARDS.put("drawing-icon", DocLink.to("components/drawing", "icon"));
+        CARDS.put("svg-card", DocLink.to("components/drawing", "image"));
         CARDS.put("images-card", DocLink.to("guide/text", "images"));
         CARDS.put("drawing-clipboard", DocLink.to("guide/text", "the-clipboard"));
         CARDS.put("rendered-card", DocLink.to("guide/text", "a-picture-with-no-window"));
@@ -85,6 +89,63 @@ class DrawingChapterTest {
             assertEquals(1, icons.stream().filter(IconView::isMissing).count(), "one name found nothing");
             assertEquals("Not signed in", icons.get(3).attributes().name());
         }
+    }
+
+    @Test
+    @DisplayName("each SVG drawing has three sizes and one accessible name, followed by a broken figure")
+    void svgSamples() {
+        var drawings = SvgCard.drawings();
+        assertEquals(3, drawings.size());
+        for (var drawing : drawings.subList(0, 2)) {
+            var sizes =
+                    ((Row) drawing).children().stream().map(SvgView.class::cast).toList();
+            assertEquals(
+                    List.of("svg-small", "svg-medium", "svg-large"),
+                    sizes.stream()
+                            .flatMap(view -> view.attributes().classes().stream())
+                            .toList());
+            assertEquals(1, sizes.stream().map(SvgView::source).distinct().count());
+            assertFalse(sizes.getFirst().alt().isBlank());
+            assertTrue(sizes.stream().skip(1).allMatch(SvgView::decorative));
+        }
+        var broken = (SvgView) drawings.getLast();
+        assertEquals("Broken SVG", broken.alt());
+    }
+
+    @Test
+    @DisplayName("with vector natives the hills keep their ink, the leaf follows the theme and the broken SVG fails")
+    void svgCardInBothThemes() {
+        try (var scene = new ShowcaseScene();
+                var dark = Offscreen.of(560, 480)
+                        .stylesheets(scene.stylesheets(Theme.NORD_DARK))
+                        .session(SvgCard.card());
+                var light = Offscreen.of(560, 480)
+                        .stylesheets(scene.stylesheets(Theme.NORD_LIGHT))
+                        .session(SvgCard.card())) {
+            if (!VectorCapabilities.isAvailable()) {
+                assertFalse(
+                        Boolean.getBoolean("goldberry.vector.required"),
+                        () -> VectorCapabilities.unavailableReason().orElse("Vector natives required"));
+                assertTrue(dark.byId("svg-unavailable").isPresent());
+                return;
+            }
+            assertTrue(dark.byId("svg-broken").orElseThrow().classes().contains("error"));
+            for (var i = 0; i < 3; i++) {
+                assertEquals(0xffa5d7c7, samplePixel(dark, "svg-hills", i));
+                assertEquals(0xffa5d7c7, samplePixel(light, "svg-hills", i));
+                assertEquals(0xff88c0d0, samplePixel(dark, "svg-leaf", i));
+                assertEquals(0xff5c7ea8, samplePixel(light, "svg-leaf", i));
+            }
+        }
+    }
+
+    private static int samplePixel(Session session, String row, int index) {
+        var sample = session.byId(row).orElseThrow().children().get(index);
+        var box = rect(session, sample);
+        assertEquals(24f * (index + 1), box.width());
+        assertEquals(box.width(), box.height());
+        // Both drawings have solid ink here, away from their antialiased edges.
+        return session.frame().argb((int) (box.left() + box.width() * 0.375), (int) (box.top() + box.height() * 0.5));
     }
 
     @Test
@@ -130,13 +191,16 @@ class DrawingChapterTest {
 
     /// The outermost drawn box of the node with `id`, or of what is under it.
     static LogicalRect rect(Session session, String id) {
-        var target = session.byId(id).orElseThrow();
+        return rect(session, session.byId(id).orElseThrow());
+    }
+
+    private static LogicalRect rect(Session session, Element target) {
         for (var region : session.regions()) {
             if (region.owner() instanceof Element owner && within(owner, target)) {
                 return region.painted();
             }
         }
-        throw new AssertionError("#" + id + " was not drawn");
+        throw new AssertionError("#" + target + " was not drawn");
     }
 
     private static boolean within(Element node, Element ancestor) {

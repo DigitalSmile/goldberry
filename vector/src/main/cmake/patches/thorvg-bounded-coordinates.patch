@@ -1,0 +1,59 @@
+diff --git a/src/renderer/cpu_engine/tvgSwRle.cpp b/src/renderer/cpu_engine/tvgSwRle.cpp
+index 484828b..23d2159 100644
+--- a/src/renderer/cpu_engine/tvgSwRle.cpp
++++ b/src/renderer/cpu_engine/tvgSwRle.cpp
+@@ -273,11 +273,13 @@ static inline SwPoint FRACT(const SwPoint& pt)
+ // Approximate sqrt(x*x+y*y) using the `alpha max plus beta min' algorithm.
+ // We use alpha = 1, beta = 3/8, giving us results with a largest error
+ // less than 7% compared to the exact value.
++// Goldberry: in 64 bits, since 3 * y overflows int32 for a chord of 2^29.
+ static inline int32_t HYPOT(SwPoint pt)
+ {
+-    if (pt.x < 0) pt.x = -pt.x;
+-    if (pt.y < 0) pt.y = -pt.y;
+-    return ((pt.x > pt.y) ? (pt.x + (3 * pt.y >> 3)) : (pt.y + (3 * pt.x >> 3)));
++    int64_t x = pt.x < 0 ? -int64_t(pt.x) : int64_t(pt.x);
++    int64_t y = pt.y < 0 ? -int64_t(pt.y) : int64_t(pt.y);
++    auto h = (x > y) ? (x + (3 * y >> 3)) : (y + (3 * x >> 3));
++    return h > INT32_MAX ? INT32_MAX : int32_t(h);
+ }
+ 
+ static void _splitCubic(SwPoint* base)
+diff --git a/src/renderer/cpu_engine/tvgSwUtil.cpp b/src/renderer/cpu_engine/tvgSwUtil.cpp
+index 46eee32..5378dda 100644
+--- a/src/renderer/cpu_engine/tvgSwUtil.cpp
++++ b/src/renderer/cpu_engine/tvgSwUtil.cpp
+@@ -27,6 +27,25 @@
+ /* External Class Implementation                                        */
+ /************************************************************************/
+ 
++/* Goldberry: coordinates the rasterizer can hold. Its cells are 24.8 fixed
++   point in int32, so past about four million pixels the difference of two
++   points overflows, and a line's cell walk overshoots its end and runs until
++   the counter wraps: a document whose <use> scaled a star by -2^31 drew for
++   hours. A point is clamped to +/-2^21 pixels, where every difference fits, and
++   one that is not a number goes to the origin rather than through a float to
++   int conversion that is undefined. The picture is at most 8192 pixels a side,
++   so geometry this far out is off it; an edge from inside to a clamped point
++   changes angle, an axis-aligned one does not. */
++static constexpr float COORD_LIMIT = 2097152.0f;
++
++static inline float _bounded(float v)
++{
++    if (v > COORD_LIMIT) return COORD_LIMIT;
++    if (v > -COORD_LIMIT) return v;
++    return (v != v) ? 0.0f : -COORD_LIMIT;
++}
++
++
+ void utilExport(SwOutline* outline, const Matrix& transform, BBox& bbox)
+ {
+     outline->out.reserve(outline->path->pts.count);
+@@ -35,6 +54,7 @@ void utilExport(SwOutline* outline, const Matrix& transform, BBox& bbox)
+ 
+     for (auto& pt : outline->path->pts) {
+         auto t = pt * transform;
++        t = {_bounded(t.x), _bounded(t.y)};
+         if (bbox.min.x > t.x) bbox.min.x = t.x;
+         if (bbox.max.x < t.x) bbox.max.x = t.x;
+         if (bbox.min.y > t.y) bbox.min.y = t.y;

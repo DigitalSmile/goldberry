@@ -168,7 +168,38 @@ if(_sanitize_flags)
     set(_meson_link "-Dcpp_link_args=-fsanitize=${GOLDBERRY_VECTOR_SANITIZE}" -Db_lundef=false)
 endif()
 
-find_package(Git QUIET)
+# Two patches, on every target, each for documents that took the process down
+# in the robustness tests; apply_patch.cmake stops the configure when a
+# bump moves the lines under one, and each patch's hash is part of the command,
+# so a changed patch reapplies. Drop one when upstream fixes the same.
+#
+#   patches/thorvg-bounded-strokes.patch: the dasher steps one dash at a time
+#   until a segment's length is used up; for a length that is not finite, or so
+#   long that subtracting a dash leaves it as it was in float, it never stops
+#   and appends a dash a step until memory runs out (a 150-byte document with
+#   `stroke-dasharray` on a line to y=1e12). Such a path is stroked undashed, as
+#   Skia does past a million dashes. And the stroker itself never finishes a
+#   path with a point at no finite place (a rounded <rect> of height -inf), so
+#   such a path, or one past 10^18, draws no stroke.
+#
+#   patches/thorvg-bounded-coordinates.patch: the rasterizer's cells are 24.8
+#   fixed point in int32, so a point a few million pixels out overflows a
+#   difference and a line's cell walk runs until the counter wraps (a <use>
+#   that scaled a star by -2^31 drew for hours). Points are clamped to 2^21
+#   pixels, and one that is not a number goes to the origin.
+
+find_package(Git REQUIRED)
+set(_thorvg_patch_command "")
+foreach(_patch_name IN ITEMS thorvg-bounded-strokes thorvg-bounded-coordinates)
+    set(_patch "${CMAKE_CURRENT_SOURCE_DIR}/patches/${_patch_name}.patch")
+    file(SHA256 "${_patch}" _patch_hash)
+    set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${_patch}")
+    if(_thorvg_patch_command)
+        list(APPEND _thorvg_patch_command COMMAND)
+    endif()
+    list(APPEND _thorvg_patch_command ${CMAKE_COMMAND} -DGIT=${GIT_EXECUTABLE} -DPATCH=${_patch}
+        -DPATCH_HASH=${_patch_hash} -P "${CMAKE_CURRENT_SOURCE_DIR}/apply_patch.cmake")
+endforeach()
 ExternalProject_Add(thorvg
     GIT_REPOSITORY https://github.com/thorvg/thorvg.git
     GIT_TAG ${GOLDBERRY_THORVG_REF}
@@ -199,6 +230,7 @@ ExternalProject_Add(thorvg
     BUILD_COMMAND ${GOLDBERRY_MESON} compile -C <BINARY_DIR>
     INSTALL_COMMAND ${GOLDBERRY_MESON} install -C <BINARY_DIR>
     BUILD_BYPRODUCTS "${_stage}/lib/libthorvg-1.a"
+    PATCH_COMMAND ${_thorvg_patch_command}
     UPDATE_DISCONNECTED TRUE)
 ExternalProject_Add_Step(thorvg verify_commit
     COMMAND ${CMAKE_COMMAND} -DGIT=${GIT_EXECUTABLE} -DSOURCE_DIR=<SOURCE_DIR>

@@ -57,3 +57,24 @@
 #image-row {
   flex-wrap: wrap;
 }
+
+#svg-card .svg-sizes {
+  align-items: center;
+  gap: 12px;
+  color: var(--gb-accent);
+}
+
+#svg-card .svg-small {
+  width: 24px;
+  height: 24px;
+}
+
+#svg-card .svg-medium {
+  width: 48px;
+  height: 48px;
+}
+
+#svg-card .svg-large {
+  width: 72px;
+  height: 72px;
+}

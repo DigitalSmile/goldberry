@@ -271,6 +271,20 @@ vectorTargets.each { target ->
 
 def hostNativesJar = tasks.named("nativesJar${taskSuffix(hostTargetId)}")
 
+// The host natives jar, for a consumer that carries the library as a resource
+// rather than loading it from a directory: :example's native image, which puts
+// it on the image's class path as it does libgoldberry's.
+// The configuration and the task provider share a name, so neither is named
+// bare inside a configuration block.
+configurations.create('hostNativesJar') {
+    canBeConsumed = true
+    canBeResolved = false
+    description = 'libgoldberry-vector for this machine, as the natives-<target> jar.'
+}
+artifacts {
+    add('hostNativesJar', hostNativesJar)
+}
+
 // The natives ride the goldberry-vector publication as `natives-<target>`
 // classifiers, only when a run hands over builds with
 // -Pgoldberry.vector.artifactsDir. A snapshot carries the targets CI built; a
@@ -295,6 +309,36 @@ if (vectorArtifactsDir.isPresent()) {
     }
 }
 
+// ============================================================================
+// What a native image of this module has to be told
+// https://goldberry.dev/docs/native.html#two-metadata-directories-traced-and-written
+//
+// Generated from the bindings rather than traced from a run, as :media's is:
+// every holder is initialised, so every descriptor is recorded, and none of it
+// needs the library. The file travels in the jar under META-INF/native-image/,
+// beside the native-image.properties src/main/resources keeps there.
+// ============================================================================
+def foreignMetadataDir = layout.buildDirectory.dir('generated/foreign-metadata')
+def foreignMetadataFile = foreignMetadataDir.map {
+    it.file('META-INF/native-image/dev.goldberry/goldberry-vector/reachability-metadata.json')
+}
+
+def foreignMetadata = tasks.register('foreignMetadata', JavaExec) {
+    group = 'build'
+    description = 'Writes the foreign-call registrations an image of this module needs, from the bindings.'
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'dev.goldberry.vector.nativeimage.VectorForeignMetadata'
+    // Linking a descriptor is restricted, and the generator links every one.
+    jvmArgs '--enable-native-access=ALL-UNNAMED'
+    inputs.files(sourceSets.main.output.classesDirs).withPathSensitivity(PathSensitivity.RELATIVE)
+    outputs.dir(foreignMetadataDir)
+    argumentProviders.add({ [foreignMetadataFile.get().asFile.absolutePath] } as CommandLineArgumentProvider)
+}
+
+tasks.named('jar') {
+    from(foreignMetadata)
+}
+
 tasks.register('cleanVectorDeps', Delete) {
     group = 'native'
     description = 'Discards the cached ThorVG source and its build.'
@@ -308,21 +352,30 @@ tasks.register('cleanVectorDeps', Delete) {
 // `-Pgoldberry.vector.required=true` turns the skip into a failure for a job
 // whose purpose is to verify it.
 // ============================================================================
+def asanLibraryDirectory = providers.gradleProperty('goldberry.vector.asanLibdir')
+        .orElse(asanInstallDir.map { it.dir('lib').asFile.absolutePath })
+
 tasks.withType(Test).configureEach {
     // Not for the jar test below, whose whole point is that nothing names a
-    // directory and the library is found on the class path.
+    // directory and the library is found on the class path, nor for the
+    // sanitizer lane, which names the sanitizer build's.
+    def testedLibrary = name == 'sanitizerTest' ? asanLibraryDirectory : libraryDirectory
     if (name != 'testNativesJar') {
-        systemProperty 'goldberry.vector.libdir', libraryDirectory.get()
+        systemProperty 'goldberry.vector.libdir', testedLibrary.get()
     }
-    var required = providers.systemProperty('goldberry.vector.required')
-            .orElse(providers.gradleProperty('goldberry.vector.required'))
-    if (required.present) {
-        systemProperty 'goldberry.vector.required', required.get()
+    // How hard the robustness tests damage the corpus: rounds per document and
+    // kind of damage, and the seed they start from. The sanitizer lane raises
+    // the rounds.
+    ['goldberry.vector.fuzz.rounds', 'goldberry.vector.fuzz.seed', 'goldberry.vector.fuzz.trace'].each { property ->
+        var value = providers.systemProperty(property).orElse(providers.gradleProperty(property))
+        if (value.present) {
+            systemProperty property, value.get()
+        }
     }
     // The library is an input, so a rebuilt one re-runs the tests rather than
     // leaving them UP-TO-DATE and green against a library they never saw.
     inputs.files(providers.provider {
-        var directory = file(libraryDirectory.get())
+        var directory = file(testedLibrary.get())
         directory.isDirectory() ? fileTree(directory) : files()
     }).withPropertyName('vectorNatives').optional()
 }
@@ -353,3 +406,118 @@ def testNativesJar = tasks.register('testNativesJar', Test) {
 }
 tasks.named('check') { dependsOn testNativesJar }
 tasks.withType(JacocoReportBase).configureEach { dependsOn testNativesJar }
+
+// ============================================================================
+// The sanitizer lane
+// https://goldberry.dev/docs/components/drawing.html#image
+//
+// Every test that hands ThorVG a document -- the robustness tests' damaged
+// corpus above all, which is what a broken download or a hostile mail feeds
+// the SVG loader -- against the sanitizer build (`nativesBuildAsan` above),
+// with many more rounds of damage than `test` runs. Not part of `check`: it
+// needs that build, and GCC's libasan to preload. Linux only.
+//
+//   ./gradlew :vector:nativesBuildAsan :vector:sanitizerTest [-Pgoldberry.vector.fuzz.rounds=64]
+//
+// The JVM is not instrumented, so libasan has to be first in the process
+// (LD_PRELOAD) and has to leave alone the signals HotSpot uses itself: SIGSEGV
+// for its null checks and safepoint polls, SIGBUS, SIGFPE, SIGILL. Leak
+// detection is off, since the JVM's own allocations are never freed at exit.
+// A finding stops the JVM, and its report is written under build/sanitizer/,
+// which `sanitizerReport` prints and fails on. :media's lane is the same
+// lane, over its codecs.
+//
+// One check is off: alloc_dealloc_mismatch. ThorVG replaces the global
+// operator new and delete with malloc and free (tvgInitializer.cpp) and mixes
+// the two by design -- a node malloc'd and deleted, a string new'd by the
+// runtime and freed by the replacement. In the library that ships both ends are
+// malloc and free; under ASan, which intercepts operator new, every document
+// reports a mismatch that is not one. Overflows, use after free and double
+// frees are still reported.
+// ============================================================================
+def sanitizerReports = layout.buildDirectory.dir('sanitizer')
+def sanitizerRounds = providers.systemProperty('goldberry.vector.fuzz.rounds')
+        .orElse(providers.gradleProperty('goldberry.vector.fuzz.rounds'))
+        .getOrElse('48')
+def asanRuntime = providers.gradleProperty('goldberry.vector.asanRuntime')
+        .orElse(providers.exec { commandLine 'gcc', '-print-file-name=libasan.so' }
+                .standardOutput.asText.map { it.trim() })
+
+def sanitizerReport = tasks.register('sanitizerReport') {
+    group = 'verification'
+    description = 'Prints what the sanitizer lane reported, and fails when it reported anything.'
+    def reports = sanitizerReports
+    def lane = tasks.named('sanitizerTest')
+    doLast {
+        def found = reports.get().asFile.listFiles()?.findAll { it.isFile() && it.length() > 0 } ?: []
+        if (!found.isEmpty()) {
+            found.each { report -> logger.error("${report.name}:\n${report.text}") }
+            throw new GradleException("The sanitizers reported ${found.size()} finding(s); see above, " +
+                    "or ${reports.get().asFile}.")
+        }
+        if (lane.get().state.failure != null) {
+            logger.lifecycle('The sanitizers wrote no report file. A UBSan finding goes to the test JVM\'s ' +
+                    'standard error instead: look for "runtime error" in sanitizerTest\'s output above.')
+        } else {
+            logger.lifecycle('The sanitizers reported nothing.')
+        }
+    }
+}
+
+tasks.register('sanitizerTest', Test) {
+    group = 'verification'
+    description = 'Runs every test that draws through ThorVG, and the robustness tests, against the sanitizer build.'
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+    useJUnitPlatform { excludeTags 'natives-jar' }
+    filter {
+        includeTestsMatching 'dev.goldberry.vector.robustness.*'
+        includeTestsMatching 'dev.goldberry.vector.thorvg.*'
+        includeTestsMatching 'dev.goldberry.vector.Svg*'
+    }
+    // A lane whose whole purpose is the library fails rather than skips without it.
+    systemProperty 'goldberry.vector.required', 'true'
+    systemProperty 'goldberry.vector.fuzz.rounds', sanitizerRounds
+    // What `SanitizerLaneTest` checks the process for: the lane is only as good
+    // as the library it really loaded.
+    systemProperty 'goldberry.vector.sanitizer', sanitizers
+    mustRunAfter 'nativesBuildAsan'
+    finalizedBy sanitizerReport
+
+    def reports = sanitizerReports
+    def runtime = asanRuntime
+    def address = sanitizers.contains('address')
+    doFirst {
+        if (!System.getProperty('os.name', '').toLowerCase(Locale.ROOT).contains('linux')) {
+            throw new GradleException('The sanitizer lane runs on Linux.')
+        }
+        def directory = reports.get().asFile
+        directory.deleteDir()
+        directory.mkdirs()
+        if (address) {
+            def runtimeFile = new File(runtime.get())
+            if (!runtimeFile.isAbsolute() || !runtimeFile.exists()) {
+                throw new GradleException("No libasan at '${runtime.get()}'; pass -Pgoldberry.vector.asanRuntime=<path>.")
+            }
+            environment 'LD_PRELOAD', runtimeFile.canonicalPath
+        }
+        environment 'ASAN_OPTIONS', [
+                'detect_leaks=0',
+                'handle_segv=0',
+                'handle_sigbus=0',
+                'handle_sigfpe=0',
+                'handle_sigill=0',
+                'allow_user_segv_handler=1',
+                'detect_stack_use_after_return=0',
+                'allocator_may_return_null=1',
+                'alloc_dealloc_mismatch=0',
+                'halt_on_error=1',
+                "log_path=${new File(directory, 'asan')}",
+        ].join(':')
+        environment 'UBSAN_OPTIONS', [
+                'print_stacktrace=1',
+                'halt_on_error=1',
+                "log_path=${new File(directory, 'ubsan')}",
+        ].join(':')
+    }
+}

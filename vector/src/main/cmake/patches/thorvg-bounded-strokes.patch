@@ -1,0 +1,121 @@
+diff --git a/src/renderer/cpu_engine/tvgSwShape.cpp b/src/renderer/cpu_engine/tvgSwShape.cpp
+index c224ac9..422a27a 100644
+--- a/src/renderer/cpu_engine/tvgSwShape.cpp
++++ b/src/renderer/cpu_engine/tvgSwShape.cpp
+@@ -20,6 +20,7 @@
+  * SOFTWARE.
+  */
+ 
++#include <cmath>
+ #include "tvgSwCommon.h"
+ 
+ /************************************************************************/
+@@ -208,6 +209,97 @@ static void _dashMoveTo(SwDashStroke& dash, uint32_t offIdx, float offset, const
+     dash.move = true;
+ }
+ 
++/* Goldberry: dashing with a bound. The loops above advance by one dash or gap a
++   step, and stop only when the length left is used up; for a path whose length
++   is not finite, or so long that subtracting a dash leaves it as it was in
++   float, they never stop, and append a dash every step until memory runs out.
++   A path whose dashes would number more than Skia's limit (one million), whose
++   length is not finite, or whose shortest dash or gap is too short to advance a
++   float over its longest segment, is stroked as it is, undashed, as Skia
++   strokes it. The bound reads the untrimmed path: trimming only shortens it. */
++static constexpr double DASH_COUNT_LIMIT = 1000000.0;
++
++/* Goldberry: a stroke only of a path at a finite place, and not near the end
++   of float's range. The stroker walks a segment's turn in steps and grows its
++   border a step at a time; for a point at infinity or not a number, or one so
++   far out that the stroker's own sums overflow to infinity, the steps never end
++   (a rounded <rect> whose height was -inf, or 3.4e38, stroked until memory ran
++   out). Such a path, before or after its transform, draws no stroke. 10^18 is
++   far past any picture and leaves squares and sums of it finite. */
++static constexpr float STROKE_COORD_LIMIT = 1e18f;
++
++static bool _strokeable(float v)
++{
++    return std::isfinite(v) && std::fabs(v) <= STROKE_COORD_LIMIT;
++}
++
++static bool _strokeFinite(const RenderShape* rshape, const Matrix& m)
++{
++    const float entries[] = {m.e11, m.e12, m.e13, m.e21, m.e22, m.e23, m.e31, m.e32, m.e33,
++                             rshape->stroke->width};
++    for (auto e : entries) {
++        if (!_strokeable(e)) return false;
++    }
++    for (auto pt = rshape->path.pts.begin(); pt < rshape->path.pts.end(); ++pt) {
++        if (!_strokeable(pt->x) || !_strokeable(pt->y)) return false;
++        auto t = *pt * m;
++        if (!_strokeable(t.x) || !_strokeable(t.y)) return false;
++    }
++    return true;
++}
++
++static bool _dashBounded(const RenderShape* rshape)
++{
++    auto& path = rshape->path;
++    auto& dash = rshape->stroke->dash;
++    double total = 0.0;
++    double longest = 0.0;
++    Point cur = {0, 0};
++    Point start = {0, 0};
++    auto pts = path.pts.begin();
++    for (auto cmd = path.cmds.begin(); cmd < path.cmds.end(); ++cmd) {
++        double segment = 0.0;
++        switch (*cmd) {
++            case PathCommand::MoveTo: {
++                start = cur = *pts;
++                ++pts;
++                break;
++            }
++            case PathCommand::LineTo: {
++                segment = Line{cur, *pts}.length();
++                cur = *pts;
++                ++pts;
++                break;
++            }
++            case PathCommand::CubicTo: {
++                Bezier bezier = {cur, pts[0], pts[1], pts[2]};
++                segment = bezier.length();
++                cur = pts[2];
++                pts += 3;
++                break;
++            }
++            case PathCommand::Close: {
++                segment = Line{cur, start}.length();
++                cur = start;
++                break;
++            }
++        }
++        if (!std::isfinite(segment)) return false;
++        total += segment;
++        if (segment > longest) longest = segment;
++    }
++    if (!std::isfinite(total)) return false;
++    if (total / dash.length * dash.count > DASH_COUNT_LIMIT) return false;
++    auto shortest = 0.0f;
++    for (uint32_t i = 0; i < dash.count; ++i) {
++        if (dash.pattern[i] > 0.0f && (shortest == 0.0f || dash.pattern[i] < shortest)) shortest = dash.pattern[i];
++    }
++    //a float holds 24 bits: a step under 2^-22 of a segment may not move it
++    if (shortest > 0.0f && longest / shortest > 4194304.0) return false;
++    return true;
++}
++
++
+ static SwOutline* _genDashOutline(const RenderShape* rshape, SwMpool* mpool, unsigned tid, bool trimmed)
+ {
+     RenderPath trim;
+@@ -414,7 +506,9 @@ bool shapeGenStrokeRle(SwShape& shape, const RenderShape* rshape, const Matrix&
+ {
+     shapeResetStroke(shape, rshape, transform, mpool, tid);
+ 
+-    auto dash = (rshape->stroke->dash.length > DASH_PATTERN_THRESHOLD);
++    if (!_strokeFinite(rshape, transform)) return false;
++
++    auto dash = (rshape->stroke->dash.length > DASH_PATTERN_THRESHOLD) && _dashBounded(rshape);
+     SwOutline* outline;
+ 
+     if (dash) outline = _genDashOutline(rshape, mpool, tid, rshape->trimpath());
