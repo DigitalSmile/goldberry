@@ -85,7 +85,8 @@ pins, with Goldberry's patches from vector/src/main/cmake/patches/:
 thorvg-bounded-strokes.patch draws a dashed stroke whose dashes would number
 more than a million undashed and strokes no path with a point at no finite
 place, and thorvg-bounded-coordinates.patch clamps a point more than 2^21
-pixels out to that distance. thorvg-svg-character-bytes.patch passes unsigned
+pixels out to that distance, computes cubic flatness in 64 bits, and bounds
+subdivision to the available workspace. thorvg-svg-character-bytes.patch passes unsigned
 bytes to the C runtime when the SVG parser classifies characters.
 
 Library: ${_name} (${_kb} KB)

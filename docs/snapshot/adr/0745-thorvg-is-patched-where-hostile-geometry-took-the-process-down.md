@@ -113,3 +113,13 @@ UTF-8 byte can become negative when promoted from plain `char`.
 `thorvg-svg-character-bytes.patch` converts the bytes to `unsigned char`
 before classification, as ThorVG already does when reading XML whitespace.
 The vector tests render a path styled by a UTF-8 class name on each platform.
+
+## Fixed-point cubic curves
+
+The endpoints of a cubic can coincide while its control points describe a
+visible loop. The subdivision test needs the dot and cross products of the
+control vectors in 64 bits even when the chord is short. The coordinate clamp
+bounds each component difference by 2³⁰, so two products fit in `int64_t`.
+Before splitting a segment the rasterizer also checks that its fixed work
+array has room for both halves. An ordinary closed cubic must fill the same
+pixels as its two exact halves.

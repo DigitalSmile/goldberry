@@ -141,6 +141,25 @@ class SvgTest {
         }
 
         @Test
+        @DisplayName("a closed cubic and its two halves cover the same pixels")
+        void cubicSubdivision() {
+            var template = """
+                    <svg xmlns="http://www.w3.org/2000/svg" width="512" height="512">
+                      <path fill="blue" d="%s"/>
+                    </svg>
+                    """;
+            var size = new PhysicalSize(512, 512);
+            var subdivided = "M256 400 C160 272 208 208 256 208 C304 208 352 272 256 400 Z";
+            try (var whole = Svg.parse(template.formatted("M256 400 C64 144 448 144 256 400 Z"));
+                    var halves = Svg.parse(template.formatted(subdivided))) {
+                var image = whole.render(size);
+                assertPixel(image, 256, 256, 0xFF0000FF);
+                assertEquals(
+                        halves.render(size).pixels().pixels(), image.pixels().pixels());
+            }
+        }
+
+        @Test
         @DisplayName("the same document again and again, from one parse")
         void again() {
             try (var svg = Svg.parse(HALVES)) {

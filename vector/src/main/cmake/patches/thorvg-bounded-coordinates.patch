@@ -1,8 +1,8 @@
 diff --git a/src/renderer/cpu_engine/tvgSwRle.cpp b/src/renderer/cpu_engine/tvgSwRle.cpp
-index 484828b..23d2159 100644
+index 484828b..d8647bf 100644
 --- a/src/renderer/cpu_engine/tvgSwRle.cpp
 +++ b/src/renderer/cpu_engine/tvgSwRle.cpp
-@@ -273,11 +273,13 @@ static inline SwPoint FRACT(const SwPoint& pt)
+@@ -273,11 +273,26 @@ static inline SwPoint FRACT(const SwPoint& pt)
  // Approximate sqrt(x*x+y*y) using the `alpha max plus beta min' algorithm.
  // We use alpha = 1, beta = 3/8, giving us results with a largest error
  // less than 7% compared to the exact value.
@@ -16,9 +16,69 @@ index 484828b..23d2159 100644
 +    int64_t y = pt.y < 0 ? -int64_t(pt.y) : int64_t(pt.y);
 +    auto h = (x > y) ? (x + (3 * y >> 3)) : (y + (3 * x >> 3));
 +    return h > INT32_MAX ? INT32_MAX : int32_t(h);
++}
++
++// Goldberry: even with a short chord, a control point can be far from it.
++// Coordinates are bounded to +/-2^29 in 24.8 fixed point. Products of their
++// differences and the sum or difference of two products fit in int64_t.
++static inline int64_t _dot(SwPoint a, SwPoint b)
++{
++    return int64_t(a.x) * b.x + int64_t(a.y) * b.y;
++}
++
++static inline int64_t _cross(SwPoint a, SwPoint b)
++{
++    return int64_t(a.x) * b.y - int64_t(a.y) * b.x;
  }
  
  static void _splitCubic(SwPoint* base)
+@@ -512,6 +527,7 @@ static bool _lineTo(RleWorker& rw, const SwPoint& to)
+
+         // avoid possible arithmetic overflow below by splitting
+         if (HYPOT(diff) > SHRT_MAX) {
++            if (end - line < 3) return false;
+             _splitLine(line);
+             ++line;
+             continue;
+@@ -614,7 +630,8 @@ static bool _lineTo(RleWorker& rw, const SwPoint& to)
+         rw.area += (f2.y - f1.y) * (f1.x + f2.x);
+         rw.pos = line[0];
+
+-        if (line-- == rw.lineStack) return true;
++        if (line == rw.lineStack) return true;
++        --line;
+     }
+     return false;
+ }
+@@ -659,23 +676,24 @@ static bool _cubicTo(RleWorker& rw, const SwPoint& ctrl1, const SwPoint& ctrl2,
+             auto sLimit = L * (ONE_PIXEL / 6);
+
+             auto diff1 = arc[1] - arc[0];
+-            if (abs(diff.y * diff1.x - diff.x * diff1.y) > sLimit) goto split;
++            if (std::abs(_cross(diff, diff1)) > sLimit) goto split;
+
+             //s is L * the perpendicular distance from P2 to the line P0 - P3
+             auto diff2 = arc[2] - arc[0];
+-            if (abs(diff.y * diff2.x - diff.x * diff2.y) > sLimit) goto split;
++            if (std::abs(_cross(diff, diff2)) > sLimit) goto split;
+
+             /* Split super curvy segments where the off points are so far
+             from the chord that the angles P0-P1-P3 or P0-P2-P3 become
+             acute as detected by appropriate dot products */
+-            if (diff1.x * (diff1.x - diff.x) + diff1.y * (diff1.y - diff.y) > 0 ||
+-                diff2.x * (diff2.x - diff.x) + diff2.y * (diff2.y - diff.y) > 0)
++            if (_dot(diff1, diff1 - diff) > 0 || _dot(diff2, diff2 - diff) > 0)
+                 goto split;
+
+             //no reason to split
+             goto draw;
+         }
+     split:
++        // A split writes seven points. At the depth limit use the chord.
++        if (end - arc < 7) goto draw;
+         _splitCubic(arc);
+         arc += 3;
+         continue;
 diff --git a/src/renderer/cpu_engine/tvgSwUtil.cpp b/src/renderer/cpu_engine/tvgSwUtil.cpp
 index 46eee32..5378dda 100644
 --- a/src/renderer/cpu_engine/tvgSwUtil.cpp

@@ -40,7 +40,9 @@ Three facts from ThorVG v1.1.4's source shaped it:
    exported): past a byte order mark, the XML declaration, processing
    instructions, comments and a doctype with its internal subset, to an `<svg`
    start tag, whose attributes it reads and can rewrite. Bytes without one are
-   an `ImageDecodeException` before ThorVG sees them.
+   an `ImageDecodeException` before ThorVG sees them. Source bytes must also
+   be UTF-8 and source text may contain only XML 1.0 characters. This check
+   reads literal characters without resolving entities or fetching a DTD.
 3. **`currentColor` is a `color` attribute put on the root** as `rgba(r,g,b,a)`,
    the one form with alpha ThorVG reads, unless the root names its own `color`
    as an attribute or in its `style`. A `color` set deeper in the document, and
