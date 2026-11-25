@@ -18,6 +18,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
+import dev.goldberry.RendererRequirement;
 import dev.goldberry.css.Stylesheet;
 import dev.goldberry.css.cascade.CascadeLayer;
 import dev.goldberry.image.Image;
@@ -52,6 +53,7 @@ class SvgWhereImagesAreTest {
     @BeforeAll
     static void library() {
         VectorNativesRequirement.enforce();
+        RendererRequirement.enforce();
     }
 
     @BeforeEach

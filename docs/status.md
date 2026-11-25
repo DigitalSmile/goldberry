@@ -23,6 +23,10 @@ HTML and Markdown prose now wraps as shaped paragraphs. CSS justification,
 wrapped links, embedded images and document selection share the line geometry.
 [ADR-0748](snapshot/adr/0748-document-prose-uses-shaped-paragraphs.md)
 
+The vector CI jobs exercise ThorVG independently. Snapshot and release builds
+also check offscreen SVG widgets with both native artifacts before publishing.
+[ADR-0746](snapshot/adr/0746-goldberry-vector-is-built-on-four-targets-and-carried-in-the-native-image.md)
+
 ## Foundation
 
 **Done.**

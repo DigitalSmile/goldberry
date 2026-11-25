@@ -7,6 +7,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import dev.goldberry.RendererRequirement;
 import dev.goldberry.css.Stylesheet;
 import dev.goldberry.css.Theme;
 import dev.goldberry.css.cascade.CascadeLayer;
@@ -37,6 +38,7 @@ class SvgViewGoldenTest {
     @BeforeAll
     static void library() {
         VectorNativesRequirement.enforce();
+        RendererRequirement.enforce();
     }
 
     private static Attributes classes(String... names) {

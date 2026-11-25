@@ -2,7 +2,6 @@ package dev.goldberry.image;
 
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -104,14 +103,19 @@ class ScalableImageTest {
         }
 
         @Test
-        @DisplayName("and loses its document when scaled or cropped, which are pixels")
-        void pixelsOnly() {
-            var image = Image.decode(SVG);
-            assertAll(
-                    () -> assertFalse(image.scaled(8, 6).scalable().isPresent()),
-                    () -> assertFalse(image.cropped(PhysicalRect.of(0, 0, 2, 2))
-                            .scalable()
-                            .isPresent()));
+        @DisplayName("a crop owns only its pixels")
+        void cropped() {
+            assertTrue(Image.decode(SVG)
+                    .cropped(PhysicalRect.of(0, 0, 2, 2))
+                    .scalable()
+                    .isEmpty());
+        }
+
+        @Test
+        @DisplayName("a resampled image owns only its pixels")
+        void scaled() {
+            RendererRequirement.enforce();
+            assertTrue(Image.decode(SVG).scaled(8, 6).scalable().isEmpty());
         }
     }
 

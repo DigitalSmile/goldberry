@@ -195,6 +195,14 @@ jobs:
           -Pgoldberry.skipNative=true -Pgoldberry.vector.required=true
           -Pgoldberry.vector.libdir="${{ github.workspace }}/vector-natives" --no-daemon
 
+      - name: Keep JVM crash reports
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: vector-crash-${{ matrix.target }}
+          path: '**/hs_err_pid*.log'
+          if-no-files-found: ignore
+
   sanitizer:
     name: libgoldberry-vector under AddressSanitizer (linux-x64)
     runs-on: ubuntu-24.04

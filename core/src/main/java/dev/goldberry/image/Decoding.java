@@ -65,24 +65,20 @@ final class Decoding {
     /// Decodes `bytes` into the memory `target` hands back for the decoded
     /// size; see [Image#decodeInto].
     static PhysicalSize into(ByteBuffer bytes, ChannelOrder order, Function<PhysicalSize, PixelTarget> target) {
-        var format = ImageFormat.of(bytes);
-        if (format == ImageFormat.SVG) {
-            // Drawn at its natural size by the vector decoder, then copied: a
-            // document has no pixels to decode straight into.
-            var image = Image.decode(bytes);
-            copy(image, order, targetFor(image.size(), target));
-            return image.size();
-        }
-        var argb = switch (format) {
-            case GIF -> gif(bytes);
-            case WEBP -> webp(bytes);
-            case PNG, JPEG, QOI, SVG, UNKNOWN -> null;
+        return switch (ImageFormat.of(bytes)) {
+            case SVG -> {
+                var image = Image.decode(bytes);
+                copy(image, order, targetFor(image.size(), target));
+                yield image.size();
+            }
+            case GIF -> write(gif(bytes), order, target);
+            case WEBP -> write(webp(bytes), order, target);
+            case PNG, JPEG, QOI, UNKNOWN -> blendInto(bytes, order, target);
         };
-        if (argb != null) {
-            var size = new PhysicalSize(argb.width(), argb.height());
-            write(argb, order, targetFor(size, target));
-            return size;
-        }
+    }
+
+    private static PhysicalSize blendInto(
+            ByteBuffer bytes, ChannelOrder order, Function<PhysicalSize, PixelTarget> target) {
         try (var decoded = BlendDecodedImage.decode(bytes)) {
             var size = new PhysicalSize(decoded.width(), decoded.height());
             var into = targetFor(size, target);
@@ -100,12 +96,14 @@ final class Decoding {
         return into;
     }
 
-    /// Writes `argb` premultiplied into `into`, a row at a time through one
+    /// Writes `argb` premultiplied into the target, a row at a time through one
     /// reused `int[]`.
     ///
     /// Each row goes in as one bulk put through a little-endian view, so
     /// `0xAARRGGBB` lands as `B G R A` whatever the platform's own order.
-    private static void write(Argb argb, ChannelOrder order, PixelTarget into) {
+    private static PhysicalSize write(Argb argb, ChannelOrder order, Function<PhysicalSize, PixelTarget> target) {
+        var size = new PhysicalSize(argb.width(), argb.height());
+        var into = targetFor(size, target);
         var pixels = into.pixels();
         var base = pixels.position();
         var row = new int[argb.width()];
@@ -120,6 +118,7 @@ final class Decoding {
                     .asIntBuffer()
                     .put(0, row);
         }
+        return size;
     }
 
     /// Copies `image`, premultiplied BGRA already, into `into` in `order`.

@@ -65,6 +65,10 @@ registers a `Cleaner`, so it is initialized at run time."
 
 ## Consequences
 
+The vector-only jobs exercise ThorVG on each target. Widget painting also needs
+Blend2D. Before publishing, the Linux x64 job runs the SVG widget tests with
+both libraries required, using the artifacts that go into the classifiers.
+
 - Every snapshot carries goldberry-vector's natives for the targets that
   built, and a release cannot go without all four.
 - A pull request touching `vector/**` pays for ThorVG on four runners and the

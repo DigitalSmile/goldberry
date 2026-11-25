@@ -28,7 +28,7 @@ node names, and the inflater finds them when the module is on the module path.
 
 A rendered Markdown document: GitHub's dialect by default, folded into `column`, `row` and `text`.
 
-<div class="gb-shot"><img class="gb-light" src="../images/markdown-view-light.webp" width="601" alt="A split pane: Markdown source in a monospace text area on the left and the rendered document on the right, with a heading, a paragraph and a task list"><img class="gb-dark" src="../images/markdown-view-dark.webp" width="601" alt="A split pane: Markdown source in a monospace text area on the left and the rendered document on the right, with a heading, a paragraph and a task list"><p>The source and the document it renders, side by side.</p></div>
+<div class="gb-shot"><img class="gb-light" src="../images/markdown-view-light.webp" width="603" alt="A split pane: Markdown source in a monospace text area on the left and the rendered document on the right, with a heading, a paragraph and a task list"><img class="gb-dark" src="../images/markdown-view-dark.webp" width="603" alt="A split pane: Markdown source in a monospace text area on the left and the rendered document on the right, with a heading, a paragraph and a task list"><p>The source and the document it renders, side by side.</p></div>
 
 <div class="gb-tabs">
 
@@ -141,7 +141,7 @@ exists and the choice of where the scrollbar goes is the application's.
 A rendered HTML document: parsed in Java into a model of records and folded
 into the same widgets the Markdown view uses.
 
-<div class="gb-shot"><img class="gb-light" src="../images/html-view-light.webp" width="501" alt="A rendered HTML document: a heading, The Red Book, and a paragraph with an italic word and a link"><img class="gb-dark" src="../images/html-view-dark.webp" width="501" alt="A rendered HTML document: a heading, The Red Book, and a paragraph with an italic word and a link"><p>A heading, emphasis and a link.</p></div>
+<div class="gb-shot"><img class="gb-light" src="../images/html-view-light.webp" width="508" alt="A rendered HTML document: a heading, The Red Book, and a paragraph with an italic word and a link"><img class="gb-dark" src="../images/html-view-dark.webp" width="508" alt="A rendered HTML document: a heading, The Red Book, and a paragraph with an italic word and a link"><p>A heading, emphasis and a link.</p></div>
 
 <div class="gb-tabs">
 

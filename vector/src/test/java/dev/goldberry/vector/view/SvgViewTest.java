@@ -21,6 +21,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
+import dev.goldberry.RendererRequirement;
 import dev.goldberry.css.Stylesheet;
 import dev.goldberry.css.cascade.CascadeLayer;
 import dev.goldberry.kdl.KdlParser;
@@ -196,6 +197,11 @@ class SvgViewTest {
     @Nested
     @DisplayName("drawn")
     class Drawn {
+
+        @BeforeAll
+        static void renderer() {
+            RendererRequirement.enforce();
+        }
 
         @Test
         @DisplayName("in its CSS color, and again in another when the color changes on :hover")

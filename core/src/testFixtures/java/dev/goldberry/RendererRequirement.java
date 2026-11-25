@@ -2,6 +2,7 @@ package dev.goldberry;
 
 import java.nio.ByteBuffer;
 
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Assumptions;
 
 import dev.goldberry.natives.blend2d.BlendImage;
@@ -14,9 +15,8 @@ import dev.goldberry.natives.blend2d.BlendImage;
 /// wants to know whether *Blend2D* answers, not whether a file loaded. So the
 /// question is asked the only way an outside module can ask it: by trying.
 ///
-/// The distinction that matters is between "no library" and "a broken library".
-/// A missing library is an ordinary state on a contributor's machine and skips;
-/// anything else is a real failure and is left to propagate.
+/// An unavailable binding skips an optional renderer test. A job that sets
+/// `goldberry.native.required` fails with the original linkage error.
 ///
 /// Read more: [Skipping without
 /// the native library](https://goldberry.dev/docs/guide/testing.html#skipping-without-the-native-library).
@@ -24,19 +24,24 @@ public final class RendererRequirement {
 
     private RendererRequirement() {}
 
-    /// Returns normally when Blend2D can rasterize, and aborts the test when the
-    /// native library is simply not there.
+    /// Probes the same Blend2D image binding used for rendering.
     public static void enforce() {
+        enforce(
+                () -> BlendImage.wrapping(ByteBuffer.allocateDirect(16), 2, 2, 8)
+                        .close(),
+                Boolean.getBoolean("goldberry.native.required"));
+    }
+
+    static void enforce(Runnable probe, boolean required) {
         try {
-            // Two by two, thrown away. Enough to force the library to load and
-            // the binding's class initialiser to run, which is where a missing
-            // symbol or a mismatched ABI surfaces.
-            BlendImage.wrapping(ByteBuffer.allocateDirect(16), 2, 2, 8).close();
+            probe.run();
         } catch (UnsatisfiedLinkError | NoClassDefFoundError | ExceptionInInitializerError e) {
-            Assumptions.abort("libgoldberry is not loadable from :core's tests, so nothing can rasterize: "
-                    + e
-                    + ". Pass -Dgoldberry.native.library=<path> to point at one"
-                    + " — see core/build.gradle.");
+            var message = "Cannot load the Blend2D renderer: " + e
+                    + ". Set -Dgoldberry.native.library=<path> to its libgoldberry.";
+            if (required) {
+                Assertions.fail(message, e);
+            }
+            Assumptions.abort(message);
         }
     }
 }

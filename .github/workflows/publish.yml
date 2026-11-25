@@ -184,6 +184,17 @@ jobs:
           done
           find vector-artifacts -type f | sort
 
+      - name: Verify SVG widgets with the packaged renderer and vector library
+        run: >-
+          ./gradlew :vector:test
+          --tests 'dev.goldberry.vector.SvgWhereImagesAreTest'
+          --tests 'dev.goldberry.vector.view.SvgViewTest*'
+          --tests 'dev.goldberry.vector.view.SvgViewGoldenTest'
+          -Pgoldberry.skipNative=true -Pgoldberry.native.required=true
+          -Pgoldberry.native.library="$PWD/artifacts/linux-x64/libgoldberry.so"
+          -Pgoldberry.vector.required=true -Pgoldberry.vector.libdir="$PWD/vector-artifacts/linux-x64"
+          --no-daemon
+
       # Every licence file must carry its verbatim upstream text before a release
       # is published. A snapshot warns instead: it is a build of work in progress,
       # and the check exists to stop the permanent thing.
