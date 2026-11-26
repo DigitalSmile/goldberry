@@ -168,8 +168,7 @@ if(_sanitize_flags)
     set(_meson_link "-Dcpp_link_args=-fsanitize=${GOLDBERRY_VECTOR_SANITIZE}" -Db_lundef=false)
 endif()
 
-# Two patches, on every target, each for documents that took the process down
-# in the robustness tests; apply_patch.cmake stops the configure when a
+# Patches on every target. apply_patch.cmake stops the configure when a
 # bump moves the lines under one, and each patch's hash is part of the command,
 # so a changed patch reapplies. Drop one when upstream fixes the same.
 #
@@ -187,10 +186,14 @@ endif()
 #   difference and a line's cell walk runs until the counter wraps (a <use>
 #   that scaled a star by -2^31 drew for hours). Points are clamped to 2^21
 #   pixels, and one that is not a number goes to the origin.
+#
+#   patches/thorvg-svg-character-bytes.patch: the C runtime's character
+#   classifiers take unsigned bytes. UTF-8 class names and style values can
+#   contain bytes above 127 even on a target where plain char is signed.
 
 find_package(Git REQUIRED)
 set(_thorvg_patch_command "")
-foreach(_patch_name IN ITEMS thorvg-bounded-strokes thorvg-bounded-coordinates)
+foreach(_patch_name IN ITEMS thorvg-bounded-strokes thorvg-bounded-coordinates thorvg-svg-character-bytes)
     set(_patch "${CMAKE_CURRENT_SOURCE_DIR}/patches/${_patch_name}.patch")
     file(SHA256 "${_patch}" _patch_hash)
     set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${_patch}")

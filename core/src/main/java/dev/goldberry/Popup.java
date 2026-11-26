@@ -577,6 +577,19 @@ public final class Popup implements AutoCloseable {
         this.focusId = id;
     }
 
+    /// Places the default focus on a newly available row in this popup.
+    /// Keyboard navigation takes precedence when the user has already chosen a row.
+    public void preferFocus(String id) {
+        Objects.requireNonNull(id, "id");
+        if (isOpen() && keyboard && takesFocus && !router.focusedFromKeyboard()) {
+            if (focused) {
+                router.focusById(id, false);
+            } else {
+                focusOn(id);
+            }
+        }
+    }
+
     /// Focuses the node in this popup's tree carrying `id`, now, if there is one.
     ///
     /// What [Host#focus] asks each open popup before the window: a widget in a

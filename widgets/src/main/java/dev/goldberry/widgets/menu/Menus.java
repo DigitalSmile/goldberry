@@ -279,6 +279,11 @@ public final class Menus {
     /// had already moved to a different menu entirely.
     private static EventLoop.@Nullable Timer pending;
 
+    static String rowId(Item item, int index) {
+        var id = item.id();
+        return id == null ? "item-" + index : id;
+    }
+
     private static void cancelPending() {
         if (pending != null) {
             pending.cancel();
@@ -378,7 +383,7 @@ public final class Menus {
             // writing a menu should not have to name every row that happens to
             // lead somewhere.
             if (item.attributes().id() == null) {
-                item = item.id("item-" + index);
+                item = item.id(rowId(item, index));
             }
             if (index == openIndex) {
                 // `.open` rather than a pseudo-class, because "the branch that is

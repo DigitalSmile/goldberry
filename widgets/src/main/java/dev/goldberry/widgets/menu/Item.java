@@ -212,6 +212,11 @@ public record Item(
     }
 
     @Override
+    public @Nullable Object key() {
+        return attributes.key();
+    }
+
+    @Override
     public @Nullable String id() {
         return attributes.id();
     }

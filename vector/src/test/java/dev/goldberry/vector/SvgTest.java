@@ -96,6 +96,19 @@ class SvgTest {
                 assertPixel(svg.render(new PhysicalSize(8, 4)), 1, 1, 0xFFFF0000);
             }
         }
+
+        @Test
+        @DisplayName("a UTF-8 class name in a stylesheet and on a shape")
+        void unicodeClassName() {
+            try (var svg = Svg.parse("""
+                    <svg xmlns="http://www.w3.org/2000/svg" width="4" height="4">
+                      <style>.青 { fill: #0000ff; }</style>
+                      <path class="青" d="M0 0h4v4H0z"/>
+                    </svg>
+                    """)) {
+                assertPixel(svg.render(new PhysicalSize(4, 4)), 2, 2, 0xFF0000FF);
+            }
+        }
     }
 
     @Nested
@@ -124,6 +137,25 @@ class SvgTest {
                         () -> assertPixel(image, 31, 7, 0xFFFF0000),
                         () -> assertPixel(image, 31, 8, 0x800000FF),
                         () -> assertPixel(image, 0, 15, 0x800000FF));
+            }
+        }
+
+        @Test
+        @DisplayName("a closed cubic and its two halves cover the same pixels")
+        void cubicSubdivision() {
+            var template = """
+                    <svg xmlns="http://www.w3.org/2000/svg" width="512" height="512">
+                      <path fill="blue" d="%s"/>
+                    </svg>
+                    """;
+            var size = new PhysicalSize(512, 512);
+            var subdivided = "M256 400 C160 272 208 208 256 208 C304 208 352 272 256 400 Z";
+            try (var whole = Svg.parse(template.formatted("M256 400 C64 144 448 144 256 400 Z"));
+                    var halves = Svg.parse(template.formatted(subdivided))) {
+                var image = whole.render(size);
+                assertPixel(image, 256, 256, 0xFF0000FF);
+                assertEquals(
+                        halves.render(size).pixels().pixels(), image.pixels().pixels());
             }
         }
 

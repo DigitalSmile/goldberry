@@ -116,8 +116,8 @@ public final class SpellingMenu {
                 }));
             }
         }
-        rows.add(new Item(Labels.text(ToolkitLabel.ADD_TO_DICTIONARY), aimed.addToDictionary()));
-        rows.add(new Item(Labels.text(ToolkitLabel.IGNORE_SPELLING), aimed.ignore()));
+        rows.add(new Item(Labels.text(ToolkitLabel.ADD_TO_DICTIONARY), aimed.addToDictionary()).id("spelling-add"));
+        rows.add(new Item(Labels.text(ToolkitLabel.IGNORE_SPELLING), aimed.ignore()).id("spelling-ignore"));
         return List.copyOf(rows);
     }
 }

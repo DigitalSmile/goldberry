@@ -104,7 +104,7 @@ public final class Svg implements ScalableImage, AutoCloseable {
     }
 
     /// Parses the bytes from `bytes`' position to its limit, without moving it,
-    /// with `currentColor` black.
+    /// with `currentColor` black. The bytes must be UTF-8 and contain only XML 1.0 characters.
     ///
     /// @throws ImageDecodeException     when the bytes are not an SVG document
     ///                                  ThorVG can read, or are over
@@ -122,6 +122,7 @@ public final class Svg implements ScalableImage, AutoCloseable {
         Objects.requireNonNull(bytes, "bytes");
         var document = new byte[requireSize(bytes.remaining())];
         bytes.duplicate().get(document);
+        SvgText.check(document);
         return parse(document, currentColor);
     }
 
@@ -136,6 +137,7 @@ public final class Svg implements ScalableImage, AutoCloseable {
     /// [#parse(String)] with `currentColor` the colour `argb`.
     public static Svg parse(String document, int currentColor) {
         Objects.requireNonNull(document, "document");
+        SvgText.check(document);
         var bytes = document.getBytes(StandardCharsets.UTF_8);
         requireSize(bytes.length);
         return parse(bytes, currentColor);

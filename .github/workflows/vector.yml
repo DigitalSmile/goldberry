@@ -195,6 +195,13 @@ jobs:
           -Pgoldberry.skipNative=true -Pgoldberry.vector.required=true
           -Pgoldberry.vector.libdir="${{ github.workspace }}/vector-natives" --no-daemon
 
+      - name: Read Windows application crash events
+        if: failure() && runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          ./.github/scripts/windows-java-faults.ps1 -SelfTest
+          ./.github/scripts/windows-java-faults.ps1
+
       - name: Keep JVM crash reports
         if: failure()
         uses: actions/upload-artifact@v4
