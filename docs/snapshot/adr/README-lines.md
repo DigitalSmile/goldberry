@@ -189,3 +189,6 @@ Appended to the index when the records move in, in this order.
 - [ADR-0747 The Drawing screen shows SVG at three sizes](0747-the-drawing-screen-shows-svg-at-three-sizes.md)
 - [ADR-0748 Document prose uses shaped paragraphs](0748-document-prose-uses-shaped-paragraphs.md)
 - [ADR-0749 Document hyphenation preserves source offsets](0749-document-hyphenation-preserves-source-offsets.md)
+- [ADR-0750 The native showcase embeds its codec library](0750-the-native-showcase-embeds-its-codec-library.md)
+- [ADR-0751 Embedded pages stay above Metal](0751-embedded-pages-stay-above-metal.md)
+- [ADR-0752 Asset downloads retry when the response stalls](0752-asset-downloads-retry-when-the-response-stalls.md)

@@ -1,8 +1,8 @@
 # The native showcase
 # https://goldberry.dev/docs/contributing/releasing.html#the-showcase-binaries
 #
-# Builds the showcase as a GraalVM native image on each desktop platform -- one
-# executable with libgoldberry inside it -- runs it for three
+# Builds the showcase as a GraalVM native image on each desktop platform with
+# libgoldberry, Web View, Media and Vector inside one executable. It runs for three
 # hundred frames while its window is resized a pixel a frame, reports what that
 # cost, and uploads it. On a `v*` tag the three binaries are
 # also attached to the tag's GitHub Release, created as a draft so it is
@@ -39,15 +39,16 @@ permissions:
   contents: read
 
 jobs:
-  # libgoldberry-vector, which draws every SVG, built by the Vector workflow
-  # on each target with the toolchain it needs (MinGW on Windows, where this
-  # workflow's leg is MSVC). Each image carries its target's.
+  # The codec and SVG libraries come from their own workflows and toolchains.
+  media:
+    uses: ./.github/workflows/media.yml
+
   vector:
     uses: ./.github/workflows/vector.yml
 
   image:
     name: ${{ matrix.target }}
-    needs: vector
+    needs: [media, vector]
     runs-on: ${{ matrix.runs-on }}
     strategy:
       fail-fast: false
@@ -163,14 +164,19 @@ jobs:
 
       - uses: actions/download-artifact@v4
         with:
+          name: media-natives-${{ matrix.target }}
+          path: media-natives
+
+      - uses: actions/download-artifact@v4
+        with:
           name: vector-natives-${{ matrix.target }}
           path: vector-natives
 
-      # The vector library rides the image as goldberry-vector's natives jar,
-      # packed from the directory named here.
+      # Each classifier jar is packed from this run's build for the image target.
       - name: Build the native image
         run: >-
           ./gradlew :example:nativeImage --no-daemon --stacktrace
+          -Pgoldberry.media.libdir="${{ github.workspace }}/media-natives"
           -Pgoldberry.vector.libdir="${{ github.workspace }}/vector-natives"
 
       # What was built, when something was built. A missing module or a library
@@ -178,6 +184,12 @@ jobs:
       - name: What was built
         if: always()
         run: ls -l example/build/native || echo "::warning::no native image was produced"
+
+      - name: Verify Web View, Media and Vector load from the image
+        working-directory: example/build/native
+        env:
+          IMAGE: goldberry-showcase-${{ matrix.target }}${{ runner.os == 'Windows' && '.exe' || '' }}
+        run: ./"$IMAGE" --verify-native-libraries
 
       # The binary is what ships, so the binary is what runs -- and it runs under
       # the load M1's claim is about: three hundred frames with the window

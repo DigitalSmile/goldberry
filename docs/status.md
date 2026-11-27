@@ -19,6 +19,22 @@ page is the other half: it says what works and what it cost to find out.
 | [M5 — Hardening](#m5--hardening) | **started** | Text editing depth, IME preedit, docs, the first release — **`v2026.2` is on Central since 2026-10-02, with the native showcase on its GitHub Release** — and the three-platform frame evidence M1 is waiting on. The AccessKit bridge was this milestone's last toolkit item and is **on hold** ([ADR-0440](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0440-the-accessibility-bridge-is-on-hold-and-the-semantics-tree-stays.md)) |
 | [Content modules](#content-modules) | **started** | The first of the eleven is built **whole**: `:html` parses Markdown through md4c and HTML in Java, serves Markdown as HTML, and renders both as widgets — `markdown-view` and `html-view`, neither with an engine under it. **`:emoji` is the second**, and is a font rather than a widget: Noto Color Emoji's COLRv1 build ships there, drawn from its paint graphs, and `:core` loads the face through a service ([ADR-0384](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0384-the-emoji-face-is-an-artifact-an-application-opts-into.md), [ADR-0456](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0456-the-emoji-face-is-noto-drawn-from-its-paint-graphs.md)). **`:media` is the third**: audio and video over FFmpeg driven from Java, with the operating system's decoders behind the same SPI, published as an optional snapshot ([ADR-0460](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0460-media-is-ffmpeg-driven-from-java-not-libvlc.md), [ADR-0493](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0493-the-platform-decoders-are-part-of-media.md), [ADR-0495](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0495-media-is-published-and-snapshots-publish-again.md)). The web engine turned out not to be a module: `web-view` is a widget in `:widgets` where the window system allows a child window ([ADR-0442](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0442-a-page-is-a-child-window-where-the-window-system-allows-one.md)). The other seven are unscheduled |
 
+`:example:prepareAssets` reports downloads on a cold cache. Its downloader
+retries when a server stalls sending headers or body data. Loopback tests
+exercise both stalls and check that a retry writes the complete archive.
+[ADR-0752](snapshot/adr/0752-asset-downloads-retry-when-the-response-stalls.md)
+
+On macOS, SDL places its Metal view beneath embedded web pages on each claim.
+The Showcase room offers **Auto** for tracing with the available backend and
+**GPU compute** for tracing on the canvas's Metal, Vulkan or Direct3D device.
+[ADR-0751](snapshot/adr/0751-embedded-pages-stay-above-metal.md)
+
+Showcase CI builds one executable per desktop target with the core library,
+web-view shim, media codecs and SVG renderer. It checks the loaders and then
+runs the window before uploading the image. The Linux x64 archive passed
+the loader check after extraction and painted 300 frames with SDL's dummy
+driver. [ADR-0750](snapshot/adr/0750-the-native-showcase-embeds-its-codec-library.md)
+
 HTML and Markdown can hyphenate English prose when a line wraps. The visible
 hyphen is included in link and selection geometry, and copied words keep their
 original spelling. In the Linux x64 native showcase, a 64 px HTML link wrapped

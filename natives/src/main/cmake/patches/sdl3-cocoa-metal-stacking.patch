@@ -1,0 +1,12 @@
+diff --git a/src/video/cocoa/SDL_cocoametalview.m b/src/video/cocoa/SDL_cocoametalview.m
+--- a/src/video/cocoa/SDL_cocoametalview.m
++++ b/src/video/cocoa/SDL_cocoametalview.m
+@@ -154,6 +154,7 @@ SDL_MetalView Cocoa_Metal_CreateView(SDL_VideoDevice *_this, SDL_Window *window)
+             return NULL;
+         }
+
+-        [view addSubview:newview];
++        // Goldberry patch: keep embedded pages above the Metal view on every claim.
++        [view addSubview:newview positioned:NSWindowBelow relativeTo:nil];
+
+         // Make sure the drawable size is up to date after attaching the view.

@@ -111,6 +111,30 @@ class PublishWorkflowsTest {
                         "and only a tag has a release to attach them to"));
     }
 
+    @ParameterizedTest(name = "the native showcase embeds {0}")
+    @ValueSource(strings = {"media", "vector"})
+    @DisplayName("the showcase builds and downloads the same-run library for its target")
+    void showcaseEmbedsNativeLibraries(String library) {
+        var workflow = Repository.workflow("showcase.yml");
+        assertAll(
+                () -> assertTrue(workflow.contains("uses: ./.github/workflows/" + library + ".yml")),
+                () -> assertTrue(workflow.contains("needs: [media, vector]")),
+                () -> assertTrue(workflow.contains("name: " + library + "-natives-${{ matrix.target }}")),
+                () -> assertTrue(workflow.contains("-Pgoldberry." + library + ".libdir=")));
+    }
+
+    @Test
+    @DisplayName("the showcase verifies the executable can load the embedded libraries before uploading it")
+    void showcaseVerifiesItsEmbeddedLibraries() {
+        var workflow = Repository.workflow("showcase.yml");
+        var build = workflow.indexOf("./gradlew :example:nativeImage --");
+        var verify = workflow.indexOf("run: ./\"$IMAGE\" --verify-native-libraries");
+        var upload = workflow.indexOf("uses: actions/upload-artifact");
+
+        assertTrue(build >= 0 && build < verify && verify < upload,
+                "The showcase must build, verify and upload in that order");
+    }
+
     @Test
     @DisplayName("nothing goes to GitHub Packages, and no jlink image is built")
     void noPackagesAndNoJlink() {

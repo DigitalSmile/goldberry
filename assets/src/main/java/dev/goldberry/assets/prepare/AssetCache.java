@@ -74,6 +74,7 @@ public final class AssetCache implements AutoCloseable {
         // error would be about corruption rather than about being interrupted.
         var partial = Files.createTempFile(directory, asset.name(), ".part");
         try {
+            System.out.println("  downloading " + asset.name() + " from " + asset.url());
             downloader.copyTo(URI.create(asset.url()), partial);
             var actual = sha256(partial);
             if (!actual.equals(asset.sha256())) {

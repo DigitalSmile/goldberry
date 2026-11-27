@@ -13,10 +13,8 @@ import dev.goldberry.render.window.NativeHandle;
 ///     stacks a child above its parent's contents and clips the parent's
 ///     presents against it, the Vulkan swapchain's included. Measured on this
 ///     project's Linux machine under XWayland.
-///   - **Cocoa: unmeasured.** The page is a `WKWebView` subview of the content
-///     view, and SDL's Metal claim adds a view of its own there. Which is on top
-///     is subview order, and a claim made after the page arrives would put the
-///     swapchain over it.
+///   - **Cocoa: the page.** SDL inserts its Metal view beneath the other content
+///     subviews on each claim. The web shim places the `WKWebView` above it.
 ///   - **Win32: unmeasured**, like the rest of the Win32 embedding: a WebView2
 ///     child `HWND` over a flip-model swapchain.
 ///
@@ -34,9 +32,7 @@ sealed interface PageStacking {
     /// How a page embedded under `kind` stacks against a swapchain.
     static PageStacking of(NativeHandle.Kind kind) {
         return switch (kind) {
-            case X11 -> new AboveTheSwapchain();
-            case COCOA ->
-                new NeedsTheCpu("a page is embedded in it, and a Metal view's stacking against it is unmeasured");
+            case X11, COCOA -> new AboveTheSwapchain();
             case WIN32 ->
                 new NeedsTheCpu("a page is embedded in it, and a swapchain's stacking against it is unmeasured");
         };

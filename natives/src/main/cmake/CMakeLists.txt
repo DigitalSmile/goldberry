@@ -435,21 +435,30 @@ set(SKIP_INSTALL_ALL ON CACHE BOOL "" FORCE)
 #
 # Windowing, input, per-monitor DPI, clipboard, cursors, popups, tray, SDL_GPU.
 #
-# One patch, on Linux only, where the file it touches is compiled:
-# patches/sdl3-pipewire-camera.patch. SDL's PipeWire camera never answers the
+# On Linux, patches/sdl3-pipewire-camera.patch fixes the camera's negotiation.
+# SDL's PipeWire camera never answers the
 # negotiated format with buffer parameters, so PipeWire 1.6 refuses its stream
 # ("use input buffers: Invalid argument"), the camera's permission is never
 # granted, and closing it waits for ever. The patch sends the parameters, as
 # PipeWire's own capture example does, makes the wait timed, as SDL's main
 # branch already has, and approves a camera once. Drop it when upstream sends
 # the parameters itself; apply_patch.cmake stops the configure when a bump
-# moves the lines under it. The patch's hash is part of the declaration, so a
-# changed patch reapplies.
+# moves the lines under it.
+#
+# On macOS, SDL adds its Metal view above any existing WKWebView on a claim.
+# The Cocoa patch inserts the Metal view below its siblings so an embedded
+# page remains visible if the compositor claims or reclaims its window.
 # ============================================================================
 set(_sdl3_patch_arguments "")
+set(_sdl3_patch "")
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
-    find_package(Git REQUIRED)
     set(_sdl3_patch "${CMAKE_CURRENT_LIST_DIR}/patches/sdl3-pipewire-camera.patch")
+elseif(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+    set(_sdl3_patch "${CMAKE_CURRENT_LIST_DIR}/patches/sdl3-cocoa-metal-stacking.patch")
+endif()
+if(_sdl3_patch)
+    find_package(Git REQUIRED)
+    # A changed patch changes the declaration and reapplies.
     file(SHA256 "${_sdl3_patch}" _sdl3_patch_hash)
     set(_sdl3_patch_arguments PATCH_COMMAND
         "${CMAKE_COMMAND}" "-DGIT=${GIT_EXECUTABLE}" "-DPATCH=${_sdl3_patch}"

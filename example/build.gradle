@@ -35,10 +35,7 @@ dependencies {
     // through a service, so this puts a provider on the module path and nothing
     // else.
     implementation project(':emoji')
-    // The Media screen. FFmpeg itself is a separate build,
-    // found at run time -- see `run` below.
-    // It carries the operating system's own decoders too, for the H.264, HEVC,
-    // AAC, AC-3 and E-AC-3 samples the published natives do not build.
+    // The Media screen uses the bundled codecs and the system's decoders.
     implementation project(':media')
     // The Capture screen: a microphone and a camera, each with its widgets.
     // Both are Java over libgoldberry's SDL, so they bring no natives of
@@ -471,52 +468,34 @@ tasks.register('nativeImageMetadata', Exec) {
 def imageDirNative = layout.buildDirectory.dir('native')
 def imageName = "goldberry-showcase-${hostTarget}"
 
-// The classifier jar holding libgoldberry, which is what makes the image one
-// file instead of two.
+// The host classifier jars contain each library at the resource path its loader
+// uses. They go on the image's classpath so the loaders can read those resources.
 // https://goldberry.dev/docs/native.html#why-the-library-is-carried-rather-than-linked
-//
-// `:natives` already packages the library at exactly the resource path
-// `NativeLibrary.resourcePath()` looks for -- that is the released-application
-// path, and an image is simply an application. So the jar goes on the image's
-// **classpath** (not its module path: nothing `requires` it, so module
-// resolution would leave it out) and `NativeLibrary` finds it there with the
-// code it already has.
 configurations {
     hostNatives {
         canBeConsumed = false
         canBeResolved = true
-        description = 'libgoldberry for this machine, as the classifier jar the image carries.'
+        description = 'Classifier jars with the native libraries the showcase image carries.'
     }
 }
+
+// An explicit directory requests a classifier. The packaging task reports
+// missing files in that directory. Local builds include the libraries they find.
+def repositoryPath = layout.settingsDirectory.asFile.toPath()
+def imageHasMedia = providers.systemProperty('goldberry.media.libdir')
+        .orElse(providers.gradleProperty('goldberry.media.libdir')).isPresent() ||
+        nativeTests.host.localMedia(repositoryPath).resolve('media-layout.properties').toFile().isFile()
+def imageHasVector = providers.systemProperty('goldberry.vector.libdir')
+        .orElse(providers.gradleProperty('goldberry.vector.libdir')).isPresent() ||
+        nativeTests.host.localVector(repositoryPath).resolve('vector.properties').toFile().isFile()
 
 dependencies {
     hostNatives project(path: ':natives', configuration: 'hostNativesJar')
-}
-
-// libgoldberry-vector, carried the same way: goldberry-vector's natives jar on
-// the image's class path, where `VectorNatives` finds it as any application
-// does. Only when there is a build to pack -- `:vector:nativesBuild` here, or
-// `-Pgoldberry.vector.libdir` pointing at one, as showcase.yml does with the
-// Vector workflow's artifact -- because the jar task refuses to pack nothing.
-// Without one the image is built without it and refuses SVG images, which is
-// said when the image is built.
-def vectorLibdirForImage = providers.systemProperty('goldberry.vector.libdir')
-        .orElse(providers.gradleProperty('goldberry.vector.libdir'))
-        .map { file(it) }
-        .getOrElse(nativeTests.host.localVector(layout.settingsDirectory.asFile.toPath()).toFile())
-def vectorNativesBuilt = new File(vectorLibdirForImage, 'vector.properties').isFile()
-
-configurations {
-    hostVectorNatives {
-        canBeConsumed = false
-        canBeResolved = true
-        description = 'libgoldberry-vector for this machine, as the natives jar the image carries.'
+    if (imageHasMedia) {
+        hostNatives project(path: ':media', configuration: 'hostNativesJar')
     }
-}
-
-if (vectorNativesBuilt) {
-    dependencies {
-        hostVectorNatives project(path: ':vector', configuration: 'hostNativesJar')
+    if (imageHasVector) {
+        hostNatives project(path: ':vector', configuration: 'hostNativesJar')
     }
 }
 
@@ -542,11 +521,9 @@ tasks.register('nativeImage', Exec) {
     def runtimeClasspath = configurations.runtimeClasspath
     def appJar = tasks.named('jar').flatMap { it.archiveFile }
     def nativesJar = configurations.hostNatives
-    def vectorNativesJar = configurations.hostVectorNatives
     def target = imageDirNative
 
-    inputs.files(nativesJar)
-    inputs.files(vectorNativesJar).withPropertyName('vectorNatives')
+    inputs.files(nativesJar).withPropertyName('nativeClassifiers')
     inputs.files(runtimeClasspath).withPathSensitivity(PathSensitivity.RELATIVE)
     inputs.files(appJar)
     // A FileTree and not `inputs.dir`, because an image can be built before the
@@ -559,8 +536,13 @@ tasks.register('nativeImage', Exec) {
     inputs.property('graalvmArgs', graalvmArgs)
     outputs.dir(target)
 
-    def vectorBuilt = vectorNativesBuilt
+    def mediaBuilt = imageHasMedia
+    def vectorBuilt = imageHasVector
     doFirst {
+        if (!mediaBuilt) {
+            logger.warn('native image: no libgoldberry-media to carry. '
+                    + 'Run ./gradlew :media:nativesBuild, or pass -Pgoldberry.media.libdir=<dir>.')
+        }
         if (!vectorBuilt) {
             logger.warn('native image: no libgoldberry-vector to carry, so this image refuses SVG images. '
                     + 'Run ./gradlew :vector:nativesBuild, or pass -Pgoldberry.vector.libdir=<dir>.')
@@ -572,11 +554,7 @@ tasks.register('nativeImage', Exec) {
 
         commandLine graalTool('native-image'),
                 '--module-path', modulePath,
-                // The library, as a resource rather than a module. On the module
-                // path nothing would `require` it and resolution would drop it;
-                // on the class path it is exactly what a released application
-                // sees, which is the arrangement NativeLibrary was written for.
-                '-cp', (nativesJar.files + vectorNativesJar.files)
+                '-cp', nativesJar.files
                         .collect { it.absolutePath }.join(File.pathSeparator),
                 '--module', "${appModule}/dev.goldberry.example.Showcase",
                 '-o', new File(target.get().asFile, imageName).absolutePath,
@@ -608,10 +586,7 @@ tasks.register('nativeImage', Exec) {
     }
 
     doLast {
-        // No library beside the binary and no launcher script to point at one:
-        // libgoldberry is *inside* the image, and NativeLibrary unpacks it to a
-        // temporary file on first use exactly as it does from a classifier jar
-        // One file is the whole point.
+        // The loaders unpack their libraries from the image on first use.
         logger.lifecycle("native image: {}",
                 new File(target.get().asFile, imageName).absolutePath)
     }

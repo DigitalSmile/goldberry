@@ -25,6 +25,7 @@ import dev.goldberry.example.docs.DocLink;
 import dev.goldberry.example.media.ShowcaseMedia;
 import dev.goldberry.example.model.ShowcaseActions;
 import dev.goldberry.example.model.ShowcaseModel;
+import dev.goldberry.example.nativeimage.NativeLibraryCheck;
 import dev.goldberry.example.ui.AppMenu;
 import dev.goldberry.example.ui.Screen;
 import dev.goldberry.example.ui.home.GuideParts;
@@ -822,6 +823,10 @@ public final class Showcase implements Application {
     // --- the process ---------------------------------------------------------
 
     public static void main(String[] args) {
+        if (args.length == 1 && args[0].equals("--verify-native-libraries")) {
+            NativeLibraryCheck.verify();
+            return;
+        }
         Goldberry.launch(new Showcase(), args);
     }
 

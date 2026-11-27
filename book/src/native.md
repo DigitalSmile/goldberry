@@ -40,11 +40,17 @@ resolves `-lz` through the `libz.so` symlink that `zlib1g-dev` installs.
 and not a stock JDK — `native-image` and the tracing agent ship only with the
 former, and the task says so if you point it at the wrong thing.
 
-The result is **one file**: `example/build/native/goldberry-showcase-<target>`.
-No launcher, no `lib/` directory, nothing to set. `libgoldberry` is carried inside
-the binary as the same classifier-jar resource a released application would use,
-and unpacked to a temporary file on first use — a shared object has to be a real
-file to be `dlopen`ed, so it cannot be mapped straight out of the image.
+The result is one executable in `example/build/native/goldberry-showcase-<target>`.
+Goldberry embeds the shared libraries from the classifier jars as resources and
+extracts each library to a temporary file when first loaded.
+
+Showcase CI embeds the core and web-view libraries, media codecs and SVG
+renderer. To include the codecs and SVG renderer in a local image, first run
+`./gradlew :media:nativesBuild :vector:nativesBuild`. For builds from another
+runner, pass their install directories with `-Pgoldberry.media.libdir` and
+`-Pgoldberry.vector.libdir`. Run the resulting executable with
+`--verify-native-libraries` to check that the web-view, media and SVG libraries load.
+Web views and system decoders use the operating system's installed runtimes.
 
 That makes a **writable temp directory a requirement**, and
 `-Dgoldberry.native.library` is the way out of one that is read-only or

@@ -175,34 +175,42 @@ record RayTracedRoom() implements Widget.Stateful, WideCard {
                     Attributes.NONE.classes("gpu-room-panel")));
             var noHardware = unavailable.get(RayTracingMode.HARDWARE);
             if (noHardware != null) {
-                content.add(new Message(Message.Kind.WARNING, "No hardware ray tracing here: " + noHardware)
+                var nextMode = RayTracingMode.effective(RayTracingMode.SOFTWARE) == RayTracingMode.SOFTWARE
+                                && !unavailable.containsKey(RayTracingMode.SOFTWARE)
+                        ? ". Choose GPU compute to trace on the canvas GPU."
+                        : "";
+                content.add(new Message(
+                                Message.Kind.WARNING, "Hardware ray tracing is unavailable. " + noHardware + nextMode)
                         .withAttributes(Attributes.NONE.id("gpu-room-unavailable")));
             }
-            var noSoftware = unavailable.get(RayTracingMode.SOFTWARE);
-            if (noSoftware != null) {
-                content.add(new Message(Message.Kind.WARNING, "No software ray tracing here: " + noSoftware)
-                        .withAttributes(Attributes.NONE.id("gpu-room-software-unavailable")));
+            for (var mode : List.of(RayTracingMode.AUTO, RayTracingMode.SOFTWARE)) {
+                var reason = unavailable.get(mode);
+                if (reason != null) {
+                    var label = mode == RayTracingMode.AUTO ? "Automatic" : "GPU compute";
+                    content.add(new Message(Message.Kind.WARNING, label + " ray tracing is unavailable. " + reason)
+                            .withAttributes(Attributes.NONE.id(
+                                    "gpu-room-" + mode.name().toLowerCase(Locale.ROOT) + "-unavailable")));
+                }
             }
             return new ShowcaseCard(
                             "gpu-room-card",
                             "Ray tracing and settings",
-                            "A room lit by the ray tracer, in software on any GPU or in hardware where there is"
-                                    + " one: shadows, occlusion and reflections traced at the size the canvas draws"
-                                    + " at, then drawn by the showcase's own shaders. Every setting applies to the"
-                                    + " next frame.",
+                            "Trace the room's shadows, occlusion and reflections. Auto picks the tracing backend."
+                                    + " GPU compute uses the canvas device, including Metal. Every setting applies"
+                                    + " to the next frame.",
                             DocLink.to("components/gpu", "canvas3d"))
                     .wide()
                     .of(content);
         }
 
-        /// Off, software and hardware, a tier disabled once it is known to
-        /// refuse.
+        /// Each mode is disabled if its tracing backend refuses it.
         private Widget rayTracing() {
             return new Segmented(
                     settings.rayTracing().name().toLowerCase(Locale.ROOT),
                     List.of(
                             new Option("off", "Off"),
-                            tier(RayTracingMode.SOFTWARE, "Software"),
+                            tier(RayTracingMode.AUTO, "Auto"),
+                            tier(RayTracingMode.SOFTWARE, "GPU compute"),
                             tier(RayTracingMode.HARDWARE, "Hardware")),
                     null,
                     value -> chooseRayTracing(RayTracingMode.parse(value)),
@@ -221,9 +229,8 @@ record RayTracedRoom() implements Widget.Stateful, WideCard {
                     Attributes.NONE);
         }
 
-        /// Traces by `mode`'s tier: in software at once, the renderer saying
-        /// so if it cannot; in hardware where there is a device for it, and
-        /// otherwise says why and leaves tracing as it was.
+        /// The renderer chooses the automatic or compute backend on its canvas
+        /// device. A hardware-only request checks Vulkan support first.
         void chooseRayTracing(RayTracingMode mode) {
             if (mode != RayTracingMode.HARDWARE) {
                 setState(() -> settings = settings.withRayTracing(mode));

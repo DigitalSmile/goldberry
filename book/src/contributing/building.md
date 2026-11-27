@@ -94,6 +94,12 @@ Supplying a library is also what tells the build not to build its own. Adding `g
 ./gradlew run
 ```
 
+On the first run, `:example:prepareAssets` fetches the spelling dictionary and
+the Unicode emoji table. It prints the asset and its URL on a cache miss. A
+download times out after 30 seconds waiting for headers or for the next body
+data and gets up to four attempts. Downloads verified by SHA-256 are reused
+from `.gradle/assets`.
+
 A window opens, maximized, with a menu bar, a bar that reports what start-up cost, and a gallery of seventeen screens. To paint a few frames and exit, which is what CI does under Xvfb:
 
 ```sh

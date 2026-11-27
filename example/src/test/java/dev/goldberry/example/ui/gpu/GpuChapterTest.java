@@ -157,17 +157,21 @@ class GpuChapterTest {
             assertTrue(session.byId("gpu-room-unavailable").isEmpty(), "nothing said before anything is asked");
             var options = optionsUnder(session.byId("gpu-room-rt").orElseThrow());
             assertEquals(
-                    List.of("off", "software", "hardware"),
+                    List.of("off", "auto", "software", "hardware"),
                     options.stream().map(Option::value).toList());
             assertTrue(options.stream().noneMatch(Option::disabled), "nothing is refused before it is asked");
             assertTrue(session.focus("gpu-room-rt"));
             session.key(Key.RIGHT);
-            assertEquals("software", segmented(session, "gpu-room-rt").value(), "software is asked of the renderer");
+            assertEquals("auto", segmented(session, "gpu-room-rt").value(), "automatic is asked of the renderer");
+            session.key(Key.RIGHT);
+            assertEquals(
+                    "software", segmented(session, "gpu-room-rt").value(), "GPU compute can be selected explicitly");
             session.key(Key.RIGHT);
             assertEquals("software", segmented(session, "gpu-room-rt").value(), "hardware is refused, and left");
             options = optionsUnder(session.byId("gpu-room-rt").orElseThrow());
-            assertTrue(options.get(2).disabled(), "hardware is disabled");
-            assertFalse(options.get(1).disabled(), "software is not");
+            assertTrue(options.get(3).disabled(), "hardware is disabled");
+            assertFalse(options.get(1).disabled(), "automatic is still selectable");
+            assertFalse(options.get(2).disabled(), "GPU compute is still selectable");
             assertTrue(session.byId("gpu-room-unavailable").isPresent(), "the reason is shown");
             var message = under(session.byId("gpu-room-card").orElseThrow(), Message.class)
                     .getFirst();

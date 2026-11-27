@@ -105,7 +105,12 @@ Patch branches publish no snapshots. `snapshot.yml` runs on `master` only.
 
 ## The showcase binaries
 
-Every release tag builds the showcase as a GraalVM native image on all three platforms, one file with `libgoldberry` inside it, and attaches the three to the tag's GitHub Release. It is a release artifact and not a package: there is no jlink image and no GitHub Packages upload. A push to `master` does not build it, because a native build on three runners is an artifact rather than a check.
+Every release tag builds three GraalVM showcase executables for Linux x64, macOS
+arm64 and Windows x64 and attaches them to the tag's GitHub Release. Each
+executable embeds `libgoldberry`, the web-view shim, the media codecs with their
+layout file and the SVG renderer. Before uploading, the workflow verifies that
+the executable opens those libraries and presents 300 frames. Use the manual
+Showcase workflow to build the same executables as run artifacts.
 
 The two Unix binaries are tarballs rather than zips, because the zip format the artifact upload writes does not carry the executable bit.
 

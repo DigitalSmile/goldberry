@@ -155,6 +155,28 @@ class DownloaderTest {
     }
 
     @Test
+    @DisplayName("an interrupted transfer stops with the interrupt status set")
+    void interruptedTransfer() {
+        try (var downloader = new Downloader(
+                _ -> {
+                    requests++;
+                    Thread.currentThread().interrupt();
+                    throw new IOException("read stopped");
+                },
+                Downloader.ATTEMPTS,
+                Downloader.FIRST_WAIT,
+                waits::add)) {
+            var failure = assertThrows(IOException.class, () -> downloader.readAll(URL));
+            assertTrue(failure.getMessage().contains("interrupted downloading"), failure::getMessage);
+            assertTrue(Thread.currentThread().isInterrupted());
+            assertEquals(1, requests);
+            assertTrue(waits.isEmpty());
+        } finally {
+            Thread.interrupted();
+        }
+    }
+
+    @Test
     @DisplayName("408, 429 and 5xx are transient; the rest are the request's")
     void whatIsTransient() {
         for (var status : List.of(408, 429, 500, 502, 503, 504)) {

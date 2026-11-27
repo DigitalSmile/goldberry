@@ -12,6 +12,7 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.time.Duration;
 import java.util.Objects;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
 
 /// Fetches a URL, and tries again when the failure is the network's rather than
 /// the request's.
@@ -27,7 +28,8 @@ import java.util.Objects;
 /// hashes wrong is a changed upstream, not a flaky one, and
 /// [dev.goldberry.assets.prepare.AssetCache] refuses it without retrying.
 ///
-/// [#standard()]'s downloader owns an `HttpClient`, and [#close()] releases it.
+/// [#standard()]'s downloader owns the HTTP client and the read timeout
+/// scheduler. [#close()] releases both.
 /// One built from a [Transport] owns nothing, and closing it does nothing.
 public final class Downloader implements AutoCloseable {
 
@@ -62,6 +64,8 @@ public final class Downloader implements AutoCloseable {
     /// The wait after the first failure; each one after doubles it.
     public static final Duration FIRST_WAIT = Duration.ofSeconds(2);
 
+    private static final Duration NETWORK_TIMEOUT = Duration.ofSeconds(30);
+
     private final Transport transport;
     private final int attempts;
     private final Duration firstWait;
@@ -83,26 +87,36 @@ public final class Downloader implements AutoCloseable {
         this.sleeper = Objects.requireNonNull(sleeper, "sleeper");
     }
 
-    /// The build's downloader: `java.net.http`, redirects followed (a GitHub
-    /// release asset is a redirect), [#ATTEMPTS] attempts from [#FIRST_WAIT].
-    ///
-    /// The client outlives this method on purpose: the downloader owns it, and
-    /// [#close()] closes it.
-    @SuppressWarnings("resource")
+    /// The build's downloader follows redirects and makes up to [#ATTEMPTS]
+    /// attempts. Response headers and each blocked body read have a timeout.
     public static Downloader standard() {
+        return standard(NETWORK_TIMEOUT, ATTEMPTS, Thread::sleep);
+    }
+
+    @SuppressWarnings("resource")
+    static Downloader standard(Duration timeout, int attempts, Sleeper sleeper) {
+        var timers = new ScheduledThreadPoolExecutor(
+                1, Thread.ofPlatform().daemon(true).name("goldberry-asset-timeout").factory());
+        timers.setRemoveOnCancelPolicy(true);
         var client = HttpClient.newBuilder()
                 .followRedirects(HttpClient.Redirect.NORMAL)
-                .connectTimeout(Duration.ofSeconds(30))
+                .connectTimeout(timeout)
                 .build();
         Transport transport = uri -> {
             var response = client.send(
-                    HttpRequest.newBuilder(uri).GET().build(), HttpResponse.BodyHandlers.ofInputStream());
-            return new Response(response.statusCode(), response.body());
+                    HttpRequest.newBuilder(uri).timeout(timeout).GET().build(), HttpResponse.BodyHandlers.ofInputStream());
+            return new Response(response.statusCode(), new TimedResponseBody(response.body(), uri, timeout, timers));
         };
-        return new Downloader(transport, ATTEMPTS, FIRST_WAIT, duration -> Thread.sleep(duration), client::close);
+        return new Downloader(transport, attempts, FIRST_WAIT, sleeper, () -> {
+            try {
+                client.close();
+            } finally {
+                timers.close();
+            }
+        });
     }
 
-    /// Releases what this downloader owns: the standard one's `HttpClient`.
+    /// Releases the standard downloader's HTTP client and scheduler.
     @Override
     public void close() {
         release.run();
@@ -160,6 +174,9 @@ public final class Downloader implements AutoCloseable {
             } catch (PermanentFailure permanent) {
                 throw permanent.getCause();
             } catch (IOException dropped) {
+                if (Thread.currentThread().isInterrupted()) {
+                    throw new IOException("interrupted downloading " + uri, dropped);
+                }
                 failed = dropped;
             } catch (InterruptedException interrupted) {
                 Thread.currentThread().interrupt();

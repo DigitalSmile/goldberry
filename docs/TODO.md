@@ -1735,7 +1735,9 @@ out of it is usually worth more than the fact that it is fixed.
   and the window stays on the GPU
   ([ADR-0491](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0491-a-page-under-x11-keeps-its-window-on-the-gpu.md)). On
   macOS it is a subview
-  ([ADR-0458](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0458-a-page-on-macos-is-a-view-not-a-window.md)). On Windows
+  ([ADR-0458](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0458-a-page-on-macos-is-a-view-not-a-window.md)),
+  and SDL places its Metal view underneath it ([ADR-0751](snapshot/adr/0751-embedded-pages-stay-above-metal.md)).
+  On Windows
   `SetParent` is written and unverified. On Wayland it opens nothing and paints
   why, rather than a loose window. `WebViews.open` stays as the separate-window
   form.

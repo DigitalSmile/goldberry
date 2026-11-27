@@ -12,7 +12,7 @@ import java.nio.file.Path;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-/// The one patch the superbuild puts on SDL, read as text: it is declared for
+/// The patches the superbuild puts on SDL, read as text. The camera patch is declared for
 /// Linux, it does the three things it is there for, and the SDL this machine
 /// fetched has it applied.
 ///
@@ -21,7 +21,7 @@ import org.junit.jupiter.api.Test;
 /// granted. Without the patch every camera on a PipeWire desktop would wait for
 /// ever, since cameras try PipeWire first; that is worth a guard a careless
 /// edit to the declaration cannot slip past.
-@DisplayName("the SDL patch")
+@DisplayName("the SDL platform patches")
 class SdlPatchTest {
 
     private static final String PATCH = "patches/sdl3-pipewire-camera.patch";
@@ -60,6 +60,23 @@ class SdlPatchTest {
                         declaration.contains("file(SHA256"), "a changed patch must change the declaration to reapply"),
                 () -> assertTrue(script.contains("checkout --"), "the script resets before it applies"),
                 () -> assertTrue(script.contains("FATAL_ERROR"), "a patch that no longer applies stops the build"));
+    }
+
+    @Test
+    @DisplayName("on macOS SDL inserts its Metal view beneath other content subviews")
+    void cocoaStacking() {
+        var cmakeLists = read(cmakeDir.resolve("CMakeLists.txt"));
+        var patch = read(cmakeDir.resolve("patches/sdl3-cocoa-metal-stacking.patch"));
+        assertAll(
+                () -> assertTrue(cmakeLists.contains("""
+                        elseif(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+                            set(_sdl3_patch "${CMAKE_CURRENT_LIST_DIR}/patches/sdl3-cocoa-metal-stacking.patch")
+                        endif()
+                        """)),
+                () -> assertTrue(patch.contains("+++ b/src/video/cocoa/SDL_cocoametalview.m")),
+                () -> assertTrue(
+                        patch.contains("+        [view addSubview:newview positioned:NSWindowBelow relativeTo:nil];")),
+                () -> assertTrue(patch.contains("Goldberry patch")));
     }
 
     @Test

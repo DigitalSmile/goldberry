@@ -294,6 +294,16 @@ mediaTargets.each { target ->
 
 def hostNativesJar = tasks.named("nativesJar${taskSuffix(hostTargetId)}")
 
+// The showcase uses the host's published classifier layout inside its image.
+configurations.create('hostNativesJar') {
+    canBeConsumed = true
+    canBeResolved = false
+    description = 'libgoldberry-media for this machine, as the natives-<target> jar.'
+}
+artifacts {
+    add('hostNativesJar', hostNativesJar)
+}
+
 // The natives ride the goldberry-media publication as `natives-<target>`
 // classifiers, as libgoldberry rides goldberry-natives, but only when a run hands
 // over builds with -Pgoldberry.media.artifactsDir: publish.yml, once, with every

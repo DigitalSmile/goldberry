@@ -2,6 +2,7 @@ package dev.goldberry.example.gpu.scene;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
@@ -131,6 +132,12 @@ class RoomRendererTest {
         assertTraced(RayTracingMode.SOFTWARE);
     }
 
+    @Test
+    @DisplayName("traces the room in automatic mode, using GPU compute where hardware is unavailable")
+    void automatic() {
+        assertTraced(RayTracingMode.AUTO);
+    }
+
     /// Asserts the room traced by `mode`'s tier is lit by it, darker than the
     /// untraced room, and on lavapipe its golden.
     private static void assertTraced(RayTracingMode mode) {
@@ -140,7 +147,14 @@ class RoomRendererTest {
         assertTrue(renderer.tracedLastFrame(), "lit by the tracer");
         assertEquals(List.of(), refusals);
         var tier = renderer.lastTracedBy().orElseThrow();
-        assertEquals(mode == RayTracingMode.SOFTWARE, tier instanceof RayTracing.Software, tier.toString());
+        if (mode == RayTracingMode.AUTO) {
+            var hardware = RayTracer.availability();
+            if (hardware instanceof RayTracing.Unavailable) {
+                assertInstanceOf(RayTracing.Software.class, tier);
+            }
+        } else {
+            assertEquals(mode == RayTracingMode.SOFTWARE, tier instanceof RayTracing.Software, tier.toString());
+        }
         var untraced = picture(renderer(SceneSettings.DEFAULT, refusals), WIDTH, HEIGHT, 1f);
         assertTrue(
                 brightness(traced) < brightness(untraced) * 0.97,
@@ -166,7 +180,7 @@ class RoomRendererTest {
         var previous = System.getProperty(RayTracingMode.PROPERTY);
         System.setProperty(RayTracingMode.PROPERTY, "off");
         try {
-            for (var mode : List.of(RayTracingMode.SOFTWARE, RayTracingMode.HARDWARE)) {
+            for (var mode : List.of(RayTracingMode.AUTO, RayTracingMode.SOFTWARE, RayTracingMode.HARDWARE)) {
                 var refusals = new ArrayList<String>();
                 var renderer = renderer(SceneSettings.DEFAULT.withRayTracing(mode), refusals);
                 picture(renderer, 96, 60, 1f);

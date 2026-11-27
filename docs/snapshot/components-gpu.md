@@ -421,6 +421,11 @@ draws with, and on the CPU through Mesa's software Vulkan where it runs at
 128 bits, crashes building a scene there, and is refused, so `availability()`
 says so. macOS has no hardware tier.
 
+In the Showcase's **Ray tracing and settings** card, choose **Auto** to use
+the available tracing backend or **GPU compute** to run on the canvas's device.
+On Metal, both choices run the compute shaders. **Hardware** requests the
+Vulkan ray-tracing backend.
+
 ## Render scale and upscaling
 
 A `canvas3d` can be drawn at a scale of its box and brought up to it: the

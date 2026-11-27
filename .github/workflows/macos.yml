@@ -134,6 +134,7 @@ jobs:
         run: |
           ./gradlew :natives:gpuTest :gpu:gpuTest --no-daemon \
             -Pgoldberry.native.required=true \
+            -Pgoldberry.webview.required=true \
             -Pgoldberry.tray.required=true
           cat natives/build/gpu-test/summary.txt gpu/build/gpu-test/summary.txt
 

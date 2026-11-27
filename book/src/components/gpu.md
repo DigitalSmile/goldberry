@@ -30,6 +30,9 @@ says which, once per change:
 with the driver's name or a `Presentation.Cpu` with the reason, and
 `Window.onPresentationChange(handler)` hears each change.
 
+On macOS an embedded `WKWebView` sits above the window's Metal view, so the window
+keeps presenting through Metal while the page is open.
+
 Two system properties set the policy:
 
 | Property | Values | What it does |
