@@ -37,7 +37,8 @@ also check offscreen SVG widgets with both native artifacts before publishing.
 [ADR-0746](snapshot/adr/0746-goldberry-vector-is-built-on-four-targets-and-carried-in-the-native-image.md)
 
 The Linux x64 native showcase corrected both fields on the Spelling card on
-X11. After scrolling, Shift+F10 opens the menu beside the focused field.
+X11 and Wayland. After scrolling, Shift+F10 opens the menu beside the focused
+field. On both displays undo restored the original multiline note.
 [Spelling showcase verification](spell-checking.md)
 
 The spelling menu handles suggestions that arrive after its first frame. Enter

@@ -415,4 +415,14 @@ Shift+F10 opened the title menu at y=539, and the Menu key opened the note
 menu at y=620. Enter accepted the first suggestion in both fields. The note
 showed five suggestions. Down and Enter chose the second. Copying each field
 after correction and undo verified the full text, including the note's line
-break. The Linux Wayland, macOS and Windows desktop menu checks remain open.
+break.
+
+The same Linux x64 native image passed on Wayland on 2026-11-27. SDL used
+its Wayland driver on a private 1280×800 Sway display. After the Forms page
+scrolled to Spelling, Shift+F10 opened the title menu directly below the
+field. Both right-click selection and keyboard selection changed `jorney`
+to **journey**, and one undo restored the original title. The Menu key
+opened the note's suggestions below the text area. Enter chose **received**.
+Right-click followed by Down and Enter chose **relieved**. Copying the
+entire note after each correction and undo verified both lines, including
+the untouched second misspelling. Windows and macOS desktop checks remain open.
