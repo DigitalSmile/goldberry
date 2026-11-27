@@ -14,6 +14,7 @@ import dev.goldberry.input.handler.Handles;
 import dev.goldberry.input.key.Key;
 import dev.goldberry.kdl.KdlNode;
 import dev.goldberry.paint.Box;
+import dev.goldberry.text.flow.TextFlow;
 import dev.goldberry.widget.Widget;
 import dev.goldberry.widget.attr.Attributed;
 import dev.goldberry.widget.attr.Attributes;
@@ -218,7 +219,10 @@ public record Button(
             content.add(Box.icon(icon, style.color()));
         }
         if (!label.isEmpty()) {
-            content.add(Box.text(context.paragraph(style, label), style.color()));
+            // A document link borrows this shaped label for its paragraph. It
+            // needs the link's discretionary breaks, including inline overrides.
+            var flow = TextFlow.NORMAL.hyphens(style.typography().lettering().hyphens());
+            content.add(Box.text(context.paragraph(style, label), style.color(), flow));
         }
         return Box.of().style(style).children(content.toArray(Box[]::new));
     }

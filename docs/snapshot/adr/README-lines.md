@@ -188,3 +188,4 @@ Appended to the index when the records move in, in this order.
 - [ADR-0746 goldberry-vector is built on four targets, published with its natives, and carried in the native image](0746-goldberry-vector-is-built-on-four-targets-and-carried-in-the-native-image.md)
 - [ADR-0747 The Drawing screen shows SVG at three sizes](0747-the-drawing-screen-shows-svg-at-three-sizes.md)
 - [ADR-0748 Document prose uses shaped paragraphs](0748-document-prose-uses-shaped-paragraphs.md)
+- [ADR-0749 Document hyphenation preserves source offsets](0749-document-hyphenation-preserves-source-offsets.md)

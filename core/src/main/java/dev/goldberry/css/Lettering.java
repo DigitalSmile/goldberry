@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Objects;
 
 import dev.goldberry.css.value.Shadow;
+import dev.goldberry.text.flow.Hyphens;
 import dev.goldberry.text.flow.TextJustify;
 import dev.goldberry.text.flow.TextTransform;
 
@@ -29,8 +30,14 @@ import dev.goldberry.text.flow.TextTransform;
 /// @param transform     the case the text is drawn in
 /// @param shadows       the `text-shadow` list, first on top; empty for none
 /// @param justify       where a justified line takes its room
+/// @param hyphens       how document prose may hyphenate a word
 public record Lettering(
-        double letterSpacing, double wordSpacing, TextTransform transform, List<Shadow> shadows, TextJustify justify) {
+        double letterSpacing,
+        double wordSpacing,
+        TextTransform transform,
+        List<Shadow> shadows,
+        TextJustify justify,
+        Hyphens hyphens) {
 
     /// Nothing added and nothing changed: `normal`, `normal`, `none`, `none`
     /// and `auto`.
@@ -39,6 +46,7 @@ public record Lettering(
     public Lettering {
         Objects.requireNonNull(transform, "transform");
         Objects.requireNonNull(justify, "justify");
+        Objects.requireNonNull(hyphens, "hyphens");
         shadows = List.copyOf(Objects.requireNonNull(shadows, "shadows"));
         if (!Double.isFinite(letterSpacing) || !Double.isFinite(wordSpacing)) {
             throw new IllegalArgumentException(
@@ -46,36 +54,51 @@ public record Lettering(
         }
     }
 
+    /// Lettering with the default discretionary breaks.
+    public Lettering(
+            double letterSpacing,
+            double wordSpacing,
+            TextTransform transform,
+            List<Shadow> shadows,
+            TextJustify justify) {
+        this(letterSpacing, wordSpacing, transform, shadows, justify, Hyphens.MANUAL);
+    }
+
+    /// This, with the specified hyphenation policy.
+    public Lettering hyphens(Hyphens value) {
+        return new Lettering(letterSpacing, wordSpacing, transform, shadows, justify, value);
+    }
+
     /// This, with `letter-spacing` at `value`.
     public Lettering letterSpacing(double value) {
-        return new Lettering(value, wordSpacing, transform, shadows, justify);
+        return new Lettering(value, wordSpacing, transform, shadows, justify, hyphens);
     }
 
     /// This, with `word-spacing` at `value`.
     public Lettering wordSpacing(double value) {
-        return new Lettering(letterSpacing, value, transform, shadows, justify);
+        return new Lettering(letterSpacing, value, transform, shadows, justify, hyphens);
     }
 
     /// This, with `text-transform` at `value`.
     public Lettering transform(TextTransform value) {
-        return new Lettering(letterSpacing, wordSpacing, value, shadows, justify);
+        return new Lettering(letterSpacing, wordSpacing, value, shadows, justify, hyphens);
     }
 
     /// This, with `text-shadow` at `value`.
     public Lettering shadows(List<Shadow> value) {
-        return new Lettering(letterSpacing, wordSpacing, transform, value, justify);
+        return new Lettering(letterSpacing, wordSpacing, transform, value, justify, hyphens);
     }
 
     /// This, with `text-justify` at `value`.
     public Lettering justify(TextJustify value) {
-        return new Lettering(letterSpacing, wordSpacing, transform, shadows, value);
+        return new Lettering(letterSpacing, wordSpacing, transform, shadows, value, hyphens);
     }
 
     /// This with every length multiplied by `factor`, for the text-scale token.
     Lettering scaled(double factor) {
         return factor == 1
                 ? this
-                : new Lettering(letterSpacing * factor, wordSpacing * factor, transform, shadows, justify);
+                : new Lettering(letterSpacing * factor, wordSpacing * factor, transform, shadows, justify, hyphens);
     }
 
     /// Whether this adds nothing to what the face sets and changes no case.
@@ -84,6 +107,7 @@ public record Lettering(
                 && wordSpacing == 0
                 && transform == TextTransform.NONE
                 && shadows.isEmpty()
-                && justify == TextJustify.AUTO;
+                && justify == TextJustify.AUTO
+                && hyphens == Hyphens.MANUAL;
     }
 }

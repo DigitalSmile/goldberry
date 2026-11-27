@@ -300,6 +300,10 @@ final class Longhands {
                 (from, into) ->
                         into.lettering(into.lettering().justify(from.lettering().justify()))));
         all.add(typography(
+                "hyphens",
+                (from, into) ->
+                        into.lettering(into.lettering().hyphens(from.lettering().hyphens()))));
+        all.add(typography(
                 "text-transform",
                 (from, into) -> into.lettering(
                         into.lettering().transform(from.lettering().transform()))));

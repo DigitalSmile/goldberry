@@ -99,9 +99,6 @@ on, which in four cases is the same thing.
   [ADR-0295](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0295-a-document-is-a-value-and-a-paragraph-is-a-row-of-words.md),
   [ADR-0298](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0298-html-is-a-document-and-not-an-engine.md)),
   and the remaining content-view gaps are listed below.
-  - **Automatic hyphenation remains open.** Both document views now shape styled
-    paragraphs, wrap mixed faces and support CSS justification. Selection and link
-    hits follow the painted lines ([ADR-0748](snapshot/adr/0748-document-prose-uses-shaped-paragraphs.md)).
   - **`src="…"` is not a thing on either view.** Reading a file from markup means
     deciding what a relative path is relative to and what a missing one does —
     three answers `Icons` and the stylesheets each needed a resolver for. An
@@ -533,6 +530,10 @@ way back is a consumer asking, not a date.
 
 Kept rather than deleted: each is a trap somebody hit, and the reasoning that got
 out of it is usually worth more than the fact that it is fixed.
+
+- **Document hyphenation.** HTML and Markdown wrap English prose with
+  `hyphens: auto` and an English `lang`. Both views also honor an explicit
+  soft hyphen. [ADR-0749](snapshot/adr/0749-document-hyphenation-preserves-source-offsets.md)
 
 - ~~**Windows and macOS are unverified.**~~ The Linux path ran for real — in
   `SdlTrayTest` against this machine's session and in the showcase — and the other

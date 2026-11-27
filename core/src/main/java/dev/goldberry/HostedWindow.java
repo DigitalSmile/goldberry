@@ -1102,7 +1102,7 @@ final class HostedWindow implements WindowHost {
     private Optional<LogicalRect> anchorOf(Element element) {
         for (var region : regions) {
             if (region.owner() == element) {
-                return Optional.of(region.bounds());
+                return Optional.of(region.painted());
             }
         }
         return Optional.empty();

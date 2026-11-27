@@ -21,7 +21,7 @@ package dev.goldberry.text;
 /// @param glyphStart first glyph of the line, in the paragraph's run
 /// @param glyphEnd   one past the last glyph, trailing whitespace excluded
 /// @param width      the line's width in logical units, trailing whitespace
-///                   excluded
+///                   excluded, including a displayed discretionary hyphen
 public record TextLine(int start, int end, int glyphStart, int glyphEnd, double width) {
 
     public TextLine {

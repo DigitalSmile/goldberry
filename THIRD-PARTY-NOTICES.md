@@ -126,6 +126,7 @@ commit that was built.
 | Component | Licence | Upstream | Notes |
 |---|---|---|---|
 | [Inter](licenses/inter.txt) | OFL 1.1 | <https://rsms.me/inter/> | Default UI font |
+| [American English hyphenation patterns](licenses/hyph-en-us.txt) | Kuiken permission notice | <https://github.com/hyphenation/tex-hyphen/blob/master/hyph-utf8/tex/generic/hyph-utf8/patterns/tex/hyph-en-us.tex> | Version 2005-05-30, embedded in `goldberry-core` as `hyphen.en` with the original notices and exceptions |
 | [JetBrains Mono](licenses/jetbrains-mono.txt) | OFL 1.1 | <https://www.jetbrains.com/lp/mono/> | Default monospace font |
 | [Lucide](licenses/lucide.txt) | ISC, with MIT for the icons derived from Feather | <https://lucide.dev> | Icon set, compiled to a binary path table. The licence file lists the Feather-derived icons by name |
 | [Noto Color Emoji](licenses/noto-emoji.txt) | OFL 1.1 | <https://github.com/googlefonts/noto-emoji> | Emoji font — in **`goldberry-emoji`** and not in core, see below |

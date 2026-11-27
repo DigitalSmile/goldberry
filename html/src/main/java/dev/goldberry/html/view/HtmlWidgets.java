@@ -118,7 +118,7 @@ final class HtmlWidgets {
         // the words.
         var children = new ArrayList<Widget>();
         children.add(overlay);
-        children.addAll(blocks(document.children()));
+        children.addAll(blocks(document.children(), null));
         return new Column(children, with(attributes, "html"));
     }
 
@@ -131,7 +131,7 @@ final class HtmlWidgets {
     /// are a line of their own, and a renderer that dropped them would lose text that
     /// is on every second page written by hand. The implicit paragraph carries
     /// `html-prose` and no tag class, because no tag produced it.
-    private List<Widget> blocks(List<HtmlNode> nodes) {
+    private List<Widget> blocks(List<HtmlNode> nodes, @Nullable Locale language) {
         var widgets = new ArrayList<Widget>(nodes.size());
         var run = new Prose();
         for (var node : nodes) {
@@ -139,11 +139,11 @@ final class HtmlWidgets {
                 continue;
             }
             if (isInline(node)) {
-                run.add(node, Set.of());
+                run.add(node, Set.of(), language);
                 continue;
             }
             flush(run, widgets);
-            var block = block(node);
+            var block = block(node, language);
             if (block != null) {
                 widgets.add(block);
             }
@@ -193,35 +193,41 @@ final class HtmlWidgets {
     }
 
     /// One block, or null for a node with nothing to draw.
-    private @Nullable Widget block(HtmlNode node) {
+    private @Nullable Widget block(HtmlNode node, @Nullable Locale language) {
         return switch (node) {
-            case Element element -> element(element);
+            case Element element -> element(element, languageOf(element, language));
             // A comment is content the model keeps and a renderer has nothing to do
             // with; blank text between two tags is the author's own line break.
             case Comment _ -> null;
             case HtmlText _ -> null;
-            case HtmlDocument document -> new Column(blocks(document.children()), classes("html"));
+            case HtmlDocument document -> new Column(blocks(document.children(), language), classes("html"));
         };
     }
 
-    private @Nullable Widget element(Element element) {
+    private static @Nullable Locale languageOf(Element element, @Nullable Locale inherited) {
+        var lang = element.attribute("lang");
+        return lang == null ? inherited : Locale.forLanguageTag(lang.strip());
+    }
+
+    private @Nullable Widget element(Element element, @Nullable Locale language) {
         var tag = element.tag();
         if (Tags.isMetadata(tag)) {
             return null;
         }
         if (Tags.headingLevel(tag) > 0) {
-            return prose(element, "html-prose");
+            return prose(element, language, "html-prose");
         }
         return switch (tag) {
-            case "p", "dt", "figcaption", "caption", "summary", "label", "legend" -> prose(element, "html-prose");
-            case "ul", "dl" -> list(element, false);
-            case "ol" -> list(element, true);
-            case "li", "dd" -> new Column(blocks(element.children()), classesOf(element, "html-item-body"));
-            case "blockquote" -> quote(element);
+            case "p", "dt", "figcaption", "caption", "summary", "label", "legend" ->
+                prose(element, language, "html-prose");
+            case "ul", "dl" -> list(element, false, language);
+            case "ol" -> list(element, true, language);
+            case "li", "dd" -> new Column(blocks(element.children(), language), classesOf(element, "html-item-body"));
+            case "blockquote" -> quote(element, language);
             case "pre" -> preformatted(element);
             case "hr" -> new Row(List.of(), classesOf(element, "html-rule"));
-            case "table" -> table(element);
-            case "thead", "tbody", "tfoot" -> new Column(rows(element), classesOf(element, "html-table"));
+            case "table" -> table(element, language);
+            case "thead", "tbody", "tfoot" -> new Column(rows(element, language), classesOf(element, "html-table"));
             // **A row with no table above it is still a row.** It reaches here only
             // when nothing folded it as part of one, and [#rows] matches `tr` and
             // sections and a `caption` — so a `tr` handed to it answered with no rows
@@ -230,17 +236,17 @@ final class HtmlWidgets {
             // ([Element]), and the fold's rule for anything in the wrong place —
             // a stray paragraph in a list, a tag nobody has heard of — is to draw it
             // where it is.
-            case "tr" -> row(element, true);
-            case "td", "th" -> cell(element, true);
-            default -> new Column(blocks(element.children()), classesOf(element, "html-block"));
+            case "tr" -> row(element, true, language);
+            case "td", "th" -> cell(element, true, language);
+            default -> new Column(blocks(element.children(), language), classesOf(element, "html-block"));
         };
     }
 
     /// An element's inline content as the lines it is.
-    private Widget prose(Element element, String... extra) {
+    private Widget prose(Element element, @Nullable Locale language, String... extra) {
         minter.block();
         var run = new Prose();
-        element.children().forEach(child -> run.add(child, Set.of()));
+        element.children().forEach(child -> run.add(child, Set.of(), language));
         return paragraph(run.take(), classesOf(element, extra));
     }
 
@@ -261,8 +267,8 @@ final class HtmlWidgets {
     /// The bar was a widget beside the blocks while the toolkit's CSS subset had one
     /// border for a whole box and no way to ask for an edge. Now that a border has four
     /// sides it is a declaration in `html.css`, and `markdown-view` made the same move.
-    private Widget quote(Element element) {
-        var body = new Column(blocks(element.children()), classes("html-quote-body"));
+    private Widget quote(Element element, @Nullable Locale language) {
+        var body = new Column(blocks(element.children(), language), classes("html-quote-body"));
         return new Row(List.of(body), classesOf(element, "html-quote"));
     }
 
@@ -272,21 +278,22 @@ final class HtmlWidgets {
     ///
     /// `start=` is honoured because a changelog's second page begins at 11, and a list
     /// that restarted at 1 would be wrong in a way only its author notices.
-    private Widget list(Element element, boolean numbered) {
+    private Widget list(Element element, boolean numbered, @Nullable Locale language) {
         var rows = new ArrayList<Widget>();
         var number = numbered ? start(element) : 0;
         for (var child : element.children()) {
             if (child instanceof Element item && ("li".equals(item.tag()) || "dd".equals(item.tag()))) {
                 var mark = numbered ? number++ + "." : "•";
                 rows.add(new Row(
-                        List.of(marker("dd".equals(item.tag()) ? "" : mark), body(item)), classes("html-item")));
+                        List.of(marker("dd".equals(item.tag()) ? "" : mark), body(item, languageOf(item, language))),
+                        classes("html-item")));
             } else if (child instanceof Element term && "dt".equals(term.tag())) {
-                rows.add(prose(term, "html-prose", "html-term"));
+                rows.add(prose(term, languageOf(term, language), "html-prose", "html-term"));
             } else {
                 // Anything else inside a list — a stray paragraph, a nested list an
                 // author forgot to put in an `li` — is drawn where it is rather than
                 // dropped for being in the wrong place.
-                var block = block(child);
+                var block = block(child, language);
                 if (block != null) {
                     rows.add(block);
                 }
@@ -297,10 +304,10 @@ final class HtmlWidgets {
 
     /// An item's content, carrying the item's own styles: the `li` is this box
     /// and not the row with the mark in it.
-    private Widget body(Element item) {
+    private Widget body(Element item, @Nullable Locale language) {
         var author = authored.classOf(item);
         var attributes = author == null ? classes("html-item-body") : classes("html-item-body", author);
-        return new Column(blocks(item.children()), attributes);
+        return new Column(blocks(item.children(), language), attributes);
     }
 
     private Widget marker(String text) {
@@ -355,8 +362,8 @@ final class HtmlWidgets {
 
     // --- tables ----------------------------------------------------------------
 
-    private Widget table(Element element) {
-        return new Column(rows(element), classesOf(element, "html-table"));
+    private Widget table(Element element, @Nullable Locale language) {
+        return new Column(rows(element, language), classesOf(element, "html-table"));
     }
 
     /// The rows of a table, with `thead`, `tbody` and `tfoot` flattened away.
@@ -365,24 +372,25 @@ final class HtmlWidgets {
     /// distinguished by its fill and its weight, which are rules on the row — and
     /// keeping them would put three boxes between a table and its rows for nothing. A
     /// `caption` is kept, as a line above the rows.
-    private List<Widget> rows(Element element) {
+    private List<Widget> rows(Element element, @Nullable Locale language) {
         var rows = new ArrayList<Widget>();
-        appendRows(element.children(), rows);
+        appendRows(element.children(), rows, language);
         return rows;
     }
 
-    private void appendRows(List<HtmlNode> nodes, List<Widget> rows) {
+    private void appendRows(List<HtmlNode> nodes, List<Widget> rows, @Nullable Locale inherited) {
         for (var node : nodes) {
             if (!(node instanceof Element element)) {
                 continue;
             }
+            var language = languageOf(element, inherited);
             switch (element.tag()) {
                 // The first thing in the table draws no rule above it: the table's
                 // own border is already there. A caption is a thing, so
                 // a head under one is ruled off from it.
-                case "tr" -> rows.add(row(element, rows.isEmpty()));
-                case "thead", "tbody", "tfoot" -> appendRows(element.children(), rows);
-                case "caption" -> rows.add(prose(element, "html-prose", "html-caption"));
+                case "tr" -> rows.add(row(element, rows.isEmpty(), language));
+                case "thead", "tbody", "tfoot" -> appendRows(element.children(), rows, language);
+                case "caption" -> rows.add(prose(element, language, "html-prose", "html-caption"));
                 // A `colgroup` and its `col`s describe widths this cascade cannot set
                 // (the subset has no `flex-basis`), so they are read and not drawn.
                 default -> {}
@@ -392,13 +400,13 @@ final class HtmlWidgets {
 
     /// @param first whether nothing is above this row in its table, which is what
     ///              draws no rule above it
-    private Widget row(Element element, boolean first) {
+    private Widget row(Element element, boolean first, @Nullable Locale language) {
         var cells = new ArrayList<Widget>();
         var header = false;
         for (var node : element.children()) {
             if (node instanceof Element cell && ("td".equals(cell.tag()) || "th".equals(cell.tag()))) {
                 header = header || "th".equals(cell.tag());
-                cells.add(cell(cell, cells.isEmpty()));
+                cells.add(cell(cell, cells.isEmpty(), languageOf(cell, language)));
             }
         }
         var kind = header ? "head" : "body";
@@ -414,7 +422,7 @@ final class HtmlWidgets {
     ///
     /// @param first whether this is the leftmost cell of its row, which draws no
     ///              rule before it — markdown's `first`, for the same reason
-    private Widget cell(Element element, boolean first) {
+    private Widget cell(Element element, boolean first, @Nullable Locale language) {
         minter.block();
         var classes = new ArrayList<String>(4);
         classes.add("html-cell");
@@ -432,7 +440,7 @@ final class HtmlWidgets {
                 default -> {}
             }
         }
-        return new Column(blocks(element.children()), classesOf(element, classes.toArray(String[]::new)));
+        return new Column(blocks(element.children(), language), classesOf(element, classes.toArray(String[]::new)));
     }
 
     // --- inline ----------------------------------------------------------------
@@ -449,16 +457,16 @@ final class HtmlWidgets {
         private final List<Words.Piece> pending = new ArrayList<>();
 
         /// `node`, and everything inside it, as words and widgets.
-        void add(HtmlNode node, Set<String> marks) {
+        void add(HtmlNode node, Set<String> marks, @Nullable Locale language) {
             switch (node) {
-                case HtmlText(var text) -> pending.add(new Words.Fragment(text, marks, false));
+                case HtmlText(var text) -> pending.add(new Words.Fragment(text, marks, false, language));
                 case Comment _ -> {}
-                case HtmlDocument document -> document.children().forEach(child -> add(child, marks));
-                case Element element -> element(element, marks);
+                case HtmlDocument document -> document.children().forEach(child -> add(child, marks, language));
+                case Element element -> element(element, marks, languageOf(element, language));
             }
         }
 
-        private void element(Element element, Set<String> marks) {
+        private void element(Element element, Set<String> marks, @Nullable Locale language) {
             var tag = element.tag();
             if (Tags.isMetadata(tag)) {
                 return;
@@ -479,14 +487,14 @@ final class HtmlWidgets {
                 case "br" -> pending.add(Words.Break.HARD);
                 case "wbr" -> {}
                 // The picture, or the alt text when nobody can say where the picture is.
-                case "img" -> image(element, own);
-                case "a" -> anchor(element, own);
+                case "img" -> image(element, own, language);
+                case "a" -> anchor(element, own, language);
                 default -> {
                     if (CODE.contains(tag)) {
-                        pending.add(new Words.Fragment(element.rawText(), own, true));
+                        pending.add(new Words.Fragment(element.rawText(), own, true, language));
                     } else {
                         var inherited = own;
-                        element.children().forEach(child -> add(child, inherited));
+                        element.children().forEach(child -> add(child, inherited, language));
                     }
                 }
             }
@@ -498,7 +506,7 @@ final class HtmlWidgets {
         /// A [Words.Node] rather than a block of its own, because that is what an
         /// `img` **is** in HTML — an inline replaced element, so it sits in the line
         /// it was written in and wraps with the words round it.
-        private void image(Element element, Set<String> marks) {
+        private void image(Element element, Set<String> marks, @Nullable Locale language) {
             var src = element.attribute("src");
             var alt = element.attribute("alt");
             var image = src == null || images == null ? null : images.image(src);
@@ -509,7 +517,7 @@ final class HtmlWidgets {
                 return;
             }
             if (alt != null && !alt.isBlank()) {
-                pending.add(new Words.Fragment(alt, marks, false));
+                pending.add(new Words.Fragment(alt, marks, false, language));
             }
         }
 
@@ -527,12 +535,12 @@ final class HtmlWidgets {
         /// name="x">` — is *not* a button, because a button with nothing on it has
         /// nothing to click on and nothing to read out. Its content is folded
         /// inline instead, so an anchored heading keeps its words.
-        private void anchor(Element element, Set<String> marks) {
+        private void anchor(Element element, Set<String> marks, @Nullable Locale language) {
             var href = element.attribute("href");
             var label = element.text();
             if (href == null || label.isBlank()) {
                 var inherited = marks;
-                element.children().forEach(child -> add(child, inherited));
+                element.children().forEach(child -> add(child, inherited, language));
                 return;
             }
             var target = href;
@@ -546,7 +554,8 @@ final class HtmlWidgets {
             // it was written in: `<a>the help</a>.` keeps its full stop against it.
             pending.add(new Words.Node(
                     new Button(label, null, press, false, Attributes.NONE.classes(classes.toArray(String[]::new))),
-                    label));
+                    label,
+                    labelLanguage(element, language)));
         }
 
         /// Whether nothing has been put in it — asked before a block is opened for it,
@@ -562,6 +571,30 @@ final class HtmlWidgets {
             var taken = words.lines(List.copyOf(pending));
             pending.clear();
             return taken;
+        }
+    }
+
+    /// A link button carries one flat label. Use its text's language when all
+    /// the words agree, and leave a multilingual label to ordinary wrapping.
+    private static @Nullable Locale labelLanguage(Element link, @Nullable Locale inherited) {
+        var languages = new LinkedHashSet<@Nullable Locale>();
+        collectLanguages(link.children(), inherited, languages);
+        return languages.size() == 1 ? languages.getFirst() : Locale.ROOT;
+    }
+
+    private static void collectLanguages(
+            List<HtmlNode> nodes, @Nullable Locale inherited, Set<@Nullable Locale> languages) {
+        for (var node : nodes) {
+            switch (node) {
+                case HtmlText(var text) when !text.isBlank() -> languages.add(inherited);
+                case Element child
+                when !Tags.isRawText(child.tag()) ->
+                    collectLanguages(child.children(), languageOf(child, inherited), languages);
+                default -> {}
+            }
+            if (languages.size() > 1) {
+                return;
+            }
         }
     }
 

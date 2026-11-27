@@ -64,6 +64,7 @@ import dev.goldberry.render.Cursor;
 import dev.goldberry.text.bidi.Directionality;
 import dev.goldberry.text.bidi.UnicodeBidi;
 import dev.goldberry.text.flow.DecorationPaint;
+import dev.goldberry.text.flow.Hyphens;
 import dev.goldberry.text.flow.OverflowWrap;
 import dev.goldberry.text.flow.TextAlign;
 import dev.goldberry.text.flow.TextDecoration;
@@ -965,8 +966,12 @@ public record ComputedStyle(
             case "text-align" ->
                 keyword(value, TextAlign.class).map(this::textAlign).orElseGet(() -> dropped(property, value));
 
+            case "hyphens" ->
+                keyword(value, Hyphens.class)
+                        .map(v -> typography(
+                                typography.lettering(typography.lettering().hyphens(v))))
+                        .orElseGet(() -> dropped(property, value));
             // Where a justified line takes its room: its word gaps, or nowhere.
-            // Inherited, with the rest of how letters are set.
             case "text-justify" ->
                 singleIdent(value)
                         .map(TextJustify::parse)
@@ -2996,7 +3001,8 @@ public record ComputedStyle(
                 overflowWrap,
                 wordBreak,
                 lineClamp,
-                textDecoration.paint());
+                textDecoration.paint(),
+                typography.lettering().hyphens());
     }
 
     /// `text-align` as a line is placed in this box: `start` and `end` turned

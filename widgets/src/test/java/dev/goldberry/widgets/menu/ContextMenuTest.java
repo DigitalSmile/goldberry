@@ -66,9 +66,10 @@ class ContextMenuTest {
         @Override
         public List<Stylesheet> stylesheets() {
             return List.of(
-                    Controls.baseStylesheet(),
-                    Theme.NORD_DARK.load(),
-                    Stylesheet.parse(CascadeLayer.APPLICATION, "#page { flex-grow: 1; background: #2e3440 }"));
+                    Controls.baseStylesheet(), Theme.NORD_DARK.load(), Stylesheet.parse(CascadeLayer.APPLICATION, """
+                            #page { flex-grow: 1; background: #2e3440 }
+                            #target { transform: translateX(37px) }
+                            """));
         }
 
         @Override
@@ -244,6 +245,7 @@ class ContextMenuTest {
         pressWithFocus(MENU_KEY, 0, count, offset);
 
         assertEquals(1, count[0], "the menu key opens the named menu");
+        assertEquals(37f, offset[0].x(), "the menu follows the target to its painted position");
         // **Against the widget, not at a point.** There is no pointer to anchor
         // to, so the menu hangs off the bottom of whatever has the focus ring —
         // which is where the reader is already looking. A zero anchor would put

@@ -36,6 +36,7 @@ import java.util.Set;
 ///                     ellipsis when more were cut: `line-clamp`. 0 keeps all
 /// @param decorationPaint how the decoration lines are drawn: their style,
 ///                     colour, thickness and offset
+/// @param hyphens which discretionary breaks document prose may use
 public record TextFlow(
         WhiteSpace whiteSpace,
         TextOverflow textOverflow,
@@ -44,7 +45,8 @@ public record TextFlow(
         OverflowWrap overflowWrap,
         WordBreak wordBreak,
         int maxLines,
-        DecorationPaint decorationPaint) {
+        DecorationPaint decorationPaint,
+        Hyphens hyphens) {
 
     /// Wraps, marks nothing, sits at the leading edge, is undecorated, breaks
     /// only between words: CSS's initial values for all six.
@@ -69,6 +71,29 @@ public record TextFlow(
             throw new IllegalArgumentException("a paragraph keeps a number of lines, not " + maxLines);
         }
         Objects.requireNonNull(decorationPaint, "decorationPaint");
+        Objects.requireNonNull(hyphens, "hyphens");
+    }
+
+    /// A flow using the discretionary breaks supplied in the text.
+    public TextFlow(
+            WhiteSpace whiteSpace,
+            TextOverflow textOverflow,
+            TextAlign textAlign,
+            Set<TextDecoration> decorations,
+            OverflowWrap overflowWrap,
+            WordBreak wordBreak,
+            int maxLines,
+            DecorationPaint decorationPaint) {
+        this(
+                whiteSpace,
+                textOverflow,
+                textAlign,
+                decorations,
+                overflowWrap,
+                wordBreak,
+                maxLines,
+                decorationPaint,
+                Hyphens.MANUAL);
     }
 
     /// A flow whose lines, if any, are drawn solid in the text's colour.
@@ -121,43 +146,99 @@ public record TextFlow(
     /// This, with a different `white-space`.
     public TextFlow whiteSpace(WhiteSpace value) {
         return new TextFlow(
-                value, textOverflow, textAlign, decorations, overflowWrap, wordBreak, maxLines, decorationPaint);
+                value,
+                textOverflow,
+                textAlign,
+                decorations,
+                overflowWrap,
+                wordBreak,
+                maxLines,
+                decorationPaint,
+                hyphens);
     }
 
     /// This, with a different `text-overflow`.
     public TextFlow textOverflow(TextOverflow value) {
         return new TextFlow(
-                whiteSpace, value, textAlign, decorations, overflowWrap, wordBreak, maxLines, decorationPaint);
+                whiteSpace, value, textAlign, decorations, overflowWrap, wordBreak, maxLines, decorationPaint, hyphens);
     }
 
     /// This, with a different `text-align`.
     public TextFlow textAlign(TextAlign value) {
         return new TextFlow(
-                whiteSpace, textOverflow, value, decorations, overflowWrap, wordBreak, maxLines, decorationPaint);
+                whiteSpace,
+                textOverflow,
+                value,
+                decorations,
+                overflowWrap,
+                wordBreak,
+                maxLines,
+                decorationPaint,
+                hyphens);
     }
 
     /// This, with a different set of decorations.
     public TextFlow decorations(Set<TextDecoration> value) {
         return new TextFlow(
-                whiteSpace, textOverflow, textAlign, value, overflowWrap, wordBreak, maxLines, decorationPaint);
+                whiteSpace,
+                textOverflow,
+                textAlign,
+                value,
+                overflowWrap,
+                wordBreak,
+                maxLines,
+                decorationPaint,
+                hyphens);
     }
 
     /// This, with a different `overflow-wrap`.
     public TextFlow overflowWrap(OverflowWrap value) {
         return new TextFlow(
-                whiteSpace, textOverflow, textAlign, decorations, value, wordBreak, maxLines, decorationPaint);
+                whiteSpace, textOverflow, textAlign, decorations, value, wordBreak, maxLines, decorationPaint, hyphens);
     }
 
     /// This, with a different `word-break`.
     public TextFlow wordBreak(WordBreak value) {
         return new TextFlow(
-                whiteSpace, textOverflow, textAlign, decorations, overflowWrap, value, maxLines, decorationPaint);
+                whiteSpace,
+                textOverflow,
+                textAlign,
+                decorations,
+                overflowWrap,
+                value,
+                maxLines,
+                decorationPaint,
+                hyphens);
+    }
+
+    /// This flow with the document's discretionary break policy.
+    public TextFlow hyphens(Hyphens value) {
+        return value == hyphens
+                ? this
+                : new TextFlow(
+                        whiteSpace,
+                        textOverflow,
+                        textAlign,
+                        decorations,
+                        overflowWrap,
+                        wordBreak,
+                        maxLines,
+                        decorationPaint,
+                        value);
     }
 
     /// This, keeping `value` lines: `line-clamp`. 0 keeps every line.
     public TextFlow maxLines(int value) {
         return new TextFlow(
-                whiteSpace, textOverflow, textAlign, decorations, overflowWrap, wordBreak, value, decorationPaint);
+                whiteSpace,
+                textOverflow,
+                textAlign,
+                decorations,
+                overflowWrap,
+                wordBreak,
+                value,
+                decorationPaint,
+                hyphens);
     }
 
     /// Whether lines past [#maxLines] are cut.
@@ -167,13 +248,22 @@ public record TextFlow(
 
     /// This, with its lines drawn as `value` says.
     public TextFlow decorationPaint(DecorationPaint value) {
-        return new TextFlow(whiteSpace, textOverflow, textAlign, decorations, overflowWrap, wordBreak, maxLines, value);
+        return new TextFlow(
+                whiteSpace, textOverflow, textAlign, decorations, overflowWrap, wordBreak, maxLines, value, hyphens);
     }
 
     /// This, with the lines and the paint of `value`: `text-decoration` whole.
     public TextFlow textDecorations(TextDecorations value) {
         return new TextFlow(
-                whiteSpace, textOverflow, textAlign, value.lines(), overflowWrap, wordBreak, maxLines, value.paint());
+                whiteSpace,
+                textOverflow,
+                textAlign,
+                value.lines(),
+                overflowWrap,
+                wordBreak,
+                maxLines,
+                value.paint(),
+                hyphens);
     }
 
     /// The lines and how they are drawn, together.

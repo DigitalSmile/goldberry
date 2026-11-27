@@ -76,7 +76,7 @@ class PropertiesTest {
             border-image-outset: 1px; border-image-repeat: round;
             font-family: Mono; font-size: 20px; font-weight: 700; font-style: italic; line-height: 30px;
             letter-spacing: 1px; word-spacing: 2px; text-transform: uppercase; text-shadow: 1px 1px red;
-            text-justify: none; font-stretch: 75%; font-variation-settings: "GRAD" 1;
+            hyphens: auto; text-justify: none; font-stretch: 75%; font-variation-settings: "GRAD" 1;
             font-feature-settings: "liga" 0; font-variant-numeric: tabular-nums;
             animation-name: spin; animation-duration: 2s; animation-timing-function: linear;
             animation-delay: 1s; animation-iteration-count: 3; animation-direction: reverse;

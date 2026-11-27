@@ -2,6 +2,7 @@ package dev.goldberry.content.select;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 
 import org.jspecify.annotations.Nullable;
@@ -18,9 +19,11 @@ import dev.goldberry.render.Cursor;
 import dev.goldberry.render.model.LogicalRect;
 import dev.goldberry.text.Paragraph;
 import dev.goldberry.text.SpanPaint;
+import dev.goldberry.text.flow.Hyphens;
 import dev.goldberry.widget.Element;
 import dev.goldberry.widget.Widget;
 import dev.goldberry.widget.attr.Attributes;
+import dev.goldberry.widget.attr.Spelling;
 import dev.goldberry.widget.style.Paints;
 import dev.goldberry.widget.style.Styled;
 import dev.goldberry.widgets.controls.button.Button;
@@ -36,6 +39,7 @@ public final class ParagraphLine implements Widget.Leaf, Styled, Paints, Located
     private record Placement(Word word, boolean separator) {}
 
     private List<Placement> placements = List.of();
+    private final DocumentHyphens hyphenation = new DocumentHyphens();
     private @Nullable Box rendered;
     private @Nullable LogicalRect bounds;
     private @Nullable LogicalRect clip;
@@ -92,6 +96,8 @@ public final class ParagraphLine implements Widget.Leaf, Styled, Paints, Located
         var paints = new ArrayList<SpanPaint>();
         var ranges = new ArrayList<InlineRanges.Range>();
         var visible = new ArrayList<Placement>();
+        var hyphenRuns = new ArrayList<DocumentHyphens.Run>();
+        Locale inheritedLanguage = null;
         var offset = 0;
         for (var wrapper : children) {
             if (!(wrapper.owner() instanceof Element element)) {
@@ -122,6 +128,19 @@ public final class ParagraphLine implements Widget.Leaf, Styled, Paints, Located
                 offset++;
             }
             var end = offset + text.paragraph().text().length();
+            var mode = text.flow().hyphens();
+            var content = text.paragraph().text();
+            if (mode == Hyphens.AUTO || (mode == Hyphens.MANUAL && content.indexOf('\u00ad') >= 0)) {
+                var language = first.attributes().spelling().lang();
+                if (mode == Hyphens.AUTO && language == null) {
+                    if (inheritedLanguage == null) {
+                        var inherited = Spelling.of(element).lang();
+                        inheritedLanguage = inherited == null ? Locale.ROOT : inherited;
+                    }
+                    language = inheritedLanguage;
+                }
+                DocumentHyphens.append(hyphenRuns, offset, end, mode, language);
+            }
             parts.add(text.paragraph());
             addPaint(paints, offset, end, style, source, text, first.child() instanceof Picture);
             addRanges(group, offset, end, source, text.paragraph(), ranges, visible);
@@ -135,6 +154,7 @@ public final class ParagraphLine implements Widget.Leaf, Styled, Paints, Located
         }
         placements = List.copyOf(visible);
         var paragraph = parts.isEmpty() ? context.paragraph(style, "") : context.join(parts);
+        paragraph = hyphenation.apply(paragraph, hyphenRuns);
         var previous = rendered == null ? null : rendered.text();
         var inline = previous == null ? null : previous.ranges();
         if (inline == null || !inline.ranges().equals(ranges)) {

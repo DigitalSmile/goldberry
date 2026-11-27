@@ -243,7 +243,9 @@ decl | text-shadow: 1px 1px 2px 3px red | DROPPED | by-design
 decl | line-clamp: 2 | APPLIED | -
 decl | -webkit-line-clamp: 2 | APPLIED | -
 decl | text-indent: 1em | UNKNOWN | unplanned
-decl | hyphens: auto | UNKNOWN | unplanned
+decl | hyphens: auto | APPLIED | -
+decl | hyphens: none | APPLIED | -
+decl | hyphens: sometimes | DROPPED | by-design
 decl | text-wrap: balance | UNKNOWN | unplanned
 decl | line-height: normal | APPLIED | -
 decl | text-decoration: underline red | APPLIED | -

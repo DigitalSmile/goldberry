@@ -8,8 +8,8 @@
 /// wrapper packages, so nothing here can reach a raw `MemorySegment` even by
 /// accident: the native boundary is the module graph, not a convention.
 ///
-/// `@SuppressWarnings("module")` for the one qualified export to a module built
-/// after this one, `render.composite` to `:gpu`, which javac cannot find while
+/// `@SuppressWarnings("module")` for qualified exports to modules built
+/// after this one, which javac cannot find while
 /// compiling `:core` and warns about. `:natives` does the same, for the same
 /// reason; the export still works, because the name is resolved at run time.
 ///
@@ -325,6 +325,10 @@ module dev.goldberry.core {
     // properties an application's stylesheet may write, and because a widget
     // building its own label box names the value.
     exports dev.goldberry.text.flow;
+
+    // The document views find word breaks across adjacent inline spans.
+    exports dev.goldberry.text.hyphen to
+            dev.goldberry.html;
 
     // Which way a paragraph's runs read and in what order a line places them:
     // the base direction a paragraph is given and the levels the bidirectional

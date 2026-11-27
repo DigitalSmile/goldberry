@@ -72,6 +72,7 @@ final class AuthorDeclarations {
             "text-decoration-thickness",
             "text-transform",
             "white-space",
+            "hyphens",
             "padding",
             "padding-top",
             "padding-right",

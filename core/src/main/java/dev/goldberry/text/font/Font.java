@@ -98,6 +98,8 @@ public final class Font implements AutoCloseable {
     /// [#ellipsisWidth()]'s memo. NaN is "not asked yet", which no width can be.
     private double ellipsisWidth = Double.NaN;
 
+    private @Nullable ShapedRun hyphen;
+
     private Font(FontFace face, boolean ownsFace, double size) {
         this.face = face;
         this.ownsFace = ownsFace;
@@ -390,6 +392,15 @@ public final class Font implements AutoCloseable {
             ellipsisWidth = widthOf(TextOverflow.MARK);
         }
         return ellipsisWidth;
+    }
+
+    /// The run drawn at a discretionary line break, shared by measurement and paint.
+    public ShapedRun hyphen() {
+        requireUsable();
+        if (hyphen == null) {
+            hyphen = shape(face().coverage().covers(0x2010) ? "‐" : "-");
+        }
+        return hyphen;
     }
 
     /// Draws `text` with `(x, baseline)` on the baseline.

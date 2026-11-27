@@ -4,6 +4,7 @@ import java.text.Bidi;
 import java.text.BreakIterator;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.BitSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -184,6 +185,14 @@ public final class Paragraph {
     /// before joining existed, one line height per line.
     private final boolean uniform;
 
+    /// Null for the ordinary line breaker. When specified, these are the only
+    /// positions where a visible discretionary hyphen may be inserted.
+    private final @Nullable BitSet hyphens;
+    private static final BitSet NO_HYPHENS = new BitSet();
+    private @Nullable Hyphenated lastHyphenated;
+
+    private record Hyphenated(BitSet requested, Paragraph paragraph) {}
+
     private Paragraph(Font font, String text, Directionality directionality, double letterSpacing, double wordSpacing) {
         var levels = BidiLevels.of(text, directionality);
         var bidi = levels.isLeftToRight() ? null : levels;
@@ -221,8 +230,10 @@ public final class Paragraph {
             for (var i = 0; i < run.length(); i++) {
                 var advance = run.xAdvance(i);
                 if (i == run.length() - 1 || run.cluster(i + 1) != run.cluster(i)) {
-                    advance += letter;
                     var at = segment.textStart() + run.cluster(i);
+                    if (at >= text.length() || text.charAt(at) != '\u00AD') {
+                        advance += letter;
+                    }
                     if (at < text.length() && isWordSeparator(text.charAt(at))) {
                         advance += word;
                     }
@@ -250,6 +261,7 @@ public final class Paragraph {
             int @Nullable [] spanStarts,
             Font @Nullable [] spanFonts,
             boolean grid) {
+        this.hyphens = null;
         this.font = font;
         this.text = text;
         this.directionality = directionality;
@@ -331,6 +343,63 @@ public final class Paragraph {
             glyphBefore[offset] = glyph;
             offset++;
         }
+    }
+
+    private Paragraph(Paragraph source, BitSet hyphens) {
+        this.hyphens = hyphens;
+        font = source.font;
+        text = source.text;
+        directionality = source.directionality;
+        bidi = source.bidi;
+        segments = source.segments;
+        run = source.run;
+        advanceBeforeGlyph = source.advanceBeforeGlyph;
+        advanceBefore = source.advanceBefore;
+        glyphBefore = source.glyphBefore;
+        spanStarts = source.spanStarts;
+        spanFonts = source.spanFonts;
+        spanAscents = source.spanAscents;
+        spanBelows = source.spanBelows;
+        uniform = source.uniform;
+    }
+
+    /// Shares this paragraph's shaping and allows discretionary hyphens at the
+    /// supplied UTF-16 offsets. An authored soft hyphen uses the offset just
+    /// after it. An empty set suppresses soft hyphens. A break inside a grapheme
+    /// or a shaped cluster is ignored. The caller may reuse or modify the set.
+    public Paragraph withHyphenation(BitSet offsets) {
+        Objects.requireNonNull(offsets, "offsets");
+        if (offsets.length() > text.length() + 1) {
+            throw new IllegalArgumentException("A hyphenation offset is past the end of the text");
+        }
+        if (offsets.equals(hyphens) || (hyphens == null && offsets.isEmpty() && text.indexOf('\u00AD') < 0)) {
+            return this;
+        }
+        if (lastHyphenated != null && offsets.equals(lastHyphenated.requested())) {
+            return lastHyphenated.paragraph();
+        }
+        var allowed = (BitSet) offsets.clone();
+        if (!allowed.isEmpty()) {
+            var graphemes = BreakIterator.getCharacterInstance();
+            graphemes.setText(text);
+            for (var at = allowed.nextSetBit(0); at >= 0; at = allowed.nextSetBit(at + 1)) {
+                if (at == 0
+                        || at == text.length()
+                        || !graphemes.isBoundary(at)
+                        || glyphBefore[at] >= run.length()
+                        || run.cluster(glyphBefore[at]) != at
+                        || Character.isWhitespace(text.charAt(at - 1))
+                        || Character.isWhitespace(text.charAt(at))
+                        || text.charAt(at - 1) == '-'
+                        || text.charAt(at - 1) == '‐') {
+                    allowed.clear(at);
+                }
+            }
+        }
+        var paragraph = new Paragraph(this, allowed);
+        var requested = allowed.equals(offsets) ? allowed : (BitSet) offsets.clone();
+        lastHyphenated = new Hyphenated(requested, paragraph);
+        return paragraph;
     }
 
     /// What [#advanceBeforeGlyph] is when a paragraph has one segment and
@@ -743,9 +812,18 @@ public final class Paragraph {
         var starts = new ArrayList<Integer>();
         var fonts = new ArrayList<Font>();
         var glyph = 0;
+        BitSet opportunities = null;
         for (var span : spans) {
             Objects.requireNonNull(span, "span");
             var offset = text.length();
+            if (span.hyphens != null) {
+                if (opportunities == null) {
+                    opportunities = new BitSet();
+                }
+                for (int at = span.hyphens.nextSetBit(0); at >= 0; at = span.hyphens.nextSetBit(at + 1)) {
+                    opportunities.set(offset + at);
+                }
+            }
             for (var segment : span.segments) {
                 segments.add(new Segment(
                         segment.font(),
@@ -768,7 +846,7 @@ public final class Paragraph {
         var joined = text.toString();
         var directionality = spans.getFirst().directionality;
         var levels = BidiLevels.of(joined, directionality);
-        return new Paragraph(
+        var paragraph = new Paragraph(
                 base,
                 joined,
                 directionality,
@@ -777,6 +855,7 @@ public final class Paragraph {
                 starts.stream().mapToInt(Integer::intValue).toArray(),
                 fonts.toArray(Font[]::new),
                 grid);
+        return opportunities == null ? paragraph : paragraph.withHyphenation(opportunities);
     }
 
     /// How many pieces this paragraph was joined from: 1 for one that was not.
@@ -1152,7 +1231,7 @@ public final class Paragraph {
         Objects.requireNonNull(frame, "frame");
         Objects.requireNonNull(flow, "flow");
         Objects.requireNonNull(spans, "spans");
-        if (uniform && spans.isEmpty()) {
+        if (uniform && spans.isEmpty() && (hyphens == null || hyphens.isEmpty())) {
             paintPlain(frame, x, top, maxWidth, argb, flow);
         } else {
             paintStyled(frame, x, top, maxWidth, argb, flow, spans);
@@ -1307,16 +1386,36 @@ public final class Paragraph {
             if (!ellipsis || line.width() <= maxWidth) {
                 var room = gapRoom(line, align, maxWidth);
                 var indent = room > 0 ? 0 : indentOf(line, align, maxWidth);
-                eachFragment(
-                        line.start(),
-                        visibleEnd(line),
-                        x + indent,
-                        room,
-                        (from, to, pen, rtl) -> drawPieces(frame, pen, baseline, from, to, rtl, argb, flow, spans));
+                var mark = hyphenWidthOf(line);
+                eachFragment(line.start(), visibleEnd(line), x + indent, room, mark, (from, to, pen, rtl) -> {
+                    drawPieces(frame, pen, baseline, from, to, rtl, argb, flow, spans);
+                    if (to == line.end() && mark > 0) {
+                        var left = rtl ? pen - mark : pen + widthOf(from, to);
+                        drawHyphen(frame, left, baseline, to - 1, mark, argb, flow, spans);
+                    }
+                });
                 continue;
             }
             paintTruncatedStyled(frame, x, baseline, maxWidth, argb, flow, spans, line);
         }
+    }
+
+    private void drawHyphen(
+            Frame frame,
+            double left,
+            double baseline,
+            int at,
+            double width,
+            int argb,
+            TextFlow flow,
+            List<SpanPaint> spans) {
+        var face = fontAt(at);
+        var paint = paintAt(spans, at);
+        var ink = paint == null ? argb : paint.argb();
+        face.draw(frame, left, baseline, face.hyphen(), ink);
+        var decorations = paint == null ? flow.decorations() : paint.decorations();
+        var look = paint == null ? flow.decorationPaint() : paint.decorationPaint();
+        rule(frame, left, baseline, width, ink, decorations, look, face);
     }
 
     /// Draws `[from, to)`, a fragment that runs one way, as pieces that each
@@ -1404,17 +1503,19 @@ public final class Paragraph {
             List<SpanPaint> spans) {
         var room = gapRoom(line, align, maxWidth);
         var indent = room > 0 ? 0 : indentOf(line, align, maxWidth);
-        eachFragment(line.start(), visibleEnd(line), x + indent, room, (from, to, pen, rtl) -> {
+        var hyphenWidth = hyphenWidthOf(line);
+        eachFragment(line.start(), visibleEnd(line), x + indent, room, hyphenWidth, (from, to, pen, rtl) -> {
             var at = from;
             while (at < to) {
                 var paint = paintAt(spans, at);
                 var next = Math.min(to, paint != null ? paint.end() : nextPaintStart(spans, at));
                 if (paint != null && paint.hasBackground()) {
                     var left = rtl ? pen + widthOf(next, to) : pen + widthOf(from, at);
+                    var mark = next == line.end() ? hyphenWidth : 0;
                     frame.fillRect(
-                            (float) left,
+                            (float) (rtl ? left - mark : left),
                             (float) lineTop,
-                            (float) widthOf(at, next),
+                            (float) (widthOf(at, next) + mark),
                             (float) lineHeight,
                             paint.background());
                 }
@@ -1469,8 +1570,9 @@ public final class Paragraph {
                 pen = gap > 0 ? 0 : indentOf(line, flow.textAlign(), width);
             }
             var visible = end;
-            eachFragment(line.start(), end, pen, gap, (from, to, x, rtl) -> {
-                double extra = to < visible && isWordSeparator(text.charAt(to - 1)) ? gap : 0;
+            var mark = truncated ? 0 : hyphenWidthOf(line);
+            eachFragment(line.start(), end, pen, gap, mark, (from, to, x, rtl) -> {
+                double extra = to == visible ? mark : isWordSeparator(text.charAt(to - 1)) ? gap : 0;
                 visitor.accept(from, to, x, y, height, rtl, extra);
             });
         }
@@ -1527,6 +1629,10 @@ public final class Paragraph {
     /// towards: after it in a left-to-right run, before it in a right-to-left
     /// one, so the room is always between the separator and the next word.
     private void eachFragment(int from, int to, double x, double room, Fragment draw) {
+        eachFragment(from, to, x, room, 0, draw);
+    }
+
+    private void eachFragment(int from, int to, double x, double room, double hyphenWidth, Fragment draw) {
         if (from >= to) {
             return;
         }
@@ -1542,13 +1648,17 @@ public final class Paragraph {
         }
         var pen = x;
         for (var run : levels.visualRuns(from, to)) {
+            // The mark belongs to the word that was split. Its run may sit
+            // between two other visual runs on this line.
+            var mark = run.end() == to ? hyphenWidth : 0;
+            var left = run.isRightToLeft() ? pen + mark : pen;
             if (room == 0) {
-                draw.at(run.start(), run.end(), pen, run.isRightToLeft());
-                pen += widthOf(run.start(), run.end());
-                continue;
+                draw.at(run.start(), run.end(), left, run.isRightToLeft());
+            } else {
+                eachWord(run.start(), run.end(), firstWord, run.isRightToLeft(), left, room, draw);
+                pen += room * gapsIn(run.start(), run.end(), firstWord);
             }
-            eachWord(run.start(), run.end(), firstWord, run.isRightToLeft(), pen, room, draw);
-            pen += widthOf(run.start(), run.end()) + room * gapsIn(run.start(), run.end(), firstWord);
+            pen += widthOf(run.start(), run.end()) + mark;
         }
     }
 
@@ -1802,6 +1912,7 @@ public final class Paragraph {
                 breaking == ANYWHERE_BREAKING ? BreakIterator.getCharacterInstance() : BreakIterator.getLineInstance();
         breaks.setText(text.substring(start, end));
 
+        var allowed = hyphens == null || breaking == ANYWHERE_BREAKING ? NO_HYPHENS : hyphens;
         var lineStart = start;
         // The furthest break that still fits on the line being built. Below
         // `lineStart` means "nothing yet", which is the case that decides
@@ -1814,38 +1925,48 @@ public final class Paragraph {
         for (var candidate = breaks.next(); candidate != BreakIterator.DONE; candidate = breaks.next()) {
 
             var offset = start + candidate;
-            if (widthOf(lineStart, offset) <= maxWidth) {
-                lastFitting = offset;
+            if (hyphens != null
+                    && breaking != ANYWHERE_BREAKING
+                    && offset < end
+                    && text.charAt(offset - 1) == '\u00AD') {
+                // BreakIterator offers soft hyphens unconditionally. Only the
+                // selected offsets may draw them in this paragraph.
                 continue;
             }
-
-            if (lastFitting > lineStart) {
-                // Break at the last place that fitted, then reconsider this
-                // candidate against the new line -- it is the next line's
-                // content, not something to skip.
-                lines.add(lineFor(lineStart, lastFitting));
-                lineStart = lastFitting;
-                lastFitting = -1;
-
-                if (widthOf(lineStart, offset) <= maxWidth) {
-                    lastFitting = offset;
-                    continue;
+            var measuredEnd = hyphens == null ? offset : visibleEnd(lineStart, offset);
+            while (lineStart < offset && widthOf(lineStart, measuredEnd) > maxWidth) {
+                // Try splitting the word that overflowed after the last fitting
+                // ordinary break. An earlier word on this line is already whole.
+                var after = Math.max(lastFitting, lineStart);
+                var first = allowed.nextSetBit(after + 1);
+                var cut = fittingHyphen(allowed, first, lineStart, offset, maxWidth);
+                if (cut >= 0) {
+                    lines.add(hyphenatedLine(lineStart, cut));
+                    lineStart = cut;
+                } else if (lastFitting > lineStart) {
+                    lines.add(lineFor(lineStart, lastFitting));
+                    lineStart = lastFitting;
+                } else if (breaking == OVERFLOW_BREAKING) {
+                    // An emergency break is used only when even the first
+                    // syllable cannot fit. Reconsider later syllables.
+                    var limit = first >= 0 && first < offset ? first : offset;
+                    var next = breakInside(lineStart, limit, maxWidth, lines);
+                    if (next == lineStart) {
+                        lines.add(lineFor(lineStart, limit));
+                        next = limit;
+                    }
+                    lineStart = next;
+                } else if (first >= 0 && first < offset) {
+                    // A box narrower than one syllable still makes progress.
+                    lines.add(hyphenatedLine(lineStart, first));
+                    lineStart = first;
+                } else {
+                    lines.add(lineFor(lineStart, offset));
+                    lineStart = offset;
                 }
+                lastFitting = -1;
             }
-
-            // A single unbreakable chunk wider than the whole line. Unless the
-            // style said `overflow-wrap: anywhere`, it goes on a line of its own
-            // and overflows: breaking inside it is a style's decision, not a
-            // layout engine's.
-            if (breaking == OVERFLOW_BREAKING) {
-                lineStart = breakInside(lineStart, offset, maxWidth, lines);
-                // What is left of the word fits, and is the start of the line
-                // the next word is tried against.
-                lastFitting = offset;
-                continue;
-            }
-            lines.add(lineFor(lineStart, offset));
-            lineStart = offset;
+            lastFitting = offset;
         }
 
         if (lineStart < end) {
@@ -1863,7 +1984,7 @@ public final class Paragraph {
     /// box, or a box narrower than a character would never finish.
     private int breakInside(int start, int end, double maxWidth, List<TextLine> lines) {
         var lineStart = start;
-        while (widthOf(lineStart, end) > maxWidth) {
+        while (lineStart < end && widthOf(lineStart, end) > maxWidth) {
             var cut = offsetFitting(lineStart, end, maxWidth);
             if (cut <= lineStart) {
                 var graphemes = BreakIterator.getCharacterInstance();
@@ -1874,6 +1995,41 @@ public final class Paragraph {
             lineStart = cut;
         }
         return lineStart;
+    }
+
+    private int fittingHyphen(BitSet allowed, int first, int start, int end, double maxWidth) {
+        var cut = -1;
+        for (var at = first; at >= 0 && at < end; at = allowed.nextSetBit(at + 1)) {
+            var prefix = widthOf(start, at);
+            if (prefix > maxWidth) {
+                break;
+            }
+            if (prefix + hyphenWidth(at) <= maxWidth) {
+                cut = at;
+            }
+        }
+        return cut;
+    }
+
+    /// The advance of the discretionary hyphen on a line from this paragraph's
+    /// layout. A grapheme or ordinary line break at the same offset has only the
+    /// advance of its source glyphs. Alignment, justification and truncation
+    /// happen after these natural line widths are measured.
+    public double hyphenWidthOf(TextLine line) {
+        if (hyphens == null || !hyphens.get(line.end())) {
+            return 0;
+        }
+        return line.width() - widthOf(line.start(), visibleEnd(line));
+    }
+
+    private double hyphenWidth(int offset) {
+        var face = fontAt(offset - 1);
+        return face.widthOf(face.hyphen());
+    }
+
+    private TextLine hyphenatedLine(int start, int end) {
+        var mark = hyphenWidth(end);
+        return new TextLine(start, end, glyphBefore[start], glyphBefore[end], widthOf(start, end) + mark);
     }
 
     /// Builds a line, trimming trailing whitespace out of the glyph range and the

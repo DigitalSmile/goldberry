@@ -285,7 +285,7 @@ log in the same commit as the work.
 | T-22 | W3.6 | implemented locally (`docs/vector-svg.md`), including the Drawing card and parked guide. First CI run on the other targets pending | 0740–0747 | |
 | T-23 | — | parked (D11) | 0690 | |
 | T-24 | W3.3 | done: a page's `<style>`, `style=`, `bgcolor` and `<font color>` in a `StyleScope` of the view's own; `AuthorStyles` with `ADAPTED` the default (a text colour with no background of the mail's under it takes the theme's) | 0710 | |
-| T-25 | W3.7 | done (`docs/spell-checking.md`): CSS text decoration in full, the `dev.goldberry.text.spell` SPI and line service, `spellcheck`/`lang` passed down and `::spelling-error` on `text-input`, `text-area` and `rich-input`, the suggestion menu, `goldberry-spell` on Lucene's Hunspell (D1 (a)), and the showcase's Spelling card over SCOWL `en_US`. Open: hand checks of the menu on each desktop, a native-image run | 0733–0739 | |
+| T-25 | W3.7 | done (`docs/spell-checking.md`): CSS text decoration in full, the `dev.goldberry.text.spell` SPI and line service, `spellcheck`/`lang` passed down and `::spelling-error` on `text-input`, `text-area` and `rich-input`, the suggestion menu, `goldberry-spell` on Lucene's Hunspell (D1 (a)), and the showcase's Spelling card over SCOWL `en_US`. Linux X11 native-image menu, keyboard selection and undo verified. Open: desktop checks on Wayland, Windows and macOS | 0733–0739 | |
 | T-26 | W2.13 | done | 0686 | |
 | T-29 | W3.8 | done: `GlobalShortcuts` (portal, X11 grab, `RegisterHotKey`, Carbon); Windows and macOS written, not run; the Windows release is polled while held, not hooked | 0711 | |
 | T-30 | W3.10 | done (`docs/zero-copy-tiles.md`): D1 (a), D2 (a), D3 D6 decides per driver, D4 (a), D5 `RasterTexture`, D6 the gate, run-time check at 1.5×. Phases 0–4 done: Direct3D 12 staging without SDL's hidden copy, the in-place raster, the composited window painting in place (4K upload 6.8 → 0.25 ms on the 1660 Ti), and `RasterTexture` in the exported `dev.goldberry.gpu.raster` with a showcase card; Metal and Direct3D 12 in place written, measured by the benchmark lane, not run as a window | 0712, 0731, 0732 | |
@@ -704,3 +704,7 @@ log in the same commit as the work.
   the showcase's native image carries it (ADR-0746). CI's first run is open.
   Next ADR 0747.
 - **2026-11-25, W3.6 phase 6.** Drawing shows fixed-colour and theme-tinted SVGs at three sizes and the broken-document state. The guide and catalogue entry are parked (ADR-0747).
+- **2026-11-27, W3.7 verification.** The Linux x64 native showcase corrected
+  both sample fields on X11. Opening the keyboard menu after scrolling exposed
+  a popup anchored to the field's layout position. It now opens at the painted
+  position. The run is recorded in [the spelling plan](../spell-checking.md).

@@ -3,7 +3,10 @@ package dev.goldberry.content.inline;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
+
+import org.jspecify.annotations.Nullable;
 
 import dev.goldberry.content.select.Word;
 import dev.goldberry.content.select.WordMinter;
@@ -21,12 +24,24 @@ public record Words(String wordClass, WordMinter minter) {
     public sealed interface Piece permits Fragment, Node, Break {}
 
     /// An atomic fragment retains its internal whitespace, as in inline code.
-    public record Fragment(String text, Set<String> marks, boolean atomic) implements Piece {
+    public record Fragment(
+            String text,
+            Set<String> marks,
+            boolean atomic,
+            @Nullable Locale language) implements Piece {
+        public Fragment(String text, Set<String> marks, boolean atomic) {
+            this(text, marks, atomic, null);
+        }
+
         public static final Fragment SEPARATOR = new Fragment(" ", Set.of(), false);
     }
 
     /// A link or picture with the text it contributes to a copy.
-    public record Node(Widget widget, String text) implements Piece {}
+    public record Node(Widget widget, String text, @Nullable Locale language) implements Piece {
+        public Node(Widget widget, String text) {
+            this(widget, text, null);
+        }
+    }
 
     public record Break() implements Piece {
         public static final Break HARD = new Break();
@@ -38,17 +53,21 @@ public record Words(String wordClass, WordMinter minter) {
         for (var piece : pieces) {
             switch (piece) {
                 case Break _ -> separated = true;
-                case Node(var widget, var label) -> {
-                    words.add(minter.wrapping(widget, label, Attributes.NONE, separated));
+                case Node(var widget, var label, var language) -> {
+                    words.add(minter.wrapping(
+                            widget,
+                            label,
+                            language == null ? Attributes.NONE : Attributes.NONE.lang(language),
+                            separated));
                     separated = false;
                 }
-                case Fragment(var text, var marks, var atomic)
+                case Fragment(var text, var marks, var atomic, var language)
                 when atomic -> {
-                    words.add(minter.word(text, attributes(marks), separated));
+                    words.add(minter.word(text, attributes(marks, language), separated));
                     separated = false;
                 }
-                case Fragment(var text, var marks, var _) -> {
-                    var style = attributes(marks);
+                case Fragment(var text, var marks, var _, var language) -> {
+                    var style = attributes(marks, language);
                     for (int start = 0; start < text.length(); ) {
                         if (Character.isWhitespace(text.charAt(start))) {
                             separated = true;
@@ -90,18 +109,19 @@ public record Words(String wordClass, WordMinter minter) {
     }
 
     public Word whole(String text, Set<String> marks) {
-        return minter.word(text, attributes(marks), true);
+        return minter.word(text, attributes(marks, null), true);
     }
 
     /// The word class, plus whatever marks the piece is inside.
     ///
     /// The word class first and always: it is the hook an application restyles every
     /// word through, and a word with no marks still has it.
-    private Attributes attributes(Set<String> marks) {
+    private Attributes attributes(Set<String> marks, @Nullable Locale language) {
         var classes = new LinkedHashSet<String>(marks.size() + 1);
         classes.add(wordClass);
         classes.addAll(marks);
-        return Attributes.NONE.classes(classes.toArray(String[]::new));
+        var attributes = Attributes.NONE.classes(classes.toArray(String[]::new));
+        return language == null ? attributes : attributes.lang(language);
     }
 
     /// `marks` with `mark` added, without touching the caller's set.

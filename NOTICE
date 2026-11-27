@@ -32,6 +32,7 @@ The following assets are embedded in goldberry-core:
   Inter                SIL Open Font License 1.1   https://rsms.me/inter/
   JetBrains Mono       SIL Open Font License 1.1   https://www.jetbrains.com/lp/mono/
   Lucide               ISC; MIT for Feather icons  https://lucide.dev
+  American English hyphenation patterns    Kuiken permission notice    https://hyphenation.org
 
 And goldberry-gpu's shaders are ported from:
 

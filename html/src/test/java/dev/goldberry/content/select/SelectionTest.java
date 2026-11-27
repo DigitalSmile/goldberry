@@ -8,6 +8,7 @@ import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Proxy;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 
 import org.jspecify.annotations.Nullable;
@@ -246,6 +247,72 @@ class SelectionTest {
         assertEquals("link with enough words to wrap onto another line", state().selectedText());
         assertTrue(state().washed().stream().map(LogicalRect::top).distinct().count() >= 2);
         assertEquals("A bold link with enough words to wrap onto another line.", state().text());
+    }
+
+    @Test
+    void englishLinkHyphenatesAndCopiesAsOneWord() {
+        var sheets = new ArrayList<>(Controls.stylesheets(Theme.NORD_DARK));
+        sheets.add(HtmlStyles.stylesheet());
+        renderer = new WidgetRenderer(sheets, fonts);
+        var word = "internationalization";
+        var html = "<html lang='en-US'><p style='max-width:64px;hyphens:auto'><a href='/i'>" + word + "</a></p></html>";
+        mount(HtmlView.of(html));
+        var links = linkRegions();
+        assertTrue(links.stream().map(HitTest.Region::top).distinct().count() >= 2);
+        press(links.getLast().bounds(), 2);
+        assertEquals(word, state().selectedText());
+        assertTrue(state().washed().stream().map(LogicalRect::top).distinct().count() >= 2);
+
+        mount(HtmlView.of(html.replace(word, "<span lang='de'>" + word + "</span>")));
+        assertEquals(
+                1, linkRegions().stream().map(HitTest.Region::top).distinct().count());
+
+        for (var override : List.of("lang='de'", "lang=''", "style='hyphens:none'")) {
+            mount(HtmlView.of(html.replace("<a href", "<a " + override + " href")));
+            assertEquals(
+                    1,
+                    linkRegions().stream().map(HitTest.Region::top).distinct().count(),
+                    override);
+        }
+    }
+
+    private List<HitTest.Region> linkRegions() {
+        return HitTest.capture(render).stream()
+                .filter(region -> region.owner() instanceof Element element && element.widget() instanceof Button)
+                .toList();
+    }
+
+    @Test
+    void markdownLanguagePassesToWrappedProseAcrossStyledRuns() {
+        restyled(".md-prose { max-width: 56px; hyphens: auto }");
+        var markdown = "inter**nation**alization";
+        mount(MarkdownView.of(markdown).lang(Locale.US));
+        var wrappedHeight = paragraphHeight();
+        assertEquals("internationalization", state().text());
+        mount(MarkdownView.of(markdown).lang(Locale.GERMAN));
+        assertTrue(wrappedHeight > paragraphHeight(), "only the English view has dictionary breaks");
+    }
+
+    @Test
+    void explicitSoftHyphenWrapsInManualModeWithoutALanguage() {
+        var sheets = new ArrayList<>(Controls.stylesheets(Theme.NORD_DARK));
+        sheets.add(HtmlStyles.stylesheet());
+        renderer = new WidgetRenderer(sheets, fonts);
+        var html = "<p style='max-width:54px;hyphens:manual'>alpha&shy;betical</p>";
+        mount(HtmlView.of(html));
+        var wrappedHeight = paragraphHeight();
+        assertEquals("alpha\u00adbetical", state().text());
+        mount(HtmlView.of(html.replace("hyphens:manual", "hyphens:none")));
+        assertTrue(wrappedHeight > paragraphHeight());
+    }
+
+    private double paragraphHeight() {
+        return HitTest.capture(render).stream()
+                .filter(region -> region.owner() instanceof Element e && e.widget() instanceof ParagraphLine)
+                .findFirst()
+                .orElseThrow()
+                .bounds()
+                .height();
     }
 
     @Test

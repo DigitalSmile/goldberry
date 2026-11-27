@@ -386,3 +386,33 @@ where pictures change. Tests are written with the code, not after it.
   Tessera's answer is written. ADR-0739 is parked. **Open:** a hand check of
   the right-click menu on each desktop, and a native-image run of the
   Spelling card.
+
+### Native showcase verification
+
+Build with `./gradlew :example:nativeImage` and `GRAALVM_HOME` set to the
+GraalVM distribution. On Linux x64, this command opens the Forms screen.
+
+```sh
+example/build/native/goldberry-showcase-linux-x64 -Dgoldberry.example.screen=forms
+```
+
+Select **Spelling** in the page navigation. Right-click `jorney` in the title,
+choose **journey**, then undo. Place the caret in the same word and press
+Shift+F10. The menu should open beside the field even after the page scrolls.
+Enter should accept **journey**. Open the menu on `recieved` in the note.
+Enter accepts **received**, and Down followed by Enter chooses **relieved**.
+The surrounding words and line break should survive each edit.
+
+On 2026-11-27 the Linux x64 native showcase loaded the bundled SCOWL
+dictionary. A right-click on the title corrected `jorney` and one undo
+restored it. After scrolling to the card, Shift+F10 opened the popup at
+y=1688 on a 1250-pixel-high X11 display.
+`HostedWindow` now anchors the popup to the field's painted bounds, as
+specified in [ADR-0208](../book/src/adr/0208-a-context-menu-answers-the-keyboard.md).
+
+The rebuilt GraalVM CE 25.4 native image passed the same check under Xvfb.
+Shift+F10 opened the title menu at y=539, and the Menu key opened the note
+menu at y=620. Enter accepted the first suggestion in both fields. The note
+showed five suggestions. Down and Enter chose the second. Copying each field
+after correction and undo verified the full text, including the note's line
+break. The Linux Wayland, macOS and Windows desktop menu checks remain open.
