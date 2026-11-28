@@ -125,19 +125,18 @@ The `headless` backend renders to `BLImage` and pumps synthetic events through t
 
   A link to a member of the type the comment sits on is `[#member]`. A link that names a type must spell a member that type really declares — the failure that prompted this was `[ChartSpec#fill]` on `line-chart`, whose `fill` is declared on the chart precisely because `ChartSpec` has none.
 - **The prose is formatted too.** `./gradlew checkMarkdown` fails on trailing whitespace or a missing final newline under `docs/`, `book/` and the top level, and `./gradlew formatMarkdown` fixes it. Two root tasks rather than a spotless step, for the reasons in ADR-0398 — a spotless `target` resolves against the project that declares it, and the step that used to live in the conventions plugin had never matched a single file.
-- **Advisory dashboards:** CodeQL (`codeql.yml`, nightly and per-PR) is live and needs no account. Qodana Community for JVM (`qodana.yaml`, `qodana.yml`) is connected to Qodana Cloud since 2026-09-30, gated on *new* high-severity findings against a committed baseline (`config/qodana/baseline.sarif.json`). Codecov (a step in `linux.yml`) is wired and **guarded on its secret**, so it is silent until connected rather than red until then. §7 is the checklist.
+- **Advisory dashboards:** CodeQL runs on pull requests, default-branch pushes and a weekly schedule. Qodana Community for JVM (`qodana.yaml`, `qodana.yml`) has been connected to Qodana Cloud since 2026-09-30. Its gate checks new critical and high-severity findings against `config/qodana/baseline.sarif.json`. The Codecov step in `linux.yml` runs when its secret is set. See §7.
 
   **CodeQL's first triage is ADR-0341.** The first scheduled scan (2026-09-14, CodeQL 2.27.0) found 184 things; the 4 security and 12 real correctness ones are fixed, the `ignored` bindings became JDK 22's `_` (which CodeQL does not read yet, so those 68 stay), and every finding that stays is in the ADR's table with its reason. The second triage (2026-09-30, `docs/static-analysis-plan.md`) fixed what was new and real and added the rest to the same table: a local re-run then had 308, every one a kind the table answers. The third (2026-10-03, `docs/codeql-2026-10-03.md`) fixed three and left 352.
 
-  **Four queries are excluded since 2026-10-03** ([ADR-0548](../book/src/adr/0548-four-codeql-queries-that-only-report-false-positives-are-excluded.md)). `config/codeql/goldberry.qls` is `security-and-quality` less `local-variable-is-never-read`, `unused-parameter`, `internal-representation-exposure` and `missing-case-in-switch`: 315 of the 352, every one a false positive three triages read site by site, and each query's real case caught by a blocking check (Error Prone's `UnusedVariable` and `MissingCasesInEnumSwitch`, `ImmutabilityTest`). The dashboard is left with 37, the kinds that have found real bugs here, each answered in ADR-0341's table. Tests stay in the scan.
+  **Four queries are excluded since 2026-10-03** ([ADR-0548](../book/src/adr/0548-four-codeql-queries-that-only-report-false-positives-are-excluded.md)). `config/codeql/goldberry.qls` is `security-and-quality` less `local-variable-is-never-read`, `unused-parameter`, `internal-representation-exposure` and `missing-case-in-switch`: 315 of the 352, every one a false positive three triages read site by site, and each query's real case caught by a blocking check (Error Prone's `UnusedVariable` and `MissingCasesInEnumSwitch`, `ImmutabilityTest`). That triage left 37 findings, each answered in ADR-0341's table. Tests stay in the scan.
 
   **Reading the alerts needs a token, so the scan is reproducible without one.** The code-scanning API refuses anonymous reads even on a public repository and the job log does not list findings. The same CLI and suite file (`config/codeql/goldberry.qls`, which `codeql.yml` names too) run locally in about six minutes:
 
   ```sh
-  # the bundle CI used: the version is in the job log's "CodeQL/<version>" tool-cache path
-  curl -sSL -o codeql.tar.zst https://github.com/github/codeql-action/releases/download/codeql-bundle-v2.27.0/codeql-bundle-linux64.tar.zst
+  # Run in a clean checkout with JDK 25. Match the bundle version in the CI job log.
+  curl -fsSL -o codeql.tar.zst https://github.com/github/codeql-action/releases/download/codeql-bundle-v2.27.6/codeql-bundle-java-linux64.tar.zst
   tar --zstd -xf codeql.tar.zst      # -> ./codeql/codeql
-  rm -rf */build/classes/java        # the tracer must see javac run; a cache hit is an empty database
   codeql/codeql database create /tmp/gb-db --language=java-kotlin --source-root=. \
       --command="./gradlew compileJava compileTestJava -Pgoldberry.skipNative=true --no-daemon --no-build-cache"
   codeql/codeql database analyze /tmp/gb-db config/codeql/goldberry.qls \
@@ -165,7 +164,7 @@ be aspirational is now §6's business.
 | fast | `linux.yml` (`java` job) | PR, and every push through `snapshot.yml` | `./gradlew build checkLicenses checkMarkdown -Pgoldberry.skipNative=true` — Spotless, Error Prone, NullAway, PMD, ArchUnit, unit + widget tests, every test that needs the library skipping. Then the suite again woven, then the aggregate coverage report and the Codecov upload |
 | per-OS | `linux.yml`, `macos.yml`, `windows.yml` (`natives`, `verify`) | PR, and every push through `snapshot.yml` | The superbuild, the glibc floor check, layout agreement across platforms, and the whole `:core`/`:widgets`/`:html` suite against the real library — including every golden image, since Blend2D JITs its pipelines per CPU — then the GPU tests on lavapipe and, on linux-x64, the example's tests |
 | showcase | `showcase.yml` | `v*` tag, or by hand | The GraalVM native image on three platforms, each run for 300 frames with its window walked a pixel a frame (`--resize=1580x1100`) and failed past 30 late refreshes (`--late-budget=30`); the launcher's summary line goes into the step summary (ADR-0342). On a tag, attached to the draft GitHub Release (ADR-0337, ADR-0340). The example's own tests against a built library run on `linux.yml`'s linux-x64 verify leg on every push |
-| advisory | `codeql.yml`, `qodana.yml` | PR + schedule; Qodana on PR and push | CodeQL security queries; Qodana's inspection set, new findings only against the baseline |
+| advisory | `codeql.yml`, `qodana.yml` | Both on PR and default-branch pushes. CodeQL also runs weekly. | CodeQL security and quality queries. Qodana gates new critical and high-severity findings against its baseline. |
 | nightly | `nightly.yml` | 03:40 UTC | PIT mutation testing, the benchmarks, and coverage over both binding modes |
 | snapshot | `snapshot.yml` → `publish.yml` | push to master | Every OS, then one upload of every module and all four classifier jars as `-SNAPSHOT` to Central (ADR-0334) |
 | release | `release.yml` → `publish.yml` | `v*` tag; dispatch rehearses | The same chain as a signed release to a Central Portal deployment, after the licence check (ADR-0333, ADR-0334) |
@@ -242,7 +241,7 @@ status beside it reads as a description of what exists.
   `:widgets` are ratchets set from measured values.
 - **§1.6 dual-mode CI.** `linux.yml` runs the suite reflectively and again with
   `-Pgoldberry.nativeImage=true`, then uploads the aggregate report.
-- **§2 CodeQL**, nightly and on pull requests (`codeql.yml`), and its first
+- **§2 CodeQL**, weekly, on default-branch pushes and on pull requests (`codeql.yml`), and its first
   triage: 184 findings read, 4 security and 12 correctness ones fixed, the
   rest answered in code or on the record (ADR-0341).
 - **§3 PIT**, a `pitest` task per module, running to completion over the logic

@@ -121,9 +121,11 @@ final class Contour {
     Contour transformed(Affine matrix) {
         var out = new Contour(0, 0);
         out.coords = new double[size];
-        for (var i = 0; i < size; i += 2) {
-            out.coords[i] = matrix.mapX(coords[i], coords[i + 1]);
-            out.coords[i + 1] = matrix.mapY(coords[i], coords[i + 1]);
+        for (var i = 0; i < size - 1; i += 2) {
+            var x = coords[i];
+            var y = coords[i + 1];
+            out.coords[i] = matrix.mapX(x, y);
+            out.coords[i + 1] = matrix.mapY(x, y);
         }
         out.size = size;
         out.closed = closed;

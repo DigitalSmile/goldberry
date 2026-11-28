@@ -5,7 +5,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import java.io.IOException;
-import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -29,6 +28,7 @@ import org.junit.jupiter.params.provider.EnumSource;
 class ExportCheckTest {
 
     private static final Path SCRIPT = Path.of("src", "main", "cmake", "check_exports.cmake");
+    private static final Path CMAKE = Path.of(System.getProperty("goldberry.test.cmake", ""));
 
     private static final List<String> EXPORTED = List.of("dav1d_open", "goldberry_media_abi");
 
@@ -97,22 +97,7 @@ class ExportCheckTest {
     @BeforeAll
     static void cmakeIsThere() {
         assumeTrue(Files.isRegularFile(SCRIPT), "run from the :media project directory");
-        assumeTrue(cmakeRuns(), "no cmake on PATH");
-    }
-
-    private static boolean cmakeRuns() {
-        try {
-            var process = new ProcessBuilder("cmake", "--version")
-                    .redirectErrorStream(true)
-                    .start();
-            process.getInputStream().transferTo(OutputStream.nullOutputStream());
-            return process.waitFor() == 0;
-        } catch (IOException _) {
-            return false;
-        } catch (InterruptedException _) {
-            Thread.currentThread().interrupt();
-            return false;
-        }
+        assumeTrue(CMAKE.isAbsolute() && Files.isExecutable(CMAKE), "Gradle found no CMake executable");
     }
 
     private Outcome check(Listing listing, List<String> wanted) throws IOException, InterruptedException {
@@ -125,7 +110,7 @@ class ExportCheckTest {
                 dir.resolve("goldberry-media.symbols"),
                 Stream.concat(Stream.of("# the export list"), wanted.stream()).toList());
         var process = new ProcessBuilder(
-                        "cmake",
+                        CMAKE.toString(),
                         "-DDUMP=" + dump.toAbsolutePath(),
                         "-DSYMBOLS=" + symbols.toAbsolutePath(),
                         "-DSYSTEM=" + system,
@@ -134,8 +119,12 @@ class ExportCheckTest {
                         SCRIPT.toAbsolutePath().toString())
                 .redirectErrorStream(true)
                 .start();
-        var output = new String(process.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
-        return new Outcome(process.waitFor(), output);
+        try (var output = process.getInputStream()) {
+            var text = new String(output.readAllBytes(), StandardCharsets.UTF_8);
+            return new Outcome(process.waitFor(), text);
+        } finally {
+            process.destroy();
+        }
     }
 
     @ParameterizedTest(name = "{0}")

@@ -16,6 +16,7 @@ import dev.goldberry.Goldberry;
 import dev.goldberry.Host;
 import dev.goldberry.Overlay;
 import dev.goldberry.Popup;
+import dev.goldberry.bind.Subscription;
 import dev.goldberry.bind.runtime.Models;
 import dev.goldberry.camera.view.CameraStyles;
 import dev.goldberry.css.Stylesheet;
@@ -186,6 +187,7 @@ public final class Showcase implements Application {
     /// notification area, which is an ordinary answer and not a failure — every
     /// platform's own guidance says an application must run without one.
     private Optional<ShownTray> tray = Optional.empty();
+    private @Nullable Subscription trayStartup;
 
     // --- Application ---------------------------------------------------------
 
@@ -379,11 +381,6 @@ public final class Showcase implements Application {
         // through it from wherever they happen.
         Toasts.at(host, toasts, Corner.BOTTOM_END);
 
-        // The tray, which is the one thing in this application Goldberry does
-        // not draw: the rows below are handed to the desktop's shell, which
-        // themes them, spaces them and clicks them. The description is an
-        // ordinary `Menu` -- the same value a `menubar` holds -- so the light
-        // toggle here and the one in the File menu are one command written once.
         // Lets a run start on a named screen, so a tab that only does something
         // when it is looked at -- `web`, whose page opens over the box it is
         // painted at -- can be exercised without a human clicking it.
@@ -393,28 +390,15 @@ public final class Showcase implements Application {
             actions.shell().pickScreen(startOn);
         }
 
-        tray = Trays.show(
-                host,
-                TrayIcon.of(
-                        "Goldberry — showcase",
-                        new Menu(
-                                List.of(
-                                        new Item("Switch the light", actions.appearance()::toggleTheme),
-                                        new Item("Switch the density", actions.appearance()::toggleDensity),
-                                        new Separator(),
-                                        // Every screen, off the one list -- so a screen added to the
-                                        // gallery arrives in the tray without this file being touched.
-                                        new Item("Screens")
-                                                .submenu(Screen.GALLERY.stream()
-                                                        .map(name -> (Widget) new Item(
-                                                                Screen.title(name),
-                                                                () -> actions.shell()
-                                                                        .pickScreen(name)))
-                                                        .toArray(Widget[]::new)),
-                                        new Separator(),
-                                        new Item("Quit", () -> host.window().close())),
-                                Attributes.NONE)));
-        LOG.info("tray {}", tray.isPresent() ? "shown" : "unavailable on this desktop");
+        // Give the first frame to the window before registering with the desktop shell.
+        trayStartup = host.window().onFrame(_ -> {
+            cancelTrayStartup();
+            trayStartup = host.after(Duration.ZERO, () -> {
+                if (host.window().isOpen()) {
+                    showTray(host);
+                }
+            })::cancel;
+        });
 
         // The list search runs over, read now rather than on the first Ctrl+K:
         // the sidebar's counts are read from it on the first frame anyway.
@@ -467,6 +451,36 @@ public final class Showcase implements Application {
                     Models.refresh(model.shell());
                     return null;
                 });
+    }
+
+    private void showTray(Host host) {
+        tray = Trays.show(
+                host,
+                TrayIcon.of(
+                        "Goldberry — showcase",
+                        new Menu(
+                                List.of(
+                                        new Item("Switch the light", actions.appearance()::toggleTheme),
+                                        new Item("Switch the density", actions.appearance()::toggleDensity),
+                                        new Separator(),
+                                        new Item("Screens")
+                                                .submenu(Screen.GALLERY.stream()
+                                                        .map(name -> (Widget) new Item(
+                                                                Screen.title(name),
+                                                                () -> actions.shell()
+                                                                        .pickScreen(name)))
+                                                        .toArray(Widget[]::new)),
+                                        new Separator(),
+                                        new Item("Quit", () -> host.window().close())),
+                                Attributes.NONE)));
+        LOG.info("tray {}", tray.isPresent() ? "shown" : "unavailable on this desktop");
+    }
+
+    private void cancelTrayStartup() {
+        if (trayStartup != null) {
+            trayStartup.close();
+            trayStartup = null;
+        }
     }
 
     /// Hangs `Ctrl+1`… off the gallery, in strip order.
@@ -804,11 +818,12 @@ public final class Showcase implements Application {
     /// referenced by a widget that has not been collected.
     @Override
     public void stop() {
+        cancelTrayStartup();
         // The tray first, and for a reason the icons do not have: an icon left
         // open leaks memory inside this process, while a tray left up leaves a
         // picture in somebody's notification area that the shell will not clean
         // away.
-        tray.ifPresent(dev.goldberry.render.tray.BackendTray::close);
+        tray.ifPresent(ShownTray::close);
         if (menu != null && menu.isOpen()) {
             menu.close();
         }

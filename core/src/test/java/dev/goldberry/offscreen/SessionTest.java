@@ -347,9 +347,9 @@ class SessionTest {
             try (var session = open()) {
                 session.host().after(Duration.ofMillis(100), () -> log.add("fired"));
                 session.click("a");
-                session.advance(Duration.ofMillis(50));
+                session.advance(Duration.ofMillis(99).plusNanos(500_000));
                 assertEquals(List.of("click:a"), log);
-                session.advance(Duration.ofMillis(50));
+                session.advance(Duration.ofNanos(500_000));
                 assertEquals(List.of("click:a", "fired"), log);
                 assertEquals(100, session.nowMillis());
             }

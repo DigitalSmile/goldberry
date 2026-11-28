@@ -204,6 +204,7 @@ class BvhBuilderTest {
     void refusals() {
         assertThrows(IllegalArgumentException.class, () -> BvhBuilder.build(new float[0], new float[0], 4));
         assertThrows(IllegalArgumentException.class, () -> BvhBuilder.build(new float[6], new float[6], 4));
+        assertThrows(IllegalArgumentException.class, () -> BvhBuilder.build(new float[7], new float[3], 4));
         assertThrows(IllegalArgumentException.class, () -> BvhBuilder.build(new float[6], new float[3], 0));
         assertThrows(
                 IllegalArgumentException.class,

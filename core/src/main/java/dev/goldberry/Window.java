@@ -1111,6 +1111,9 @@ public final class Window implements AutoCloseable {
             frame.end();
         }
         var painted = System.nanoTime();
+        if (!everPresented) {
+            Startup.mark("first frame rasterized");
+        }
 
         // Every layer on screen, which after a partial repaint includes the ones
         // it did not reach, handed over before the present that draws them.

@@ -67,13 +67,8 @@ jobs:
       # qodana.yaml names, and resolved every module doing so, run locally
       # against a fresh checkout (2026-09-30).
       #
-      # The baseline is the first run's findings, 408 of them, accepted so the
-      # gate in qodana.yaml fails on *new* high-severity problems only. It is
-      # that run's SARIF with the rule catalogue dropped: Qodana matches a
-      # finding by its fingerprint, and the catalogue was 2.6 MB of the 5.
-      # Regenerate it from a fresh run's SARIF. (Until 2026-09-30 there
-      # was no first run, which is why the flag was absent: the 2026-09-18
-      # review, B11.)
+      # The baseline records reviewed findings by fingerprint. The gate in
+      # qodana.yaml rejects new critical and high-severity problems.
       # The release qodana.yaml pins the linter to, so CI and a local run
       # inspect with the same IntelliJ. A pull request inspects what it changed;
       # a push to master inspects everything, which is what Qodana Cloud keeps
@@ -82,12 +77,12 @@ jobs:
         if: steps.gate.outputs.connected == 'true'
         with:
           pr-mode: ${{ github.event_name == 'pull_request' }}
-          args: --baseline,config/qodana/baseline.sarif.json
+          args: --baseline config/qodana/baseline.sarif.json
         env:
           QODANA_TOKEN: ${{ secrets.QODANA_TOKEN_2096098759 || secrets.QODANA_TOKEN }}
           QODANA_ENDPOINT: https://qodana.cloud
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always() && steps.gate.outputs.connected == 'true'
         with:
           name: qodana

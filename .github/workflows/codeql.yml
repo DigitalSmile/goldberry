@@ -1,10 +1,8 @@
 # CodeQL — the security half of static analysis, an advisory dashboard.
 # https://goldberry.dev/docs/contributing/testing.html#advisory-dashboards
 #
-# Weekly and on pull requests, not on every push: a CodeQL database is built by
-# compiling the project, so it costs a full build, and the findings it produces
-# are not the kind that change between two commits an hour apart. The cron below
-# is a Monday, which is what this header used to call nightly.
+# Pull requests catch new findings and default-branch pushes refresh the
+# Security tab. A weekly run checks the default branch with the current queries.
 #
 # `-Pgoldberry.skipNative=true` for the reason the `java` job in linux.yml uses
 # it: CodeQL analyses Java, the CMake superbuild produces a shared library it
@@ -16,6 +14,10 @@ on:
   pull_request:
     branches: [main, master]
     # The landing page is pages.yml's alone, and it runs SiteTest itself.
+    paths-ignore:
+      - 'site/**'
+  push:
+    branches: [main, master]
     paths-ignore:
       - 'site/**'
   schedule:
@@ -40,9 +42,10 @@ jobs:
           distribution: temurin
           java-version: '25'
 
-      - uses: github/codeql-action/init@v3
+      - uses: github/codeql-action/init@v4
         with:
           languages: java-kotlin
+          build-mode: manual
           # `security-and-quality` over the default `security-extended`: this is
           # an advisory dashboard rather than a gate, so the wider set is
           # worth having. Less four queries that report nothing but false
@@ -59,6 +62,6 @@ jobs:
       - name: Build for the database
         run: ./gradlew compileJava compileTestJava -Pgoldberry.skipNative=true --no-daemon --no-build-cache
 
-      - uses: github/codeql-action/analyze@v3
+      - uses: github/codeql-action/analyze@v4
         with:
           category: /language:java-kotlin

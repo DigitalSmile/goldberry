@@ -79,7 +79,7 @@ public final class SyntheticSource implements SampleSource {
         var due = format.framesIn(duration.toNanos()) + pending;
         var whole = due / blockFrames;
         pending = due % blockFrames;
-        for (var index = 0; index < whole; index++) {
+        for (long index = 0; index < whole; index++) {
             deliver();
         }
         return whole * blockFrames;

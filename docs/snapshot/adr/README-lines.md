@@ -192,3 +192,6 @@ Appended to the index when the records move in, in this order.
 - [ADR-0750 The native showcase embeds its codec library](0750-the-native-showcase-embeds-its-codec-library.md)
 - [ADR-0751 Embedded pages stay above Metal](0751-embedded-pages-stay-above-metal.md)
 - [ADR-0752 Asset downloads retry when the response stalls](0752-asset-downloads-retry-when-the-response-stalls.md)
+- [ADR-0753 The Showcase presents before registering its tray](0753-the-showcase-presents-before-registering-its-tray.md)
+- [ADR-0754 The native library check closes its SVG](0754-the-native-library-check-closes-its-svg.md)
+- [ADR-0755 The search test names the first stale card](0755-the-search-test-names-the-first-stale-card.md)

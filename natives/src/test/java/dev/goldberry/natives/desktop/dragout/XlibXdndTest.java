@@ -10,9 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.lang.foreign.Arena;
 import java.lang.foreign.FunctionDescriptor;
 import java.lang.foreign.Linker;
@@ -202,8 +200,13 @@ class XlibXdndTest {
             var process = new ProcessBuilder(server.toString(), "-displayfd", "1", "-nolisten", "tcp")
                     .redirectError(ProcessBuilder.Redirect.DISCARD)
                     .start();
-            var reader = new BufferedReader(new InputStreamReader(process.getInputStream(), StandardCharsets.UTF_8));
-            var number = reader.readLine();
+            String number;
+            try (var reader = process.inputReader(StandardCharsets.UTF_8)) {
+                number = reader.readLine();
+            } catch (IOException e) {
+                process.destroyForcibly();
+                throw e;
+            }
             if (number != null && !number.isBlank()) {
                 xvfb = process;
                 display = ":" + number.trim();

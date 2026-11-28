@@ -2,6 +2,7 @@ package dev.goldberry.example.ui.search;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertIterableEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
@@ -121,9 +122,9 @@ class SearchIndexTest {
         // The source file rather than the resource on the class path: a run that
         // rewrote the file is then checked against what it wrote.
         var onDisk = Files.readString(Path.of(SearchIndex.SOURCE), StandardCharsets.UTF_8);
-        assertEquals(
-                built.write(),
-                SearchIndex.parse(onDisk).write(),
+        assertIterableEquals(
+                built.entries(),
+                SearchIndex.parse(onDisk).entries(),
                 "the search index is stale: rerun with -Dgoldberry.golden.update=true to rewrite "
                         + SearchIndex.SOURCE);
     }

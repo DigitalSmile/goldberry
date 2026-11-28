@@ -65,7 +65,9 @@ class VectorNativeImagePropertiesTest {
         try (var in = VectorNativeImagePropertiesTest.class.getResourceAsStream(RESOURCE)) {
             assertNotNull(in, RESOURCE);
             var properties = new Properties();
-            properties.load(new InputStreamReader(in, StandardCharsets.UTF_8));
+            try (var reader = new InputStreamReader(in, StandardCharsets.UTF_8)) {
+                properties.load(reader);
+            }
             var args = properties.getProperty("Args");
             assertNotNull(args, "no Args line in " + RESOURCE);
             return Arrays.stream(args.trim().split("\\s+")).toList();

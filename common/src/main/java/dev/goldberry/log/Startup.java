@@ -75,7 +75,9 @@ public final class Startup {
             return;
         }
         MARKS.add(new Mark(phase, elapsed));
-        LOG.trace("{} {}", millis(elapsed), phase);
+        if (LOG.isTraceEnabled()) {
+            LOG.trace("{} {}", millis(elapsed), phase);
+        }
     }
 
     /// Times `work` and records how long it took.

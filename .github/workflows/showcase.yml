@@ -237,10 +237,16 @@ jobs:
         if: runner.os == 'macOS'
         run: |
           ./example/build/native/goldberry-showcase-${{ matrix.target }} \
-            --frames=300 --resize=1580x1100 | tee native-run.log
+            -Dgoldberry.startup.log.level=TRACE --frames=300 --resize=1580x1100 | tee native-run.log
           grep -q "painted 300 frame(s); exiting" native-run.log \
             || { echo "::error::the native showcase did not present three hundred frames"; exit 1; }
           grep "frames: " native-run.log | sed 's/^.*frames: /Frames (${{ matrix.target }}): /' >> "$GITHUB_STEP_SUMMARY"
+          grep -Fq "Startup - start-up timeline (" native-run.log
+          {
+            echo '```text'
+            sed -n '/Startup - start-up timeline (/,/first frame presented/p' native-run.log
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Run the native image (windows)
         if: runner.os == 'Windows'

@@ -176,12 +176,13 @@ public final class Session implements AutoCloseable {
         }
         var clock = strip.clock();
         var target = clock.nowMillis() + by.toNanos() / 1_000_000.0;
+        var lastWholeMillis = (long) Math.floor(target);
         settle();
         // Strictly after the clock: a timer due at or before it was fired by
         // the settle above, or is a chain that settle re-armed at the same
         // time, and stepping to it would not move the clock at all.
         for (var due = timers.nextDueMillisAfter(clock.nowMillis());
-                due.isPresent() && due.getAsLong() <= target;
+                due.isPresent() && due.getAsLong() <= lastWholeMillis;
                 due = timers.nextDueMillisAfter(clock.nowMillis())) {
             clock.set((double) due.getAsLong());
             settle();

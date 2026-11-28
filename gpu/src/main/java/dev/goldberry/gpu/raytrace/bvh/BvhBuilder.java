@@ -52,24 +52,29 @@ public final class BvhBuilder {
     /// corner then the high), and whose centroids are `centroids`, three each,
     /// with leaves of up to `maxLeaf` primitives.
     ///
-    /// @throws IllegalArgumentException when there are no primitives, the two
-    ///                                  arrays disagree on how many, a value is
-    ///                                  not finite, a box is inside out, or
-    ///                                  `maxLeaf` is below one
+    /// @throws IllegalArgumentException when the primitive count is zero or too
+    ///                                  large, the arrays disagree on how many,
+    ///                                  a value is not finite, a box is inside out,
+    ///                                  or `maxLeaf` is below one
     public static Bvh build(float[] boxes, float[] centroids, int maxLeaf) {
         if (maxLeaf < 1) {
             throw new IllegalArgumentException("a leaf holds at least one primitive, not " + maxLeaf);
         }
-        if (centroids.length == 0 || centroids.length % 3 != 0 || boxes.length != centroids.length * 2) {
+        var count = centroids.length / 3;
+        if (count == 0 || centroids.length % 3 != 0 || boxes.length % 6 != 0 || boxes.length / 6 != count) {
             throw new IllegalArgumentException(
                     boxes.length + " box values and " + centroids.length + " centroid values");
+        }
+        // A full binary tree can have 2 * count - 1 nodes with six bounds each.
+        if (count > (Integer.MAX_VALUE / 6 + 1) / 2) {
+            throw new IllegalArgumentException("too many primitives for a BVH: " + count);
         }
         for (var i = 0; i < boxes.length; i++) {
             if (!Float.isFinite(boxes[i])) {
                 throw new IllegalArgumentException("box value " + i + " is " + boxes[i]);
             }
         }
-        for (var i = 0; i < boxes.length; i += 6) {
+        for (var i = 0; i <= boxes.length - 6; i += 6) {
             for (var axis = 0; axis < 3; axis++) {
                 if (boxes[i + axis] > boxes[i + 3 + axis]) {
                     throw new IllegalArgumentException("box " + i / 6 + " is inside out on axis " + axis);

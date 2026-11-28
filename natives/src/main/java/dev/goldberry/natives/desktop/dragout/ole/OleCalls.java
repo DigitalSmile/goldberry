@@ -30,10 +30,6 @@ public final class OleCalls {
     /// `GA_ROOT`: a window's top-level ancestor.
     private static final int ROOT = 2;
 
-    /// `RPC_E_CHANGED_MODE`: the thread is a multithreaded apartment, where OLE's
-    /// drag and drop does not work.
-    private static final int CHANGED_MODE = 0x80010106;
-
     /// `POINT`: two `LONG`s.
     static final StructLayout POINT = MemoryLayout.structLayout(JAVA_INT.withName("x"), JAVA_INT.withName("y"));
 
@@ -115,7 +111,7 @@ public final class OleCalls {
     public boolean initialise() {
         try {
             var result = (int) initialise.invokeExact(MemorySegment.NULL);
-            return result >= 0 && result != CHANGED_MODE;
+            return result >= 0;
         } catch (Throwable t) {
             throw Downcalls.failure("OleInitialize", t);
         }

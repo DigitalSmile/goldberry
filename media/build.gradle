@@ -424,6 +424,9 @@ tasks.withType(Test).configureEach {
 // already loaded from the install directory.
 tasks.named('test') {
     useJUnitPlatform { excludeTags 'natives-jar', 'gpu' }
+    if (superbuildTools.cmake != null) {
+        systemProperty 'goldberry.test.cmake', superbuildTools.cmake.absolutePath
+    }
 }
 
 // ============================================================================

@@ -9,7 +9,7 @@ For `book/src/contributing/testing.md`, `## The CI matrix`.
 | `linux.yml` | Pull request not only touching `site/`, and every push through `snapshot.yml` |
 | `macos.yml`, `windows.yml` | Pull request not only touching `site/`, and every push through `snapshot.yml` |
 | `snapshot.yml` | Push to `master` not only touching `site/` |
-| `codeql.yml` | Pull request not only touching `site/`, and weekly |
+| `codeql.yml` | Pull request and push to `main` or `master` unless only `site/` changes, and weekly |
 | `qodana.yml` | Pull request and push, neither only touching `site/` |
 
 2. Replace the `pages.yml` row's last cell with: "The landing page and this

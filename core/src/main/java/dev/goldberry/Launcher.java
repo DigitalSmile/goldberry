@@ -17,11 +17,11 @@ import dev.goldberry.bind.Subscription;
 import dev.goldberry.bind.runtime.Models;
 import dev.goldberry.css.Stylesheet;
 import dev.goldberry.css.image.StyleImages;
-import dev.goldberry.css.lint.StyleLint;
 import dev.goldberry.drive.FrameBudgetException;
 import dev.goldberry.drive.ResizeWalk;
 import dev.goldberry.input.cursor.CursorImage;
 import dev.goldberry.instance.SingleInstance;
+import dev.goldberry.log.Startup;
 import dev.goldberry.motion.Clock;
 import dev.goldberry.render.desktop.notify.NotificationCenter;
 import dev.goldberry.render.model.LogicalSize;
@@ -300,8 +300,8 @@ final class Launcher {
                 .withDisplay(application.display().orElse(null)));
         // Straight after opening, so the taskbar never shows the generic icon for
         // longer than the first frame takes.
-        applyIcon(window);
-        applyCursors();
+        Startup.time("window icon", () -> applyIcon(window));
+        Startup.time("application cursors", this::applyCursors);
         if (options.resize() != null) {
             resizeWalk = new ResizeWalk(size, options.resize());
             LOG.info("walking the window's size a pixel a frame: {}", resizeWalk);
@@ -312,14 +312,14 @@ final class Launcher {
         // face per frame would put font parsing on the frame path.
         // With the application's own faces added after the bundled ones, read
         // here and never again.
-        fonts = Fonts.bundled(application.fonts(), application.fallbacks());
+        fonts = Startup.time("font catalogue", () -> Fonts.bundled(application.fonts(), application.fallbacks()));
 
         main = new HostedWindow(this, window, null, false);
         main.afterPaint(this::afterMainPaint);
 
         // Before `root()`, so an application can open its icons and bind its
         // accelerators and then describe a tree that uses them.
-        application.start(main);
+        Startup.time("application start", () -> application.start(main));
 
         // The application's models drive every window, and it says nothing about
         // it: a change to a bound field asks for a frame, and a change to one
@@ -333,7 +333,7 @@ final class Launcher {
         // it, and any window may be drawing it.
         modelSubscriptions.add(StyleImages.onArrival(this::repaintAll));
 
-        main.mount(application.root());
+        Startup.time("initial widget tree mounted", () -> main.mount(application.root()));
 
         // What the system asks the application to open: a macOS URL or file
         // arriving as a drop on no window, and a second launch's arguments.
@@ -500,11 +500,6 @@ final class Launcher {
 
     List<Object> models() {
         return models;
-    }
-
-    /// The lint a renderer runs when it is rebuilt, when it was asked for.
-    void lintStylesheets() {
-        StyleLint.reportIfAsked(application.stylesheets());
     }
 
     /// Every window, the first one first.

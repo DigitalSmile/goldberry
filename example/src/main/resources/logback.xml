@@ -23,6 +23,7 @@
          `-Dgoldberry.log.level=TRACE` is how to find out where a slow frame
          went. -->
     <logger name="dev.goldberry" level="${goldberry.log.level:-DEBUG}"/>
+    <logger name="dev.goldberry.log.Startup" level="${goldberry.startup.log.level:-INHERITED}"/>
 
     <!-- What the platform's own libraries say about themselves.
          GLib's messages arrive on `native.glib.<domain>` and SDL's on

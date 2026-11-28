@@ -19,6 +19,21 @@ page is the other half: it says what works and what it cost to find out.
 | [M5 — Hardening](#m5--hardening) | **started** | Text editing depth, IME preedit, docs, the first release — **`v2026.2` is on Central since 2026-10-02, with the native showcase on its GitHub Release** — and the three-platform frame evidence M1 is waiting on. The AccessKit bridge was this milestone's last toolkit item and is **on hold** ([ADR-0440](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0440-the-accessibility-bridge-is-on-hold-and-the-semantics-tree-stays.md)) |
 | [Content modules](#content-modules) | **started** | The first of the eleven is built **whole**: `:html` parses Markdown through md4c and HTML in Java, serves Markdown as HTML, and renders both as widgets — `markdown-view` and `html-view`, neither with an engine under it. **`:emoji` is the second**, and is a font rather than a widget: Noto Color Emoji's COLRv1 build ships there, drawn from its paint graphs, and `:core` loads the face through a service ([ADR-0384](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0384-the-emoji-face-is-an-artifact-an-application-opts-into.md), [ADR-0456](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0456-the-emoji-face-is-noto-drawn-from-its-paint-graphs.md)). **`:media` is the third**: audio and video over FFmpeg driven from Java, with the operating system's decoders behind the same SPI, published as an optional snapshot ([ADR-0460](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0460-media-is-ffmpeg-driven-from-java-not-libvlc.md), [ADR-0493](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0493-the-platform-decoders-are-part-of-media.md), [ADR-0495](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0495-media-is-published-and-snapshots-publish-again.md)). The web engine turned out not to be a module: `web-view` is a widget in `:widgets` where the window system allows a child window ([ADR-0442](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0442-a-page-is-a-child-window-where-the-window-system-allows-one.md)). The other seven are unscheduled |
 
+The Showcase search index now matches the ray-traced room card. The index
+test reports the first differing entry in CI.
+[ADR-0755](snapshot/adr/0755-the-search-test-names-the-first-stale-card.md)
+
+The Showcase presents its first frame before registering the tray. The median
+in fifteen paired native Linux runs fell from 248.5 ms to 229.7 ms. The
+macOS Showcase job reports the timeline for measuring the Cocoa launch path.
+[ADR-0753](snapshot/adr/0753-the-showcase-presents-before-registering-its-tray.md)
+
+The Showcase's native-library check closes its test SVG. Qodana passed locally
+with zero new critical or high findings. CodeQL v4 scans default-branch pushes.
+Local scans verified 14 CodeQL fixes, including private directories for the
+default single-instance lock and the POSIX long-path socket.
+[ADR-0754](snapshot/adr/0754-the-native-library-check-closes-its-svg.md)
+
 `:example:prepareAssets` reports downloads on a cold cache. Its downloader
 retries when a server stalls sending headers or body data. Loopback tests
 exercise both stalls and check that a retry writes the complete archive.

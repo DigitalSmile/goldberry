@@ -139,6 +139,7 @@ class SiteOnlyChangeTest {
             "macos.yml, pull_request",
             "windows.yml, pull_request",
             "codeql.yml, pull_request",
+            "codeql.yml, push",
             "qodana.yml, pull_request",
             "qodana.yml, push",
             "snapshot.yml, push",

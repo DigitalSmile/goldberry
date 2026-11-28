@@ -10,3 +10,12 @@ For `book/src/performance/measuring.md`.
 
 The rendering-offscreen section in `components-gpu.md` links this table as
 `../performance/measuring.md#the-flags`.
+
+3. Under `## The showcase under load`, add the startup-only trace command.
+
+```sh
+./goldberry-showcase-macos-aarch64 -Dgoldberry.startup.log.level=TRACE --frames=1
+```
+
+The timeline measures from process start to SDL's first successful
+presentation. The macOS Showcase workflow includes it in the job summary.

@@ -15,6 +15,7 @@ import org.slf4j.LoggerFactory;
 import dev.goldberry.bind.Property;
 import dev.goldberry.bind.Subscription;
 import dev.goldberry.bind.runtime.Models;
+import dev.goldberry.css.lint.StyleLint;
 import dev.goldberry.css.media.MediaContext;
 import dev.goldberry.frame.FrameSequence;
 import dev.goldberry.frame.pacing.AnimationPacing;
@@ -640,7 +641,8 @@ final class HostedWindow implements WindowHost {
 
     private WidgetRenderer renderer() {
         if (stylesDirty || renderer == null) {
-            renderer = new WidgetRenderer(app.stylesheets(), app.fonts())
+            var sheets = app.stylesheets();
+            renderer = new WidgetRenderer(sheets, app.fonts())
                     .frames(window.frames())
                     .clock(app.clock())
                     // The application's, shared by every window, so a settings
@@ -660,7 +662,7 @@ final class HostedWindow implements WindowHost {
                     // `prefers-reduced-transparency` are asked about.
                     .preferences(preferences(window.displayPreferences()));
             stylesDirty = false;
-            app.lintStylesheets();
+            StyleLint.reportIfAsked(sheets);
         }
         return renderer;
     }

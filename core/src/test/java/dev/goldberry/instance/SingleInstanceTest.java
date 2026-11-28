@@ -6,8 +6,11 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
+import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.attribute.PosixFilePermissions;
 import java.util.List;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
@@ -43,7 +46,7 @@ class SingleInstanceTest {
     @Test
     @Timeout(20)
     @DisplayName("hands over through a short socket name when the directory is too deep for a socket beside the lock")
-    void deepDirectory(@TempDir Path root) throws InterruptedException {
+    void deepDirectory(@TempDir Path root) throws IOException, InterruptedException {
         var directory = root.resolve("a".repeat(60)).resolve("dev.goldberry.test." + "b".repeat(36));
         var socket = SingleInstance.socketFor(directory);
         assertFalse(socket.startsWith(directory), "the socket moved out of the deep directory");
@@ -52,6 +55,11 @@ class SingleInstanceTest {
 
         var heard = new LinkedBlockingQueue<List<String>>();
         try (var first = SingleInstance.acquire(directory, List.of()).orElseThrow()) {
+            if (socket.getFileSystem().supportedFileAttributeViews().contains("posix")) {
+                assertEquals(
+                        PosixFilePermissions.fromString("rwx------"),
+                        Files.getPosixFilePermissions(socket.getParent()));
+            }
             first.onArguments(Runnable::run, heard::add);
             assertTrue(SingleInstance.acquire(directory, List.of("tessera://invite/7"))
                     .isEmpty());
@@ -96,11 +104,29 @@ class SingleInstanceTest {
     }
 
     @Test
+    void releasesTheLockWhenSocketSetupFails(@TempDir Path directory) throws IOException {
+        var socket = SingleInstance.socketFor(directory);
+        assumeTrue(socket.startsWith(directory), "use the temporary test directory for the socket");
+        Files.createDirectory(socket);
+        var existingFile = Files.createFile(socket.resolve("existing"));
+
+        assertThrows(UncheckedIOException.class, () -> SingleInstance.acquire(directory, List.of()));
+
+        Files.delete(existingFile);
+        Files.delete(socket);
+        try (var claim = SingleInstance.acquire(directory, List.of()).orElseThrow()) {
+            assertEquals(directory, claim.directory());
+        }
+    }
+
+    @Test
     @DisplayName("names a directory per application, and refuses an id that is not a file name")
     void directories() {
         var path = SingleInstance.directoryFor("dev.example.chat");
         assertEquals("dev.example.chat", path.getFileName().toString());
         assertThrows(IllegalArgumentException.class, () -> SingleInstance.directoryFor("../escape"));
+        assertThrows(IllegalArgumentException.class, () -> SingleInstance.directoryFor("."));
+        assertThrows(IllegalArgumentException.class, () -> SingleInstance.directoryFor(".."));
         assertThrows(IllegalArgumentException.class, () -> SingleInstance.directoryFor(" "));
     }
 }

@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.net.StandardProtocolFamily;
 import java.net.UnixDomainSocketAddress;
+import java.nio.channels.Channel;
 import java.nio.channels.Channels;
 import java.nio.channels.ClosedChannelException;
 import java.nio.channels.FileChannel;
@@ -15,16 +16,20 @@ import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
+import java.nio.file.attribute.PosixFileAttributes;
+import java.nio.file.attribute.PosixFilePermission;
+import java.nio.file.attribute.PosixFilePermissions;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.HexFormat;
 import java.util.List;
-import java.util.Locale;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.Executor;
 import java.util.function.Consumer;
 
@@ -71,6 +76,8 @@ public final class SingleInstance implements AutoCloseable {
     /// Linux and Windows), terminator included.
     static final int MAX_SOCKET_PATH_BYTES = 100;
 
+    private static final Set<PosixFilePermission> OWNER_ONLY = PosixFilePermissions.fromString("rwx------");
+
     private final Path directory;
     private final FileChannel lockFile;
     private final FileLock lock;
@@ -102,7 +109,7 @@ public final class SingleInstance implements AutoCloseable {
     /// @throws UncheckedIOException when the directory cannot be made, or the
     ///                              running copy cannot be reached
     public static Optional<SingleInstance> acquire(String id, List<String> arguments) {
-        return acquire(directoryFor(id), arguments);
+        return acquire(directoryFor(id), arguments, true);
     }
 
     /// Claims `directory` as the application's, for a caller that keeps its
@@ -111,27 +118,65 @@ public final class SingleInstance implements AutoCloseable {
     /// @throws UncheckedIOException when the directory cannot be made, or the
     ///                              running copy cannot be reached
     public static Optional<SingleInstance> acquire(Path directory, List<String> arguments) {
+        return acquire(directory, arguments, false);
+    }
+
+    private static Optional<SingleInstance> acquire(Path directory, List<String> arguments, boolean privateDirectory) {
         Objects.requireNonNull(directory, "directory");
         var handed = List.copyOf(Objects.requireNonNull(arguments, "arguments"));
         try {
-            Files.createDirectories(directory);
-            var lockFile = FileChannel.open(
-                    directory.resolve("instance.lock"), StandardOpenOption.CREATE, StandardOpenOption.WRITE);
-            var lock = tryLock(lockFile);
+            if (privateDirectory && isPosix(directory)) {
+                createPosixPrivateDirectory(directory);
+            } else {
+                Files.createDirectories(directory);
+            }
             var socket = socketFor(directory);
+            var socketParent = socket.getParent();
+            if (socketParent != null && !socketParent.equals(directory) && isPosix(socketParent)) {
+                createPosixPrivateDirectory(socketParent);
+            }
+            return claim(directory, socket, handed);
+        } catch (IOException e) {
+            throw new UncheckedIOException("cannot claim " + directory + " for one running copy", e);
+        }
+    }
+
+    private static Optional<SingleInstance> claim(Path directory, Path socket, List<String> arguments)
+            throws IOException {
+        var lockFile = FileChannel.open(
+                directory.resolve("instance.lock"),
+                StandardOpenOption.CREATE,
+                StandardOpenOption.WRITE,
+                LinkOption.NOFOLLOW_LINKS);
+        try {
+            var lock = tryLock(lockFile);
             if (lock == null) {
                 lockFile.close();
-                handOver(socket, handed);
+                handOver(socket, arguments);
                 return Optional.empty();
             }
             // The lock is held, so a socket file left here belongs to a copy
             // that died without cleaning up.
             Files.deleteIfExists(socket);
             var server = ServerSocketChannel.open(StandardProtocolFamily.UNIX);
-            server.bind(UnixDomainSocketAddress.of(socket));
-            return Optional.of(new SingleInstance(directory, lockFile, lock, server, socket));
+            try {
+                server.bind(UnixDomainSocketAddress.of(socket));
+                return Optional.of(new SingleInstance(directory, lockFile, lock, server, socket));
+            } catch (IOException | RuntimeException e) {
+                closeFailedClaim(server, e);
+                throw e;
+            }
+        } catch (IOException | RuntimeException e) {
+            closeFailedClaim(lockFile, e);
+            throw e;
+        }
+    }
+
+    private static void closeFailedClaim(Channel channel, Throwable failure) {
+        try {
+            channel.close();
         } catch (IOException e) {
-            throw new UncheckedIOException("cannot claim " + directory + " for one running copy", e);
+            failure.addSuppressed(e);
         }
     }
 
@@ -149,15 +194,46 @@ public final class SingleInstance implements AutoCloseable {
     /// The socket for the claim on `directory`: beside the lock, or, where
     /// that path is longer than a Unix-domain address may be (a long user name
     /// under Windows' temporary directory, a deep data directory), a short
-    /// name in the temporary directory that only `directory` gives. Both
+    /// name in a user-specific temporary directory that only `directory` gives. Both
     /// launches work it out alike, so the second finds the first.
     static Path socketFor(Path directory) {
         var beside = directory.resolve("instance.sock");
-        if (beside.toString().getBytes(StandardCharsets.UTF_8).length <= MAX_SOCKET_PATH_BYTES) {
+        if (fitsSocketAddress(beside)) {
             return beside;
         }
         var name = directory.toAbsolutePath().normalize().toString();
-        return Path.of(System.getProperty("java.io.tmpdir"), "goldberry-" + digest(name) + ".sock");
+        var temp = Path.of(System.getProperty("java.io.tmpdir")).toAbsolutePath();
+        var file = "goldberry-" + digest(name) + ".sock";
+        if (!isPosix(temp)) {
+            // Windows already places the temporary directory in the user's profile.
+            return temp.resolve(file);
+        }
+        var userDirectory = "gb-" + digest(System.getProperty("user.home"));
+        var preferred = temp.resolve(userDirectory).resolve(file);
+        return fitsSocketAddress(preferred) ? preferred : Path.of("/tmp", userDirectory, file);
+    }
+
+    private static boolean fitsSocketAddress(Path path) {
+        return path.toString().getBytes(StandardCharsets.UTF_8).length <= MAX_SOCKET_PATH_BYTES;
+    }
+
+    private static boolean isPosix(Path path) {
+        return path.getFileSystem().supportedFileAttributeViews().contains("posix");
+    }
+
+    private static void createPosixPrivateDirectory(Path directory) throws IOException {
+        Files.createDirectories(directory, PosixFilePermissions.asFileAttribute(OWNER_ONLY));
+        var attributes = Files.readAttributes(directory, PosixFileAttributes.class, LinkOption.NOFOLLOW_LINKS);
+        var user = directory
+                .getFileSystem()
+                .getUserPrincipalLookupService()
+                .lookupPrincipalByName(System.getProperty("user.name"));
+        if (!attributes.isDirectory() || !attributes.owner().equals(user)) {
+            throw new IOException("not a directory owned by the current user: " + directory);
+        }
+        if (!attributes.permissions().equals(OWNER_ONLY)) {
+            Files.setPosixFilePermissions(directory, OWNER_ONLY);
+        }
     }
 
     /// The first 64 bits of `text`'s SHA-256, in hex.
@@ -172,13 +248,13 @@ public final class SingleInstance implements AutoCloseable {
 
     /// Where an application's lock and socket live: under `XDG_RUNTIME_DIR`
     /// where the desktop has one, which is per user and cleared at log-out, and
-    /// under the temporary directory, with the user's name, otherwise.
+    /// under the user's home directory otherwise.
     ///
     /// @throws IllegalArgumentException if `id` is blank or has a character a
     ///                                  file name may not
     public static Path directoryFor(String id) {
         Objects.requireNonNull(id, "id");
-        if (id.isBlank() || !id.matches("[A-Za-z0-9._-]+")) {
+        if (!id.matches("[A-Za-z0-9._-]+") || id.equals(".") || id.equals("..")) {
             throw new IllegalArgumentException(
                     "an application id is letters, digits, dots, dashes and underscores, not \"" + id + "\"");
         }
@@ -186,8 +262,7 @@ public final class SingleInstance implements AutoCloseable {
         if (runtime != null && !runtime.isBlank()) {
             return Path.of(runtime, "goldberry", id);
         }
-        var user = System.getProperty("user.name", "user").replaceAll("[^A-Za-z0-9._-]", "_");
-        return Path.of(System.getProperty("java.io.tmpdir"), "goldberry-" + user.toLowerCase(Locale.ROOT), id);
+        return Path.of(System.getProperty("user.home"), ".goldberry", "instances", id);
     }
 
     /// Hands every later launch's arguments to `listener` on `executor`: the

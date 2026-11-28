@@ -214,11 +214,11 @@ public final class MatroskaCodecs {
         var depth = 8;
         var subsampling = -1;
         var at = 0;
-        while (at + 2 <= record.length) {
+        while (at <= record.length - 2) {
             var id = record[at] & 0xFF;
             var length = record[at + 1] & 0xFF;
             at += 2;
-            if (at + length > record.length) {
+            if (at >= record.length || length > record.length - at) {
                 break;
             }
             if (length == 1) {
@@ -306,11 +306,11 @@ public final class MatroskaCodecs {
 
     private static OptionalInt vp9Feature(byte[] record, int wanted) {
         var at = 0;
-        while (at + 2 <= record.length) {
+        while (at <= record.length - 2) {
             var id = record[at] & 0xFF;
             var length = record[at + 1] & 0xFF;
             at += 2;
-            if (at + length > record.length) {
+            if (at >= record.length || length > record.length - at) {
                 break;
             }
             if (id == wanted && length == 1) {
